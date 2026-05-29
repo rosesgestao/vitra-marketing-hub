@@ -80,3 +80,22 @@ Foi iniciada a migracao do prototipo Premium para o dashboard React existente em
 - A renderizacao com `card-builder.js`, Storage e jobs reais fica para a Fase 2/3.
 - Tokens de Meta, Instagram, Facebook e Ads nao serao armazenados no browser.
 - O acesso RLS da migracao esta permissivo para a Fase 1 e deve ser endurecido com autenticacao antes de producao publica.
+
+## 2026-05-29 - Cofre Atualizado com Estado Atual da Fase 1
+
+Foi criada a nota [[../Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fase_1]] para registrar o estado atual completo entre a ultima atualizacao do cofre e o projeto atual.
+
+### Confirmacoes
+
+- Conta Supabase confirmada: `souleonardobrasil`.
+- E-mail Supabase confirmado: `github@leonardobrasil.com.br`.
+- Organizacao Supabase confirmada: `Vitra Imobiliaria`.
+- Projeto Supabase confirmado: `Marketing Vitra Imobiliaria`.
+- URL Supabase confirmada: `https://birxcfkyuzqnhyvetbjv.supabase.co`.
+- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`.
+- Commit do repositorio exclusivo: `d22eb86 feat: add premium operational dashboard phase 1`.
+- Commit do repositorio base: `01779f8 feat: add premium operational dashboard phase 1`.
+
+### Decisao
+
+O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operacional` como a base dedicada da ferramenta operacional Premium, enquanto `vitra-agentes-marketing` segue como base historica, vault e ecossistema de agentes.

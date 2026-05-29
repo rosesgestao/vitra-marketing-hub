@@ -23,6 +23,18 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 5. [[05 - Registro de Decisoes]]
 6. [[06 - Escopo Oficial do Projeto]]
 
+## Atualizacoes do Projeto
+
+- [[../Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fase_1]]
+
+## Estado Atual
+
+- Fase 1 React + Supabase iniciada.
+- Projeto Supabase confirmado: `Marketing Vitra Imobiliaria` (`birxcfkyuzqnhyvetbjv`).
+- Migracao Premium aplicada no Supabase.
+- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`, commit `d22eb86`.
+- Proxima etapa: backend de jobs, renderizacao com Storage e pipeline de assets.
+
 ## Arquivos de Referencia
 
 - Repositorio GitHub dedicado: `https://github.com/leoferrazbrasil/vitra-premium-ferramenta-operacional`

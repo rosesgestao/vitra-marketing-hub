@@ -39,6 +39,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 11. **[[Ferramenta Operacional Premium/00 - Indice]]**
     Documentacao viva do desenvolvimento da ferramenta operacional para criacao de campanhas, geracao de conteudos, aprovacao, publicacao e metricas da Vitra Premium.
 
+12. **[[Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fase_1]]**
+    Registro da Fase 1 da ferramenta operacional Premium: dashboard React, Supabase, migracao aplicada, commits publicados e proximos passos.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
