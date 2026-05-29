@@ -1,0 +1,31 @@
+node_modules/
+.env
+.env.local
+.env*.local
+vitra_brand_assets/.env
+vitra_brand_assets/node_modules/
+*.env.docx
+*.env.word.docx
+*.log
+dist/
+.DS_Store
+assets/imagens/
+logs/
+output/
+
+# Test output images
+test-*.png
+
+# Obsidian workspace cache
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Local brand source library. Promote only approved files to assets/brand/.
+vitra_brand_assets/
+
+# Local premium planning library. Promote only approved campaign/content files.
+planejamento_vitra_premium/*
+!planejamento_vitra_premium/README.md
+
+# Cloned repos inside vault
+obsidian/.claude/.git/

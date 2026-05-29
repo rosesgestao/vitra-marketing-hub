@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-navy-950 text-white font-sans antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-navy-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-navy-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-navy-600;
+  }
+
+  ::selection {
+    @apply bg-gold-500/20 text-gold-300;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-gold-500/50 ring-offset-1 ring-offset-navy-950;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-navy-900 border border-navy-700 rounded-xl p-5 transition-all duration-200;
+  }
+
+  .card-sm {
+    @apply bg-navy-900 border border-navy-700 rounded-xl p-4 transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply bg-navy-900 border border-navy-700 rounded-xl p-5 transition-all duration-200
+           hover:border-navy-600 hover:shadow-lg hover:shadow-black/20;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+           bg-transparent text-gray-400 border border-navy-700
+           hover:bg-navy-800 hover:text-white;
+  }
+
+  .btn-gold {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+           bg-gold-500/10 text-gold-400 border border-gold-600/30
+           hover:bg-gold-500/20;
+  }
+
+  .label-section {
+    @apply text-[10px] tracking-[0.15em] font-semibold text-navy-600 uppercase;
+  }
+
+  .divider {
+    @apply w-full h-px bg-navy-800;
+  }
+
+  .stat-number {
+    @apply font-display text-3xl font-semibold text-gold-400;
+  }
+
+  .gold-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(196, 148, 42, 0.4), transparent);
+    width: 100%;
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      theme('colors.navy.800') 25%,
+      theme('colors.navy.700') 50%,
+      theme('colors.navy.800') 75%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer rounded;
+  }
+}
