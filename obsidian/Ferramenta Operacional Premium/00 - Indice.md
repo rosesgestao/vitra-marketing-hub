@@ -22,6 +22,7 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 4. [[04 - Roadmap de Desenvolvimento]]
 5. [[05 - Registro de Decisoes]]
 6. [[06 - Escopo Oficial do Projeto]]
+7. [[07 - Instrucoes para IA]]
 
 ## Atualizacoes do Projeto
 
@@ -43,6 +44,7 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 - `planejamento_vitra_premium/estrategia-conteudo-vitra-premium.md`
 - `planejamento_vitra_premium/guia-produtos-vitra-premium.md`
 - `dashboard/`
+- `docs/ai-instructions-vitra-premium-operacional.md`
 - `supabase/schema.sql`
 - `src/agents/agent1-orquestrador.js`
 - `src/agents/agent8-publicador.js`
