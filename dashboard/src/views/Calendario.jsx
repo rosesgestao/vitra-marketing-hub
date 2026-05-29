@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Instagram, Youtube, Facebook, Music, Video, Image, FileText, CalendarOff } from 'lucide-react'
+import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 
 const PLATAFORMA_ICON = {
   instagram: Instagram,
@@ -28,19 +29,19 @@ const FORMATO_ICON = {
 }
 
 const PILAR_COR = {
-  educacao:   'bg-blue-900/30 text-blue-300 border-blue-700/30',
-  portfolio:  'bg-gold-500/15 text-gold-300 border-gold-700/30',
-  autoridade: 'bg-purple-900/30 text-purple-300 border-purple-700/30',
-  bastidores: 'bg-pink-900/30 text-pink-300 border-pink-700/30',
-  mercado:    'bg-cyan-900/30 text-cyan-300 border-cyan-700/30',
+  educacao:   'bg-gold-500/10 text-gold-200 border-gold-500/25',
+  portfolio:  'bg-gold-500/15 text-gold-100 border-gold-500/35',
+  autoridade: 'bg-white/5 text-gray-300 border-white/10',
+  bastidores: 'bg-white/5 text-gray-300 border-white/10',
+  mercado:    'bg-gold-500/10 text-gold-200 border-gold-500/25',
 }
 
 const STATUS_COR = {
-  planejado:            'bg-navy-800 text-gray-400 border-navy-700',
-  em_criacao:           'bg-orange-900/40 text-orange-300 border-orange-700/30',
-  aguardando_aprovacao: 'bg-yellow-900/40 text-yellow-300 border-yellow-700/30',
-  aprovado:             'bg-green-900/40 text-green-300 border-green-700/30',
-  publicado:            'bg-blue-900/40 text-blue-300 border-blue-700/30',
+  planejado:            'bg-white/5 text-gray-400 border-white/10',
+  em_criacao:           'bg-gold-500/10 text-gold-200 border-gold-500/25',
+  aguardando_aprovacao: 'bg-gold-500/15 text-gold-100 border-gold-500/30',
+  aprovado:             'bg-gold-500/20 text-gold-100 border-gold-500/40',
+  publicado:            'bg-white/10 text-gray-300 border-white/20',
 }
 
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -87,15 +88,13 @@ export default function Calendario() {
   const hojeStr = new Date().toLocaleDateString('pt-BR')
 
   return (
-    <div className="p-8">
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <p className="label-section mb-2">Quinzena atual</p>
-          <h1 className="font-display text-2xl text-white font-semibold">Calendário Editorial</h1>
-          <p className="text-gray-500 text-sm mt-1">{posts.length} posts planejados</p>
-        </div>
-
-        <div className="flex items-end gap-0">
+    <div className="premium-page">
+      <PremiumPageHeader
+        kicker="Quinzena atual"
+        title="Calendario editorial"
+        subtitle={`${posts.length} posts planejados para a linha editorial Premium.`}
+        actions={
+          <div className="flex items-end gap-0">
           {PLATAFORMAS.map((p, i) => {
             const active = filtro === p
             return (
@@ -107,7 +106,7 @@ export default function Calendario() {
                   color: active ? '#D4A84A' : '#ADB5BD',
                   borderBottom: active ? '2px solid #C4942A' : '2px solid transparent',
                   borderRadius: i === 0 ? '8px 0 0 0' : i === PLATAFORMAS.length - 1 ? '0 8px 0 0' : '0',
-                  background: active ? 'rgba(13,31,60,0.7)' : 'transparent',
+                  background: active ? 'rgba(196,148,42,0.10)' : 'transparent',
                 }}
                 onMouseEnter={e => {
                   if (!active) e.currentTarget.style.color = '#FFFFFF'
@@ -121,7 +120,8 @@ export default function Calendario() {
             )
           })}
         </div>
-      </div>
+        }
+      />
 
       {loading && (
         <div className="flex items-center justify-center h-48">
@@ -150,8 +150,8 @@ export default function Calendario() {
                 <div
                   className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg"
                   style={{
-                    background: hoje ? 'rgba(196,148,42,0.08)' : 'rgba(13,31,60,0.8)',
-                    border: hoje ? '1px solid rgba(196,148,42,0.25)' : '1px solid rgba(20,45,88,0.8)',
+                    background: hoje ? 'rgba(196,148,42,0.10)' : 'rgba(255,255,255,0.035)',
+                    border: hoje ? '1px solid rgba(196,148,42,0.30)' : '1px solid rgba(255,255,255,0.08)',
                   }}
                 >
                   <p
@@ -170,7 +170,7 @@ export default function Calendario() {
                     <span className="label-section" style={{ color: '#C4942A' }}>hoje</span>
                   )}
                 </div>
-                <div className="flex-1 h-px bg-navy-800" />
+                <div className="h-px flex-1 bg-gold-500/10" />
                 <span className="label-section">{dayPosts.length} post{dayPosts.length > 1 ? 's' : ''}</span>
               </div>
 
@@ -185,7 +185,7 @@ export default function Calendario() {
                   return (
                     <div
                       key={post.id}
-                      className="bg-navy-900 border border-navy-700 rounded-xl p-4 transition-all duration-200 hover:border-navy-600 hover:shadow-lg hover:shadow-black/20"
+                      className="rounded-lg border border-gold-500/15 bg-[#101010] p-4 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">

@@ -131,6 +131,95 @@ export function slugify(value) {
     .slice(0, 72)
 }
 
+function cleanText(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function buildProductData(form, product) {
+  return {
+    name: product,
+    tagline: cleanText(form.tagline),
+    area: cleanText(form.area),
+    suites: cleanText(form.suites),
+    towers: cleanText(form.towers),
+    differentials: cleanText(form.differentials),
+    price: cleanText(form.price),
+    suggested_headline: cleanText(form.suggested_headline),
+    suggested_copy: cleanText(form.suggested_copy),
+    location: cleanText(form.location),
+  }
+}
+
+function imageGroupsFromForm(form) {
+  return {
+    fachada: form.images?.fachada ? [form.images.fachada] : [],
+    living: form.images?.living ? [form.images.living] : [],
+    varanda: form.images?.varanda ? [form.images.varanda] : [],
+    infraestrutura: form.images?.infraestrutura ? [form.images.infraestrutura] : [],
+    extras: Array.isArray(form.images?.extras) ? form.images.extras : [],
+  }
+}
+
+async function uploadCampaignImages(campaign, slug, form) {
+  const groups = imageGroupsFromForm(form)
+  const uploaded = {}
+
+  for (const [slot, files] of Object.entries(groups)) {
+    uploaded[slot] = []
+
+    for (const [index, file] of files.entries()) {
+      if (!file) continue
+
+      const ext = file.name?.split('.').pop()?.toLowerCase() || 'jpg'
+      const fileSlug = slugify(file.name?.replace(/\.[^.]+$/, '') || `${slot}-${index + 1}`)
+      const storagePath = `premium-campaigns/${slug}/${slot}-${index + 1}-${Date.now()}-${fileSlug}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('cards')
+        .upload(storagePath, file, {
+          cacheControl: '31536000',
+          contentType: file.type || 'image/jpeg',
+          upsert: false,
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('cards').getPublicUrl(storagePath)
+      uploaded[slot].push({
+        slot,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        bucket: 'cards',
+        path: storagePath,
+        public_url: data.publicUrl,
+      })
+    }
+  }
+
+  const flattened = Object.values(uploaded).flat()
+  if (flattened.length) {
+    const { error: updateError } = await supabase
+      .from('premium_campaigns')
+      .update({
+        brief: {
+          ...(campaign.brief || {}),
+          images: uploaded,
+          image_count: flattened.length,
+        },
+      })
+      .eq('id', campaign.id)
+
+    if (updateError) throw updateError
+  }
+
+  return uploaded
+}
+
+function flattenImages(uploadedImages = {}) {
+  return Object.values(uploadedImages).flat().filter(Boolean)
+}
+
 export async function loadPremiumWorkspace() {
   const requests = [
     supabase.from('premium_campaigns').select('*').order('created_at', { ascending: false }).limit(50),
@@ -185,9 +274,10 @@ function withTimeout(promise, ms, message) {
 
 export async function createPremiumCampaign(form) {
   const product = form.product_name?.trim() || form.name.trim()
-  const name = form.name.trim() || `Campanha ${product}`
+  const name = form.name.trim() || product
   const slug = `${slugify(name)}-${Date.now().toString(36)}`
   const now = new Date().toISOString()
+  const productData = buildProductData(form, product)
 
   const campaignPayload = {
     name,
@@ -208,11 +298,14 @@ export async function createPremiumCampaign(form) {
     brief: {
       audience: form.target_audience,
       promise: form.offer,
+      product_data: productData,
+      suggested_headline: productData.suggested_headline,
+      suggested_copy: productData.suggested_copy,
       visual_direction: 'Vitra Premium editorial, black and gold, high-end real estate',
-      created_from: 'premium_dashboard_phase_1',
+      created_from: 'premium_dashboard_phase_2_capture',
     },
     content_plan: {
-      blueprint_version: 'premium_phase_1_react',
+      blueprint_version: 'premium_phase_2_react',
       asset_count: ASSET_BLUEPRINTS.length,
       post_count: POST_BLUEPRINTS.length,
     },
@@ -226,7 +319,8 @@ export async function createPremiumCampaign(form) {
 
   if (campaignError) throw campaignError
 
-  const assetPayload = buildAssetPayloads(campaign, form)
+  const uploadedImages = await uploadCampaignImages(campaign, slug, form)
+  const assetPayload = buildAssetPayloads(campaign, form, uploadedImages)
   const { data: insertedAssets, error: assetsError } = await supabase
     .from('premium_campaign_assets')
     .insert(assetPayload)
@@ -254,6 +348,7 @@ export async function createPremiumCampaign(form) {
       input_payload: { form },
       output_payload: {
         campaign_id: campaign.id,
+        uploaded_images: flattenImages(uploadedImages).length,
         assets: insertedAssets?.length || 0,
         posts: insertedPosts?.length || 0,
       },
@@ -292,11 +387,84 @@ export async function createPremiumCampaign(form) {
   return campaign
 }
 
-function buildAssetPayloads(campaign, form) {
+export async function createManualMetric(payload) {
+  const publication = payload.publication
+  if (!publication?.id) throw new Error('Selecione uma publicacao para registrar metricas.')
+
+  const metricPayload = {
+    publication_id: publication.id,
+    campaign_id: publication.campaign_id,
+    social_account_id: publication.social_account_id || null,
+    platform: publication.platform,
+    source: 'manual',
+    metric_date: payload.metric_date || new Date().toISOString().slice(0, 10),
+    reach: Number(payload.reach || 0),
+    impressions: Number(payload.impressions || 0),
+    engagement: Number(payload.engagement || 0),
+    likes: Number(payload.likes || 0),
+    comments: Number(payload.comments || 0),
+    shares: Number(payload.shares || 0),
+    saves: Number(payload.saves || 0),
+    link_clicks: Number(payload.link_clicks || 0),
+    profile_visits: Number(payload.profile_visits || 0),
+    follows: Number(payload.follows || 0),
+    video_views: Number(payload.video_views || 0),
+    clicks: Number(payload.clicks || 0),
+    leads: Number(payload.leads || 0),
+    spend: Number(payload.spend || 0),
+    raw_payload: {
+      source: 'dashboard_manual_entry',
+      notes: cleanText(payload.notes),
+    },
+  }
+
+  const { data, error } = await supabase
+    .from('premium_metrics')
+    .insert(metricPayload)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function createManualPublication(payload) {
+  if (!payload.campaign_id) throw new Error('Selecione uma campanha para mapear a publicacao.')
+
+  const publicationPayload = {
+    campaign_id: payload.campaign_id,
+    content_post_id: payload.content_post_id || null,
+    asset_id: payload.asset_id || null,
+    platform: payload.platform || 'instagram',
+    publication_type: payload.publication_type || 'organic',
+    external_post_id: cleanText(payload.external_post_id) || null,
+    permalink: cleanText(payload.permalink) || null,
+    published_at: payload.published_at || new Date().toISOString(),
+    status: payload.status || 'mapped',
+    metadata: {
+      source: 'dashboard_manual_mapping',
+      notes: cleanText(payload.notes),
+    },
+  }
+
+  const { data, error } = await supabase
+    .from('premium_publications')
+    .insert(publicationPayload)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+function buildAssetPayloads(campaign, form, uploadedImages = {}) {
   const product = campaign.product_name || campaign.name
   const place = [campaign.neighborhood, campaign.city].filter(Boolean).join(', ')
   const offer = campaign.offer || form.offer || 'Curadoria reservada Vitra Premium'
   const cta = form.cta || 'Solicitar curadoria'
+  const productData = buildProductData(form, product)
+  const sourceImages = flattenImages(uploadedImages)
+  const primaryImage = sourceImages[0]?.public_url || null
 
   return ASSET_BLUEPRINTS.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey], index) => ({
     campaign_id: campaign.id,
@@ -304,18 +472,21 @@ function buildAssetPayloads(campaign, form) {
     channel,
     format,
     title,
-    headline: buildHeadline(product, place, index),
-    copy: buildAssetCopy(product, offer, channel),
+    headline: buildHeadline(product, place, index, form),
+    copy: buildAssetCopy(product, offer, channel, form),
     cta,
     status: channel === 'whatsapp' || channel === 'email' ? 'planned' : 'queued',
     aspect_ratio: aspectRatio,
     template_key: templateKey,
     storage_bucket: channel === 'whatsapp' || channel === 'email' ? null : 'cards',
+    source_image_url: primaryImage,
     metadata: {
       blueprint_key: blueprintKey,
-      phase: 'phase_1_react_migration',
+      phase: 'phase_2_react_capture',
       brand_scope: 'vitra_premium',
       visual_rules: ['black_gold', 'editorial', 'luxury_refined'],
+      product_data: productData,
+      source_images: uploadedImages,
     },
   }))
 }
@@ -351,7 +522,9 @@ function buildPostPayloads(campaign, assets, form) {
   })
 }
 
-function buildHeadline(product, place, index) {
+function buildHeadline(product, place, index, form) {
+  if (form.suggested_headline?.trim()) return form.suggested_headline.trim()
+
   const variants = [
     `${product}: uma categoria acima`,
     `Curadoria premium em ${place || 'Porto Alegre'}`,
@@ -361,7 +534,9 @@ function buildHeadline(product, place, index) {
   return variants[index % variants.length]
 }
 
-function buildAssetCopy(product, offer, channel) {
+function buildAssetCopy(product, offer, channel, form) {
+  if (form.suggested_copy?.trim()) return form.suggested_copy.trim()
+
   if (channel === 'whatsapp') {
     return `Ola. Separei uma curadoria Vitra Premium sobre ${product}. ${offer}`
   }

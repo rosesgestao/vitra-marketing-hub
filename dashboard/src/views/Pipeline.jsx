@@ -1,27 +1,28 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { CheckCircle2, Clock, AlertCircle, Circle, ChevronRight, Users, Film } from 'lucide-react'
+import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 
 const FASES_V2 = [
-  { id: 1, label: 'Inteligência',  cor: 'blue',   agentes: ['Ag.2 Inteligência'],              tabela: 'inteligencia_mercado', descricao: 'Tendências + análise competitiva' },
-  { id: 2, label: 'Planejamento',  cor: 'purple', agentes: ['Ag.3 Planejamento'],              tabela: 'calendario_editorial', descricao: 'Calendário editorial quinzenal' },
-  { id: 3, label: 'Produção',      cor: 'amber',  agentes: ['Ag.4 Produção', 'Ag.6 Cinema'],   tabela: 'conteudos',            descricao: 'Copy + imagens + vídeos cinema' },
-  { id: 4, label: 'Branding',      cor: 'gold',   agentes: ['Ag.5 Branding'],                  tabela: 'revisoes_marca',       descricao: 'Revisão de qualidade · score ≥ 80' },
-  { id: 5, label: 'Aprovação',     cor: 'green',  agentes: ['Emilio via Telegram'],             tabela: 'conteudos',            descricao: 'Aprovação final do Emilio' },
-  { id: 6, label: 'Publicação',    cor: 'teal',   agentes: ['Ag.8 Publicador'],                tabela: 'publicacoes',          descricao: 'Instagram · Facebook · YouTube · TikTok' },
+  { id: 1, label: 'Inteligência',  cor: 'soft', agentes: ['Ag.2 Inteligência'],              tabela: 'inteligencia_mercado', descricao: 'Tendências + análise competitiva' },
+  { id: 2, label: 'Planejamento',  cor: 'deep', agentes: ['Ag.3 Planejamento'],              tabela: 'calendario_editorial', descricao: 'Calendário editorial quinzenal' },
+  { id: 3, label: 'Produção',      cor: 'warm', agentes: ['Ag.4 Produção', 'Ag.6 Cinema'],   tabela: 'conteudos',            descricao: 'Copy + imagens + vídeos cinema' },
+  { id: 4, label: 'Branding',      cor: 'core', agentes: ['Ag.5 Branding'],                  tabela: 'revisoes_marca',       descricao: 'Revisão de qualidade · score ≥ 80' },
+  { id: 5, label: 'Aprovação',     cor: 'light', agentes: ['Emilio via Telegram'],             tabela: 'conteudos',            descricao: 'Aprovação final do Emilio' },
+  { id: 6, label: 'Publicação',    cor: 'muted', agentes: ['Ag.8 Publicador'],                tabela: 'publicacoes',          descricao: 'Instagram · Facebook · YouTube · TikTok' },
 ]
 
 const COR = {
-  blue:   { border: 'border-blue-700/40',   text: 'text-blue-400',   dot: 'bg-blue-400',   pill: 'bg-blue-900/30 text-blue-300 border-blue-700/30' },
-  purple: { border: 'border-purple-700/40', text: 'text-purple-400', dot: 'bg-purple-400', pill: 'bg-purple-900/30 text-purple-300 border-purple-700/30' },
-  amber:  { border: 'border-amber-700/40',  text: 'text-amber-400',  dot: 'bg-amber-400',  pill: 'bg-amber-900/30 text-amber-300 border-amber-700/30' },
-  gold:   { border: 'border-gold-700/40',   text: 'text-gold-400',   dot: 'bg-gold-400',   pill: 'bg-gold-500/10 text-gold-300 border-gold-700/30' },
-  green:  { border: 'border-green-700/40',  text: 'text-green-400',  dot: 'bg-green-400',  pill: 'bg-green-900/30 text-green-300 border-green-700/30' },
-  teal:   { border: 'border-teal-700/40',   text: 'text-teal-400',   dot: 'bg-teal-400',   pill: 'bg-teal-900/30 text-teal-300 border-teal-700/30' },
+  soft:  { border: 'border-gold-500/20', text: 'text-gold-300', dot: 'bg-gold-400', pill: 'bg-gold-500/10 text-gold-200 border-gold-500/25' },
+  deep:  { border: 'border-gold-500/20', text: 'text-gold-300', dot: 'bg-gold-400', pill: 'bg-gold-500/10 text-gold-200 border-gold-500/25' },
+  warm:  { border: 'border-gold-500/25', text: 'text-gold-300', dot: 'bg-gold-400', pill: 'bg-gold-500/10 text-gold-200 border-gold-500/25' },
+  core:  { border: 'border-gold-500/35', text: 'text-gold-300', dot: 'bg-gold-400', pill: 'bg-gold-500/10 text-gold-100 border-gold-500/35' },
+  light: { border: 'border-gold-500/20', text: 'text-gold-300', dot: 'bg-gold-400', pill: 'bg-gold-500/10 text-gold-200 border-gold-500/25' },
+  muted: { border: 'border-gold-500/20', text: 'text-gold-300', dot: 'bg-gold-400', pill: 'bg-gold-500/10 text-gold-200 border-gold-500/25' },
 }
 
 function StatusIcon({ status }) {
-  if (status === 'ok')      return <CheckCircle2 size={14} className="text-green-400" />
+  if (status === 'ok')      return <CheckCircle2 size={14} className="text-gold-300" />
   if (status === 'running') return <Clock size={14} className="text-gold-400 animate-pulse" />
   if (status === 'error')   return <AlertCircle size={14} className="text-red-400" />
   return <Circle size={14} className="text-navy-600" />
@@ -69,11 +70,12 @@ export default function Pipeline() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <p className="label-section mb-2">Fluxo automático · toda segunda-feira às 9h</p>
-        <h1 className="font-display text-2xl text-white font-semibold">Pipeline Quinzenal</h1>
-      </div>
+    <div className="premium-page">
+      <PremiumPageHeader
+        kicker="Fluxo automatico"
+        title="Pipeline quinzenal"
+        subtitle="Orquestracao dos agentes Premium, do monitoramento de mercado ate a publicacao final."
+      />
 
       {aprovacao?.status === 'planejado' && (
         <div className="card border-gold-600/40 bg-gold-500/5 flex items-center gap-3 mb-6">
@@ -85,7 +87,7 @@ export default function Pipeline() {
         </div>
       )}
 
-      <div className="flex items-stretch gap-2">
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-2">
         {FASES_V2.map((fase, i) => {
           const status = statusFase(fase)
           const c = COR[fase.cor]
@@ -93,7 +95,7 @@ export default function Pipeline() {
 
           return (
             <div key={fase.id} className="flex items-stretch gap-2 flex-1 min-w-0">
-              <div className={`flex-1 bg-navy-900 border ${c.border} rounded-xl p-4 flex flex-col relative overflow-hidden transition-all duration-200 hover:border-navy-600`}>
+              <div className={`relative flex min-w-44 flex-1 flex-col overflow-hidden rounded-lg border ${c.border} bg-[#101010] p-4 transition-all duration-200 hover:border-gold-500/35`}>
                 <span
                   className="absolute top-3 right-3 font-display text-2xl font-semibold select-none pointer-events-none"
                   style={{ color: 'rgba(196,148,42,0.10)' }}
@@ -130,7 +132,7 @@ export default function Pipeline() {
 
               {i < FASES_V2.length - 1 && (
                 <div className="flex items-center justify-center flex-shrink-0">
-                  <ChevronRight size={14} className="text-navy-600" />
+                  <ChevronRight size={14} className="text-gold-500/35" />
                 </div>
               )}
             </div>
@@ -140,13 +142,13 @@ export default function Pipeline() {
 
       <div className="mt-8">
         <div className="gold-line mb-6" />
-        <p className="label-section mb-4">Agentes contínuos</p>
+        <p className="label-section mb-4">Agentes continuos</p>
         <div className="grid grid-cols-2 gap-4">
           <div className="card-sm">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+              <div className="w-2 h-2 rounded-full bg-gold-400 animate-pulse flex-shrink-0" />
               <div className="flex items-center gap-2">
-                <Users size={13} className="text-green-400" />
+                <Users size={13} className="text-gold-400" />
                 <span className="text-sm text-white font-medium">Community Manager Leila</span>
               </div>
             </div>
@@ -156,9 +158,9 @@ export default function Pipeline() {
 
           <div className="card-sm">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse flex-shrink-0" />
+              <div className="w-2 h-2 rounded-full bg-gold-500 animate-pulse flex-shrink-0" />
               <div className="flex items-center gap-2">
-                <Film size={13} className="text-blue-400" />
+                <Film size={13} className="text-gold-500" />
                 <span className="text-sm text-white font-medium">Cinema jobs</span>
               </div>
             </div>

@@ -92,6 +92,17 @@ Foi criada a nota [[../Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fas
 - Organizacao Supabase confirmada: `Vitra Imobiliaria`.
 - Projeto Supabase confirmado: `Marketing Vitra Imobiliaria`.
 - URL Supabase confirmada: `https://birxcfkyuzqnhyvetbjv.supabase.co`.
+
+## 2026-05-29 - Plano Operacional Fases 2, 4 e 5 Minimas
+
+- A captura de campanha deve manter paridade com o prototipo `planejamento_vitra_premium/dashboard-conteudo.html`.
+- Campos comerciais extras ficam em `premium_campaigns.brief.product_data`, evitando migracao desnecessaria para cada atributo de campanha.
+- Uploads de imagem devem usar o bucket `cards` e registrar os resultados em `brief.images`, `premium_campaign_assets.source_image_url` e `premium_campaign_assets.metadata.source_images`.
+- A aba de metricas deve usar somente `premium_publications` e `premium_metrics`; as tabelas antigas `metricas` e `publicacoes` nao sao fonte da ferramenta Premium.
+- Ate a integracao Meta existir, metricas podem ser registradas manualmente por publicacao real.
+- O mapeamento manual de publicacao real e obrigatorio para fechar o ciclo minimo conteudo -> publicacao -> metrica.
+- A consulta REST mascarada a `premium_campaigns` confirmou acesso ao projeto `birxcfkyuzqnhyvetbjv`.
+- O bucket `cards` ainda precisa de confirmacao/policy adequada: a consulta ao endpoint do bucket retornou erro `400`.
 - Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`.
 - Commit do repositorio exclusivo: `d22eb86 feat: add premium operational dashboard phase 1`.
 - Commit do repositorio base: `01779f8 feat: add premium operational dashboard phase 1`.

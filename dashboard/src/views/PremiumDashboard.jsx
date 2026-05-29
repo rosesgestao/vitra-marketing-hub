@@ -24,23 +24,49 @@ import { supabaseConfig } from '../lib/supabase.js'
 import {
   PREMIUM_TABLES,
   createPremiumCampaign,
+  createManualPublication,
   loadPremiumWorkspace,
 } from '../lib/premiumData.js'
+import { PremiumHorizontalLogo } from '../components/PremiumBrand.jsx'
 
 const INITIAL_FORM = {
   name: '',
   product_name: '',
+  tagline: '',
   property_type: 'Apartamento alto padrão',
   neighborhood: '',
   city: 'Porto Alegre',
+  location: '',
+  area: '',
+  suites: '',
+  towers: '',
+  differentials: '',
+  price: '',
+  suggested_headline: '',
+  suggested_copy: '',
   target_audience: 'Compradores e investidores de alto padrão em Porto Alegre',
   campaign_objective: 'lead_generation',
   offer: '',
-  cta: 'Solicitar curadoria',
+  cta: 'Conheça o projeto',
   budget_type: 'organic_and_paid',
   start_date: new Date().toISOString().slice(0, 10),
   end_date: new Date(Date.now() + 30 * 24 * 60 * 60_000).toISOString().slice(0, 10),
+  images: {
+    fachada: null,
+    living: null,
+    varanda: null,
+    infraestrutura: null,
+    extras: [],
+  },
 }
+
+const IMAGE_FIELDS = [
+  { id: 'fachada', label: 'Fachada / principal', multiple: false },
+  { id: 'living', label: 'Interior / living', multiple: false },
+  { id: 'varanda', label: 'Varanda / vista', multiple: false },
+  { id: 'infraestrutura', label: 'Infraestrutura / lazer', multiple: false },
+  { id: 'extras', label: 'Imagens extras', multiple: true },
+]
 
 const TABS = [
   { id: 'campanhas', label: 'Campanhas', icon: Gem },
@@ -53,18 +79,18 @@ const TABS = [
 const STATUS_STYLES = {
   draft: 'border-white/10 bg-white/5 text-white/60',
   planning: 'border-gold-500/35 bg-gold-500/10 text-gold-300',
-  generation_queued: 'border-blue-400/30 bg-blue-400/10 text-blue-300',
-  in_production: 'border-orange-400/30 bg-orange-400/10 text-orange-300',
-  ready: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-  active: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+  generation_queued: 'border-gold-500/30 bg-gold-500/10 text-gold-200',
+  in_production: 'border-gold-400/35 bg-gold-400/10 text-gold-100',
+  ready: 'border-gold-400/40 bg-gold-400/10 text-gold-100',
+  active: 'border-gold-400/40 bg-gold-400/10 text-gold-100',
   completed: 'border-white/10 bg-white/5 text-white/60',
   planned: 'border-white/10 bg-white/5 text-white/55',
   queued: 'border-gold-500/30 bg-gold-500/10 text-gold-300',
-  rendering: 'border-blue-400/30 bg-blue-400/10 text-blue-300',
-  generated: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+  rendering: 'border-gold-500/30 bg-gold-500/10 text-gold-200',
+  generated: 'border-gold-400/40 bg-gold-400/10 text-gold-100',
   approved: 'border-gold-400/40 bg-gold-400/10 text-gold-200',
-  published: 'border-blue-300/30 bg-blue-300/10 text-blue-200',
-  done: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+  published: 'border-white/20 bg-white/10 text-gray-300',
+  done: 'border-gold-400/40 bg-gold-400/10 text-gold-100',
   error: 'border-red-400/30 bg-red-400/10 text-red-300',
 }
 
@@ -148,6 +174,7 @@ export default function PremiumDashboard() {
   const [activeTab, setActiveTab] = useState('campanhas')
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savingPublication, setSavingPublication] = useState(false)
 
   async function refresh(selectCampaignId = selectedCampaignId) {
     setLoading(true)
@@ -219,25 +246,41 @@ export default function PremiumDashboard() {
     }
   }
 
+  async function handleCreatePublication(form) {
+    setSavingPublication(true)
+    setError(null)
+    try {
+      await createManualPublication(form)
+      await refresh(form.campaign_id)
+      setActiveTab('publicacoes')
+    } catch (err) {
+      setError(err)
+    } finally {
+      setSavingPublication(false)
+    }
+  }
+
   const missingSchema = error && /premium_|schema cache|does not exist|relation/i.test(error.message || '')
 
   return (
-    <div className="min-h-screen bg-[#050506] text-white">
-      <div className="border-b border-gold-500/15 bg-[#080809]">
+    <div className="min-h-screen text-white">
+      <div className="relative overflow-hidden border-b border-gold-500/15 bg-[#050505]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_76%_0%,rgba(196,148,42,0.12),transparent_24rem)]" />
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-7 lg:px-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
+              <PremiumHorizontalLogo className="mb-7" />
               <div className="mb-3 flex items-center gap-3">
                 <span className="h-px w-10 bg-gold-500/70" />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-gold-400">
-                  Vitra Premium
+                  Operacao de alto padrao
                 </p>
               </div>
               <h1 className="font-display text-4xl font-semibold leading-tight text-white md:text-5xl">
-                Ferramenta operacional de campanhas
+                Central de curadoria e campanhas
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/52">
-                Campanhas, assets, publicações e métricas reais conectados ao Supabase da Vitra Premium.
+                Campanhas, assets, publicacoes e metricas reais conectados ao Supabase da Vitra Premium.
               </p>
             </div>
 
@@ -252,7 +295,7 @@ export default function PremiumDashboard() {
               </button>
               <button
                 onClick={() => setModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2 text-sm font-semibold text-gold-200 transition hover:bg-gold-500/20"
+                className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/10 px-4 py-2 text-sm font-semibold text-gold-200 transition hover:bg-gold-500/20"
               >
                 <Plus size={16} />
                 Nova campanha
@@ -263,7 +306,7 @@ export default function PremiumDashboard() {
           <div className="grid gap-3 md:grid-cols-4">
             <StatTile label="Campanhas" value={totals.campaigns} sub="no modelo Premium" icon={Briefcase} />
             <StatTile label="Assets" value={totals.assets} sub={selectedCampaign ? 'campanha selecionada' : 'aguardando'} icon={Layers3} />
-            <StatTile label="Publicações" value={totals.publications} sub={`${totals.posts} conteúdos planejados`} icon={Send} tone="#8EC4F0" />
+            <StatTile label="Publicacoes" value={totals.publications} sub={`${totals.posts} conteudos planejados`} icon={Send} tone="#E4C06E" />
             <StatTile
               label="Investimento"
               value={formatNumber(totals.paidSpend, { style: 'currency', currency: 'BRL' })}
@@ -364,7 +407,14 @@ export default function PremiumDashboard() {
         )}
 
         {!loading && activeTab === 'publicacoes' && (
-          <PublicationsSection campaign={selectedCampaign} posts={scoped.posts} publications={scoped.publications} assets={scoped.assets} />
+          <PublicationsSection
+            campaign={selectedCampaign}
+            posts={scoped.posts}
+            publications={scoped.publications}
+            assets={scoped.assets}
+            saving={savingPublication}
+            onCreatePublication={handleCreatePublication}
+          />
         )}
 
         {!loading && activeTab === 'metricas' && (
@@ -448,11 +498,22 @@ function CampaignsSection({ campaigns, selectedCampaign, selectedCampaignId, onS
             <StatusPill value={selectedCampaign.status} />
           </div>
 
+          {selectedCampaign.brief?.product_data?.tagline && (
+            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">
+              {selectedCampaign.brief.product_data.tagline}
+            </p>
+          )}
+
           <div className="grid gap-4 md:grid-cols-3">
             <BriefItem label="Produto" value={selectedCampaign.product_name} />
-            <BriefItem label="Localização" value={[selectedCampaign.neighborhood, selectedCampaign.city].filter(Boolean).join(', ')} />
+            <BriefItem label="Localização" value={selectedCampaign.brief?.product_data?.location || [selectedCampaign.neighborhood, selectedCampaign.city].filter(Boolean).join(', ')} />
             <BriefItem label="Objetivo" value={selectedCampaign.campaign_objective?.replace(/_/g, ' ')} />
+            <BriefItem label="Metragem" value={selectedCampaign.brief?.product_data?.area} />
+            <BriefItem label="Suítes" value={selectedCampaign.brief?.product_data?.suites} />
+            <BriefItem label="Torres / andares" value={selectedCampaign.brief?.product_data?.towers} />
+            <BriefItem label="Preço" value={selectedCampaign.brief?.product_data?.price} />
             <BriefItem label="Público" value={selectedCampaign.target_audience} wide />
+            <BriefItem label="Diferenciais" value={selectedCampaign.brief?.product_data?.differentials} wide />
             <BriefItem label="Mídia" value={selectedCampaign.budget_type?.replace(/_/g, ' ')} />
             <BriefItem label="Período" value={`${formatDate(selectedCampaign.start_date)} - ${formatDate(selectedCampaign.end_date)}`} />
           </div>
@@ -560,11 +621,120 @@ function AssetsSection({ campaign, assets, jobs }) {
   )
 }
 
-function PublicationsSection({ campaign, posts, publications, assets }) {
+function PublicationsSection({ campaign, posts, publications, assets, saving, onCreatePublication }) {
+  const [form, setForm] = useState({
+    content_post_id: posts[0]?.id || '',
+    asset_id: assets[0]?.id || '',
+    platform: posts[0]?.platform || 'instagram',
+    publication_type: 'organic',
+    external_post_id: '',
+    permalink: '',
+    published_at: new Date().toISOString().slice(0, 16),
+    notes: '',
+  })
+
+  useEffect(() => {
+    setForm(current => ({
+      ...current,
+      content_post_id: current.content_post_id || posts[0]?.id || '',
+      asset_id: current.asset_id || assets[0]?.id || '',
+      platform: current.platform || posts[0]?.platform || 'instagram',
+    }))
+  }, [posts, assets])
+
   if (!campaign) return <EmptyState icon={Send} title="Nenhuma campanha selecionada" />
 
+  function update(field, value) {
+    setForm(current => ({ ...current, [field]: value }))
+  }
+
+  function submit(event) {
+    event.preventDefault()
+    onCreatePublication({
+      ...form,
+      campaign_id: campaign.id,
+      published_at: form.published_at ? new Date(form.published_at).toISOString() : new Date().toISOString(),
+    })
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-6 xl:grid-cols-[360px,1fr]">
+      <form onSubmit={submit} className="rounded-lg border border-gold-500/20 bg-[#101010] p-4">
+        <div className="mb-4 border-b border-white/10 pb-3">
+          <p className="text-sm font-semibold text-white">Mapear publicação real</p>
+          <p className="mt-1 text-xs leading-5 text-white/42">Vincule o conteúdo planejado ao post publicado para destravar métricas por peça.</p>
+        </div>
+
+        <div className="space-y-3">
+          <Field label="Conteúdo" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+            <select
+              value={form.content_post_id}
+              onChange={event => {
+                const post = posts.find(item => item.id === event.target.value)
+                update('content_post_id', event.target.value)
+                if (post?.asset_id) update('asset_id', post.asset_id)
+                if (post?.platform) update('platform', post.platform)
+              }}
+              className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+            >
+              <option value="">Sem conteúdo vinculado</option>
+              {posts.map(post => (
+                <option key={post.id} value={post.id}>{post.platform} · {post.title}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Asset" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+            <select
+              value={form.asset_id}
+              onChange={event => update('asset_id', event.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+            >
+              <option value="">Sem asset vinculado</option>
+              {assets.map(asset => (
+                <option key={asset.id} value={asset.id}>{asset.channel} · {asset.title}</option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Plataforma" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+              <select value={form.platform} onChange={event => update('platform', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white">
+                <option value="instagram">Instagram</option>
+                <option value="facebook">Facebook</option>
+                <option value="youtube">YouTube</option>
+                <option value="tiktok">TikTok</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">E-mail</option>
+              </select>
+            </Field>
+            <Field label="Tipo" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+              <select value={form.publication_type} onChange={event => update('publication_type', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white">
+                <option value="organic">Orgânico</option>
+                <option value="paid">Pago</option>
+                <option value="manual">Manual</option>
+                <option value="dark_post">Dark post</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="ID externo" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+            <input value={form.external_post_id} onChange={event => update('external_post_id', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white" />
+          </Field>
+          <Field label="Permalink" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+            <input value={form.permalink} onChange={event => update('permalink', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white" />
+          </Field>
+          <Field label="Publicado em" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+            <input type="datetime-local" value={form.published_at} onChange={event => update('published_at', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white" />
+          </Field>
+          <button type="submit" disabled={saving} className="btn-gold flex w-full items-center justify-center gap-2 disabled:cursor-wait disabled:opacity-60">
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+            Mapear publicação
+          </button>
+        </div>
+      </form>
+
+      <div className="grid gap-6 lg:grid-cols-2">
       <div className="rounded-lg border border-white/10 bg-white/[0.025]">
         <div className="border-b border-white/10 px-4 py-4">
           <p className="text-sm font-semibold text-white">Conteúdos planejados</p>
@@ -623,6 +793,7 @@ function PublicationsSection({ campaign, posts, publications, assets }) {
             <EmptyState icon={Radio} title="Nenhuma publicação vinculada" note="A Fase 4 fará a importação Meta por post real." />
           </div>
         )}
+      </div>
       </div>
     </div>
   )
@@ -748,6 +919,16 @@ function NewCampaignModal({ saving, onClose, onSubmit }) {
     setForm(current => ({ ...current, [field]: value }))
   }
 
+  function updateImage(field, files) {
+    setForm(current => ({
+      ...current,
+      images: {
+        ...current.images,
+        [field]: field === 'extras' ? Array.from(files || []) : files?.[0] || null,
+      },
+    }))
+  }
+
   function submit(event) {
     event.preventDefault()
     onSubmit(form)
@@ -755,141 +936,164 @@ function NewCampaignModal({ saving, onClose, onSubmit }) {
 
   const inputClass = 'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-white/25 transition focus:border-gold-500/55'
   const labelClass = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42'
+  const sectionTitleClass = 'border-b border-white/10 pb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-lg border border-gold-500/25 bg-[#080809] shadow-2xl shadow-black/70">
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Nova campanha</p>
-            <h2 className="font-display text-3xl font-semibold text-white">Brief operacional Premium</h2>
-          </div>
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-lg border border-white/15 bg-[#101010] shadow-2xl shadow-black/70">
+        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
+          <h2 className="text-lg font-semibold text-white">Nova Campanha</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-white/10 p-2 text-white/50 transition hover:border-gold-500/35 hover:text-white"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-white/55 transition hover:border-gold-500/35 hover:text-white"
             title="Fechar"
           >
             <X size={17} />
           </button>
         </div>
 
-        <form onSubmit={submit} className="space-y-5 px-6 py-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Nome da campanha" className="md:col-span-2" labelClass={labelClass}>
-              <input
-                required
-                value={form.name}
-                onChange={event => update('name', event.target.value)}
-                className={inputClass}
-                placeholder="Ex.: Campanha Lake Baikal Premium"
-              />
-            </Field>
+        <form onSubmit={submit} className="flex max-h-[calc(92vh-76px)] flex-col">
+          <div className="space-y-7 overflow-y-auto px-6 py-6">
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Dados do Produto</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Nome do Produto" labelClass={labelClass}>
+                  <input
+                    required
+                    value={form.product_name}
+                    onChange={event => update('product_name', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: Lake Baikal"
+                  />
+                </Field>
 
-            <Field label="Produto / empreendimento" labelClass={labelClass}>
-              <input
-                value={form.product_name}
-                onChange={event => update('product_name', event.target.value)}
-                className={inputClass}
-                placeholder="Nome do imóvel ou empreendimento"
-              />
-            </Field>
+                <Field label="Tagline / Empreendimento" labelClass={labelClass}>
+                  <input
+                    value={form.tagline}
+                    onChange={event => update('tagline', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: GOLDEN LAKE · MULTIPLAN"
+                  />
+                </Field>
 
-            <Field label="Tipo de imóvel" labelClass={labelClass}>
-              <input
-                value={form.property_type}
-                onChange={event => update('property_type', event.target.value)}
-                className={inputClass}
-              />
-            </Field>
+                <Field label="Localização" labelClass={labelClass}>
+                  <input
+                    value={form.location}
+                    onChange={event => update('location', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: Orla do Guaíba, Porto Alegre"
+                  />
+                </Field>
 
-            <Field label="Bairro" labelClass={labelClass}>
-              <input
-                value={form.neighborhood}
-                onChange={event => update('neighborhood', event.target.value)}
-                className={inputClass}
-                placeholder="Moinhos de Vento, Bela Vista..."
-              />
-            </Field>
+                <Field label="Metragem" labelClass={labelClass}>
+                  <input
+                    value={form.area}
+                    onChange={event => update('area', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: 195 a 250 m²"
+                  />
+                </Field>
 
-            <Field label="Cidade" labelClass={labelClass}>
-              <input
-                value={form.city}
-                onChange={event => update('city', event.target.value)}
-                className={inputClass}
-              />
-            </Field>
+                <Field label="Suítes" labelClass={labelClass}>
+                  <input
+                    value={form.suites}
+                    onChange={event => update('suites', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: 4 suítes"
+                  />
+                </Field>
 
-            <Field label="Objetivo" labelClass={labelClass}>
-              <select
-                value={form.campaign_objective}
-                onChange={event => update('campaign_objective', event.target.value)}
-                className={inputClass}
-              >
-                <option value="lead_generation">Geração de leads</option>
-                <option value="brand_awareness">Reconhecimento premium</option>
-                <option value="launch">Lançamento</option>
-                <option value="retargeting">Retargeting</option>
-              </select>
-            </Field>
+                <Field label="Andares / Torres" labelClass={labelClass}>
+                  <input
+                    value={form.towers}
+                    onChange={event => update('towers', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: 2 torres de 30 pavimentos"
+                  />
+                </Field>
 
-            <Field label="Mídia" labelClass={labelClass}>
-              <select
-                value={form.budget_type}
-                onChange={event => update('budget_type', event.target.value)}
-                className={inputClass}
-              >
-                <option value="organic_and_paid">Orgânico + pago</option>
-                <option value="organic">Orgânico</option>
-                <option value="paid">Pago</option>
-              </select>
-            </Field>
+                <Field label="Diferenciais" labelClass={labelClass}>
+                  <textarea
+                    value={form.differentials}
+                    onChange={event => update('differentials', event.target.value)}
+                    className={`${inputClass} min-h-20 resize-y`}
+                    placeholder="Ex: Beach Club, Lago cristalino, Spa, Piscina térmica"
+                  />
+                </Field>
 
-            <Field label="Início" labelClass={labelClass}>
-              <input
-                type="date"
-                value={form.start_date}
-                onChange={event => update('start_date', event.target.value)}
-                className={inputClass}
-              />
-            </Field>
+                <Field label="Preço" labelClass={labelClass}>
+                  <input
+                    value={form.price}
+                    onChange={event => update('price', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: R$ 3M"
+                  />
+                </Field>
+              </div>
+            </section>
 
-            <Field label="Fim" labelClass={labelClass}>
-              <input
-                type="date"
-                value={form.end_date}
-                onChange={event => update('end_date', event.target.value)}
-                className={inputClass}
-              />
-            </Field>
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Textos Base</p>
+              <Field label="Headline sugerida" labelClass={labelClass}>
+                <input
+                  value={form.suggested_headline}
+                  onChange={event => update('suggested_headline', event.target.value)}
+                  className={inputClass}
+                  placeholder="Ex: O próximo capítulo de sofisticação na Orla"
+                />
+              </Field>
 
-            <Field label="Público" className="md:col-span-2" labelClass={labelClass}>
-              <textarea
-                value={form.target_audience}
-                onChange={event => update('target_audience', event.target.value)}
-                className={`${inputClass} min-h-20 resize-y`}
-              />
-            </Field>
+              <Field label="Copy sugerida" labelClass={labelClass}>
+                <textarea
+                  value={form.suggested_copy}
+                  onChange={event => update('suggested_copy', event.target.value)}
+                  className={`${inputClass} min-h-20 resize-y`}
+                  placeholder="Ex: 2 torres de 30 pavimentos. Residências de 195 a 250 m² com 4 suítes."
+                />
+              </Field>
 
-            <Field label="Oferta / promessa" className="md:col-span-2" labelClass={labelClass}>
-              <textarea
-                value={form.offer}
-                onChange={event => update('offer', event.target.value)}
-                className={`${inputClass} min-h-20 resize-y`}
-                placeholder="Ex.: curadoria reservada, condições, diferenciais e tese patrimonial"
-              />
-            </Field>
+              <Field label="CTA padrão" labelClass={labelClass}>
+                <input
+                  value={form.cta}
+                  onChange={event => update('cta', event.target.value)}
+                  className={inputClass}
+                  placeholder="Ex: Conheça o projeto"
+                />
+              </Field>
+            </section>
 
-            <Field label="CTA" className="md:col-span-2" labelClass={labelClass}>
-              <input
-                value={form.cta}
-                onChange={event => update('cta', event.target.value)}
-                className={inputClass}
-              />
-            </Field>
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Upload de Imagens</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {IMAGE_FIELDS.map(field => {
+                  const value = form.images[field.id]
+                  const count = field.multiple ? value.length : value ? 1 : 0
+                  const emptyLabel = field.multiple ? '+ Upload (múltiplas)' : '+ Upload'
+                  return (
+                    <label
+                      key={field.id}
+                      className="cursor-pointer rounded-lg border border-dashed border-gold-500/25 bg-gold-500/5 p-4 transition hover:border-gold-500/50 hover:bg-gold-500/10"
+                    >
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">{field.label}</span>
+                      <span className="mt-3 block text-center text-xs font-semibold text-gold-400">
+                        {count ? `${count} arquivo${count > 1 ? 's' : ''}` : emptyLabel}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple={field.multiple}
+                        onChange={event => updateImage(field.id, event.target.files)}
+                        className="sr-only"
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+            </section>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-white/10 bg-[#181818] px-6 py-5 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
@@ -900,10 +1104,10 @@ function NewCampaignModal({ saving, onClose, onSubmit }) {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/22 disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-wait disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              Criar campanha
+              Criar Campanha
             </button>
           </div>
         </form>

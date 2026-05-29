@@ -1,53 +1,54 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { CheckCircle2, AlertCircle, Clock, Minus } from 'lucide-react'
+import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 
 const AGENTES_V2 = [
   { id: 1,  nome: 'Orquestrador',            desc: 'Relatórios e agendamento inteligente',       cron: '6h50 + 23h',    tabela: 'calendario_editorial',   cor: 'gold' },
-  { id: 2,  nome: 'Inteligência',             desc: 'Tendências + análise competitiva',           cron: '7h + Seg 8h',   tabela: 'inteligencia_mercado',   cor: 'blue' },
-  { id: 3,  nome: 'Planejamento',             desc: 'Calendário editorial quinzenal',             cron: 'Seg 9h (pares)', tabela: 'calendario_editorial',  cor: 'purple' },
-  { id: 4,  nome: 'Produção Criativa',        desc: 'Copy + imagens (Ideogram/FLUX)',             cron: 'Pós-Ag.3',      tabela: 'conteudos',              cor: 'orange' },
+  { id: 2,  nome: 'Inteligência',             desc: 'Tendências + análise competitiva',           cron: '7h + Seg 8h',   tabela: 'inteligencia_mercado',   cor: 'soft' },
+  { id: 3,  nome: 'Planejamento',             desc: 'Calendário editorial quinzenal',             cron: 'Seg 9h (pares)', tabela: 'calendario_editorial',  cor: 'deep' },
+  { id: 4,  nome: 'Produção Criativa',        desc: 'Copy + imagens (Ideogram/FLUX)',             cron: 'Pós-Ag.3',      tabela: 'conteudos',              cor: 'warm' },
   { id: 5,  nome: 'Branding & Qualidade',     desc: 'Revisão de marca · score ≥ 80/100',         cron: 'Pós-Ag.4+6',    tabela: 'revisoes_marca',         cor: 'amber' },
-  { id: 6,  nome: 'Diretor Cinematográfico',  desc: 'KlingAI · HeyGen · Tours Hollywood',        cron: 'Pós-Ag.3 + 1h', tabela: 'video_jobs',             cor: 'teal' },
-  { id: 8,  nome: 'Publicador',               desc: 'Instagram · Facebook · YouTube · TikTok',   cron: 'A cada 30min',  tabela: 'publicacoes',            cor: 'green' },
-  { id: 9,  nome: 'Leila (Community)',        desc: 'Comentários · DMs · Novos seguidores',      cron: 'A cada 15min',  tabela: 'interacoes_community',   cor: 'pink' },
+  { id: 6,  nome: 'Diretor Cinematográfico',  desc: 'KlingAI · HeyGen · Tours Hollywood',        cron: 'Pós-Ag.3 + 1h', tabela: 'video_jobs',             cor: 'muted' },
+  { id: 8,  nome: 'Publicador',               desc: 'Instagram · Facebook · YouTube · TikTok',   cron: 'A cada 30min',  tabela: 'publicacoes',            cor: 'light' },
+  { id: 9,  nome: 'Leila (Community)',        desc: 'Comentários · DMs · Novos seguidores',      cron: 'A cada 15min',  tabela: 'interacoes_community',   cor: 'core' },
 ]
 
 const COR_LEFT = {
   gold:   '#C4942A',
-  blue:   '#60A5FA',
-  purple: '#A78BFA',
-  orange: '#FB923C',
-  amber:  '#FBBF24',
-  teal:   '#2DD4BF',
-  green:  '#4ADE80',
-  pink:   '#F472B6',
+  soft:   '#D4A84A',
+  deep: '#A87820',
+  warm: '#D4A84A',
+  amber:  '#E4C06E',
+  muted:   '#A87820',
+  light:  '#E4C06E',
+  core:   '#C4942A',
 }
 
 const COR_TEXT = {
   gold:   'text-gold-400',
-  blue:   'text-blue-400',
-  purple: 'text-purple-400',
-  orange: 'text-orange-400',
-  amber:  'text-amber-400',
-  teal:   'text-teal-400',
-  green:  'text-green-400',
-  pink:   'text-pink-400',
+  soft:   'text-gold-300',
+  deep: 'text-gold-600',
+  warm: 'text-gold-300',
+  amber:  'text-gold-200',
+  muted:   'text-gold-600',
+  light:  'text-gold-200',
+  core:   'text-gold-400',
 }
 
 function StatusBadge({ status }) {
   if (status === 'ok') return (
-    <span className="badge bg-green-900/30 border border-green-700/30 text-green-400">
+    <span className="badge border border-gold-500/35 bg-gold-500/15 text-gold-100">
       <CheckCircle2 size={9} /> ativo
     </span>
   )
   if (status === 'idle') return (
-    <span className="badge bg-navy-800 border border-navy-700 text-gray-500">
+    <span className="badge border border-white/10 bg-white/5 text-gray-500">
       <Clock size={9} /> aguardando
     </span>
   )
   return (
-    <span className="badge bg-navy-800 border border-navy-700 text-navy-600">
+    <span className="badge border border-white/10 bg-white/5 text-gray-600">
       <Minus size={9} /> standby
     </span>
   )
@@ -100,34 +101,35 @@ export default function Agentes() {
   const dataHoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
 
   return (
-    <div className="p-8">
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <p className="label-section mb-2">Squad de automação</p>
-          <h1 className="font-display text-2xl text-white font-semibold">Agentes</h1>
-        </div>
-        <div className="text-right">
-          <p className="stat-number text-2xl">{ativos}<span className="text-gold-700 text-lg">/{AGENTES_V2.length}</span></p>
-          <p className="label-section mt-1">ativos hoje</p>
-          <p className="text-[10px] text-navy-600 mt-1 capitalize">{dataHoje}</p>
-        </div>
-      </div>
+    <div className="premium-page">
+      <PremiumPageHeader
+        kicker="Squad de automacao"
+        title="Agentes"
+        subtitle="Operacao Premium com automacoes, revisao de marca e publicacao assistida."
+        actions={
+          <div className="text-right">
+            <p className="stat-number text-2xl">{ativos}<span className="text-gold-700 text-lg">/{AGENTES_V2.length}</span></p>
+            <p className="label-section mt-1">ativos hoje</p>
+            <p className="mt-1 text-[10px] capitalize text-gray-600">{dataHoje}</p>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3">
         {AGENTES_V2.map(ag => {
           const status = statusAgente(ag)
           const ultima = ultimaAtividade(ag)
           const count  = dados[ag.tabela]?.count || 0
-          const leftColor = COR_LEFT[ag.cor] || '#142D58'
+          const leftColor = COR_LEFT[ag.cor] || '#3D3D3D'
           const textCor = COR_TEXT[ag.cor] || 'text-gray-400'
 
           return (
             <div
               key={ag.id}
-              className="bg-navy-900 border border-navy-700 rounded-xl p-4 transition-all duration-200 hover:border-navy-600 flex items-start gap-4"
+              className="flex items-start gap-4 rounded-lg border border-gold-500/15 bg-[#101010] p-4 transition-all duration-200 hover:border-gold-500/35"
               style={{ borderLeft: `2px solid ${leftColor}` }}
             >
-              <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-navy-800 border border-navy-700 flex items-center justify-center">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gold-500/20 bg-black">
                 <span className={`font-display text-base font-semibold ${textCor}`}>{ag.id}</span>
               </div>
 

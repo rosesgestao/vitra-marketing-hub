@@ -6,6 +6,7 @@ import Calendario from './views/Calendario.jsx'
 import Kanban from './views/Kanban.jsx'
 import Agentes from './views/Agentes.jsx'
 import Metricas from './views/Metricas.jsx'
+import { PremiumHorizontalLogo, PremiumV } from './components/PremiumBrand.jsx'
 
 const VIEWS = [
   { id: 'premium', label: 'Premium', icon: Gem },
@@ -20,48 +21,49 @@ export default function App() {
   const [view, setView] = useState('premium')
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <aside className="flex w-56 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[#070708]">
-        <div className="px-5 pb-5 pt-7">
-          <p className="font-display text-xl font-semibold tracking-wide text-white">VITRA</p>
-          <p
-            className="label-section mt-1"
-            style={{ borderBottom: '1px solid rgba(196,148,42,0.3)', paddingBottom: '16px' }}
-          >
-            Premium Ops
+    <div className="flex h-screen overflow-hidden bg-black text-white">
+      <aside className="relative flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[#050505]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(196,148,42,0.10),transparent_18rem)]" />
+
+        <div className="relative px-6 pb-6 pt-7">
+          <PremiumHorizontalLogo className="scale-[0.86] origin-left" />
+          <p className="mt-5 border-t border-gold-500/20 pt-4 text-[10px] font-semibold uppercase tracking-[0.32em] text-gold-500/70">
+            Central de curadoria
           </p>
         </div>
 
         <div className="gold-line mx-0" />
 
-        <nav className="flex-1 space-y-0.5 px-3 py-4">
+        <nav className="relative flex-1 space-y-1 px-4 py-5" aria-label="Navegacao principal">
           {VIEWS.map(({ id, label, icon: Icon }) => {
             const active = view === id
             return (
               <button
                 key={id}
                 onClick={() => setView(id)}
-                className="relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-all duration-200"
+                className="relative flex w-full items-center gap-3 rounded-lg border px-3.5 py-3 text-left text-sm transition-all duration-200"
                 style={{
-                  background: active ? 'rgba(196,148,42,0.10)' : 'transparent',
-                  color: active ? '#D4A84A' : '#ADB5BD',
-                  fontWeight: active ? 500 : 400,
-                  borderLeft: active ? '2px solid #D4A84A' : '2px solid transparent',
+                  background: active ? 'rgba(196,148,42,0.12)' : 'transparent',
+                  borderColor: active ? 'rgba(196,148,42,0.36)' : 'transparent',
+                  color: active ? '#E4C06E' : '#A7A29A',
+                  fontWeight: active ? 600 : 500,
                 }}
                 onMouseEnter={event => {
                   if (!active) {
-                    event.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    event.currentTarget.style.background = 'rgba(255,255,255,0.035)'
+                    event.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
                     event.currentTarget.style.color = '#FFFFFF'
                   }
                 }}
                 onMouseLeave={event => {
                   if (!active) {
                     event.currentTarget.style.background = 'transparent'
-                    event.currentTarget.style.color = '#ADB5BD'
+                    event.currentTarget.style.borderColor = 'transparent'
+                    event.currentTarget.style.color = '#A7A29A'
                   }
                 }}
               >
-                <Icon size={15} />
+                <Icon size={16} />
                 {label}
               </button>
             )
@@ -70,17 +72,25 @@ export default function App() {
 
         <div className="gold-line mx-0" />
 
-        <div className="px-5 py-4">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-            <span className="text-[10px] text-navy-600">Sistema ativo</span>
+        <div className="relative px-6 py-5">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black">
+              <PremiumV size={28} />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/72">Vitra Premium</p>
+              <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-gold-500/60">Alto padrao</p>
+            </div>
           </div>
-          <p className="text-[11px] font-medium text-white/60">Vitra Premium</p>
-          <p className="mt-0.5 text-[10px] text-navy-600">Fase 1 · Mai/2026</p>
+          <div className="mb-3 flex items-center gap-2">
+            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" />
+            <span className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Sistema ativo</span>
+          </div>
+          <p className="text-[10px] text-gray-600">Brandbook aplicado · Maio/2026</p>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-[#050506]">
+      <main className="flex-1 overflow-y-auto bg-transparent">
         {view === 'premium' && <PremiumDashboard />}
         {view === 'pipeline' && <Pipeline />}
         {view === 'calendario' && <Calendario />}

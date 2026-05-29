@@ -1,196 +1,324 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase.js'
-import { TrendingUp, Users, BarChart3, Play, Repeat2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Activity, AlertTriangle, BarChart3, Loader2, Plus, Radio, Repeat2, Target } from 'lucide-react'
+import { createManualMetric, loadPremiumWorkspace } from '../lib/premiumData.js'
+import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 
-function StatCard({ label, value, sub, icon: Icon, cor = '#D4A84A' }) {
+const INITIAL_METRIC = {
+  publication_id: '',
+  metric_date: new Date().toISOString().slice(0, 10),
+  reach: '',
+  impressions: '',
+  engagement: '',
+  likes: '',
+  comments: '',
+  shares: '',
+  saves: '',
+  link_clicks: '',
+  profile_visits: '',
+  follows: '',
+  video_views: '',
+  clicks: '',
+  leads: '',
+  spend: '',
+  notes: '',
+}
+
+function formatNumber(value, options) {
+  return Number(value || 0).toLocaleString('pt-BR', options)
+}
+
+function formatDate(value) {
+  if (!value) return 'Sem data'
+  return new Date(value).toLocaleDateString('pt-BR')
+}
+
+function MetricTile({ label, value, sub, icon: Icon }) {
   return (
     <div className="card-hover">
-      <div className="flex items-start justify-between mb-4">
+      <div className="mb-4 flex items-start justify-between">
         <p className="label-section">{label}</p>
-        <Icon size={15} style={{ color: cor }} />
+        <Icon size={15} className="text-gold-400" />
       </div>
-      <p className="font-display text-3xl font-semibold" style={{ color: cor }}>
-        {value ?? '—'}
-      </p>
-      {sub && <p className="text-[11px] text-gray-500 mt-1.5">{sub}</p>}
+      <p className="font-display text-3xl font-semibold text-gold-300">{value}</p>
+      {sub && <p className="mt-1.5 text-[11px] text-gray-500">{sub}</p>}
     </div>
   )
 }
 
-function BarraProgresso({ label, valor, max }) {
-  const pct = max > 0 ? Math.min((valor / max) * 100, 100) : 0
+function PlatformLabel({ value }) {
   return (
-    <div>
-      <div className="flex justify-between items-center mb-1.5">
-        <span className="text-xs text-gray-400">{label}</span>
-        <span className="text-xs text-gray-500">{valor?.toLocaleString('pt-BR') ?? '0'}</span>
-      </div>
-      <div className="h-1 bg-navy-800 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{
-            width: `${pct}%`,
-            background: 'linear-gradient(90deg, #C4942A, #E4C06E)',
-          }}
-        />
-      </div>
-    </div>
+    <span className="inline-flex items-center gap-2 text-xs font-medium capitalize text-white/65">
+      <span className="h-2 w-2 rounded-full bg-gold-400" />
+      {String(value || 'canal').replace(/_/g, ' ')}
+    </span>
   )
-}
-
-const PLATAFORMA_COR = {
-  instagram: '#E1306C',
-  facebook:  '#1877F2',
-  youtube:   '#FF0000',
-  tiktok:    '#69C9D0',
 }
 
 export default function Metricas() {
-  const [metricas, setMetricas] = useState([])
-  const [publicacoes, setPublicacoes] = useState([])
+  const [workspace, setWorkspace] = useState({
+    campaigns: [],
+    assets: [],
+    posts: [],
+    publications: [],
+    metrics: [],
+    snapshots: [],
+  })
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [form, setForm] = useState(INITIAL_METRIC)
 
-  useEffect(() => {
-    async function carregar() {
-      const [{ data: m }, { data: p }] = await Promise.all([
-        supabase.from('metricas').select('*').order('data_coleta', { ascending: false }).limit(20),
-        supabase.from('publicacoes').select('*').order('publicado_em', { ascending: false }).limit(20),
-      ])
-      setMetricas(m || [])
-      setPublicacoes(p || [])
+  async function refresh() {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await loadPremiumWorkspace()
+      setWorkspace(data)
+      setForm(current => ({
+        ...current,
+        publication_id: current.publication_id || data.publications[0]?.id || '',
+      }))
+    } catch (err) {
+      setError(err)
+    } finally {
       setLoading(false)
     }
-    carregar()
+  }
+
+  useEffect(() => {
+    refresh()
   }, [])
 
-  const porPlataforma = metricas.reduce((acc, m) => {
-    if (!acc[m.plataforma]) acc[m.plataforma] = { seguidores: 0, curtidas: 0, visualizacoes: 0, alcance: 0 }
-    acc[m.plataforma].seguidores     = Math.max(acc[m.plataforma].seguidores,     m.seguidores || 0)
-    acc[m.plataforma].curtidas      += m.curtidas || 0
-    acc[m.plataforma].visualizacoes += m.visualizacoes || 0
-    acc[m.plataforma].alcance       += m.alcance || 0
-    return acc
-  }, {})
+  const publicationById = useMemo(
+    () => new Map(workspace.publications.map(publication => [publication.id, publication])),
+    [workspace.publications],
+  )
 
-  const ig = porPlataforma['instagram'] || {}
-  const yt = porPlataforma['youtube']   || {}
-  const fb = porPlataforma['facebook']  || {}
+  const campaignById = useMemo(
+    () => new Map(workspace.campaigns.map(campaign => [campaign.id, campaign])),
+    [workspace.campaigns],
+  )
 
-  const totalPublicados = publicacoes.length
-  const publicadosHoje  = publicacoes.filter(p =>
-    new Date(p.publicado_em).toDateString() === new Date().toDateString()
-  ).length
+  const totals = useMemo(() => {
+    return workspace.metrics.reduce(
+      (acc, metric) => {
+        acc.reach += Number(metric.reach || 0)
+        acc.impressions += Number(metric.impressions || 0)
+        acc.engagement += Number(metric.engagement || 0)
+        acc.clicks += Number(metric.link_clicks || metric.clicks || 0)
+        acc.leads += Number(metric.leads || 0)
+        acc.spend += Number(metric.spend || 0)
+        return acc
+      },
+      { reach: 0, impressions: 0, engagement: 0, clicks: 0, leads: 0, spend: 0 },
+    )
+  }, [workspace.metrics])
+
+  function update(field, value) {
+    setForm(current => ({ ...current, [field]: value }))
+  }
+
+  async function submit(event) {
+    event.preventDefault()
+    const publication = publicationById.get(form.publication_id)
+    setSaving(true)
+    setError(null)
+    try {
+      await createManualMetric({ ...form, publication })
+      setForm(current => ({
+        ...INITIAL_METRIC,
+        publication_id: current.publication_id,
+        metric_date: new Date().toISOString().slice(0, 10),
+      }))
+      await refresh()
+    } catch (err) {
+      setError(err)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="mb-8">
-          <p className="label-section mb-2">Performance consolidada</p>
-          <h1 className="font-display text-2xl text-white font-semibold">Métricas</h1>
-        </div>
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="card h-28">
-              <div className="skeleton h-3 w-24 mb-4" />
-              <div className="skeleton h-8 w-20 mb-2" />
-              <div className="skeleton h-2.5 w-16" />
-            </div>
-          ))}
+      <div className="premium-page">
+        <PremiumPageHeader
+          kicker="Performance Premium"
+          title="Metricas por publicacao"
+          subtitle="Carregando publicacoes e historico do modelo Premium."
+        />
+        <div className="flex min-h-72 items-center justify-center text-gold-300">
+          <Loader2 size={20} className="mr-3 animate-spin" />
+          <span className="text-sm font-medium">Carregando metricas Premium</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <p className="label-section mb-2">Performance consolidada</p>
-        <h1 className="font-display text-2xl text-white font-semibold">Métricas</h1>
-      </div>
+    <div className="premium-page">
+      <PremiumPageHeader
+        kicker="Performance Premium"
+        title="Metricas por publicacao"
+        subtitle="Leitura por post, asset e campanha usando somente `premium_publications` e `premium_metrics`."
+      />
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Instagram"
-          value={(ig.seguidores || 6723).toLocaleString('pt-BR')}
-          sub="seguidores"
-          icon={Users}
-          cor="#E1306C"
-        />
-        <StatCard
-          label="Facebook"
-          value={(fb.seguidores || 17288).toLocaleString('pt-BR')}
-          sub="seguidores"
-          icon={Users}
-          cor="#1877F2"
-        />
-        <StatCard
-          label="Posts publicados"
-          value={totalPublicados}
-          sub={`${publicadosHoje} hoje`}
-          icon={BarChart3}
-          cor="#4ADE80"
-        />
-        <StatCard
-          label="YouTube"
-          value={yt.seguidores ? yt.seguidores.toLocaleString('pt-BR') : '—'}
-          sub="inscritos"
-          icon={Play}
-          cor="#FF0000"
-        />
-      </div>
-
-      {metricas.length > 0 && (
-        <>
-          <div className="gold-line mb-6" />
-          <div className="card mb-6">
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-sm font-medium text-white">Engajamento acumulado</p>
-              <Repeat2 size={14} className="text-navy-600" />
-            </div>
-            <div className="space-y-4">
-              <BarraProgresso label="Curtidas Instagram"  valor={ig.curtidas}      max={10000} />
-              <BarraProgresso label="Visualizações"       valor={ig.visualizacoes} max={100000} />
-              <BarraProgresso label="Alcance"             valor={ig.alcance}       max={200000} />
-            </div>
-          </div>
-        </>
-      )}
-
-      {publicacoes.length > 0 && (
-        <>
-          <div className="gold-line mb-6" />
-          <div className="card">
-            <p className="text-sm font-medium text-white mb-5">Últimas publicações</p>
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-400/25 bg-red-950/25 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-red-300" />
             <div>
-              {publicacoes.slice(0, 8).map((p, i) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-4 py-2.5 transition-colors hover:bg-navy-800/40 px-2 -mx-2 rounded-lg"
-                  style={{ borderBottom: i < 7 ? '1px solid rgba(20,45,88,0.8)' : 'none' }}
-                >
-                  <div
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: PLATAFORMA_COR[p.plataforma] || '#ADB5BD' }}
-                  />
-                  <span className="text-xs text-gray-400 capitalize w-20 flex-shrink-0">{p.plataforma}</span>
-                  <span className="text-xs text-gray-300 flex-1 truncate">{p.url_post || 'post publicado'}</span>
-                  <span className="label-section flex-shrink-0">
-                    {new Date(p.publicado_em).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-              ))}
+              <p className="text-sm font-semibold text-red-100">Falha na area de metricas Premium</p>
+              <p className="mt-1 text-xs leading-5 text-red-100/70">{error.message}</p>
             </div>
           </div>
-        </>
-      )}
-
-      {metricas.length === 0 && publicacoes.length === 0 && (
-        <div className="card flex flex-col items-center justify-center h-48 text-center">
-          <TrendingUp size={22} className="text-navy-600 mb-3" />
-          <p className="text-gray-400 text-sm font-medium">Aguardando dados</p>
-          <p className="text-navy-600 text-xs mt-1">Métricas coletadas pelo Ag.1 toda sexta às 17h</p>
         </div>
       )}
+
+      <div className="mb-8 grid gap-4 md:grid-cols-4">
+        <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${workspace.metrics.length} coletas`} icon={Target} />
+        <MetricTile label="Impressoes" value={formatNumber(totals.impressions)} sub={`${workspace.publications.length} publicacoes`} icon={Activity} />
+        <MetricTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.clicks)} cliques`} icon={Repeat2} />
+        <MetricTile
+          label="Investimento"
+          value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })}
+          sub={`${formatNumber(totals.leads)} leads`}
+          icon={BarChart3}
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[420px,1fr]">
+        <form onSubmit={submit} className="rounded-lg border border-gold-500/20 bg-[#101010] p-5">
+          <div className="mb-5 border-b border-white/10 pb-4">
+            <p className="text-sm font-semibold text-white">Entrada manual</p>
+            <p className="mt-1 text-xs leading-5 text-white/42">
+              Use para registrar desempenho real antes da integracao Meta automatica.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Field label="Publicacao">
+              <select
+                required
+                value={form.publication_id}
+                onChange={event => update('publication_id', event.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+              >
+                <option value="">Selecione</option>
+                {workspace.publications.map(publication => {
+                  const campaign = campaignById.get(publication.campaign_id)
+                  return (
+                    <option key={publication.id} value={publication.id}>
+                      {publication.platform} · {campaign?.name || publication.external_post_id || publication.id}
+                    </option>
+                  )
+                })}
+              </select>
+            </Field>
+
+            <Field label="Data da coleta">
+              <input
+                type="date"
+                value={form.metric_date}
+                onChange={event => update('metric_date', event.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+              />
+            </Field>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                ['reach', 'Alcance'],
+                ['impressions', 'Impressoes'],
+                ['engagement', 'Engajamento'],
+                ['likes', 'Curtidas'],
+                ['comments', 'Comentarios'],
+                ['shares', 'Compartilhamentos'],
+                ['saves', 'Salvos'],
+                ['link_clicks', 'Cliques no link'],
+                ['profile_visits', 'Visitas ao perfil'],
+                ['follows', 'Novos seguidores'],
+                ['video_views', 'Views de video'],
+                ['leads', 'Leads'],
+                ['spend', 'Investimento'],
+              ].map(([field, label]) => (
+                <Field key={field} label={label}>
+                  <input
+                    type="number"
+                    min="0"
+                    step={field === 'spend' ? '0.01' : '1'}
+                    value={form[field]}
+                    onChange={event => update(field, event.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+                  />
+                </Field>
+              ))}
+            </div>
+
+            <Field label="Observacoes">
+              <textarea
+                value={form.notes}
+                onChange={event => update('notes', event.target.value)}
+                className="min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+              />
+            </Field>
+
+            <button
+              type="submit"
+              disabled={saving || !workspace.publications.length}
+              className="btn-gold flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+              Registrar metricas
+            </button>
+          </div>
+        </form>
+
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.025]">
+          <div className="grid grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+            <span>Canal</span>
+            <span>Campanha</span>
+            <span>Alcance</span>
+            <span>Engajamento</span>
+            <span>Leads</span>
+            <span>Coleta</span>
+          </div>
+
+          {workspace.metrics.length ? (
+            <div className="divide-y divide-white/10">
+              {workspace.metrics.map(metric => {
+                const publication = publicationById.get(metric.publication_id)
+                const campaign = campaignById.get(metric.campaign_id || publication?.campaign_id)
+                return (
+                  <div key={metric.id} className="grid grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 px-4 py-3 text-sm text-white/62">
+                    <PlatformLabel value={metric.platform} />
+                    <span className="truncate text-white/72">{campaign?.name || 'Campanha Premium'}</span>
+                    <span>{formatNumber(metric.reach)}</span>
+                    <span>{formatNumber(metric.engagement)}</span>
+                    <span>{formatNumber(metric.leads)}</span>
+                    <span>{formatDate(metric.metric_date || metric.collected_at)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
+              <Radio size={24} className="mb-3 text-gold-500/55" />
+              <p className="text-sm font-medium text-white">Nenhuma metrica Premium registrada</p>
+              <p className="mt-1 max-w-md text-xs leading-relaxed text-white/42">
+                Cadastre uma publicacao real/importada e registre a primeira coleta manual.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">{label}</span>
+      {children}
+    </label>
   )
 }

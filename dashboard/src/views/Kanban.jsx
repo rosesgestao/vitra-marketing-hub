@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Image, Video, FileText, Instagram, Youtube, Facebook, Music, RefreshCw } from 'lucide-react'
+import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 
 const COLUNAS = [
-  { id: 'planejado',            label: 'Planejado',   borderColor: '#142D58', headerGold: false },
-  { id: 'em_criacao',           label: 'Criando',     borderColor: '#FB923C', headerGold: false },
-  { id: 'aguardando_aprovacao', label: 'Em Revisão',  borderColor: '#FBBF24', headerGold: false },
+  { id: 'planejado',            label: 'Planejado',   borderColor: '#3D3D3D', headerGold: false },
+  { id: 'em_criacao',           label: 'Criando',     borderColor: '#A87820', headerGold: false },
+  { id: 'aguardando_aprovacao', label: 'Em Revisão',  borderColor: '#D4A84A', headerGold: false },
   { id: 'aprovado',             label: 'Aprovado',    borderColor: '#C4942A', headerGold: true  },
-  { id: 'publicado',            label: 'Publicado',   borderColor: '#60A5FA', headerGold: false },
+  { id: 'publicado',            label: 'Publicado',   borderColor: '#E4C06E', headerGold: false },
 ]
 
 const STATUS_LEFT = {
-  planejado:            '#142D58',
-  em_criacao:           '#FB923C',
-  aguardando_aprovacao: '#FBBF24',
+  planejado:            '#3D3D3D',
+  em_criacao:           '#A87820',
+  aguardando_aprovacao: '#D4A84A',
   aprovado:             '#C4942A',
-  publicado:            '#60A5FA',
+  publicado:            '#E4C06E',
 }
 
 const PLATAFORMA_ICON = { instagram: Instagram, youtube: Youtube, facebook: Facebook, tiktok: Music }
@@ -51,21 +52,18 @@ export default function Kanban() {
   }, {})
 
   return (
-    <div className="p-8">
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <p className="label-section mb-2">Gestão de conteúdo</p>
-          <h1 className="font-display text-2xl text-white font-semibold">Conteúdos</h1>
-          <p className="text-gray-500 text-sm mt-1">{conteudos.length} peças no sistema</p>
-        </div>
-        <button
-          onClick={carregar}
-          className="btn-ghost flex items-center gap-2"
-        >
-          <RefreshCw size={13} />
-          Atualizar
-        </button>
-      </div>
+    <div className="premium-page">
+      <PremiumPageHeader
+        kicker="Gestao de conteudo"
+        title="Conteudos"
+        subtitle={`${conteudos.length} pecas em producao, revisao e publicacao.`}
+        actions={
+          <button onClick={carregar} className="btn-ghost flex items-center gap-2">
+            <RefreshCw size={13} />
+            Atualizar
+          </button>
+        }
+      />
 
       {loading && (
         <div className="flex items-center justify-center h-48">
@@ -82,11 +80,11 @@ export default function Kanban() {
           return (
             <div key={col.id} className="flex-shrink-0 w-60">
               <div
-                className="flex items-center justify-between mb-3 px-3 py-2.5 rounded-lg bg-navy-900"
+                className="mb-3 flex items-center justify-between rounded-lg bg-[#101010] px-3 py-2.5"
                 style={{
                   border: col.headerGold
                     ? '1px solid rgba(196,148,42,0.35)'
-                    : '1px solid rgba(20,45,88,0.8)',
+                    : '1px solid rgba(255,255,255,0.08)',
                   borderBottom: col.headerGold
                     ? '2px solid rgba(196,148,42,0.6)'
                     : undefined,
@@ -109,7 +107,7 @@ export default function Kanban() {
               <div className="space-y-2">
                 {items.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-10 text-navy-600">
-                    <div className="w-8 h-8 rounded-lg bg-navy-800 border border-navy-700 flex items-center justify-center mb-2">
+                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5">
                       <FileText size={14} className="text-navy-600" />
                     </div>
                     <p className="text-[10px]">vazio</p>
@@ -122,7 +120,7 @@ export default function Kanban() {
                   const PlataformaIcon = PLATAFORMA_ICON[plataforma] || FileText
                   const FormatoIcon = FORMATO_ICON[formato] || FileText
                   const plataformaCor = PLATAFORMA_COR[plataforma] || '#ADB5BD'
-                  const leftCol = STATUS_LEFT[item.status || 'planejado'] || '#142D58'
+                  const leftCol = STATUS_LEFT[item.status || 'planejado'] || '#3D3D3D'
 
                   const temImagem = !!item.url_imagem
                   const temVideo  = !!item.url_video
@@ -131,7 +129,7 @@ export default function Kanban() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-navy-900 border border-navy-700 rounded-xl p-3 transition-all duration-200 hover:border-navy-600 hover:shadow-lg hover:shadow-black/20"
+                      className="rounded-lg border border-gold-500/15 bg-[#101010] p-3 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
                       style={{ borderLeft: `1px solid ${leftCol}` }}
                     >
                       <div className="flex items-center gap-1.5 mb-2">

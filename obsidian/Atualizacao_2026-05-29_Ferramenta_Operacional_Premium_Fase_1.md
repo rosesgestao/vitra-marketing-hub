@@ -95,3 +95,71 @@ Iniciar a etapa de backend/jobs:
 3. Renderizar assets em alta qualidade.
 4. Subir criativos para Supabase Storage.
 5. Atualizar `premium_campaign_assets.public_url`.
+
+---
+
+## Atualizacao 2026-05-29 - Execucao do Plano Operacional
+
+Foi iniciado o plano de evolucao da ferramenta operacional Premium a partir do documento de execucao de 29/05/2026.
+
+### Fase 0 - Infraestrutura
+
+Confirmado localmente:
+- `dashboard/.env` aponta para o projeto oficial `birxcfkyuzqnhyvetbjv`;
+- o front usa chave publishable/anon, sem service role no browser;
+- chamada REST mascarada para `premium_campaigns` retornou `200` no projeto oficial.
+
+Pendente:
+- bucket Storage `cards` nao foi confirmado pela chave publishable; a consulta ao endpoint do bucket retornou `400`.
+- o aceite real do upload depende de confirmar/criar o bucket `cards` e suas policies no Supabase.
+
+### Fase 1 - Identidade Premium
+
+Aplicada no dashboard React:
+- base visual preta + dourada;
+- remocao da leitura azul dominante;
+- logo/icone Premium no shell;
+- favicon e titulo Premium;
+- componentes globais de marca e shell editorial.
+
+### Fase 2 - Captura Completa da Campanha
+
+O modal `Nova campanha` foi ampliado com os campos do prototipo:
+- tagline/assinatura do empreendimento;
+- localizacao completa;
+- metragem;
+- suites;
+- andares/torres;
+- diferenciais;
+- preco;
+- headline sugerida;
+- copy sugerida;
+- uploads de fachada, living, varanda, infraestrutura e extras multiplos.
+
+Persistencia definida:
+- dados extras em `premium_campaigns.brief.product_data`;
+- uploads no bucket `cards`;
+- URLs em `premium_campaigns.brief.images`;
+- imagem principal em `premium_campaign_assets.source_image_url`;
+- metadados completos em `premium_campaign_assets.metadata.source_images`.
+
+### Fase 4 e 5 Minimas - Publicacoes e Metricas
+
+Implementado no React:
+- `Metricas.jsx` deixou de usar tabelas antigas `metricas`/`publicacoes`;
+- `Metricas.jsx` agora usa `premium_publications` e `premium_metrics`;
+- removidos numeros fixos de seguidores/performance;
+- criada entrada manual de metricas por publicacao;
+- criada entrada manual para mapear publicacao real a conteudo/asset/campanha.
+
+### Validacoes
+
+- `npm.cmd run build` no dashboard: sucesso.
+- `git diff --check -- dashboard`: sucesso.
+- REST mascarado para `premium_campaigns`: `200`.
+
+### Bloqueios Restantes
+
+- Fase 3 ainda depende de backend/worker real para consumir `premium_generation_jobs`.
+- Bucket `cards` precisa ser confirmado com policy adequada para upload server-side ou publishable.
+- Integracao Meta permanece fora do escopo imediato e deve ficar no backend.
