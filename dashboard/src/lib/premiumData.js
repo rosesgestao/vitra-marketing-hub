@@ -44,12 +44,15 @@ export const PREMIUM_TABLES = [
 ]
 
 const ASSET_BLUEPRINTS = [
-  ['meta-awareness-feed', 'meta_ad', 'meta_ads', 'feed', 'Meta Ads - Awareness Feed', '1:1', 'premium-editorial-feed'],
-  ['meta-awareness-story', 'meta_ad', 'meta_ads', 'story', 'Meta Ads - Awareness Story', '9:16', 'premium-editorial-story'],
-  ['meta-leads-feed', 'meta_ad', 'meta_ads', 'feed', 'Meta Ads - Leads Feed', '1:1', 'premium-lead-feed'],
-  ['meta-leads-story', 'meta_ad', 'meta_ads', 'story', 'Meta Ads - Leads Story', '9:16', 'premium-lead-story'],
-  ['meta-retarget-feed', 'meta_ad', 'meta_ads', 'feed', 'Meta Ads - Retarget Feed', '1:1', 'premium-retarget-feed'],
-  ['meta-retarget-story', 'meta_ad', 'meta_ads', 'story', 'Meta Ads - Retarget Story', '9:16', 'premium-retarget-story'],
+  ['meta-awareness-feed', 'meta_ad', 'meta_ads', 'feed', 'Meta Ads Awareness - 1:1', '1:1', 'premium-editorial-feed'],
+  ['meta-awareness-story', 'meta_ad', 'meta_ads', 'story', 'Meta Ads Awareness - 9:16', '9:16', 'premium-editorial-story'],
+  ['meta-awareness-wide', 'meta_ad', 'meta_ads', 'wide', 'Meta Ads Awareness - 1.91:1', '1.91:1', 'premium-editorial-wide'],
+  ['meta-leads-feed', 'meta_ad', 'meta_ads', 'feed', 'Meta Ads Leads - 1:1', '1:1', 'premium-lead-feed'],
+  ['meta-leads-story', 'meta_ad', 'meta_ads', 'story', 'Meta Ads Leads - 9:16', '9:16', 'premium-lead-story'],
+  ['meta-leads-wide', 'meta_ad', 'meta_ads', 'wide', 'Meta Ads Leads - 1.91:1', '1.91:1', 'premium-lead-wide'],
+  ['meta-retarget-feed', 'meta_ad', 'meta_ads', 'feed', 'Meta Ads Retarget - 1:1', '1:1', 'premium-retarget-feed'],
+  ['meta-retarget-story', 'meta_ad', 'meta_ads', 'story', 'Meta Ads Retarget - 9:16', '9:16', 'premium-retarget-story'],
+  ['meta-retarget-wide', 'meta_ad', 'meta_ads', 'wide', 'Meta Ads Retarget - 1.91:1', '1.91:1', 'premium-retarget-wide'],
   ['reels-hook', 'short_video', 'instagram', 'reels', 'Reels - Hook de Campanha', '9:16', 'premium-reels-hook'],
   ['reels-proof', 'short_video', 'instagram', 'reels', 'Reels - Prova de Valor', '9:16', 'premium-reels-proof'],
   ['carousel-cover', 'carousel', 'instagram', 'carousel_cover', 'Carrossel - Capa Editorial', '4:5', 'premium-carousel-cover'],
@@ -490,6 +493,41 @@ export async function approveAssets(ids) {
   return data
 }
 
+// Salva os campos de publicacao de um anuncio (Meta Ads) nos 3 cortes e reenfileira p/ render.
+// `assets` = array dos assets do anuncio (precisa do metadata atual para merge).
+// fields: { nome, texto_principal, titulo, descricao, cta, url_params }
+export async function saveAd(assets, fields = {}) {
+  const list = (assets || []).filter(a => a && a.id)
+  if (!list.length) return []
+  const out = []
+  for (const a of list) {
+    const metadata = {
+      ...(a.metadata || {}),
+      meta_ad: {
+        nome: fields.nome ?? a.metadata?.meta_ad?.nome ?? null,
+        texto_principal: fields.texto_principal ?? a.metadata?.meta_ad?.texto_principal ?? null,
+        descricao: fields.descricao ?? a.metadata?.meta_ad?.descricao ?? null,
+        url_params: fields.url_params ?? a.metadata?.meta_ad?.url_params ?? null,
+      },
+    }
+    const { data, error } = await supabase
+      .from('premium_campaign_assets')
+      .update({
+        headline: fields.titulo ?? a.headline,
+        cta: fields.cta ?? a.cta,
+        status: 'queued',
+        metadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', a.id)
+      .select('id')
+      .single()
+    if (error) throw error
+    out.push(data)
+  }
+  return out
+}
+
 // Limites de cartoes por canal de carrossel.
 export const CAROUSEL_LIMITS = {
   meta_ads: { min: 2, max: 10 },
@@ -604,6 +642,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}) {
       blueprint_key: blueprintKey,
       phase: 'phase_2_react_capture',
       campaign_phase: phaseForBlueprint(blueprintKey),
+      ad_group: channel === 'meta_ads' ? blueprintKey.replace(/-(feed|story|wide)$/, '') : null,
       brand_scope: 'vitra_premium',
       visual_rules: ['black_gold', 'editorial', 'luxury_refined'],
       product_data: productData,

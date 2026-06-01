@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock,
   Database,
+  Download,
   ExternalLink,
   FileText,
   Gem,
@@ -17,6 +18,7 @@ import {
   Images,
   Layers3,
   Loader2,
+  Megaphone,
   Pencil,
   Plus,
   Radio,
@@ -37,6 +39,7 @@ import {
   createManualPublication,
   loadPremiumWorkspace,
   renderCampaignAssets,
+  saveAd,
   saveAssetEdit,
 } from '../lib/premiumData.js'
 import { PremiumHorizontalLogo } from '../components/PremiumBrand.jsx'
@@ -83,10 +86,23 @@ const IMAGE_FIELDS = [
 const TABS = [
   { id: 'campanhas', label: 'Campanhas', icon: Gem },
   { id: 'assets', label: 'Produção', icon: Layers3 },
+  { id: 'trafego', label: 'Tráfego Pago', icon: Megaphone },
   { id: 'publicacoes', label: 'Publicações', icon: Send },
   { id: 'metricas', label: 'Métricas', icon: BarChart3 },
   { id: 'modelo', label: 'Modelo', icon: Database },
 ]
+
+// Posicionamentos Meta Ads por formato/aspect ratio
+const META_PLACEMENTS = {
+  '1:1': { label: 'Quadrado', sub: 'Feed', dim: '1080×1080' },
+  '9:16': { label: 'Vertical', sub: 'Stories / Reels', dim: '1080×1920' },
+  '1.91:1': { label: 'Horizontal', sub: 'Recomendado', dim: '1200×628' },
+}
+const AD_GROUP_LABEL = {
+  'meta-awareness': 'Awareness',
+  'meta-leads': 'Leads',
+  'meta-retarget': 'Retargeting',
+}
 
 const STATUS_STYLES = {
   draft: 'border-white/10 bg-white/5 text-white/60',
@@ -188,6 +204,7 @@ export default function PremiumDashboard() {
   const [saving, setSaving] = useState(false)
   const [savingPublication, setSavingPublication] = useState(false)
   const [editingAsset, setEditingAsset] = useState(null)
+  const [editingAd, setEditingAd] = useState(null)
   const [assetBusyId, setAssetBusyId] = useState(null)
   const [rendering, setRendering] = useState(false)
   const [notice, setNotice] = useState(null)
@@ -326,6 +343,21 @@ export default function PremiumDashboard() {
     try {
       await saveAssetEdit(assetId, patch)
       setEditingAsset(null)
+      await refresh(selectedCampaignId)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setAssetBusyId(null)
+    }
+  }
+
+  async function handleSaveAd(assets, fields) {
+    if (!assets?.length) return
+    setAssetBusyId(assets[0].id)
+    setError(null)
+    try {
+      await saveAd(assets, fields)
+      setEditingAd(null)
       await refresh(selectedCampaignId)
     } catch (err) {
       setError(err)
@@ -496,7 +528,7 @@ export default function PremiumDashboard() {
         {!loading && activeTab === 'assets' && (
           <AssetsSection
             campaign={selectedCampaign}
-            assets={scoped.assets}
+            assets={scoped.assets.filter(a => a.channel !== 'meta_ads')}
             jobs={scoped.jobs}
             rendering={rendering}
             busyId={assetBusyId}
@@ -505,6 +537,19 @@ export default function PremiumDashboard() {
             onApprove={handleApproveAsset}
             onApproveGroup={handleApproveGroup}
             onEdit={setEditingAsset}
+          />
+        )}
+
+        {!loading && activeTab === 'trafego' && (
+          <TrafegoPagoSection
+            campaign={selectedCampaign}
+            assets={scoped.assets}
+            rendering={rendering}
+            busyId={assetBusyId}
+            notice={notice}
+            onRender={handleRenderCampaign}
+            onApproveGroup={handleApproveGroup}
+            onEditAd={setEditingAd}
           />
         )}
 
@@ -542,6 +587,15 @@ export default function PremiumDashboard() {
           saving={assetBusyId === editingAsset.id}
           onClose={() => setEditingAsset(null)}
           onSave={handleSaveAssetEdit}
+        />
+      )}
+
+      {editingAd && (
+        <AdEditModal
+          ad={editingAd}
+          saving={assetBusyId === editingAd.assets?.[0]?.id}
+          onClose={() => setEditingAd(null)}
+          onSave={handleSaveAd}
         />
       )}
     </div>
@@ -668,6 +722,7 @@ const DIMENSION_LABEL = {
   '9:16': '1080×1920',
   '4:5': '1080×1350',
   '16:9': '1280×720',
+  '1.91:1': '1200×628',
   desktop: '1200×630',
 }
 
@@ -676,6 +731,7 @@ const ASPECT_CSS = {
   '9:16': '9 / 16',
   '4:5': '4 / 5',
   '16:9': '16 / 9',
+  '1.91:1': '1.91 / 1',
   desktop: '1200 / 630',
 }
 
@@ -1095,6 +1151,278 @@ function CarouselCard({ slides, campaign, busy, onApprove, onEdit }) {
             Editar slide
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+const AD_FORMAT_ORDER = ['1:1', '9:16', '1.91:1']
+const CTA_OPTIONS = [
+  'Enviar mensagem pelo WhatsApp',
+  'Saiba mais',
+  'Cadastre-se',
+  'Fale conosco',
+  'Solicitar curadoria',
+  'Conheça o projeto',
+]
+
+function groupMetaAds(assets) {
+  const map = new Map()
+  for (const a of assets) {
+    if (a.channel !== 'meta_ads') continue
+    const key = a.metadata?.ad_group || 'meta'
+    if (!map.has(key)) map.set(key, { key, label: AD_GROUP_LABEL[key] || key.replace(/^meta-/, ''), assets: [] })
+    map.get(key).assets.push(a)
+  }
+  return [...map.values()]
+}
+
+function TrafegoPagoSection({ campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
+  if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
+  const ads = groupMetaAds(assets)
+  if (!ads.length) {
+    return (
+      <EmptyState
+        icon={Megaphone}
+        title="Sem criativos de Meta Ads nesta campanha"
+        note="Crie uma campanha para gerar os anúncios de tráfego pago — cada um sai nos 3 cortes (1:1, 9:16 e 1,91:1)."
+      />
+    )
+  }
+  const placements = assets.filter(a => a.channel === 'meta_ads')
+  const queued = placements.filter(a => a.status === 'queued').length
+  const generated = placements.filter(a => a.status === 'generated').length
+  const approved = placements.filter(a => a.status === 'approved').length
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="font-display text-2xl font-semibold text-white">Tráfego Pago · Meta Ads</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-white/50">
+            Cada anúncio sai nos 3 cortes que o Gerenciador pede — <span className="text-white/70">Quadrado 1:1 (feed)</span>, <span className="text-white/70">Vertical 9:16 (stories/reels)</span> e <span className="text-white/70">Horizontal 1,91:1 (recomendado)</span> — prontos para o passo de corte de mídia.
+          </p>
+        </div>
+        <button
+          onClick={onRender}
+          disabled={rendering || queued === 0}
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+          {rendering ? 'Gerando…' : `Gerar cortes${queued ? ` (${queued})` : ''}`}
+        </button>
+      </div>
+
+      {notice && (
+        <div className="rounded-lg border border-gold-500/25 bg-gold-500/8 px-4 py-3 text-xs text-gold-100">{notice}</div>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-4">
+        <StatTile label="Anúncios" value={ads.length} sub={`${placements.length} cortes`} icon={Megaphone} />
+        <StatTile label="Pendentes" value={queued} sub="aguardando corte" icon={Clock} tone="#E4C06E" />
+        <StatTile label="Gerados" value={generated} sub="cortes prontos" icon={ImageIcon} tone="#D4A84A" />
+        <StatTile label="Aprovados" value={approved} sub="prontos p/ subir" icon={CheckCircle2} tone="#F0C95C" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+        {ads.map(ad => (
+          <MetaAdCard
+            key={ad.key}
+            ad={ad}
+            busy={ad.assets.some(a => a.id === busyId)}
+            onApprove={() => onApproveGroup(ad.assets)}
+            onEdit={() => onEditAd(ad)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MetaAdCard({ ad, busy, onApprove, onEdit }) {
+  const ordered = [...ad.assets].sort(
+    (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
+  )
+  const [idx, setIdx] = useState(0)
+  const safeIdx = Math.min(idx, ordered.length - 1)
+  const current = ordered[safeIdx]
+  const place = META_PLACEMENTS[current?.aspect_ratio] || {}
+  const allApproved = ad.assets.every(a => a.status === 'approved')
+  const meta = ad.assets[0]?.metadata?.meta_ad || {}
+  const headline = ad.assets[0]?.headline || ''
+  const cta = ad.assets[0]?.cta || ''
+  const fileName = `${ad.key}-${(current?.aspect_ratio || '').replace(':', 'x')}.png`
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gold-500/20 bg-[#0B0B0C]">
+      <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Megaphone size={14} className="text-gold-400" />
+          <p className="text-sm font-semibold text-white">Anúncio · {ad.label}</p>
+        </div>
+        <StatusPill value={allApproved ? 'approved' : current?.status} />
+      </div>
+
+      <div className="flex gap-1 px-3 pt-3">
+        {ordered.map((a, i) => {
+          const p = META_PLACEMENTS[a.aspect_ratio] || {}
+          const active = i === safeIdx
+          return (
+            <button
+              key={a.id}
+              onClick={() => setIdx(i)}
+              className="flex-1 rounded-md px-2 py-1.5 text-[10px] font-semibold transition"
+              style={{
+                background: active ? 'rgba(196,148,42,0.15)' : 'rgba(255,255,255,0.04)',
+                color: active ? '#F0C95C' : 'rgba(255,255,255,0.55)',
+                border: active ? '1px solid rgba(196,148,42,0.45)' : '1px solid transparent',
+              }}
+            >
+              {a.aspect_ratio}
+              <span className="ml-1 hidden font-normal text-white/40 sm:inline">{p.label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="relative mx-3 mt-3 flex h-60 items-center justify-center overflow-hidden rounded-lg bg-black">
+        {current?.public_url ? (
+          <img src={current.public_url} alt={current.title} className="max-h-full max-w-full object-contain" loading="lazy" />
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-white/40">
+            <ImageIcon size={22} className="text-gold-500/50" />
+            <span className="text-[11px]">{current?.status === 'queued' ? 'aguardando corte' : 'sem render'}</span>
+          </div>
+        )}
+        <span className="absolute right-2 top-2 rounded bg-black/55 px-2 py-1 text-[10px] text-white/80">{place.dim}</span>
+      </div>
+
+      <div className="px-4 py-3">
+        <p className="text-[11px] text-white/45">
+          <span className="text-white/70">{place.label}</span> · {place.sub}
+        </p>
+      </div>
+
+      <div className="space-y-2 border-t border-white/10 px-4 py-3">
+        <AdField label="Título" value={headline} />
+        <AdField label="Texto principal" value={meta.texto_principal} clamp />
+        <AdField label="CTA" value={cta} />
+      </div>
+
+      <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">
+        <button
+          onClick={onApprove}
+          disabled={busy || allApproved}
+          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
+          style={{
+            background: allApproved ? 'rgba(196,148,42,0.12)' : 'rgba(29,158,117,0.18)',
+            color: allApproved ? '#F0C95C' : '#6ee7b7',
+            opacity: busy ? 0.6 : 1,
+          }}
+        >
+          {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+          {allApproved ? 'Aprovado' : 'Aprovar anúncio'}
+        </button>
+        {current?.public_url ? (
+          <a
+            href={current.public_url}
+            download={fileName}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/12 px-2.5 py-1.5 text-xs font-medium text-white/70 transition hover:border-gold-500/35 hover:text-white"
+          >
+            <Download size={13} /> Baixar
+          </a>
+        ) : (
+          <span className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-white/30">
+            <Download size={13} /> Baixar
+          </span>
+        )}
+        <button
+          onClick={onEdit}
+          disabled={busy}
+          className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/12 px-2.5 py-1.5 text-xs font-medium text-white/70 transition hover:border-gold-500/35 hover:text-white disabled:opacity-60"
+        >
+          <Pencil size={13} /> Editar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AdField({ label, value, clamp }) {
+  return (
+    <div>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/35">{label}</p>
+      <p className={`text-xs leading-5 text-white/72 ${clamp ? 'line-clamp-2' : 'truncate'}`}>{value || '—'}</p>
+    </div>
+  )
+}
+
+function AdEditModal({ ad, saving, onClose, onSave }) {
+  const a0 = ad.assets[0] || {}
+  const m = a0.metadata?.meta_ad || {}
+  const [form, setForm] = useState({
+    nome: m.nome || `${ad.label} | Meta Ads`,
+    texto_principal: m.texto_principal || a0.copy || '',
+    titulo: a0.headline || '',
+    descricao: m.descricao || '',
+    cta: a0.cta || CTA_OPTIONS[0],
+    url_params: m.url_params || '',
+  })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const inputClass = 'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-white/25 transition focus:border-gold-500/55'
+  const labelClass = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42'
+
+  function submit(event) {
+    event.preventDefault()
+    onSave(ad.assets, form)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[#101010] shadow-2xl shadow-black/70">
+        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Editar anúncio · {ad.label}</h2>
+            <p className="mt-0.5 text-xs text-white/45">Campos do Gerenciador da Meta · aplica aos 3 cortes</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 p-2 text-white/55 transition hover:text-white" title="Fechar">
+            <X size={16} />
+          </button>
+        </div>
+        <form onSubmit={submit} className="max-h-[calc(92vh-72px)] space-y-4 overflow-y-auto px-6 py-5">
+          <Field label="Nome do anúncio" labelClass={labelClass}>
+            <input value={form.nome} onChange={e => set('nome', e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Texto principal" labelClass={labelClass}>
+            <textarea value={form.texto_principal} onChange={e => set('texto_principal', e.target.value)} className={`${inputClass} min-h-28 resize-y`} placeholder="Legenda do anúncio (com emojis, benefícios, etc.)" />
+          </Field>
+          <Field label="Título" labelClass={labelClass}>
+            <input value={form.titulo} onChange={e => set('titulo', e.target.value)} className={inputClass} placeholder="Ex: Converse conosco" />
+          </Field>
+          <Field label="Descrição" labelClass={labelClass}>
+            <input value={form.descricao} onChange={e => set('descricao', e.target.value)} className={inputClass} placeholder="Detalhes adicionais (opcional)" />
+          </Field>
+          <Field label="Chamada para ação (CTA)" labelClass={labelClass}>
+            <select value={form.cta} onChange={e => set('cta', e.target.value)} className={inputClass}>
+              {CTA_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </Field>
+          <Field label="Parâmetros de URL (UTM)" labelClass={labelClass}>
+            <input value={form.url_params} onChange={e => set('url_params', e.target.value)} className={inputClass} placeholder="utm_source=meta&utm_medium=paid&utm_campaign=..." />
+          </Field>
+          <p className="text-[11px] leading-5 text-white/40">
+            Título e CTA entram no criativo e o conjunto volta para a fila para re-render nos 3 cortes. Texto principal, descrição e UTM ficam salvos para você colar no Gerenciador.
+          </p>
+          <div className="flex justify-end gap-3 pt-1">
+            <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-white/65 transition hover:text-white">Cancelar</button>
+            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:opacity-60">
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+              Salvar anúncio
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
