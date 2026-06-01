@@ -4,28 +4,40 @@ import {
   AlertTriangle,
   BarChart3,
   Briefcase,
+  Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Database,
   ExternalLink,
   FileText,
   Gem,
+  Image as ImageIcon,
+  Images,
   Layers3,
   Loader2,
+  Pencil,
   Plus,
   Radio,
   RefreshCw,
   Send,
   Sparkles,
   Target,
+  Wand2,
   X,
 } from 'lucide-react'
 import { supabaseConfig } from '../lib/supabase.js'
 import {
   PREMIUM_TABLES,
+  approveAsset,
+  approveAssets,
+  carouselLimit,
   createPremiumCampaign,
   createManualPublication,
   loadPremiumWorkspace,
+  renderCampaignAssets,
+  saveAssetEdit,
 } from '../lib/premiumData.js'
 import { PremiumHorizontalLogo } from '../components/PremiumBrand.jsx'
 
@@ -175,6 +187,10 @@ export default function PremiumDashboard() {
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingPublication, setSavingPublication] = useState(false)
+  const [editingAsset, setEditingAsset] = useState(null)
+  const [assetBusyId, setAssetBusyId] = useState(null)
+  const [rendering, setRendering] = useState(false)
+  const [notice, setNotice] = useState(null)
 
   async function refresh(selectCampaignId = selectedCampaignId) {
     setLoading(true)
@@ -234,15 +250,31 @@ export default function PremiumDashboard() {
   async function handleCreateCampaign(form) {
     setSaving(true)
     setError(null)
+    setNotice(null)
+    let campaign
     try {
-      const campaign = await createPremiumCampaign(form)
-      setModalOpen(false)
-      await refresh(campaign.id)
-      setActiveTab('assets')
+      campaign = await createPremiumCampaign(form)
     } catch (err) {
       setError(err)
-    } finally {
       setSaving(false)
+      return
+    }
+    setModalOpen(false)
+    setSaving(false)
+    await refresh(campaign.id)
+    setActiveTab('assets')
+
+    // Trigger automatico: renderiza os criativos da campanha recem-criada em lotes.
+    setRendering(true)
+    try {
+      const result = await renderCampaignAssets(campaign.id, { batch: 5 })
+      if (result.error && !result.rendered) throw result.error
+      setNotice(`Campanha criada. ${result.rendered} criativo(s) gerado(s) automaticamente${result.failed ? `, ${result.failed} com erro` : ''}.`)
+    } catch (renderErr) {
+      setNotice('Campanha criada, mas a renderização automática não concluiu. Use “Gerar criativos” para retomar (o progresso é salvo por peça).')
+    } finally {
+      setRendering(false)
+      await refresh(campaign.id)
     }
   }
 
@@ -257,6 +289,65 @@ export default function PremiumDashboard() {
       setError(err)
     } finally {
       setSavingPublication(false)
+    }
+  }
+
+  async function handleApproveAsset(asset) {
+    setAssetBusyId(asset.id)
+    setError(null)
+    try {
+      await approveAsset(asset.id)
+      await refresh(selectedCampaignId)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setAssetBusyId(null)
+    }
+  }
+
+  async function handleApproveGroup(assetsInGroup) {
+    const ids = assetsInGroup.map(a => a.id)
+    if (!ids.length) return
+    setAssetBusyId(ids[0])
+    setError(null)
+    try {
+      await approveAssets(ids)
+      await refresh(selectedCampaignId)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setAssetBusyId(null)
+    }
+  }
+
+  async function handleSaveAssetEdit(assetId, patch) {
+    setAssetBusyId(assetId)
+    setError(null)
+    try {
+      await saveAssetEdit(assetId, patch)
+      setEditingAsset(null)
+      await refresh(selectedCampaignId)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setAssetBusyId(null)
+    }
+  }
+
+  async function handleRenderCampaign() {
+    if (!selectedCampaign) return
+    setRendering(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const result = await renderCampaignAssets(selectedCampaign.id)
+      if (result.error && !result.rendered) throw result.error
+      setNotice(`Renderização concluída: ${result.rendered} criativo(s) gerado(s)${result.failed ? `, ${result.failed} com erro` : ''}.`)
+      await refresh(selectedCampaign.id)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setRendering(false)
     }
   }
 
@@ -403,7 +494,18 @@ export default function PremiumDashboard() {
         )}
 
         {!loading && activeTab === 'assets' && (
-          <AssetsSection campaign={selectedCampaign} assets={scoped.assets} jobs={scoped.jobs} />
+          <AssetsSection
+            campaign={selectedCampaign}
+            assets={scoped.assets}
+            jobs={scoped.jobs}
+            rendering={rendering}
+            busyId={assetBusyId}
+            notice={notice}
+            onRender={handleRenderCampaign}
+            onApprove={handleApproveAsset}
+            onApproveGroup={handleApproveGroup}
+            onEdit={setEditingAsset}
+          />
         )}
 
         {!loading && activeTab === 'publicacoes' && (
@@ -431,6 +533,15 @@ export default function PremiumDashboard() {
           saving={saving}
           onClose={() => setModalOpen(false)}
           onSubmit={handleCreateCampaign}
+        />
+      )}
+
+      {editingAsset && (
+        <AssetEditModal
+          asset={editingAsset}
+          saving={assetBusyId === editingAsset.id}
+          onClose={() => setEditingAsset(null)}
+          onSave={handleSaveAssetEdit}
         />
       )}
     </div>
@@ -552,70 +663,492 @@ function MiniCount({ icon: Icon, label, value }) {
   )
 }
 
-function AssetsSection({ campaign, assets, jobs }) {
+const DIMENSION_LABEL = {
+  '1:1': '1080×1080',
+  '9:16': '1080×1920',
+  '4:5': '1080×1350',
+  '16:9': '1280×720',
+  desktop: '1200×630',
+}
+
+const ASPECT_CSS = {
+  '1:1': '1 / 1',
+  '9:16': '9 / 16',
+  '4:5': '4 / 5',
+  '16:9': '16 / 9',
+  desktop: '1200 / 630',
+}
+
+const CATEGORY = {
+  meta_ad: 'Meta Ads',
+  carousel: 'Carrosséis',
+  short_video: 'Reels',
+  story: 'Stories',
+  whatsapp: 'WhatsApp',
+  email: 'E-mails',
+  thumbnail: 'Thumbnails',
+  landing_page: 'Landing',
+}
+
+const CHANNEL_TAG = {
+  meta_ads: 'META',
+  instagram: 'IG',
+  facebook: 'FB',
+  youtube: 'YT',
+  whatsapp: 'WPP',
+  email: 'E-MAIL',
+  site: 'LANDING',
+}
+
+const NON_VISUAL = new Set(['whatsapp', 'email'])
+
+const PHASES = [
+  { id: '1', label: 'Teaser', tag: 'FASE 1 — TEASER' },
+  { id: '2', label: 'Revelação', tag: 'FASE 2 — REVELAÇÃO' },
+  { id: '3', label: 'Urgência', tag: 'FASE 3 — URGÊNCIA' },
+]
+const PHASE_TAG = Object.fromEntries(PHASES.map(p => [p.id, p.tag]))
+
+function phaseTag(id) {
+  return PHASE_TAG[String(id)] || null
+}
+
+function itemPhase(item) {
+  if (item.kind === 'carousel') {
+    const cover = item.slides.find(s => s.format === 'carousel_cover') || item.slides[0]
+    return cover?.metadata?.campaign_phase ? String(cover.metadata.campaign_phase) : null
+  }
+  return item.asset?.metadata?.campaign_phase ? String(item.asset.metadata.campaign_phase) : null
+}
+
+function AssetsSection({ campaign, assets, jobs, rendering, busyId, notice, onRender, onApprove, onApproveGroup, onEdit }) {
+  const [filter, setFilter] = useState('all')
+
   if (!campaign) return <EmptyState icon={Layers3} title="Nenhuma campanha selecionada" />
   if (!assets.length) return <EmptyState icon={Layers3} title="Sem assets para esta campanha" />
 
-  const byType = groupCount(assets, 'asset_type')
-  const latestJobs = jobs.slice(0, 5)
+  const total = assets.length
+  const queued = assets.filter(a => a.status === 'queued').length
+  const generated = assets.filter(a => a.status === 'generated').length
+  const approved = assets.filter(a => a.status === 'approved').length
+  const progress = total ? Math.round((approved / total) * 100) : 0
+
+  const categories = assets.reduce((acc, asset) => {
+    const cat = CATEGORY[asset.asset_type] || asset.asset_type || 'Outros'
+    acc[cat] = (acc[cat] || 0) + 1
+    return acc
+  }, {})
+
+  const visible = filter === 'all'
+    ? assets
+    : assets.filter(asset => (CATEGORY[asset.asset_type] || asset.asset_type) === filter)
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="font-display text-2xl font-semibold text-white">{campaign.name}</h2>
+          <p className="mt-1 text-sm text-white/45">
+            {campaign.brief?.product_data?.tagline || campaign.product_name} · {campaign.status}
+          </p>
+        </div>
+        <button
+          onClick={onRender}
+          disabled={rendering || queued === 0}
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          title={queued === 0 ? 'Nenhum asset pendente de renderização' : 'Gerar criativos dos assets pendentes'}
+        >
+          {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+          {rendering ? 'Gerando…' : `Gerar criativos${queued ? ` (${queued})` : ''}`}
+        </button>
+      </div>
+
+      {notice && (
+        <div className="rounded-lg border border-gold-500/25 bg-gold-500/8 px-4 py-3 text-xs text-gold-100">
+          {notice}
+        </div>
+      )}
+
       <div className="grid gap-3 md:grid-cols-4">
-        {Object.entries(byType).slice(0, 8).map(([type, count]) => (
-          <div key={type} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">{type.replace(/_/g, ' ')}</p>
-            <p className="mt-2 font-display text-3xl font-semibold text-gold-300">{count}</p>
-          </div>
+        <StatTile label="Total assets" value={total} sub="na campanha" icon={Layers3} />
+        <StatTile label="Pendentes" value={queued} sub="aguardando render" icon={Clock} tone="#E4C06E" />
+        <StatTile label="Gerados" value={generated} sub="criativos prontos" icon={ImageIcon} tone="#D4A84A" />
+        <StatTile label="Aprovados" value={approved} sub={`${progress}% da campanha`} icon={CheckCircle2} tone="#F0C95C" />
+      </div>
+
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-gradient-to-r from-gold-600 to-gold-300 transition-all" style={{ width: `${progress}%` }} />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <FilterChip label={`Todos (${total})`} active={filter === 'all'} onClick={() => setFilter('all')} />
+        {Object.entries(categories).map(([cat, count]) => (
+          <FilterChip key={cat} label={`${cat} (${count})`} active={filter === cat} onClick={() => setFilter(cat)} />
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr,320px]">
-        <div className="overflow-hidden rounded-lg border border-white/10">
-          <div className="grid grid-cols-[1.2fr,0.8fr,0.8fr,0.8fr] gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            <span>Asset</span>
-            <span>Canal</span>
-            <span>Formato</span>
-            <span>Status</span>
+      <AssetGrid
+        items={groupCarousels(visible)}
+        campaign={campaign}
+        busyId={busyId}
+        onApprove={onApprove}
+        onApproveGroup={onApproveGroup}
+        onEdit={onEdit}
+      />
+    </div>
+  )
+}
+
+function AssetGrid({ items, campaign, busyId, onApprove, onApproveGroup, onEdit }) {
+  const renderItem = item =>
+    item.kind === 'carousel' ? (
+      <CarouselCard
+        key={`carousel-${item.key}`}
+        slides={item.slides}
+        campaign={campaign}
+        busy={item.slides.some(s => s.id === busyId)}
+        onApprove={() => onApproveGroup(item.slides)}
+        onEdit={onEdit}
+      />
+    ) : (
+      <AssetCard
+        key={item.asset.id}
+        asset={item.asset}
+        campaign={campaign}
+        busy={busyId === item.asset.id}
+        onApprove={() => onApprove(item.asset)}
+        onEdit={() => onEdit(item.asset)}
+      />
+    )
+
+  const gridClass = 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+  const hasPhases = items.some(item => itemPhase(item))
+
+  if (!hasPhases) {
+    return <div className={gridClass}>{items.map(renderItem)}</div>
+  }
+
+  const sections = PHASES.map(phase => ({ phase, list: items.filter(item => itemPhase(item) === phase.id) }))
+  const noPhase = items.filter(item => !itemPhase(item))
+
+  return (
+    <div className="space-y-8">
+      {sections.filter(s => s.list.length).map(({ phase, list }) => (
+        <section key={phase.id}>
+          <div className="mb-4 flex items-center gap-3">
+            <span className="rounded-md border border-gold-500/35 bg-gold-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-300">
+              {phase.tag}
+            </span>
+            <span className="h-px flex-1 bg-white/10" />
+            <span className="text-[11px] text-white/40">{list.length} peça{list.length > 1 ? 's' : ''}</span>
           </div>
-          <div className="divide-y divide-white/10">
-            {assets.map(asset => (
-              <div key={asset.id} className="grid grid-cols-[1.2fr,0.8fr,0.8fr,0.8fr] gap-3 px-4 py-3 text-sm">
-                <div>
-                  <p className="font-medium text-white">{asset.title}</p>
-                  <p className="mt-1 truncate text-xs text-white/40">{asset.headline}</p>
-                </div>
-                <PlatformLabel value={asset.channel} />
-                <span className="text-white/55">{asset.format}</span>
-                <StatusPill value={asset.status} />
-              </div>
-            ))}
+          <div className={gridClass}>{list.map(renderItem)}</div>
+        </section>
+      ))}
+      {noPhase.length > 0 && (
+        <section>
+          <div className="mb-4 flex items-center gap-3">
+            <span className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+              Sem fase
+            </span>
+            <span className="h-px flex-1 bg-white/10" />
+            <span className="text-[11px] text-white/40">{noPhase.length}</span>
           </div>
+          <div className={gridClass}>{noPhase.map(renderItem)}</div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+// Agrupa assets de carrossel (capa + slides) numa unica peca; demais ficam individuais.
+function groupCarousels(assets) {
+  const groups = new Map()
+  const items = []
+  for (const asset of assets) {
+    if (asset.asset_type === 'carousel') {
+      const key = asset.metadata?.carousel_group || 'default'
+      if (!groups.has(key)) {
+        const entry = { kind: 'carousel', key, slides: [] }
+        groups.set(key, entry)
+        items.push(entry)
+      }
+      groups.get(key).slides.push(asset)
+    } else {
+      items.push({ kind: 'asset', asset })
+    }
+  }
+  // Ordena slides: capa primeiro, depois ordem de criacao
+  for (const entry of groups.values()) {
+    entry.slides.sort((a, b) => {
+      const ca = a.format === 'carousel_cover' ? 0 : 1
+      const cb = b.format === 'carousel_cover' ? 0 : 1
+      if (ca !== cb) return ca - cb
+      return new Date(a.created_at) - new Date(b.created_at)
+    })
+  }
+  return items
+}
+
+function FilterChip({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-full border px-3.5 py-1.5 text-xs font-medium transition"
+      style={{
+        borderColor: active ? 'rgba(196,148,42,0.55)' : 'rgba(255,255,255,0.12)',
+        background: active ? 'rgba(196,148,42,0.15)' : 'transparent',
+        color: active ? '#F0C95C' : 'rgba(255,255,255,0.6)',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function AssetCard({ asset, campaign, busy, onApprove, onEdit }) {
+  const aspect = ASPECT_CSS[asset.aspect_ratio] || '4 / 5'
+  const dimension = DIMENSION_LABEL[asset.aspect_ratio]
+  const channelTag = CHANNEL_TAG[asset.channel] || (asset.channel || '').toUpperCase()
+  const kicker = campaign?.brief?.product_data?.tagline || campaign?.product_name || 'VITRA PREMIUM'
+  const approved = asset.status === 'approved'
+  const nonVisual = NON_VISUAL.has(asset.channel)
+  const hasImage = Boolean(asset.public_url)
+  const phase = asset.metadata?.campaign_phase
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0B0B0C] transition hover:border-gold-500/30">
+      <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: aspect }}>
+        {hasImage ? (
+          <img src={asset.public_url} alt={asset.title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+        ) : (
+          <div className="absolute inset-0 flex flex-col justify-between p-5"
+            style={{ background: 'linear-gradient(160deg,#0B0B0C 0%,#050505 55%,#000 100%)' }}>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">Vitra Premium</span>
+            <div>
+              <p className="mb-2 text-[8px] font-semibold uppercase tracking-[0.28em] text-gold-300">{kicker}</p>
+              <p className="font-display text-lg font-semibold leading-tight text-white line-clamp-3">{asset.headline || asset.title}</p>
+              {!nonVisual && (
+                <p className="mt-3 inline-block rounded bg-gold-500 px-2.5 py-1 text-[9px] font-semibold text-black">
+                  {asset.cta || 'Solicitar curadoria'}
+                </p>
+              )}
+            </div>
+            <span className="self-end rounded border border-white/15 bg-black/40 px-2 py-0.5 text-[8px] font-medium uppercase tracking-wide text-white/55">
+              {nonVisual ? 'sem peça visual' : 'aguardando render'}
+            </span>
+          </div>
+        )}
+        {phase && (
+          <span className="absolute left-2 top-2 rounded bg-black/55 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.18em] text-gold-200">
+            {phaseTag(phase)}
+          </span>
+        )}
+        <div className="absolute right-2 top-2">
+          <StatusPill value={asset.status} />
+        </div>
+      </div>
+
+      <div className="space-y-3 p-3.5">
+        <p className="truncate text-sm font-medium text-white" title={asset.title}>{asset.title}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="rounded bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-gold-200">{channelTag}</span>
+          <span className="rounded bg-white/8 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-white/55">{asset.format}</span>
+          {dimension && <span className="text-[10px] text-white/40">{dimension}</span>}
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-white">Jobs</p>
-            <Activity size={15} className="text-gold-400" />
+        {nonVisual ? (
+          <p className="text-[11px] leading-5 text-white/45 line-clamp-2">{asset.copy}</p>
+        ) : (
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={onApprove}
+              disabled={busy || approved}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
+              style={{
+                background: approved ? 'rgba(196,148,42,0.12)' : 'rgba(29,158,117,0.18)',
+                color: approved ? '#F0C95C' : '#6ee7b7',
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              {approved ? 'Aprovado' : 'Aprovar'}
+            </button>
+            <button
+              onClick={onEdit}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/12 px-2.5 py-1.5 text-xs font-medium text-white/70 transition hover:border-gold-500/35 hover:text-white disabled:opacity-60"
+            >
+              <Pencil size={13} />
+              Editar
+            </button>
           </div>
-          {latestJobs.length ? (
-            <div className="space-y-3">
-              {latestJobs.map(job => (
-                <div key={job.id} className="border-b border-white/10 pb-3 last:border-0 last:pb-0">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-white">{job.job_type.replace(/_/g, ' ')}</p>
-                    <StatusPill value={job.status} />
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-gold-500" style={{ width: `${job.progress || 0}%` }} />
-                  </div>
-                </div>
-              ))}
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CarouselCard({ slides, campaign, busy, onApprove, onEdit }) {
+  const [idx, setIdx] = useState(0)
+  const count = slides.length
+  const safeIdx = Math.min(idx, count - 1)
+  const current = slides[safeIdx]
+  const channel = slides[0]?.channel || 'instagram'
+  const limit = carouselLimit(channel)
+  const valid = count >= limit.min && count <= limit.max
+  const allApproved = slides.every(s => s.status === 'approved')
+  const kicker = campaign?.brief?.product_data?.tagline || campaign?.product_name || 'VITRA PREMIUM'
+  const limitLabel = channel === 'meta_ads' ? 'Meta Ads · 2–10' : 'Instagram · 2–20'
+  const phase = (slides.find(s => s.format === 'carousel_cover') || slides[0])?.metadata?.campaign_phase
+
+  function go(delta) {
+    setIdx(prev => {
+      const next = (prev + delta + count) % count
+      return next
+    })
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gold-500/25 bg-[#0B0B0C] transition hover:border-gold-500/40">
+      <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: '4 / 5' }}>
+        {current?.public_url ? (
+          <img src={current.public_url} alt={current.title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+        ) : (
+          <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(160deg,#0B0B0C 0%,#050505 55%,#000 100%)' }}>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">Vitra Premium</span>
+            <div>
+              <p className="mb-2 text-[8px] font-semibold uppercase tracking-[0.28em] text-gold-300">{kicker}</p>
+              <p className="font-display text-lg font-semibold leading-tight text-white line-clamp-3">{current?.headline || current?.title}</p>
             </div>
-          ) : (
-            <p className="text-xs leading-5 text-white/42">Nenhum job criado para esta campanha.</p>
+            <span className="self-end rounded border border-white/15 bg-black/40 px-2 py-0.5 text-[8px] uppercase tracking-wide text-white/55">aguardando render</span>
+          </div>
+        )}
+
+        <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+          <span className="inline-flex items-center gap-1 rounded bg-black/55 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-gold-200">
+            <Images size={11} /> Carrossel
+          </span>
+          {phase && (
+            <span className="rounded bg-black/55 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.18em] text-gold-200">
+              {phaseTag(phase)}
+            </span>
           )}
         </div>
+        <span className="absolute right-2 top-2 rounded bg-black/55 px-2 py-1 text-[10px] font-medium text-white/80">
+          {safeIdx + 1}/{count}
+        </span>
+
+        {count > 1 && (
+          <>
+            <button onClick={() => go(-1)} className="absolute left-1.5 top-1/2 -translate-y-1/2 rounded-full bg-black/55 p-1.5 text-white/80 transition hover:bg-black/80" aria-label="Slide anterior">
+              <ChevronLeft size={16} />
+            </button>
+            <button onClick={() => go(1)} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-black/55 p-1.5 text-white/80 transition hover:bg-black/80" aria-label="Próximo slide">
+              <ChevronRight size={16} />
+            </button>
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+              {slides.map((s, i) => (
+                <span key={s.id} className="h-1.5 w-1.5 rounded-full" style={{ background: i === safeIdx ? '#E4C06E' : 'rgba(255,255,255,0.35)' }} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="space-y-3 p-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-sm font-medium text-white">Carrossel · {campaign?.product_name || 'Campanha'}</p>
+          <span className="text-[10px] text-white/40">{limitLabel}</span>
+        </div>
+
+        <div className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[10px] font-medium ${valid ? 'border-gold-500/25 bg-gold-500/8 text-gold-200' : 'border-red-400/30 bg-red-400/10 text-red-300'}`}>
+          {valid ? <Check size={12} /> : <AlertTriangle size={12} />}
+          {valid
+            ? `${count} cartões — dentro do limite`
+            : count < limit.min
+              ? `Mínimo de ${limit.min} cartões (tem ${count})`
+              : `Máximo de ${limit.max} cartões para ${channel === 'meta_ads' ? 'Meta Ads' : 'Instagram'} (tem ${count})`}
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={onApprove}
+            disabled={busy || allApproved || !valid}
+            title={!valid ? 'Ajuste o número de cartões para aprovar' : undefined}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
+            style={{
+              background: allApproved ? 'rgba(196,148,42,0.12)' : valid ? 'rgba(29,158,117,0.18)' : 'rgba(255,255,255,0.05)',
+              color: allApproved ? '#F0C95C' : valid ? '#6ee7b7' : 'rgba(255,255,255,0.4)',
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+            {allApproved ? 'Carrossel aprovado' : 'Aprovar carrossel'}
+          </button>
+          <button
+            onClick={() => onEdit(current)}
+            disabled={busy}
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/12 px-2.5 py-1.5 text-xs font-medium text-white/70 transition hover:border-gold-500/35 hover:text-white disabled:opacity-60"
+          >
+            <Pencil size={13} />
+            Editar slide
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AssetEditModal({ asset, saving, onClose, onSave }) {
+  const [form, setForm] = useState({
+    headline: asset.headline || '',
+    copy: asset.copy || '',
+    cta: asset.cta || '',
+  })
+  const inputClass = 'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-white/25 transition focus:border-gold-500/55'
+  const labelClass = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42'
+
+  function submit(event) {
+    event.preventDefault()
+    onSave(asset.id, form)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[#101010] shadow-2xl shadow-black/70">
+        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Editar criativo</h2>
+            <p className="mt-0.5 text-xs text-white/45">{asset.title}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 p-2 text-white/55 transition hover:text-white" title="Fechar">
+            <X size={16} />
+          </button>
+        </div>
+        <form onSubmit={submit} className="space-y-4 px-6 py-5">
+          <Field label="Headline" labelClass={labelClass}>
+            <input value={form.headline} onChange={e => setForm(f => ({ ...f, headline: e.target.value }))} className={inputClass} />
+          </Field>
+          <Field label="Copy" labelClass={labelClass}>
+            <textarea value={form.copy} onChange={e => setForm(f => ({ ...f, copy: e.target.value }))} className={`${inputClass} min-h-24 resize-y`} />
+          </Field>
+          <Field label="CTA" labelClass={labelClass}>
+            <input value={form.cta} onChange={e => setForm(f => ({ ...f, cta: e.target.value }))} className={inputClass} />
+          </Field>
+          <p className="text-[11px] leading-5 text-white/40">
+            Ao salvar, o criativo volta para a fila e é re-renderizado com os novos textos no próximo “Gerar criativos”.
+          </p>
+          <div className="flex justify-end gap-3 pt-1">
+            <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-white/65 transition hover:text-white">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:opacity-60">
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+              Salvar e reenfileirar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

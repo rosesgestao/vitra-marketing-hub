@@ -1,0 +1,18 @@
+{
+  "name": "vitra-premium-render-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Worker dedicado de renderizacao full-res dos criativos Vitra Premium (Puppeteer). Consome a fila no Supabase (assets 'queued'), renderiza, sobe ao bucket 'cards' e atualiza os assets/jobs.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/worker.js",
+    "once": "node src/worker.js --once"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "puppeteer": "^23.0.0"
+  }
+}

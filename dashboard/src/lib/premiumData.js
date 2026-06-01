@@ -70,6 +70,38 @@ const ASSET_BLUEPRINTS = [
   ['stories-sequence-2', 'story', 'instagram', 'story', 'Stories - Sequencia 2', '9:16', 'premium-stories-2'],
 ]
 
+// Fase narrativa da campanha por blueprint: 1=Teaser, 2=Revelacao, 3=Urgencia
+const PHASE_BY_BLUEPRINT = {
+  'meta-awareness-feed': '1',
+  'meta-awareness-story': '1',
+  'reels-hook': '1',
+  'carousel-cover': '1',
+  'stories-sequence-1': '1',
+  'email-invite': '1',
+  'landing-hero': '1',
+  'thumbnail-youtube': '1',
+  'carousel-market': '2',
+  'carousel-lifestyle': '2',
+  'carousel-investment': '2',
+  'carousel-authority': '2',
+  'reels-proof': '2',
+  'meta-leads-feed': '2',
+  'meta-leads-story': '2',
+  'stories-sequence-2': '2',
+  'email-proof': '2',
+  'landing-gallery': '2',
+  'whatsapp-opener': '2',
+  'meta-retarget-feed': '3',
+  'meta-retarget-story': '3',
+  'carousel-cta': '3',
+  'whatsapp-followup': '3',
+  'whatsapp-visit': '3',
+}
+
+export function phaseForBlueprint(key) {
+  return PHASE_BY_BLUEPRINT[key] || '2'
+}
+
 const POST_BLUEPRINTS = [
   {
     assetKey: 'reels-hook',
@@ -428,6 +460,94 @@ export async function createManualMetric(payload) {
   return data
 }
 
+// ---- Acoes sobre assets (vitrine de criativos) ----
+
+export async function updateAsset(assetId, patch) {
+  const { data, error } = await supabase
+    .from('premium_campaign_assets')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', assetId)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export function approveAsset(assetId) {
+  return updateAsset(assetId, { status: 'approved' })
+}
+
+// Aprova varios assets (ex.: todos os slides de um carrossel) numa unica chamada.
+export async function approveAssets(ids) {
+  const list = (ids || []).filter(Boolean)
+  if (!list.length) return []
+  const { data, error } = await supabase
+    .from('premium_campaign_assets')
+    .update({ status: 'approved', updated_at: new Date().toISOString() })
+    .in('id', list)
+    .select('id')
+  if (error) throw error
+  return data
+}
+
+// Limites de cartoes por canal de carrossel.
+export const CAROUSEL_LIMITS = {
+  meta_ads: { min: 2, max: 10 },
+  default: { min: 2, max: 20 }, // Instagram organico
+}
+
+export function carouselLimit(channel) {
+  return CAROUSEL_LIMITS[channel] || CAROUSEL_LIMITS.default
+}
+
+export function requeueAsset(assetId, patch = {}) {
+  return updateAsset(assetId, { ...patch, status: 'queued' })
+}
+
+export function saveAssetEdit(assetId, { headline, copy, cta }) {
+  // Editar textos e reenfileirar para nova renderizacao
+  return updateAsset(assetId, {
+    headline: headline ?? null,
+    copy: copy ?? null,
+    cta: cta ?? null,
+    status: 'queued',
+  })
+}
+
+// Dispara a Edge Function render-asset em lotes pequenos (limite de memoria do worker).
+// Usa a publishable key do cliente (functions.invoke envia apikey/Authorization).
+export async function renderCampaignAssets(campaignId, { batch = 3, maxBatches = 16 } = {}) {
+  let rendered = 0
+  let failed = 0
+  let lastError = null
+
+  for (let i = 0; i < maxBatches; i++) {
+    let data = null
+    try {
+      const res = await supabase.functions.invoke('render-asset', {
+        body: { campaign_id: campaignId, limit: batch },
+      })
+      if (res.error) {
+        lastError = res.error
+      } else {
+        data = res.data
+      }
+    } catch (err) {
+      lastError = err
+    }
+
+    if (data) {
+      rendered += data.rendered || 0
+      failed += data.failed || 0
+      if ((data.remaining || 0) <= 0) break
+    }
+    // Em erro (ex.: WORKER_RESOURCE_LIMIT) o progresso por asset persiste:
+    // continua tentando ate acabar os lotes.
+  }
+
+  return { rendered, failed, error: rendered === 0 ? lastError : null }
+}
+
 export async function createManualPublication(payload) {
   if (!payload.campaign_id) throw new Error('Selecione uma campanha para mapear a publicacao.')
 
@@ -483,6 +603,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}) {
     metadata: {
       blueprint_key: blueprintKey,
       phase: 'phase_2_react_capture',
+      campaign_phase: phaseForBlueprint(blueprintKey),
       brand_scope: 'vitra_premium',
       visual_rules: ['black_gold', 'editorial', 'luxury_refined'],
       product_data: productData,
