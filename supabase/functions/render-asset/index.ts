@@ -3,6 +3,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import satori from "npm:satori@0.10.13";
 import { Resvg, initWasm } from "npm:@resvg/resvg-wasm@2.6.2";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
+import { decode as decodeWebp } from "npm:@jsquash/webp@1.5.0";
+import { encode as encodePng } from "npm:@jsquash/png@3.1.1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -32,9 +34,9 @@ async function loadFonts() {
   if (fontsCache) return fontsCache;
   const f = async (url: string) => new Uint8Array(await (await fetch(url)).arrayBuffer());
   const [i4, i6, p7] = await Promise.all([
-    f("https://cdn.jsdelivr.net/npm/@fontsource/inter@5/files/inter-latin-400-normal.woff"),
-    f("https://cdn.jsdelivr.net/npm/@fontsource/inter@5/files/inter-latin-600-normal.woff"),
-    f("https://cdn.jsdelivr.net/npm/@fontsource/playfair-display@5/files/playfair-display-latin-700-normal.woff"),
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter@0.4.2/400Regular/Inter_400Regular.ttf"),
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter@0.4.2/600SemiBold/Inter_600SemiBold.ttf"),
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/playfair-display@0.4.2/700Bold/PlayfairDisplay_700Bold.ttf"),
   ]);
   fontsCache = [
     { name: "Inter", data: i4, weight: 400, style: "normal" },
@@ -52,12 +54,62 @@ async function loadResvgFont() {
 }
 const DIMS: Record<string, [number, number]> = { "1:1": [1080,1080], "9:16": [1080,1920], "4:5": [1080,1350], "16:9": [1280,720], "1.91:1": [1200,628], "desktop": [1200,630] };
 
+function imageUrlCandidates(url: string): string[] {
+  const candidates = [url];
+  if (/\.webp($|[?#])/i.test(url)) {
+    candidates.push(url.replace(/(jpe?g|png)\.webp($|[?#])/i, "$1$2"));
+    candidates.push(url.replace(/\.webp($|[?#])/i, "$1"));
+  }
+  return [...new Set(candidates)];
+}
+
+function isWebp(bytes: Uint8Array, contentType = "") {
+  return contentType.includes("image/webp") ||
+    (bytes.length >= 12 &&
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46 &&
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50);
+}
+
+function isJpeg(bytes: Uint8Array, contentType = "") {
+  return contentType.includes("image/jpeg") || (bytes[0] === 0xff && bytes[1] === 0xd8);
+}
+
+function isPng(bytes: Uint8Array, contentType = "") {
+  return contentType.includes("image/png") ||
+    (bytes.length >= 8 &&
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47);
+}
+
 async function toDataUri(url: string | null): Promise<string | null> {
   if (!url) return null;
-  try { const r = await fetch(url); if (!r.ok) return null;
-    const ct = r.headers.get("content-type") || "image/jpeg";
-    return `data:${ct};base64,${encodeBase64(new Uint8Array(await r.arrayBuffer()))}`;
-  } catch { return null; }
+  for (const candidate of imageUrlCandidates(url)) {
+    try {
+      const r = await fetch(candidate);
+      if (!r.ok) continue;
+      const bytes = new Uint8Array(await r.arrayBuffer());
+      const ct = (r.headers.get("content-type") || "").toLowerCase();
+      if (isWebp(bytes, ct)) {
+        const webpBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        const decoded = await decodeWebp(webpBuffer);
+        const png = new Uint8Array(await encodePng(decoded));
+        return `data:image/png;base64,${encodeBase64(png)}`;
+      }
+      if (isPng(bytes, ct)) return `data:image/png;base64,${encodeBase64(bytes)}`;
+      if (isJpeg(bytes, ct)) return `data:image/jpeg;base64,${encodeBase64(bytes)}`;
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 function h(type: string, style: Record<string, unknown>, children: unknown = null) { return { type, props: { style, children } }; }
 
@@ -115,28 +167,62 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
   const usePanel = !["premium-photo-offer", "premium-location-panorama"].includes(model);
   const mainWidth = isVertical ? Math.round(W*0.90) : model === "premium-location-panorama" ? Math.round(W*0.76) : model === "premium-photo-offer" ? Math.round(W*0.78) : Math.round(W*0.58);
   const headlineSize = Math.round(W * (isVertical ? 0.078 : isWide ? 0.048 : 0.058));
-  const overlay = model === "premium-location-panorama"
-    ? "linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.18) 45%, rgba(0,0,0,0.84) 100%)"
-    : model === "premium-photo-offer"
-      ? "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.34) 48%, rgba(0,0,0,0.90) 100%)"
-      : model === "premium-dark-spec"
-        ? "linear-gradient(90deg, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.76) 48%, rgba(0,0,0,0.34) 100%)"
-        : "linear-gradient(145deg, rgba(0,0,0,0.86) 0%, rgba(0,0,0,0.50) 52%, rgba(0,0,0,0.82) 100%)";
+  const overlayOpacity = model === "premium-photo-offer" || model === "premium-location-panorama" ? "66" : "86";
   const features = productFeatures(pd, campaign, model === "premium-dark-spec" ? 5 : 3);
   const layers: unknown[] = [];
   if (bg) { const im = h("img", { position:"absolute", top:0, left:0, width:W, height:H, objectFit:"cover" }); (im as any).props.src = bg; layers.push(im); }
-  layers.push(h("div", { position:"absolute", top:0, left:0, width:W, height:H, display:"flex",
-    backgroundImage: bg ? overlay : "linear-gradient(160deg, #1A1A1A 0%, #050505 55%, #000000 100%)" }));
-  layers.push(h("div", { position:"absolute", top:pad*0.45, left:pad*0.45, width:W-pad*0.9, height:H-pad*0.9, display:"flex", border:`1px solid ${GOLD}55` }));
+  layers.push(h("div", {
+    position:"absolute",
+    top:0,
+    left:0,
+    width:W,
+    height:H,
+    display:"flex",
+    backgroundColor:bg ? `#000000${overlayOpacity}` : "#050505",
+  }));
+  layers.push(h("div", {
+    position:"absolute",
+    top:pad*0.45,
+    left:pad*0.45,
+    width:W-pad*0.9,
+    height:H-pad*0.9,
+    display:"flex",
+    borderWidth:1,
+    borderStyle:"solid",
+    borderColor:`${GOLD}55`,
+  }));
   if (model === "premium-photo-offer" && pd?.price) {
     layers.push(h("div", { position:"absolute", right:pad, bottom:pad, display:"flex", backgroundColor:GOLD, color:"#080808", fontWeight:700, fontSize:Math.round(W*0.030), padding:`${Math.round(W*0.014)}px ${Math.round(W*0.026)}px`, letterSpacing:1 }, pd.price));
   }
   layers.push(h("div", { position:"absolute", top:0, left:0, width:W, height:H, display:"flex", flexDirection:"column", justifyContent:"space-between", padding:pad, fontFamily:"Inter" }, [
     h("div", { display:"flex", height: logoH, flexDirection:"row", justifyContent:"space-between" }, [
       h("div", { display:"flex", width:Math.round(W*0.40), height:logoH }, ""),
-      phase ? h("div", { display:"flex", alignItems:"center", height:Math.round(W*0.044), border:`1px solid ${GOLD}77`, color:GOLD_LIGHT, fontSize:Math.round(W*0.014), fontWeight:600, letterSpacing:1.5, padding:`0 ${Math.round(W*0.014)}px`, backgroundColor:"rgba(0,0,0,0.36)" }, phase) : h("div", { display:"flex" }, ""),
+      phase ? h("div", {
+        display:"flex",
+        alignItems:"center",
+        height:Math.round(W*0.044),
+        borderWidth:1,
+        borderStyle:"solid",
+        borderColor:`${GOLD}77`,
+        color:GOLD_LIGHT,
+        fontSize:Math.round(W*0.014),
+        fontWeight:600,
+        letterSpacing:1.5,
+        paddingLeft:Math.round(W*0.014),
+        paddingRight:Math.round(W*0.014),
+        backgroundColor:"rgba(0,0,0,0.36)",
+      }, phase) : h("div", { display:"flex" }, ""),
     ]),
-    h("div", { display:"flex", flexDirection:"column", width:mainWidth, backgroundColor:usePanel ? "rgba(0,0,0,0.74)" : "rgba(0,0,0,0)", borderLeft:usePanel ? `2px solid ${GOLD}` : "0px solid transparent", padding:usePanel ? Math.round(W*0.038) : 0 }, [
+    h("div", {
+      display:"flex",
+      flexDirection:"column",
+      width:mainWidth,
+      backgroundColor:usePanel ? "rgba(0,0,0,0.74)" : "rgba(0,0,0,0)",
+      borderLeftWidth:usePanel ? 2 : 0,
+      borderLeftStyle:"solid",
+      borderLeftColor:usePanel ? GOLD : "transparent",
+      padding:usePanel ? Math.round(W*0.038) : 0,
+    }, [
       h("div", { display:"flex", letterSpacing:4*SCALE, fontSize:Math.round(W*0.020), fontWeight:600, color:GOLD_LIGHT, marginBottom:Math.round(H*0.02) }, kicker),
       h("div", { display:"flex", fontFamily:"Playfair Display", fontWeight:700, fontSize:headlineSize, lineHeight:1.06, color:"#FFFFFF", marginBottom:Math.round(H*0.020) }, headline),
       copy ? h("div", { display:"flex", fontSize:Math.round(W*0.022), fontWeight:400, lineHeight:1.42, color:OFF_WHITE, maxWidth:Math.round(W*0.82) }, copy) : h("div", { display:"flex" }, ""),
@@ -149,6 +235,7 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
 }
 
 async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8Array) {
+  let step = "init";
   const ar = (asset.aspect_ratio || "1:1").toString();
   const base = DIMS[ar] || DIMS["1:1"];
   const W = Math.round(base[0] * SCALE);
@@ -156,25 +243,44 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
   const pad = Math.round(W * 0.075);
   const logoW = Math.round(W * 0.40);
   const logoH = Math.round(logoW / 3);
-  const fonts = await loadFonts();
-  const bg = await toDataUri(asset.source_image_url || firstBriefImageUrl(campaign));
-  let svg = await satori(buildTree(asset, campaign, bg, W, H, logoH) as any, { width: W, height: H, fonts });
-  const logoNode = `<svg x="${pad}" y="${pad}" width="${logoW}" height="${logoH}" viewBox="0 0 300 100">${LOGO_INNER}</svg>`;
-  svg = svg.replace("</svg>", logoNode + "</svg>");
-  await ensureWasm();
-  const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: [resvgFont], loadSystemFonts: false, defaultFontFamily: "Inter" } });
-  const img = resvg.render();
-  const png = img.asPng();
-  try { img.free?.(); } catch (_) {}
-  try { resvg.free?.(); } catch (_) {}
-  const slug = campaign?.slug || campaign?.id || "campanha";
-  const path = `premium-campaigns/${slug}/rendered/${asset.id}.png`;
-  const up = await svc.storage.from("cards").upload(path, png, { contentType: "image/png", upsert: true });
-  if (up.error) throw up.error;
-  const { data: pub } = svc.storage.from("cards").getPublicUrl(path);
-  const { error: updErr } = await svc.from("premium_campaign_assets").update({ status:"generated", storage_bucket:"cards", storage_path:path, public_url:pub.publicUrl, updated_at:new Date().toISOString() }).eq("id", asset.id);
-  if (updErr) throw updErr;
-  return pub.publicUrl;
+  try {
+    step = "load_fonts";
+    const fonts = await loadFonts();
+    step = "load_image";
+    const bg = await toDataUri(asset.source_image_url || firstBriefImageUrl(campaign));
+    step = "satori";
+    let svg = await satori(buildTree(asset, campaign, bg, W, H, logoH) as any, { width: W, height: H, fonts });
+    const logoNode = `<svg x="${pad}" y="${pad}" width="${logoW}" height="${logoH}" viewBox="0 0 300 100">${LOGO_INNER}</svg>`;
+    svg = svg.replace("</svg>", logoNode + "</svg>");
+    step = "init_wasm";
+    await ensureWasm();
+    step = "resvg";
+    const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: [resvgFont], loadSystemFonts: false, defaultFontFamily: "Inter" } });
+    const img = resvg.render();
+    const png = img.asPng();
+    try { img.free?.(); } catch (_) {}
+    try { resvg.free?.(); } catch (_) {}
+    const slug = campaign?.slug || campaign?.id || "campanha";
+    const path = `premium-campaigns/${slug}/rendered/${asset.id}.png`;
+    step = "upload";
+    const up = await svc.storage.from("cards").upload(path, png, { contentType: "image/png", upsert: true });
+    if (up.error) throw up.error;
+    const { data: pub } = svc.storage.from("cards").getPublicUrl(path);
+    step = "update_asset";
+    const { error: updErr } = await svc.from("premium_campaign_assets").update({
+      status:"generated",
+      storage_bucket:"cards",
+      storage_path:path,
+      public_url:pub.publicUrl,
+      metadata:{ ...(asset.metadata || {}), last_render_error:null },
+      updated_at:new Date().toISOString(),
+    }).eq("id", asset.id);
+    if (updErr) throw updErr;
+    return pub.publicUrl;
+  } catch (e) {
+    const message = String((e as Error)?.message || e);
+    throw new Error(`${step}: ${message}`);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -202,9 +308,17 @@ Deno.serve(async (req) => {
   const results: any[] = []; let rendered = 0, failed = 0;
   for (const asset of assets) {
     try { const url = await renderAsset(svc, asset, campaign, resvgFont); rendered++; results.push({ id:asset.id, ok:true, url }); }
-    catch (e) { failed++; results.push({ id:asset.id, ok:false, error:String((e as Error)?.message || e) }); }
+    catch (e) {
+      const error = String((e as Error)?.message || e);
+      failed++;
+      results.push({ id:asset.id, ok:false, error });
+      await svc.from("premium_campaign_assets").update({
+        metadata: { ...(asset.metadata || {}), last_render_error: error },
+        updated_at:new Date().toISOString(),
+      }).eq("id", asset.id);
+    }
   }
   const { count: remaining } = await svc.from("premium_campaign_assets").select("id",{ count:"exact", head:true }).eq("campaign_id", cId).not("channel","in","(whatsapp,email)").eq("status","queued");
-  if (!remaining) await svc.from("premium_generation_jobs").update({ status: failed===0 ? "done":"error", progress:100, finished_at:new Date().toISOString(), output_payload:{ rendered, failed }, error_message: failed?`${failed} falharam`:null }).eq("campaign_id", cId).eq("job_type","asset_render").eq("status","running");
-  return new Response(JSON.stringify({ campaign_id:cId, rendered, failed, remaining: remaining || 0 }), { headers:cors });
+  if (!remaining) await svc.from("premium_generation_jobs").update({ status: failed===0 ? "done":"error", progress:100, finished_at:new Date().toISOString(), output_payload:{ rendered, failed, results }, error_message: failed?`${failed} falharam`:null }).eq("campaign_id", cId).eq("job_type","asset_render").eq("status","running");
+  return new Response(JSON.stringify({ campaign_id:cId, rendered, failed, remaining: remaining || 0, results }), { headers:cors });
 });

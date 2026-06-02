@@ -210,3 +210,13 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Teste remoto de `render-asset` com payload vazio retornou `400` controlado: `informe campaign_id ou asset_ids`.
 - Teste remoto de `ingest-source-images` com `urls: []` retornou `200` com `images: []` e `warnings: []`.
 - Validacao local previa mantida com `deno check` nas duas funcoes antes/depois do deploy.
+
+## 2026-06-02 - Correcao dos Cortes Queued com Imagens WebP
+
+- Identificado que a campanha `Louvre Gallerie 7` tinha fotos vinculadas aos assets, mas os cortes continuavam `queued` porque o `render-asset` falhava dentro do Satori antes de salvar o PNG.
+- Causa raiz: o servidor de imagens do imovel retornava arquivos WebP mesmo quando a URL/headers sugeriam JPEG; o Satori nao renderizava esse formato de forma confiavel no Edge Runtime.
+- O `render-asset` passou a detectar WebP por assinatura binaria (`RIFF WEBP`) e converter para PNG via WASM antes de montar o card.
+- As fontes do Satori foram trocadas de WOFF para TTF estavel, mantendo Inter e Playfair Display conforme o brandbook Vitra Premium.
+- A funcao agora registra a etapa da falha (`load_image`, `satori`, `resvg`, `upload`, `update_asset`) em `metadata.last_render_error`, facilitando diagnostico operacional futuro.
+- `Louvre Gallerie 7` foi reprocessada no Supabase ativo: 15 assets Meta Ads ficaram `generated_with_url`, sem pendencias `queued`.
+- Validacoes executadas: `deno check supabase/functions/render-asset/index.ts`, deploy remoto de `render-asset`, chamada real da Edge Function e inspecao visual de PNG renderizado com foto do imovel.
