@@ -220,3 +220,19 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - A funcao agora registra a etapa da falha (`load_image`, `satori`, `resvg`, `upload`, `update_asset`) em `metadata.last_render_error`, facilitando diagnostico operacional futuro.
 - `Louvre Gallerie 7` foi reprocessada no Supabase ativo: 15 assets Meta Ads ficaram `generated_with_url`, sem pendencias `queued`.
 - Validacoes executadas: `deno check supabase/functions/render-asset/index.ts`, deploy remoto de `render-asset`, chamada real da Edge Function e inspecao visual de PNG renderizado com foto do imovel.
+
+## 2026-06-02 - Plataforma Operacional Multi-Marca
+
+- Decidido nao criar duas ferramentas separadas neste momento.
+- O modelo adotado passa a ser uma unica plataforma operacional com dois ambientes de marca isolados dentro do dashboard: `Vitra Premium` e `Vitra Imobiliaria`.
+- A sidebar agora separa os fluxos de marca em grupos proprios, cada um com `Painel` e `Trafego Pago`, mantendo `Pipeline`, `Calendario`, `Conteudos`, `Agentes` e `Metricas` como operacao compartilhada.
+- Criada a camada `brandProfiles`, com escopos `vitra_premium` e `vitra_imobiliaria`, para controlar nomes, CTAs, tom, audiencia, fallback de campanha, pacotes de exportacao, copy e regras visuais.
+- O carregamento de workspace passou a filtrar campanhas, assets, posts, publicacoes, metricas, jobs e contas sociais por `brand_scope`.
+- Campanhas novas gravam `brand_scope` em `brief`, `content_plan`, `qa_policy`, assets, posts, jobs e exportacoes Meta Ads.
+- O renderizador remoto `render-asset` foi atualizado para escolher logo, fundo, overlay e pasta de Storage conforme o escopo da marca.
+- Para Vitra Imobiliaria, o render usa a logo da marca-mae, navy/dourado e linguagem institucional/comercial; para Vitra Premium, preserva preto/dourado e linguagem editorial de alto padrao.
+- Versionada a migracao `supabase/migration-brand-scope-multimarca.sql`, que cria colunas derivadas `brand_scope` e indices para filtros server-side futuros sem exigir mudanca imediata no frontend.
+- Adicionado `deno.json` com `nodeModulesDir: auto`, tornando reproduzivel a validacao das Edge Functions com imports `npm:` e `jsr:`.
+- Edge Function `render-asset` publicada novamente no projeto Supabase ativo `birxcfkyuzqnhyvetbjv`.
+- Validacoes executadas: `npm.cmd run build` no dashboard e `deno check supabase/functions/render-asset/index.ts`, ambos com sucesso.
+- Tentativa de validacao visual pelo navegador interno falhou por erro do runtime de browser do Codex antes da abertura da pagina; a validacao funcional ficou coberta por build, Deno e deploy remoto.

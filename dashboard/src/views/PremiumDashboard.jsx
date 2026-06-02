@@ -42,7 +42,8 @@ import {
   saveAd,
   saveAssetEdit,
 } from '../lib/premiumData.js'
-import { PremiumHorizontalLogo } from '../components/PremiumBrand.jsx'
+import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
+import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 
 const INITIAL_FORM = {
   name: '',
@@ -79,6 +80,15 @@ const INITIAL_FORM = {
     infraestrutura: null,
     extras: [],
   },
+}
+
+function initialFormForBrand(brandProfile) {
+  return {
+    ...INITIAL_FORM,
+    property_type: brandProfile.defaultProductType,
+    target_audience: brandProfile.defaultAudience,
+    cta: brandProfile.defaultCta,
+  }
 }
 
 const SOURCE_TYPE_OPTIONS = [
@@ -297,10 +307,12 @@ function buildAutomationSteps(campaign, assets, publications) {
   ]
 }
 
-function downloadMetaAdsPackage(campaign, ads) {
+function downloadMetaAdsPackage(campaign, ads, brandProfile = getBrandProfile()) {
   const payload = {
-    export_type: 'vitra_premium_meta_ads_package',
+    export_type: brandProfile.metaPackageType,
     generated_at: new Date().toISOString(),
+    brand_scope: brandProfile.scope,
+    brand_name: brandProfile.name,
     campaign: {
       id: campaign.id,
       name: campaign.name,
@@ -365,8 +377,9 @@ function downloadMetaAdsPackage(campaign, ads) {
   URL.revokeObjectURL(url)
 }
 
-export default function PremiumDashboard({ focusMode = null }) {
+export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_SCOPES.premium }) {
   const isPaidTrafficMode = focusMode === 'trafego'
+  const brandProfile = getBrandProfile(brandScope)
   const [workspace, setWorkspace] = useState({
     campaigns: [],
     assets: [],
@@ -401,7 +414,7 @@ export default function PremiumDashboard({ focusMode = null }) {
     setLoading(true)
     setError(null)
     try {
-      const data = await loadPremiumWorkspace()
+      const data = await loadPremiumWorkspace({ brandScope })
       setWorkspace(data)
       const nextSelected = selectCampaignId || data.campaigns[0]?.id || null
       setSelectedCampaignId(nextSelected)
@@ -414,7 +427,7 @@ export default function PremiumDashboard({ focusMode = null }) {
 
   useEffect(() => {
     refresh(null)
-  }, [])
+  }, [brandScope])
 
   const selectedCampaign = useMemo(
     () => workspace.campaigns.find(campaign => campaign.id === selectedCampaignId) || workspace.campaigns[0] || null,
@@ -471,7 +484,7 @@ export default function PremiumDashboard({ focusMode = null }) {
     setNotice(null)
     let campaign
     try {
-      campaign = await createPremiumCampaign(form)
+      campaign = await createPremiumCampaign(form, { brandScope })
     } catch (err) {
       setError(err)
       setCampaignSubmitError(err)
@@ -594,20 +607,20 @@ export default function PremiumDashboard({ focusMode = null }) {
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-7 lg:px-8">
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <PremiumHorizontalLogo className="mb-7" />
+              <BrandHorizontalLogo brandScope={brandScope} className="mb-7" />
               <div className="mb-3 flex items-center gap-3">
                 <span className="h-px w-10 bg-gold-500/70" />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-gold-400">
-                  {isPaidTrafficMode ? 'Centro operacional de midia paga' : 'Operacao de alto padrao'}
+                  {isPaidTrafficMode ? brandProfile.trafficKicker : brandProfile.areaKicker}
                 </p>
               </div>
               <h1 className="font-display text-4xl font-semibold leading-tight text-white md:text-5xl">
-                {isPaidTrafficMode ? 'Tráfego Pago Premium' : 'Central de curadoria e campanhas'}
+                {isPaidTrafficMode ? brandProfile.trafficTitle : brandProfile.dashboardTitle}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/52">
                 {isPaidTrafficMode
-                  ? 'Fila dedicada para gerar, revisar, aprovar e exportar criativos Meta Ads com a identidade Vitra Premium.'
-                  : 'Campanhas, assets, publicacoes e metricas reais conectados ao Supabase da Vitra Premium.'}
+                  ? brandProfile.trafficSubtitle
+                  : brandProfile.dashboardSubtitle}
               </p>
             </div>
 
@@ -645,7 +658,7 @@ export default function PremiumDashboard({ focusMode = null }) {
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-4">
-              <StatTile label="Campanhas" value={totals.campaigns} sub="no modelo Premium" icon={Briefcase} />
+              <StatTile label="Campanhas" value={totals.campaigns} sub={`no ambiente ${brandProfile.shortName}`} icon={Briefcase} />
               <StatTile label="Assets" value={totals.assets} sub={selectedCampaign ? 'campanha selecionada' : 'aguardando'} icon={Layers3} />
               <StatTile label="Publicacoes" value={totals.publications} sub={`${totals.posts} conteudos planejados`} icon={Send} tone="#E4C06E" />
               <StatTile
@@ -689,7 +702,7 @@ export default function PremiumDashboard({ focusMode = null }) {
               <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-red-300" />
               <div>
                 <p className="text-sm font-semibold text-red-100">
-                  {missingSchema ? 'Schema Premium ainda não aplicado' : 'Falha ao carregar a área Premium'}
+                  {missingSchema ? 'Schema operacional ainda não aplicado' : `Falha ao carregar a área ${brandProfile.shortName}`}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-red-100/70">
                   {missingSchema
@@ -728,13 +741,14 @@ export default function PremiumDashboard({ focusMode = null }) {
           <div className="flex min-h-72 items-center justify-center">
             <div className="flex items-center gap-3 text-gold-300">
               <Loader2 size={20} className="animate-spin" />
-              <span className="text-sm font-medium">Carregando base Premium</span>
+              <span className="text-sm font-medium">Carregando base {brandProfile.shortName}</span>
             </div>
           </div>
         )}
 
         {!loading && isPaidTrafficMode && (
           <PaidTrafficWorkspace
+            brandProfile={brandProfile}
             campaigns={workspace.campaigns}
             selectedCampaign={selectedCampaign}
             selectedCampaignId={selectedCampaignId}
@@ -754,6 +768,7 @@ export default function PremiumDashboard({ focusMode = null }) {
 
         {!loading && !isPaidTrafficMode && activeTab === 'campanhas' && (
           <CampaignsSection
+            brandProfile={brandProfile}
             campaigns={workspace.campaigns}
             selectedCampaign={selectedCampaign}
             selectedCampaignId={selectedCampaignId}
@@ -767,6 +782,7 @@ export default function PremiumDashboard({ focusMode = null }) {
 
         {!loading && !isPaidTrafficMode && activeTab === 'assets' && (
           <AssetsSection
+            brandProfile={brandProfile}
             campaign={selectedCampaign}
             assets={scoped.assets.filter(a => a.channel !== 'meta_ads')}
             jobs={scoped.jobs}
@@ -782,6 +798,7 @@ export default function PremiumDashboard({ focusMode = null }) {
 
         {!loading && !isPaidTrafficMode && activeTab === 'trafego' && (
           <TrafegoPagoSection
+            brandProfile={brandProfile}
             campaign={selectedCampaign}
             assets={scoped.assets}
             rendering={rendering}
@@ -809,12 +826,13 @@ export default function PremiumDashboard({ focusMode = null }) {
         )}
 
         {!loading && !isPaidTrafficMode && activeTab === 'modelo' && (
-          <DataModelSection accounts={workspace.accounts} />
+          <DataModelSection brandProfile={brandProfile} accounts={workspace.accounts} />
         )}
       </div>
 
       {modalOpen && (
         <NewCampaignModal
+          brandProfile={brandProfile}
           saving={saving}
           submitError={campaignSubmitError}
           onClose={() => setModalOpen(false)}
@@ -844,6 +862,7 @@ export default function PremiumDashboard({ focusMode = null }) {
 }
 
 function PaidTrafficWorkspace({
+  brandProfile,
   campaigns,
   selectedCampaign,
   selectedCampaignId,
@@ -863,8 +882,8 @@ function PaidTrafficWorkspace({
     return (
       <EmptyState
         icon={Megaphone}
-        title="Nenhuma campanha pronta para tráfego pago"
-        note="Crie a primeira campanha Premium para abrir a esteira de geração, QA e exportação dos criativos Meta Ads."
+        title={brandProfile.emptyTrafficTitle}
+        note={brandProfile.emptyTrafficNote}
       />
     )
   }
@@ -876,6 +895,7 @@ function PaidTrafficWorkspace({
   return (
     <div className="space-y-6">
       <PaidTrafficCampaignSelector
+        brandProfile={brandProfile}
         campaigns={campaigns}
         selectedCampaignId={selectedCampaignId}
         assets={assets}
@@ -892,6 +912,7 @@ function PaidTrafficWorkspace({
       )}
 
       <TrafegoPagoSection
+        brandProfile={brandProfile}
         campaign={selectedCampaign}
         assets={scopedAssets}
         rendering={rendering}
@@ -905,7 +926,7 @@ function PaidTrafficWorkspace({
   )
 }
 
-function PaidTrafficCampaignSelector({ campaigns, selectedCampaignId, assets, onSelect, onCreate }) {
+function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaignId, assets, onSelect, onCreate }) {
   return (
     <div className="rounded-lg border border-gold-500/18 bg-[#0B0B0C] p-4">
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -915,7 +936,7 @@ function PaidTrafficCampaignSelector({ campaigns, selectedCampaignId, assets, on
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Campanha de mídia ativa</p>
           </div>
           <p className="text-sm leading-6 text-white/52">
-            Escolha a campanha para gerar cortes, revisar QA e exportar o pacote de anúncios. A aba dentro de Premium continua como visão contextual.
+            Escolha a campanha para gerar cortes, revisar QA e exportar o pacote de anúncios. A aba de tráfego fica isolada para {brandProfile.name}.
           </p>
         </div>
         <button
@@ -950,7 +971,7 @@ function PaidTrafficCampaignSelector({ campaigns, selectedCampaignId, assets, on
                 <p className="line-clamp-2 text-sm font-semibold leading-5 text-white">{campaign.name}</p>
                 {active && <CheckCircle2 size={14} className="mt-0.5 flex-shrink-0 text-gold-300" />}
               </div>
-              <p className="truncate text-xs text-white/42">{campaign.product_name || campaign.property_type || 'Campanha Premium'}</p>
+              <p className="truncate text-xs text-white/42">{campaign.product_name || campaign.property_type || brandProfile.campaignFallback}</p>
               <div className="mt-3 flex items-center gap-2 text-[10px] text-white/40">
                 <span>{campaignAssets.length} cortes</span>
                 <span className="h-1 w-1 rounded-full bg-white/18" />
@@ -964,13 +985,13 @@ function PaidTrafficCampaignSelector({ campaigns, selectedCampaignId, assets, on
   )
 }
 
-function CampaignsSection({ campaigns, selectedCampaign, selectedCampaignId, onSelect, onCreate, assets, posts, publications }) {
+function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedCampaignId, onSelect, onCreate, assets, posts, publications }) {
   if (!campaigns.length) {
     return (
       <EmptyState
         icon={Gem}
-        title="Nenhuma campanha Premium cadastrada"
-        note="A primeira campanha cria o registro principal, a matriz inicial de assets e os conteúdos planejados."
+        title={brandProfile.emptyCampaignTitle}
+        note={brandProfile.emptyCampaignNote}
       />
     )
   }
@@ -995,7 +1016,7 @@ function CampaignsSection({ campaigns, selectedCampaign, selectedCampaignId, onS
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <p className="font-display text-xl font-semibold leading-tight text-white">{campaign.name}</p>
-                  <p className="mt-1 text-xs text-white/42">{campaign.product_name || campaign.property_type || 'Campanha Premium'}</p>
+                  <p className="mt-1 text-xs text-white/42">{campaign.product_name || campaign.property_type || brandProfile.campaignFallback}</p>
                 </div>
                 <StatusPill value={campaign.status} />
               </div>
@@ -1213,7 +1234,7 @@ function itemPhase(item) {
   return item.asset?.metadata?.campaign_phase ? String(item.asset.metadata.campaign_phase) : null
 }
 
-function AssetsSection({ campaign, assets, jobs, rendering, busyId, notice, onRender, onApprove, onApproveGroup, onEdit }) {
+function AssetsSection({ brandProfile = getBrandProfile(), campaign, assets, jobs, rendering, busyId, notice, onRender, onApprove, onApproveGroup, onEdit }) {
   const [filter, setFilter] = useState('all')
 
   if (!campaign) return <EmptyState icon={Layers3} title="Nenhuma campanha selecionada" />
@@ -1280,6 +1301,7 @@ function AssetsSection({ campaign, assets, jobs, rendering, busyId, notice, onRe
       </div>
 
       <AssetGrid
+        brandProfile={brandProfile}
         items={groupCarousels(visible)}
         campaign={campaign}
         busyId={busyId}
@@ -1291,10 +1313,11 @@ function AssetsSection({ campaign, assets, jobs, rendering, busyId, notice, onRe
   )
 }
 
-function AssetGrid({ items, campaign, busyId, onApprove, onApproveGroup, onEdit }) {
+function AssetGrid({ brandProfile = getBrandProfile(), items, campaign, busyId, onApprove, onApproveGroup, onEdit }) {
   const renderItem = item =>
     item.kind === 'carousel' ? (
       <CarouselCard
+        brandProfile={brandProfile}
         key={`carousel-${item.key}`}
         slides={item.slides}
         campaign={campaign}
@@ -1304,6 +1327,7 @@ function AssetGrid({ items, campaign, busyId, onApprove, onApproveGroup, onEdit 
       />
     ) : (
       <AssetCard
+        brandProfile={brandProfile}
         key={item.asset.id}
         asset={item.asset}
         campaign={campaign}
@@ -1398,11 +1422,11 @@ function FilterChip({ label, active, onClick }) {
   )
 }
 
-function AssetCard({ asset, campaign, busy, onApprove, onEdit }) {
+function AssetCard({ brandProfile = getBrandProfile(), asset, campaign, busy, onApprove, onEdit }) {
   const aspect = ASPECT_CSS[asset.aspect_ratio] || '4 / 5'
   const dimension = DIMENSION_LABEL[asset.aspect_ratio]
   const channelTag = CHANNEL_TAG[asset.channel] || (asset.channel || '').toUpperCase()
-  const kicker = campaign?.brief?.product_data?.tagline || campaign?.product_name || 'VITRA PREMIUM'
+  const kicker = campaign?.brief?.product_data?.tagline || campaign?.product_name || brandProfile.name
   const approved = asset.status === 'approved'
   const nonVisual = NON_VISUAL.has(asset.channel)
   const hasImage = Boolean(asset.public_url)
@@ -1416,7 +1440,7 @@ function AssetCard({ asset, campaign, busy, onApprove, onEdit }) {
         ) : (
           <div className="absolute inset-0 flex flex-col justify-between p-5"
             style={{ background: 'linear-gradient(160deg,#0B0B0C 0%,#050505 55%,#000 100%)' }}>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">Vitra Premium</span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">{brandProfile.name}</span>
             <div>
               <p className="mb-2 text-[8px] font-semibold uppercase tracking-[0.28em] text-gold-300">{kicker}</p>
               <p className="font-display text-lg font-semibold leading-tight text-white line-clamp-3">{asset.headline || asset.title}</p>
@@ -1481,7 +1505,7 @@ function AssetCard({ asset, campaign, busy, onApprove, onEdit }) {
   )
 }
 
-function CarouselCard({ slides, campaign, busy, onApprove, onEdit }) {
+function CarouselCard({ brandProfile = getBrandProfile(), slides, campaign, busy, onApprove, onEdit }) {
   const [idx, setIdx] = useState(0)
   const count = slides.length
   const safeIdx = Math.min(idx, count - 1)
@@ -1490,7 +1514,7 @@ function CarouselCard({ slides, campaign, busy, onApprove, onEdit }) {
   const limit = carouselLimit(channel)
   const valid = count >= limit.min && count <= limit.max
   const allApproved = slides.every(s => s.status === 'approved')
-  const kicker = campaign?.brief?.product_data?.tagline || campaign?.product_name || 'VITRA PREMIUM'
+  const kicker = campaign?.brief?.product_data?.tagline || campaign?.product_name || brandProfile.name
   const limitLabel = channel === 'meta_ads' ? 'Meta Ads · 2–10' : 'Instagram · 2–20'
   const phase = (slides.find(s => s.format === 'carousel_cover') || slides[0])?.metadata?.campaign_phase
 
@@ -1508,7 +1532,7 @@ function CarouselCard({ slides, campaign, busy, onApprove, onEdit }) {
           <img src={current.public_url} alt={current.title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(160deg,#0B0B0C 0%,#050505 55%,#000 100%)' }}>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">Vitra Premium</span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">{brandProfile.name}</span>
             <div>
               <p className="mb-2 text-[8px] font-semibold uppercase tracking-[0.28em] text-gold-300">{kicker}</p>
               <p className="font-display text-lg font-semibold leading-tight text-white line-clamp-3">{current?.headline || current?.title}</p>
@@ -1635,7 +1659,7 @@ function groupMetaAdsByCampaign(assets) {
   return [...map.values()]
 }
 
-function TrafegoPagoSection({ campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
+function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
   if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
   const ads = groupMetaAds(assets)
   if (!ads.length) {
@@ -1673,7 +1697,7 @@ function TrafegoPagoSection({ campaign, assets, rendering, busyId, notice, onRen
           </button>
           <button
             type="button"
-            onClick={() => downloadMetaAdsPackage(campaign, ads)}
+            onClick={() => downloadMetaAdsPackage(campaign, ads, brandProfile)}
             disabled={!ads.length}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-white/72 transition hover:border-gold-500/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
           >
@@ -2219,12 +2243,12 @@ function MetricsSection({ campaign, publications, metrics, totals, snapshots }) 
   )
 }
 
-function DataModelSection({ accounts }) {
+function DataModelSection({ brandProfile = getBrandProfile(), accounts }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr,340px]">
       <div className="rounded-lg border border-white/10 bg-white/[0.025]">
         <div className="border-b border-white/10 px-4 py-4">
-          <p className="text-sm font-semibold text-white">Modelo Supabase Premium</p>
+          <p className="text-sm font-semibold text-white">Modelo Supabase multi-marca</p>
         </div>
         <div className="divide-y divide-white/10">
           {PREMIUM_TABLES.map(table => (
@@ -2241,7 +2265,7 @@ function DataModelSection({ accounts }) {
 
       <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Contas Vitra Premium</p>
+          <p className="text-sm font-semibold text-white">Contas {brandProfile.name}</p>
           <Database size={15} className="text-gold-400" />
         </div>
         {accounts.length ? (
@@ -2275,8 +2299,8 @@ function PlatformLabel({ value }) {
   )
 }
 
-function NewCampaignModal({ saving, submitError, onClose, onSubmit }) {
-  const [form, setForm] = useState(INITIAL_FORM)
+function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit }) {
+  const [form, setForm] = useState(() => initialFormForBrand(brandProfile))
   const [localError, setLocalError] = useState(null)
 
   function update(field, value) {

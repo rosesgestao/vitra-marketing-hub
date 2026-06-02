@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandProfiles.js'
 
 export const PREMIUM_TABLES = [
   {
@@ -102,6 +103,21 @@ const META_CREATIVE_CONCEPTS = [
   { key: 'meta-liquidez-decisao', label: 'Liquidez - Decisao', phase: '2', templateBase: 'premium-lead', angle: 'liquidez' },
   { key: 'meta-prova-premium', label: 'Prova - Premium', phase: '2', templateBase: 'premium-retarget', angle: 'prova' },
   { key: 'meta-whatsapp-consultivo', label: 'WhatsApp - Consultivo', phase: '3', templateBase: 'premium-lead', angle: 'whatsapp' },
+]
+
+const VITRA_IMOBILIARIA_META_CREATIVE_CONCEPTS = [
+  { key: 'meta-awareness-mercado', label: 'Awareness - Mercado', phase: '1', templateBase: 'premium-editorial', angle: 'editorial' },
+  { key: 'meta-leads-imovel', label: 'Leads - Imóvel', phase: '2', templateBase: 'premium-lead', angle: 'curadoria' },
+  { key: 'meta-retarget-visita', label: 'Retargeting - Visita', phase: '3', templateBase: 'premium-retarget', angle: 'criterio' },
+  { key: 'meta-diferenciais-produto', label: 'Diferenciais - Produto', phase: '2', templateBase: 'premium-lead', angle: 'diferenciais' },
+  { key: 'meta-localizacao-valor', label: 'Localização - Valor', phase: '1', templateBase: 'premium-editorial', angle: 'localizacao' },
+  { key: 'meta-bairro-cotidiano', label: 'Bairro - Cotidiano', phase: '2', templateBase: 'premium-editorial', angle: 'lifestyle' },
+  { key: 'meta-investimento-patrimonio', label: 'Investimento - Patrimônio', phase: '2', templateBase: 'premium-lead', angle: 'investimento' },
+  { key: 'meta-oportunidade-convite', label: 'Oportunidade - Convite', phase: '3', templateBase: 'premium-retarget', angle: 'escassez' },
+  { key: 'meta-planta-espaco', label: 'Planta - Espaço', phase: '1', templateBase: 'premium-editorial', angle: 'arquitetura' },
+  { key: 'meta-liquidez-decisao', label: 'Liquidez - Decisão', phase: '2', templateBase: 'premium-lead', angle: 'liquidez' },
+  { key: 'meta-prova-portfolio', label: 'Prova - Portfólio', phase: '2', templateBase: 'premium-retarget', angle: 'prova' },
+  { key: 'meta-whatsapp-atendimento', label: 'WhatsApp - Atendimento', phase: '3', templateBase: 'premium-lead', angle: 'whatsapp' },
 ]
 
 const SUPPORT_ASSET_BLUEPRINTS = ASSET_BLUEPRINTS.filter(([, , channel]) => channel !== 'meta_ads')
@@ -266,12 +282,18 @@ function metaCreativeVariationCount(form) {
   )
 }
 
-function selectedMetaCreativeConcepts(form) {
-  return META_CREATIVE_CONCEPTS.slice(0, metaCreativeVariationCount(form))
+function metaCreativeConceptsForBrand(brandProfile) {
+  return brandProfile.scope === BRAND_SCOPES.imobiliaria
+    ? VITRA_IMOBILIARIA_META_CREATIVE_CONCEPTS
+    : META_CREATIVE_CONCEPTS
 }
 
-function buildMetaAssetBlueprints(form) {
-  return selectedMetaCreativeConcepts(form).flatMap(concept => (
+function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfile()) {
+  return metaCreativeConceptsForBrand(brandProfile).slice(0, metaCreativeVariationCount(form))
+}
+
+function buildMetaAssetBlueprints(form, brandProfile = getBrandProfile()) {
+  return selectedMetaCreativeConcepts(form, brandProfile).flatMap(concept => (
     META_FORMAT_BLUEPRINTS.map(format => [
       `${concept.key}-${format.key}`,
       'meta_ad',
@@ -285,16 +307,30 @@ function buildMetaAssetBlueprints(form) {
   ))
 }
 
-function buildCampaignAssetBlueprints(form) {
+function buildCampaignAssetBlueprints(form, brandProfile = getBrandProfile()) {
   return [
-    ...buildMetaAssetBlueprints(form),
+    ...buildMetaAssetBlueprints(form, brandProfile),
     ...SUPPORT_ASSET_BLUEPRINTS,
   ]
 }
 
-function visualModelForConcept(concept) {
+function visualModelForConcept(concept, brandProfile = getBrandProfile()) {
   const key = VISUAL_MODEL_BY_ANGLE[concept?.angle] || 'premium-editorial-panel'
-  return PREMIUM_VISUAL_MODELS[key]
+  const model = PREMIUM_VISUAL_MODELS[key]
+  if (brandProfile.scope !== BRAND_SCOPES.imobiliaria) return model
+  const labels = {
+    'premium-photo-offer': 'Foto protagonista + chamada',
+    'premium-editorial-panel': 'Painel institucional + imagem',
+    'premium-dark-spec': 'Ficha comercial escura',
+    'premium-location-panorama': 'Panorama de localização',
+    'premium-gallery-proof': 'Prova visual / portfólio',
+  }
+  return {
+    ...model,
+    label: labels[key] || model.label,
+    purpose: `Usar em campanhas da ${brandProfile.name}, mantendo navy, dourado e comunicação consultiva.`,
+    reference_pattern: 'Foto do imóvel, hierarquia clara de informação e CTA de atendimento.',
+  }
 }
 
 function buildSourceIntake(form) {
@@ -336,10 +372,10 @@ function buildDefaultUrlParams(campaign, blueprintKey) {
   return `utm_source=meta&utm_medium=paid_social&utm_campaign=${slug}&utm_content=${blueprintKey}`
 }
 
-function buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta, sourceIntake }) {
+function buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta, sourceIntake, brandProfile = getBrandProfile() }) {
   if (channel !== 'meta_ads') {
     return [
-      { id: 'brand_scope', label: 'Escopo Vitra Premium', ok: true },
+      { id: 'brand_scope', label: `Escopo ${brandProfile.name}`, ok: true },
       { id: 'copy_base', label: 'Texto base definido', ok: Boolean(headline && copy && cta) },
     ]
   }
@@ -376,7 +412,7 @@ function buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, co
     },
     {
       id: 'brand_rules',
-      label: 'Regra Premium preto + dourado',
+      label: brandProfile.qaBrandLabel,
       ok: true,
     },
   ]
@@ -693,7 +729,7 @@ async function ensureCampaignSourceImages(campaignId) {
   return { images: sourceImages.length, requeued, warnings }
 }
 
-export async function loadPremiumWorkspace() {
+export async function loadPremiumWorkspace({ brandScope = BRAND_SCOPES.premium } = {}) {
   const requests = [
     supabase.from('premium_campaigns').select('*').order('created_at', { ascending: false }).limit(50),
     supabase.from('premium_campaign_assets').select('*').order('created_at', { ascending: false }).limit(600),
@@ -701,7 +737,7 @@ export async function loadPremiumWorkspace() {
     supabase.from('premium_publications').select('*').order('published_at', { ascending: false, nullsFirst: false }).limit(300),
     supabase.from('premium_metrics').select('*').order('collected_at', { ascending: false }).limit(500),
     supabase.from('premium_generation_jobs').select('*').order('created_at', { ascending: false }).limit(200),
-    supabase.from('social_accounts').select('*').eq('brand_scope', 'vitra_premium').order('created_at', { ascending: false }).limit(50),
+    supabase.from('social_accounts').select('*').eq('brand_scope', brandScope).order('created_at', { ascending: false }).limit(50),
     supabase.from('social_metric_snapshots').select('*').order('snapshot_at', { ascending: false }).limit(200),
   ]
 
@@ -724,13 +760,21 @@ export async function loadPremiumWorkspace() {
     throw error
   }
 
+  const scopedCampaigns = (campaigns.data || []).filter(campaign => inferCampaignBrandScope(campaign) === brandScope)
+  const campaignIds = new Set(scopedCampaigns.map(campaign => campaign.id))
+  const scopedAssets = (assets.data || []).filter(asset => campaignIds.has(asset.campaign_id) || asset.metadata?.brand_scope === brandScope)
+  const scopedPosts = (posts.data || []).filter(post => campaignIds.has(post.campaign_id))
+  const scopedPublications = (publications.data || []).filter(publication => campaignIds.has(publication.campaign_id))
+  const scopedMetrics = (metrics.data || []).filter(metric => campaignIds.has(metric.campaign_id))
+  const scopedJobs = (jobs.data || []).filter(job => campaignIds.has(job.campaign_id))
+
   return {
-    campaigns: campaigns.data || [],
-    assets: assets.data || [],
-    posts: posts.data || [],
-    publications: publications.data || [],
-    metrics: metrics.data || [],
-    jobs: jobs.data || [],
+    campaigns: scopedCampaigns,
+    assets: scopedAssets,
+    posts: scopedPosts,
+    publications: scopedPublications,
+    metrics: scopedMetrics,
+    jobs: scopedJobs,
     accounts: accounts.data || [],
     snapshots: snapshots.data || [],
   }
@@ -745,7 +789,8 @@ function withTimeout(promise, ms, message) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
 }
 
-export async function createPremiumCampaign(form) {
+export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.premium } = {}) {
+  const brandProfile = getBrandProfile(brandScope)
   const product = form.product_name?.trim() || form.name.trim()
   const name = form.name.trim() || product
   const slug = `${slugify(name)}-${Date.now().toString(36)}`
@@ -753,8 +798,8 @@ export async function createPremiumCampaign(form) {
   const productData = buildProductData(form, product)
   const sourceIntake = buildSourceIntake(form)
   const automationWorkflow = buildAutomationWorkflow(sourceIntake)
-  const campaignBlueprints = buildCampaignAssetBlueprints(form)
-  const metaCreativeConcepts = selectedMetaCreativeConcepts(form)
+  const campaignBlueprints = buildCampaignAssetBlueprints(form, brandProfile)
+  const metaCreativeConcepts = selectedMetaCreativeConcepts(form, brandProfile)
 
   const campaignPayload = {
     name,
@@ -763,18 +808,20 @@ export async function createPremiumCampaign(form) {
     property_type: form.property_type || null,
     neighborhood: form.neighborhood || null,
     city: form.city || 'Porto Alegre',
-    target_audience: form.target_audience || null,
+    target_audience: form.target_audience || brandProfile.defaultAudience,
     campaign_objective: form.campaign_objective || 'lead_generation',
-    offer: form.offer || null,
-    tone: 'luxury_editorial',
+    offer: form.offer || brandProfile.defaultOffer,
+    tone: brandProfile.tone,
     status: 'planning',
     start_date: form.start_date || null,
     end_date: form.end_date || null,
     budget_type: form.budget_type || 'organic_and_paid',
     source: 'dashboard_react',
     brief: {
-      audience: form.target_audience,
-      promise: form.offer,
+      brand_scope: brandProfile.scope,
+      brand_name: brandProfile.name,
+      audience: form.target_audience || brandProfile.defaultAudience,
+      promise: form.offer || brandProfile.defaultOffer,
       product_data: productData,
       source_intake: sourceIntake,
       automation_workflow: automationWorkflow,
@@ -786,13 +833,13 @@ export async function createPremiumCampaign(form) {
           key: concept.key,
           label: concept.label,
           angle: concept.angle,
-          visual_model: visualModelForConcept(concept),
+          visual_model: visualModelForConcept(concept, brandProfile),
         })),
-        visual_models: Object.values(PREMIUM_VISUAL_MODELS),
+        visual_models: metaCreativeConcepts.map(concept => visualModelForConcept(concept, brandProfile)),
       },
       suggested_headline: productData.suggested_headline,
       suggested_copy: productData.suggested_copy,
-      visual_direction: 'Vitra Premium editorial, black and gold, high-end real estate',
+      visual_direction: brandProfile.visualDirection,
       created_from: 'premium_dashboard_phase_2_capture',
       human_review_policy: {
         minimum_intervention: true,
@@ -801,11 +848,12 @@ export async function createPremiumCampaign(form) {
       },
       qa_policy: {
         formats_required: ['1:1', '9:16', '1.91:1'],
-        brand_scope: 'vitra_premium',
+        brand_scope: brandProfile.scope,
         destination_required_for_export: true,
       },
     },
     content_plan: {
+      brand_scope: brandProfile.scope,
       blueprint_version: 'premium_phase_2_react',
       asset_count: campaignBlueprints.length,
       post_count: POST_BLUEPRINTS.length,
@@ -835,7 +883,7 @@ export async function createPremiumCampaign(form) {
     })
   }
 
-  const assetPayload = buildAssetPayloads(campaign, form, sourceImages, sourceIntake)
+  const assetPayload = buildAssetPayloads(campaign, form, sourceImages, sourceIntake, brandProfile)
   const { data: insertedAssets, error: assetsError } = await supabase
     .from('premium_campaign_assets')
     .insert(assetPayload)
@@ -843,7 +891,7 @@ export async function createPremiumCampaign(form) {
 
   if (assetsError) throw assetsError
 
-  const postPayload = buildPostPayloads(campaign, insertedAssets || [], form)
+  const postPayload = buildPostPayloads(campaign, insertedAssets || [], form, brandProfile)
   const { data: insertedPosts, error: postsError } = await supabase
     .from('premium_content_posts')
     .insert(postPayload)
@@ -862,6 +910,7 @@ export async function createPremiumCampaign(form) {
       finished_at: now,
       input_payload: buildInputSnapshot(form, sourceIntake),
       output_payload: {
+        brand_scope: brandProfile.scope,
         campaign_id: campaign.id,
         uploaded_images: flattenImages(uploadedImages).length,
         source_images: flattenImages(sourceImages).length,
@@ -880,6 +929,7 @@ export async function createPremiumCampaign(form) {
       status: 'queued',
       progress: 0,
       input_payload: {
+        brand_scope: brandProfile.scope,
         renderer: 'src/integrations/card-builder.js',
         storage_bucket: 'cards',
         asset_ids: (insertedAssets || []).map(asset => asset.id),
@@ -900,6 +950,7 @@ export async function createPremiumCampaign(form) {
       status: 'queued',
       progress: 0,
       input_payload: {
+        brand_scope: brandProfile.scope,
         requires_mapping: true,
         sources: ['instagram_insights', 'facebook_insights', 'ads_insights'],
       },
@@ -1119,28 +1170,28 @@ export async function createManualPublication(payload) {
   return data
 }
 
-function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = buildSourceIntake(form)) {
+function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = buildSourceIntake(form), brandProfile = getBrandProfile()) {
   const product = campaign.product_name || campaign.name
   const place = [campaign.neighborhood, campaign.city].filter(Boolean).join(', ')
-  const offer = campaign.offer || form.offer || 'Curadoria reservada Vitra Premium'
-  const cta = form.cta || 'Solicitar curadoria'
+  const offer = campaign.offer || form.offer || brandProfile.defaultOffer
+  const cta = form.cta || brandProfile.defaultCta
   const productData = buildProductData(form, product)
   const sourceImages = flattenImages(uploadedImages)
-  const campaignBlueprints = buildCampaignAssetBlueprints(form)
+  const campaignBlueprints = buildCampaignAssetBlueprints(form, brandProfile)
 
   return campaignBlueprints.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey, concept], index) => {
-    const headline = buildHeadline(product, place, index, form, concept)
-    const copy = buildAssetCopy(product, offer, channel, form, concept)
+    const headline = buildHeadline(product, place, index, form, concept, brandProfile)
+    const copy = buildAssetCopy(product, offer, channel, form, concept, brandProfile)
     const adGroup = channel === 'meta_ads' ? concept?.key || blueprintKey.replace(/-(feed|story|wide)$/, '') : null
     const selectedImage = sourceImages.length ? sourceImages[index % sourceImages.length] : null
     const primaryImage = selectedImage?.public_url || null
     const visualTemplate = channel === 'meta_ads'
-      ? visualModelForConcept(concept)
+      ? visualModelForConcept(concept, brandProfile)
       : {
           key: templateKey,
           label: title,
-          purpose: 'Asset operacional de apoio da campanha Premium.',
-          reference_pattern: 'Segue a identidade editorial Premium do renderizador.',
+          purpose: brandProfile.supportAssetPurpose,
+          reference_pattern: brandProfile.supportAssetPattern,
         }
     const metadata = {
       blueprint_key: blueprintKey,
@@ -1154,14 +1205,15 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
         angle: concept.angle,
       } : null,
       visual_template: visualTemplate,
-      brand_scope: 'vitra_premium',
-      visual_rules: ['black_gold', 'editorial', 'luxury_refined'],
+      brand_scope: brandProfile.scope,
+      brand_name: brandProfile.name,
+      visual_rules: brandProfile.visualRules,
       product_data: productData,
       source_images: uploadedImages,
       source_image_selection: sourceImageSelection(selectedImage),
       source_intake: sourceIntake,
       automation_stage: channel === 'meta_ads' ? 'queued_for_render_and_qa' : 'planned_support_asset',
-      qa_checks: buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta, sourceIntake }),
+      qa_checks: buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta, sourceIntake, brandProfile }),
     }
 
     if (channel === 'meta_ads') {
@@ -1192,8 +1244,8 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
   })
 }
 
-function buildPostPayloads(campaign, assets, form) {
-  const cta = form.cta || 'Solicitar curadoria'
+function buildPostPayloads(campaign, assets, form, brandProfile = getBrandProfile()) {
+  const cta = form.cta || brandProfile.defaultCta
   const hashtagCity = campaign.city ? `#${campaign.city.replace(/\s+/g, '')}` : '#PortoAlegre'
 
   return POST_BLUEPRINTS.map(post => {
@@ -1208,14 +1260,15 @@ function buildPostPayloads(campaign, assets, form) {
       hook: post.hook,
       caption: [
         post.hook,
-        campaign.offer || 'Uma curadoria premium para quem decide com criterio.',
+        campaign.offer || brandProfile.defaultOffer,
         cta,
       ].filter(Boolean).join('\n\n'),
-      hashtags: ['#VitraPremium', '#ImoveisDeLuxo', hashtagCity, '#AltoPadrao'],
+      hashtags: [...brandProfile.hashtagSet, hashtagCity],
       cta,
       status: 'planned',
       notes: 'Conteudo criado na migracao React. Renderizacao final entra na Fase 2.',
       metadata: {
+        brand_scope: brandProfile.scope,
         blueprint_asset_key: post.assetKey,
         phase: 'phase_1_react_migration',
       },
@@ -1223,12 +1276,25 @@ function buildPostPayloads(campaign, assets, form) {
   })
 }
 
-function buildHeadline(product, place, index, form, concept = null) {
+function buildHeadline(product, place, index, form, concept = null, brandProfile = getBrandProfile()) {
   const suggested = cleanText(form.suggested_headline)
   if (suggested && (!concept || concept.angle === 'editorial')) return suggested
 
   if (concept?.angle) {
-    const conceptHeadlines = {
+    const conceptHeadlines = brandProfile.scope === BRAND_SCOPES.imobiliaria ? {
+      editorial: `${product}: oportunidade em destaque`,
+      curadoria: `Conheça este imóvel em ${place || 'Porto Alegre'}`,
+      criterio: 'Compare antes de decidir',
+      diferenciais: 'Diferenciais que fazem sentido',
+      localizacao: `Localização em ${place || 'Porto Alegre'}`,
+      lifestyle: 'Uma rotina mais prática para morar',
+      investimento: 'Compra com visão patrimonial',
+      escassez: 'Oportunidade para avaliar agora',
+      arquitetura: 'Planta, localização e conforto',
+      liquidez: 'Um imóvel com boa leitura de mercado',
+      prova: 'Informação clara para escolher melhor',
+      whatsapp: 'Fale com a Vitra',
+    } : {
       editorial: `${product}: uma categoria acima`,
       curadoria: `Curadoria premium em ${place || 'Porto Alegre'}`,
       criterio: 'Para comprar com criterio',
@@ -1245,7 +1311,12 @@ function buildHeadline(product, place, index, form, concept = null) {
     return conceptHeadlines[concept.angle] || conceptHeadlines.editorial
   }
 
-  const variants = [
+  const variants = brandProfile.scope === BRAND_SCOPES.imobiliaria ? [
+    `${product}: oportunidade em destaque`,
+    `Imóvel em ${place || 'Porto Alegre'}`,
+    'Planta, localização e valor',
+    'Compare antes de decidir',
+  ] : [
     `${product}: uma categoria acima`,
     `Curadoria premium em ${place || 'Porto Alegre'}`,
     'Arquitetura, liquidez e presenca',
@@ -1254,15 +1325,21 @@ function buildHeadline(product, place, index, form, concept = null) {
   return variants[index % variants.length]
 }
 
-function buildAssetCopy(product, offer, channel, form, concept = null) {
+function buildAssetCopy(product, offer, channel, form, concept = null, brandProfile = getBrandProfile()) {
   const suggested = cleanText(form.suggested_copy)
   if (suggested && (!concept || concept.angle === 'editorial')) return suggested
 
   if (channel === 'whatsapp') {
+    if (brandProfile.scope === BRAND_SCOPES.imobiliaria) {
+      return `Ola. Separei as informacoes da Vitra Imobiliaria sobre ${product}. ${offer}`
+    }
     return `Ola. Separei uma curadoria Vitra Premium sobre ${product}. ${offer}`
   }
 
   if (channel === 'email') {
+    if (brandProfile.scope === BRAND_SCOPES.imobiliaria) {
+      return `Uma leitura objetiva sobre ${product}, com informacoes de localizacao, diferenciais e proximo passo de atendimento.`
+    }
     return `Uma leitura consultiva sobre ${product}, com foco em localizacao, escassez e potencial patrimonial.`
   }
 
@@ -1272,7 +1349,20 @@ function buildAssetCopy(product, offer, channel, form, concept = null) {
     const area = cleanText(form.area)
     const suites = cleanText(form.suites)
     const details = [area, suites, differentials].filter(Boolean).join('. ')
-    const conceptCopies = {
+    const conceptCopies = brandProfile.scope === BRAND_SCOPES.imobiliaria ? {
+      editorial: `${offer}. Campanha Vitra Imobiliaria com foco em informacao clara, atendimento consultivo e proximo passo simples.`,
+      curadoria: `Conheca ${product} com a assessoria da Vitra Imobiliaria. Veja localizacao, diferenciais e condicoes para avaliar com seguranca.`,
+      criterio: `Antes de decidir, compare localizacao, planta, valor e rotina. ${product} entra na selecao para quem busca uma compra bem orientada.`,
+      diferenciais: details ? `${details}. Diferenciais que ajudam a entender se este imovel combina com sua busca.` : `${product} reune pontos importantes para quem procura um imovel com boa leitura de valor.`,
+      localizacao: `Em ${place}, a localizacao pesa na decisao. Conheca os pontos que tornam este imovel relevante para morar ou investir.`,
+      lifestyle: `Mais praticidade para a rotina. ${product} combina localizacao, conforto e informacoes objetivas para decidir melhor.`,
+      investimento: `Comprar bem tambem e pensar em patrimonio. Avalie ${product} com apoio da Vitra Imobiliaria.`,
+      escassez: `Algumas oportunidades pedem avaliacao rapida e informada. Fale com a Vitra para entender disponibilidade e proximo passo.`,
+      arquitetura: `Planta, localizacao e conforto precisam fazer sentido juntos. Veja os pontos de destaque de ${product}.`,
+      liquidez: `Uma boa decisao imobiliaria considera uso, valor e saida futura. A Vitra organiza essa leitura para voce.`,
+      prova: `Compare informacoes antes de escolher. A Vitra Imobiliaria ajuda a transformar dados do imovel em decisao segura.`,
+      whatsapp: `Fale com a Vitra Imobiliaria e receba as informacoes essenciais para avaliar ${product}.`,
+    } : {
       editorial: `${offer}. Uma campanha Vitra Premium com linguagem editorial, foco em alto padrao e vinculo direto com performance.`,
       curadoria: `Receba uma leitura reservada sobre ${product}. Curadoria Vitra Premium para avaliar contexto, valor e proximo passo com criterio.`,
       criterio: `Antes de decidir, compare localizacao, planta, liquidez e experiencia. ${product} entra na selecao para quem compra com criterio.`,
@@ -1287,6 +1377,10 @@ function buildAssetCopy(product, offer, channel, form, concept = null) {
       whatsapp: `Solicite a curadoria completa de ${product} e receba as informacoes essenciais para avaliar a oportunidade com tranquilidade.`,
     }
     return conceptCopies[concept.angle] || conceptCopies.editorial
+  }
+
+  if (brandProfile.scope === BRAND_SCOPES.imobiliaria) {
+    return `${offer}. Uma campanha Vitra Imobiliaria com informacao clara, foto do imovel e foco em atendimento.`
   }
 
   return `${offer}. Uma campanha Vitra Premium com linguagem editorial, foco em alto padrao e vinculo direto com performance.`

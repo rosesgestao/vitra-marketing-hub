@@ -23,6 +23,45 @@ const MODEL_LABEL: Record<string, string> = {
 };
 
 const LOGO_INNER = `<g transform="translate(3,2) scale(0.87)"><polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/><polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/><polygon points="25,37 39,37 32,54" fill="#FFE08A"/><polygon points="25,37 32,54 55,76" fill="#8B6914"/><polygon points="39,37 32,54 55,76" fill="#C4942A"/><polygon points="85,37 71,37 78,54" fill="#F0C95C"/><polygon points="85,37 78,54 55,76" fill="#7A5C10"/><polygon points="71,37 78,54 55,76" fill="#D4A84A"/></g><line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/><text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/><text x="122.50" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6108" fill="#C4942A">PREMIUM</text>`;
+const VITRA_LOGO_INNER = `<g transform="translate(5,7) scale(0.78)"><polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#07111F" stroke="#C4942A" stroke-width="2.5"/><polygon points="50,9 86,29.5 86,70.5 50,91 14,70.5 14,29.5" fill="none" stroke="rgba(212,168,74,0.18)" stroke-width="0.8"/><polygon points="20,33 34,33 27,50" fill="#8EC4F0"/><polygon points="20,33 27,50 50,72" fill="#1B3A6B"/><polygon points="34,33 27,50 50,72" fill="#2E6BB5"/><polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/></g><line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/><text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/><text x="123" y="71" font-family="Inter" font-weight="700" font-size="8.5" letter-spacing="11.1" fill="#C4942A">IMOBILIÁRIA</text>`;
+
+function brandScopeFor(campaign: any, asset: any) {
+  return asset?.metadata?.brand_scope ||
+    campaign?.brief?.brand_scope ||
+    campaign?.brief?.qa_policy?.brand_scope ||
+    campaign?.content_plan?.brand_scope ||
+    "vitra_premium";
+}
+
+function brandRenderProfile(campaign: any, asset: any) {
+  const scope = brandScopeFor(campaign, asset);
+  if (scope === "vitra_imobiliaria") {
+    return {
+      scope,
+      name: "Vitra Imobiliária",
+      fallbackKicker: "VITRA IMOBILIÁRIA",
+      fallbackHeadline: "Vitra Imobiliária",
+      bg: "#07111F",
+      overlayNoImage: "#07111F",
+      overlayOpacity: "78",
+      panel: "rgba(7,17,31,0.78)",
+      logo: VITRA_LOGO_INNER,
+      storagePrefix: "vitra-imobiliaria-campaigns",
+    };
+  }
+  return {
+    scope,
+    name: "Vitra Premium",
+    fallbackKicker: "VITRA PREMIUM",
+    fallbackHeadline: "Vitra Premium",
+    bg: "#000000",
+    overlayNoImage: "#050505",
+    overlayOpacity: "86",
+    panel: "rgba(0,0,0,0.74)",
+    logo: LOGO_INNER,
+    storagePrefix: "premium-campaigns",
+  };
+}
 
 let wasmReady: Promise<void> | null = null;
 function ensureWasm() {
@@ -153,11 +192,11 @@ function firstBriefImageUrl(campaign: any): string | null {
   return null;
 }
 
-function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: number, logoH: number) {
+function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: number, logoH: number, brandProfile: ReturnType<typeof brandRenderProfile>) {
   const pd = campaign?.brief?.product_data ?? {};
   const model = modelKey(asset);
-  const kicker = (pd.tagline || campaign?.product_name || "VITRA PREMIUM").toString().toUpperCase();
-  const headline = asset.headline || pd.suggested_headline || campaign?.name || "Vitra Premium";
+  const kicker = (pd.tagline || campaign?.product_name || brandProfile.fallbackKicker).toString().toUpperCase();
+  const headline = asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline;
   const copy = asset.copy || pd.suggested_copy || "";
   const cta = asset.cta || "Solicitar curadoria";
   const pad = Math.round(W * 0.075);
@@ -167,7 +206,11 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
   const usePanel = !["premium-photo-offer", "premium-location-panorama"].includes(model);
   const mainWidth = isVertical ? Math.round(W*0.90) : model === "premium-location-panorama" ? Math.round(W*0.76) : model === "premium-photo-offer" ? Math.round(W*0.78) : Math.round(W*0.58);
   const headlineSize = Math.round(W * (isVertical ? 0.078 : isWide ? 0.048 : 0.058));
-  const overlayOpacity = model === "premium-photo-offer" || model === "premium-location-panorama" ? "66" : "86";
+  const overlayOpacity = brandProfile.scope === "vitra_imobiliaria"
+    ? brandProfile.overlayOpacity
+    : model === "premium-photo-offer" || model === "premium-location-panorama"
+      ? "66"
+      : brandProfile.overlayOpacity;
   const features = productFeatures(pd, campaign, model === "premium-dark-spec" ? 5 : 3);
   const layers: unknown[] = [];
   if (bg) { const im = h("img", { position:"absolute", top:0, left:0, width:W, height:H, objectFit:"cover" }); (im as any).props.src = bg; layers.push(im); }
@@ -178,7 +221,7 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
     width:W,
     height:H,
     display:"flex",
-    backgroundColor:bg ? `#000000${overlayOpacity}` : "#050505",
+    backgroundColor:bg ? `${brandProfile.bg}${overlayOpacity}` : brandProfile.overlayNoImage,
   }));
   layers.push(h("div", {
     position:"absolute",
@@ -210,14 +253,14 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
         letterSpacing:1.5,
         paddingLeft:Math.round(W*0.014),
         paddingRight:Math.round(W*0.014),
-        backgroundColor:"rgba(0,0,0,0.36)",
+        backgroundColor:brandProfile.scope === "vitra_imobiliaria" ? "rgba(7,17,31,0.42)" : "rgba(0,0,0,0.36)",
       }, phase) : h("div", { display:"flex" }, ""),
     ]),
     h("div", {
       display:"flex",
       flexDirection:"column",
       width:mainWidth,
-      backgroundColor:usePanel ? "rgba(0,0,0,0.74)" : "rgba(0,0,0,0)",
+      backgroundColor:usePanel ? brandProfile.panel : "rgba(0,0,0,0)",
       borderLeftWidth:usePanel ? 2 : 0,
       borderLeftStyle:"solid",
       borderLeftColor:usePanel ? GOLD : "transparent",
@@ -231,11 +274,12 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
     ]),
     h("div", { display:"flex", fontSize:Math.round(W*0.011), letterSpacing:2, color:"rgba(245,245,240,0.34)" }, MODEL_LABEL[model]),
   ]));
-  return h("div", { display:"flex", width:W, height:H, position:"relative", backgroundColor:"#000000" }, layers);
+  return h("div", { display:"flex", width:W, height:H, position:"relative", backgroundColor:brandProfile.bg }, layers);
 }
 
 async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8Array) {
   let step = "init";
+  const brandProfile = brandRenderProfile(campaign, asset);
   const ar = (asset.aspect_ratio || "1:1").toString();
   const base = DIMS[ar] || DIMS["1:1"];
   const W = Math.round(base[0] * SCALE);
@@ -249,8 +293,8 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
     step = "load_image";
     const bg = await toDataUri(asset.source_image_url || firstBriefImageUrl(campaign));
     step = "satori";
-    let svg = await satori(buildTree(asset, campaign, bg, W, H, logoH) as any, { width: W, height: H, fonts });
-    const logoNode = `<svg x="${pad}" y="${pad}" width="${logoW}" height="${logoH}" viewBox="0 0 300 100">${LOGO_INNER}</svg>`;
+    let svg = await satori(buildTree(asset, campaign, bg, W, H, logoH, brandProfile) as any, { width: W, height: H, fonts });
+    const logoNode = `<svg x="${pad}" y="${pad}" width="${logoW}" height="${logoH}" viewBox="0 0 300 100">${brandProfile.logo}</svg>`;
     svg = svg.replace("</svg>", logoNode + "</svg>");
     step = "init_wasm";
     await ensureWasm();
@@ -261,7 +305,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
     try { img.free?.(); } catch (_) {}
     try { resvg.free?.(); } catch (_) {}
     const slug = campaign?.slug || campaign?.id || "campanha";
-    const path = `premium-campaigns/${slug}/rendered/${asset.id}.png`;
+    const path = `${brandProfile.storagePrefix}/${slug}/rendered/${asset.id}.png`;
     step = "upload";
     const up = await svc.storage.from("cards").upload(path, png, { contentType: "image/png", upsert: true });
     if (up.error) throw up.error;
@@ -272,7 +316,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
       storage_bucket:"cards",
       storage_path:path,
       public_url:pub.publicUrl,
-      metadata:{ ...(asset.metadata || {}), last_render_error:null },
+      metadata:{ ...(asset.metadata || {}), brand_scope:brandProfile.scope, brand_name:brandProfile.name, last_render_error:null },
       updated_at:new Date().toISOString(),
     }).eq("id", asset.id);
     if (updErr) throw updErr;
