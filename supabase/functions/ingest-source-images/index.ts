@@ -241,7 +241,14 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json()
-    const urls = Array.from(new Set((body.urls || []).map((url: unknown) => String(url || "").trim()).filter(Boolean)))
+    const rawUrls = Array.isArray(body.urls) ? body.urls : []
+    const urls: string[] = Array.from(
+      new Set<string>(
+        rawUrls
+          .map((url: unknown) => String(url || "").trim())
+          .filter((url: string) => url.length > 0),
+      ),
+    )
       .slice(0, 6)
     const limit = Math.max(1, Math.min(Number(body.limit || 12), 24))
     const candidates: Candidate[] = []

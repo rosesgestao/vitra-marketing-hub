@@ -190,3 +190,13 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - O pacote exportado de Meta Ads inclui `visual_template` no grupo do anuncio e em cada placement.
 - O worker full-res e a Edge Function `render-asset` foram atualizados para respeitar os modelos visuais.
 - Documentacao tecnica criada em `docs/templates-criativos-vitra-premium.md`.
+
+## 2026-06-02 - Deno Instalado para Validacao de Edge Functions
+
+- Decidido instalar Deno no ambiente local porque o projeto seguira evoluindo arquivos em `supabase/functions/*`.
+- Instalacao realizada em modo usuario: `C:\Users\leona\.deno\bin\deno.exe`, sem exigir permissao administrativa.
+- Versao instalada: Deno `2.8.1`.
+- `deno check` passa a ser validacao padrao para Supabase Edge Functions antes de commit/deploy.
+- A primeira execucao identificou erro real de tipagem em `supabase/functions/ingest-source-images/index.ts`, onde URLs normalizadas estavam sendo inferidas como `unknown[]`.
+- Corrigida a normalizacao de `body.urls` para `string[]` explicito usando `Set<string>`.
+- Validacao final executada com sucesso: `deno check supabase/functions/render-asset/index.ts` e `deno check supabase/functions/ingest-source-images/index.ts`.
