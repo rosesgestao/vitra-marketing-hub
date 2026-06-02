@@ -12,6 +12,7 @@ dist/
 assets/imagens/
 logs/
 output/
+supabase/.temp/
 
 # Test output images
 test-*.png

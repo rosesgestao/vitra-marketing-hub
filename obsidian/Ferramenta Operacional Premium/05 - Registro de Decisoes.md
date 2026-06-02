@@ -200,3 +200,13 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - A primeira execucao identificou erro real de tipagem em `supabase/functions/ingest-source-images/index.ts`, onde URLs normalizadas estavam sendo inferidas como `unknown[]`.
 - Corrigida a normalizacao de `body.urls` para `string[]` explicito usando `Set<string>`.
 - Validacao final executada com sucesso: `deno check supabase/functions/render-asset/index.ts` e `deno check supabase/functions/ingest-source-images/index.ts`.
+
+## 2026-06-02 - Deploy Remoto das Edge Functions Premium
+
+- Publicadas no projeto Supabase ativo `birxcfkyuzqnhyvetbjv` as funcoes `render-asset` e `ingest-source-images`.
+- `render-asset` publicado como versao remota `9`, status `ACTIVE`.
+- `ingest-source-images` publicada como versao remota `2`, status `ACTIVE`.
+- As funcoes foram publicadas com `--no-verify-jwt` porque o dashboard usa chave publishable (`sb_publishable...`), que nao e JWT classico; a validacao continua sendo feita dentro da funcao por `apikey`/`Authorization`.
+- Teste remoto de `render-asset` com payload vazio retornou `400` controlado: `informe campaign_id ou asset_ids`.
+- Teste remoto de `ingest-source-images` com `urls: []` retornou `200` com `images: []` e `warnings: []`.
+- Validacao local previa mantida com `deno check` nas duas funcoes antes/depois do deploy.
