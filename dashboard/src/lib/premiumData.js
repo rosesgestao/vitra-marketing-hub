@@ -73,6 +73,12 @@ const ASSET_BLUEPRINTS = [
   ['stories-sequence-2', 'story', 'instagram', 'story', 'Stories - Sequencia 2', '9:16', 'premium-stories-2'],
 ]
 
+const AD_GROUP_LABEL = {
+  'meta-awareness': 'Awareness',
+  'meta-leads': 'Leads',
+  'meta-retarget': 'Retargeting',
+}
+
 // Fase narrativa da campanha por blueprint: 1=Teaser, 2=Revelacao, 3=Urgencia
 const PHASE_BY_BLUEPRINT = {
   'meta-awareness-feed': '1',
@@ -170,6 +176,110 @@ function cleanText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function buildSourceIntake(form) {
+  const sourceType = cleanText(form.source_type) || 'manual'
+  const sourceUrl = cleanText(form.source_url)
+  const landingUrl = cleanText(form.landing_url)
+  const whatsappUrl = cleanText(form.whatsapp_url)
+
+  return {
+    type: sourceType,
+    url: sourceUrl || null,
+    landing_url: landingUrl || null,
+    whatsapp_url: whatsappUrl || null,
+    notes: cleanText(form.automation_notes) || null,
+    ingestion_mode: sourceUrl || landingUrl ? 'auto_image_ingestion_plus_manual_upload' : 'manual_brief_upload',
+    ingestion_status: sourceUrl || landingUrl ? 'source_registered' : 'manual_input',
+    human_touchpoints: ['confirmar_brief', 'aprovar_criativos', 'autorizar_publicacao_e_verba'],
+  }
+}
+
+function buildAutomationWorkflow(sourceIntake) {
+  return {
+    mode: 'low_touch_paid_traffic_creative_pipeline',
+    source_first: Boolean(sourceIntake.url),
+    stages: [
+      'captura_de_fonte_e_brief',
+      'classificacao_de_midia',
+      'geracao_de_cortes_meta_ads',
+      'qa_de_marca_e_formatos',
+      'aprovacao_em_lote',
+      'exportacao_para_meta_ads',
+    ],
+    publication_policy: 'export_or_draft_first_no_auto_budget',
+  }
+}
+
+function buildDefaultUrlParams(campaign, blueprintKey) {
+  const slug = campaign.slug || slugify(campaign.name || 'vitra-premium')
+  return `utm_source=meta&utm_medium=paid_social&utm_campaign=${slug}&utm_content=${blueprintKey}`
+}
+
+function buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta, sourceIntake }) {
+  if (channel !== 'meta_ads') {
+    return [
+      { id: 'brand_scope', label: 'Escopo Vitra Premium', ok: true },
+      { id: 'copy_base', label: 'Texto base definido', ok: Boolean(headline && copy && cta) },
+    ]
+  }
+
+  return [
+    {
+      id: 'source_registered',
+      label: 'Fonte do imovel registrada',
+      ok: Boolean(sourceIntake.url || primaryImage),
+      severity: sourceIntake.url || primaryImage ? 'pass' : 'warning',
+    },
+    {
+      id: 'source_image',
+      label: 'Imagem base vinculada',
+      ok: Boolean(primaryImage),
+      severity: primaryImage ? 'pass' : 'warning',
+    },
+    {
+      id: 'meta_format',
+      label: 'Formato Meta Ads definido',
+      ok: Boolean(aspectRatio),
+      expected: aspectRatio,
+    },
+    {
+      id: 'text_pack',
+      label: 'Headline, copy e CTA definidos',
+      ok: Boolean(headline && copy && cta),
+    },
+    {
+      id: 'destination',
+      label: 'Destino comercial definido',
+      ok: Boolean(sourceIntake.landing_url || sourceIntake.whatsapp_url),
+      severity: sourceIntake.landing_url || sourceIntake.whatsapp_url ? 'pass' : 'warning',
+    },
+    {
+      id: 'brand_rules',
+      label: 'Regra Premium preto + dourado',
+      ok: true,
+    },
+  ]
+}
+
+function buildInputSnapshot(form, sourceIntake) {
+  const imageSlots = imageGroupsFromForm(form)
+  return {
+    source_intake: sourceIntake,
+    product_name: cleanText(form.product_name),
+    tagline: cleanText(form.tagline),
+    location: cleanText(form.location),
+    area: cleanText(form.area),
+    suites: cleanText(form.suites),
+    towers: cleanText(form.towers),
+    price: cleanText(form.price),
+    target_audience: cleanText(form.target_audience),
+    campaign_objective: cleanText(form.campaign_objective),
+    image_slots: Object.fromEntries(
+      Object.entries(imageSlots).map(([slot, files]) => [slot, files.length]),
+    ),
+  }
+}
+
 function buildProductData(form, product) {
   return {
     name: product,
@@ -255,6 +365,212 @@ function flattenImages(uploadedImages = {}) {
   return Object.values(uploadedImages).flat().filter(Boolean)
 }
 
+function imageSourceUrls(sourceIntake = {}) {
+  return Array.from(new Set([
+    sourceIntake.url,
+    sourceIntake.landing_url,
+  ].map(cleanText).filter(Boolean)))
+}
+
+function mergeExternalImages(imageGroups = {}, externalImages = []) {
+  if (!externalImages.length) return imageGroups
+
+  return {
+    ...imageGroups,
+    auto: [
+      ...(Array.isArray(imageGroups.auto) ? imageGroups.auto : []),
+      ...externalImages,
+    ],
+  }
+}
+
+async function updateCampaignImageBrief(campaign, images, patch = {}) {
+  const flattened = flattenImages(images)
+  const brief = {
+    ...(campaign.brief || {}),
+    images,
+    image_count: flattened.length,
+    ...patch,
+  }
+
+  const { error } = await supabase
+    .from('premium_campaigns')
+    .update({ brief })
+    .eq('id', campaign.id)
+
+  if (error) throw error
+  return brief
+}
+
+async function ingestExternalImagesFromSources(sourceIntake = {}) {
+  const urls = imageSourceUrls(sourceIntake)
+  if (!urls.length) return { images: [], warnings: [] }
+
+  const normalize = (data) => {
+    const images = (data?.images || [])
+      .filter(item => item?.url)
+      .map((item, index) => ({
+        slot: 'auto',
+        name: `imagem-fonte-${index + 1}`,
+        size: null,
+        type: 'external/image',
+        bucket: null,
+        path: null,
+        public_url: item.url,
+        source_url: item.source_url || null,
+        score: item.score || 0,
+        reason: item.reason || 'auto_selected',
+      }))
+
+    return {
+      images,
+      warnings: data?.warnings || [],
+    }
+  }
+
+  const localFallback = async (warnings = []) => {
+    if (typeof window === 'undefined') return { images: [], warnings }
+
+    try {
+      const response = await fetch('/api/ingest-source-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls, limit: 12 }),
+      })
+
+      if (!response.ok) {
+        return {
+          images: [],
+          warnings: [...warnings, `Ingestao local indisponivel: HTTP ${response.status}.`],
+        }
+      }
+
+      const data = await response.json()
+      const result = normalize(data)
+      return {
+        images: result.images,
+        warnings: [...warnings, ...(result.warnings || [])],
+      }
+    } catch (error) {
+      return {
+        images: [],
+        warnings: [...warnings, error.message || 'Falha na ingestao local de imagens.'],
+      }
+    }
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('ingest-source-images', {
+      body: { urls, limit: 12 },
+    })
+
+    if (error) {
+      return localFallback([error.message || 'Nao foi possivel consultar a funcao de ingestao de imagens.'])
+    }
+
+    return normalize(data)
+  } catch (error) {
+    return localFallback([error.message || 'Falha ao buscar imagens nas fontes informadas.'])
+  }
+}
+
+function sourceImageSelection(image) {
+  if (!image?.public_url) return null
+  return {
+    url: image.public_url,
+    slot: image.slot || 'auto',
+    source_url: image.source_url || null,
+    score: image.score || null,
+    reason: image.reason || null,
+  }
+}
+
+async function ensureCampaignSourceImages(campaignId) {
+  const { data: campaign, error: campaignError } = await supabase
+    .from('premium_campaigns')
+    .select('*')
+    .eq('id', campaignId)
+    .single()
+
+  if (campaignError || !campaign) return { images: 0, requeued: 0, warnings: [] }
+
+  const { data: assets, error: assetsError } = await supabase
+    .from('premium_campaign_assets')
+    .select('*')
+    .eq('campaign_id', campaignId)
+    .eq('channel', 'meta_ads')
+
+  if (assetsError || !assets?.length) return { images: 0, requeued: 0, warnings: [] }
+  const missingImageAssets = assets.filter(asset => !asset.source_image_url)
+  if (!missingImageAssets.length) return { images: 0, requeued: 0, warnings: [] }
+
+  const sourceIntake = campaign.brief?.source_intake || {}
+  let imageGroups = campaign.brief?.images || {}
+  let sourceImages = flattenImages(imageGroups).filter(image => image.public_url)
+  let warnings = []
+
+  if (!sourceImages.length) {
+    sourceImages = assets
+      .filter(asset => asset.source_image_url)
+      .map((asset, index) => ({
+        slot: 'asset',
+        name: `imagem-asset-${index + 1}`,
+        public_url: asset.source_image_url,
+        source_url: null,
+        score: 0,
+        reason: 'existing_asset_source',
+      }))
+  }
+
+  if (!sourceImages.length) {
+    const ingested = await ingestExternalImagesFromSources(sourceIntake)
+    warnings = ingested.warnings || []
+    imageGroups = mergeExternalImages(imageGroups, ingested.images)
+    sourceImages = flattenImages(imageGroups).filter(image => image.public_url)
+
+    if (sourceImages.length) {
+      await updateCampaignImageBrief(campaign, imageGroups, {
+        source_image_status: 'auto_selected',
+        source_image_warnings: warnings,
+      })
+    }
+  }
+
+  if (!sourceImages.length) return { images: 0, requeued: 0, warnings }
+
+  let requeued = 0
+  const updates = missingImageAssets.map((asset, index) => {
+    const image = sourceImages[index % sourceImages.length]
+    const metadata = {
+      ...(asset.metadata || {}),
+      source_image_selection: sourceImageSelection(image),
+      source_image_status: 'auto_selected',
+    }
+    const patch = {
+      source_image_url: image.public_url,
+      metadata,
+    }
+
+    if (asset.status !== 'approved') {
+      patch.status = 'queued'
+      patch.public_url = null
+      patch.storage_path = null
+      requeued += 1
+    }
+
+    return supabase
+      .from('premium_campaign_assets')
+      .update(patch)
+      .eq('id', asset.id)
+  })
+
+  const results = await Promise.all(updates)
+  const failed = results.find(result => result.error)
+  if (failed) throw failed.error
+
+  return { images: sourceImages.length, requeued, warnings }
+}
+
 export async function loadPremiumWorkspace() {
   const requests = [
     supabase.from('premium_campaigns').select('*').order('created_at', { ascending: false }).limit(50),
@@ -313,6 +629,8 @@ export async function createPremiumCampaign(form) {
   const slug = `${slugify(name)}-${Date.now().toString(36)}`
   const now = new Date().toISOString()
   const productData = buildProductData(form, product)
+  const sourceIntake = buildSourceIntake(form)
+  const automationWorkflow = buildAutomationWorkflow(sourceIntake)
 
   const campaignPayload = {
     name,
@@ -334,15 +652,29 @@ export async function createPremiumCampaign(form) {
       audience: form.target_audience,
       promise: form.offer,
       product_data: productData,
+      source_intake: sourceIntake,
+      automation_workflow: automationWorkflow,
       suggested_headline: productData.suggested_headline,
       suggested_copy: productData.suggested_copy,
       visual_direction: 'Vitra Premium editorial, black and gold, high-end real estate',
       created_from: 'premium_dashboard_phase_2_capture',
+      human_review_policy: {
+        minimum_intervention: true,
+        required_before_publish: ['aprovar_criativos', 'autorizar_publicacao_e_verba'],
+        blocked_actions: ['publicacao_automatica_com_verba_sem_confirmacao'],
+      },
+      qa_policy: {
+        formats_required: ['1:1', '9:16', '1.91:1'],
+        brand_scope: 'vitra_premium',
+        destination_required_for_export: true,
+      },
     },
     content_plan: {
       blueprint_version: 'premium_phase_2_react',
       asset_count: ASSET_BLUEPRINTS.length,
       post_count: POST_BLUEPRINTS.length,
+      automation_level: 'low_touch_paid_traffic',
+      meta_ads_formats: ['1:1', '9:16', '1.91:1'],
     },
   }
 
@@ -355,7 +687,17 @@ export async function createPremiumCampaign(form) {
   if (campaignError) throw campaignError
 
   const uploadedImages = await uploadCampaignImages(campaign, slug, form)
-  const assetPayload = buildAssetPayloads(campaign, form, uploadedImages)
+  const externalImages = await ingestExternalImagesFromSources(sourceIntake)
+  const sourceImages = mergeExternalImages(uploadedImages, externalImages.images)
+
+  if (flattenImages(sourceImages).length || externalImages.warnings?.length) {
+    await updateCampaignImageBrief(campaign, sourceImages, {
+      source_image_status: externalImages.images.length ? 'auto_selected' : 'pending_manual_or_private_source',
+      source_image_warnings: externalImages.warnings || [],
+    })
+  }
+
+  const assetPayload = buildAssetPayloads(campaign, form, sourceImages, sourceIntake)
   const { data: insertedAssets, error: assetsError } = await supabase
     .from('premium_campaign_assets')
     .insert(assetPayload)
@@ -380,10 +722,13 @@ export async function createPremiumCampaign(form) {
       progress: 100,
       started_at: now,
       finished_at: now,
-      input_payload: { form },
+      input_payload: buildInputSnapshot(form, sourceIntake),
       output_payload: {
         campaign_id: campaign.id,
         uploaded_images: flattenImages(uploadedImages).length,
+        source_images: flattenImages(sourceImages).length,
+        auto_selected_images: externalImages.images.length,
+        source_image_warnings: externalImages.warnings || [],
         assets: insertedAssets?.length || 0,
         posts: insertedPosts?.length || 0,
       },
@@ -398,6 +743,13 @@ export async function createPremiumCampaign(form) {
         renderer: 'src/integrations/card-builder.js',
         storage_bucket: 'cards',
         asset_ids: (insertedAssets || []).map(asset => asset.id),
+        automation_workflow: automationWorkflow,
+      },
+      output_payload: {
+        status: 'waiting_render',
+        queued_assets: (insertedAssets || []).filter(asset => asset.storage_bucket === 'cards').length,
+        rendered_assets: 0,
+        failed_assets: 0,
       },
     },
     {
@@ -409,6 +761,11 @@ export async function createPremiumCampaign(form) {
       input_payload: {
         requires_mapping: true,
         sources: ['instagram_insights', 'facebook_insights', 'ads_insights'],
+      },
+      output_payload: {
+        status: 'waiting_publication_mapping',
+        synced_publications: 0,
+        synced_metrics: 0,
       },
     },
   ]
@@ -554,10 +911,16 @@ export function saveAssetEdit(assetId, { headline, copy, cta }) {
 
 // Dispara a Edge Function render-asset em lotes pequenos (limite de memoria do worker).
 // Usa a publishable key do cliente (functions.invoke envia apikey/Authorization).
-export async function renderCampaignAssets(campaignId, { batch = 3, maxBatches = 16 } = {}) {
+export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 30 } = {}) {
   let rendered = 0
   let failed = 0
   let lastError = null
+
+  try {
+    await ensureCampaignSourceImages(campaignId)
+  } catch (error) {
+    lastError = error
+  }
 
   for (let i = 0; i < maxBatches; i++) {
     let data = null
@@ -615,40 +978,61 @@ export async function createManualPublication(payload) {
   return data
 }
 
-function buildAssetPayloads(campaign, form, uploadedImages = {}) {
+function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = buildSourceIntake(form)) {
   const product = campaign.product_name || campaign.name
   const place = [campaign.neighborhood, campaign.city].filter(Boolean).join(', ')
   const offer = campaign.offer || form.offer || 'Curadoria reservada Vitra Premium'
   const cta = form.cta || 'Solicitar curadoria'
   const productData = buildProductData(form, product)
   const sourceImages = flattenImages(uploadedImages)
-  const primaryImage = sourceImages[0]?.public_url || null
 
-  return ASSET_BLUEPRINTS.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey], index) => ({
-    campaign_id: campaign.id,
-    asset_type: assetType,
-    channel,
-    format,
-    title,
-    headline: buildHeadline(product, place, index, form),
-    copy: buildAssetCopy(product, offer, channel, form),
-    cta,
-    status: channel === 'whatsapp' || channel === 'email' ? 'planned' : 'queued',
-    aspect_ratio: aspectRatio,
-    template_key: templateKey,
-    storage_bucket: channel === 'whatsapp' || channel === 'email' ? null : 'cards',
-    source_image_url: primaryImage,
-    metadata: {
+  return ASSET_BLUEPRINTS.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey], index) => {
+    const headline = buildHeadline(product, place, index, form)
+    const copy = buildAssetCopy(product, offer, channel, form)
+    const adGroup = channel === 'meta_ads' ? blueprintKey.replace(/-(feed|story|wide)$/, '') : null
+    const selectedImage = sourceImages.length ? sourceImages[index % sourceImages.length] : null
+    const primaryImage = selectedImage?.public_url || null
+    const metadata = {
       blueprint_key: blueprintKey,
       phase: 'phase_2_react_capture',
       campaign_phase: phaseForBlueprint(blueprintKey),
-      ad_group: channel === 'meta_ads' ? blueprintKey.replace(/-(feed|story|wide)$/, '') : null,
+      ad_group: adGroup,
       brand_scope: 'vitra_premium',
       visual_rules: ['black_gold', 'editorial', 'luxury_refined'],
       product_data: productData,
       source_images: uploadedImages,
-    },
-  }))
+      source_image_selection: sourceImageSelection(selectedImage),
+      source_intake: sourceIntake,
+      automation_stage: channel === 'meta_ads' ? 'queued_for_render_and_qa' : 'planned_support_asset',
+      qa_checks: buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta, sourceIntake }),
+    }
+
+    if (channel === 'meta_ads') {
+      metadata.meta_ad = {
+        nome: `${campaign.name} | ${AD_GROUP_LABEL[adGroup] || 'Meta Ads'} | ${format}`,
+        texto_principal: copy,
+        descricao: cleanText(form.tagline) || null,
+        url_params: buildDefaultUrlParams(campaign, blueprintKey),
+      }
+    }
+
+    return {
+      campaign_id: campaign.id,
+      asset_type: assetType,
+      channel,
+      format,
+      title,
+      headline,
+      copy,
+      cta,
+      status: channel === 'whatsapp' || channel === 'email' ? 'planned' : 'queued',
+      aspect_ratio: aspectRatio,
+      template_key: templateKey,
+      storage_bucket: channel === 'whatsapp' || channel === 'email' ? null : 'cards',
+      source_image_url: primaryImage,
+      metadata,
+    }
+  })
 }
 
 function buildPostPayloads(campaign, assets, form) {

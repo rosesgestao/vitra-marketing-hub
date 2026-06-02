@@ -53,6 +53,19 @@ async function toDataUri(url: string | null): Promise<string | null> {
 }
 function h(type: string, style: Record<string, unknown>, children: unknown = null) { return { type, props: { style, children } }; }
 
+function firstBriefImageUrl(campaign: any): string | null {
+  const groups = campaign?.brief?.images || {};
+  for (const value of Object.values(groups)) {
+    if (Array.isArray(value)) {
+      const hit = value.find((item: any) => item?.public_url);
+      if (hit?.public_url) return hit.public_url;
+    } else if ((value as any)?.public_url) {
+      return (value as any).public_url;
+    }
+  }
+  return null;
+}
+
 function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: number, logoH: number) {
   const pd = campaign?.brief?.product_data ?? {};
   const kicker = (pd.tagline || campaign?.product_name || "VITRA PREMIUM").toString().toUpperCase();
@@ -86,7 +99,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
   const logoW = Math.round(W * 0.40);
   const logoH = Math.round(logoW / 3);
   const fonts = await loadFonts();
-  const bg = await toDataUri(asset.source_image_url || campaign?.brief?.images?.fachada?.[0]?.public_url || null);
+  const bg = await toDataUri(asset.source_image_url || firstBriefImageUrl(campaign));
   let svg = await satori(buildTree(asset, campaign, bg, W, H, logoH) as any, { width: W, height: H, fonts });
   const logoNode = `<svg x="${pad}" y="${pad}" width="${logoW}" height="${logoH}" viewBox="0 0 300 100">${LOGO_INNER}</svg>`;
   svg = svg.replace("</svg>", logoNode + "</svg>");

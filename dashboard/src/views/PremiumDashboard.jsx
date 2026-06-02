@@ -46,6 +46,11 @@ import { PremiumHorizontalLogo } from '../components/PremiumBrand.jsx'
 
 const INITIAL_FORM = {
   name: '',
+  source_type: 'drive',
+  source_url: '',
+  landing_url: '',
+  whatsapp_url: '',
+  automation_notes: '',
   product_name: '',
   tagline: '',
   property_type: 'Apartamento alto padrão',
@@ -74,6 +79,15 @@ const INITIAL_FORM = {
     extras: [],
   },
 }
+
+const SOURCE_TYPE_OPTIONS = [
+  { value: 'drive', label: 'Google Drive' },
+  { value: 'site', label: 'Site do empreendimento' },
+  { value: 'folder', label: 'Pasta local / rede' },
+  { value: 'pdf', label: 'PDF comercial' },
+  { value: 'landing', label: 'Landing page' },
+  { value: 'manual', label: 'Brief manual' },
+]
 
 const IMAGE_FIELDS = [
   { id: 'fachada', label: 'Fachada / principal', multiple: false },
@@ -185,7 +199,170 @@ function groupCount(rows, key) {
   }, {})
 }
 
-export default function PremiumDashboard() {
+function errorMessage(error) {
+  return error?.message || 'Nao foi possivel concluir a acao. Confira os dados e tente novamente.'
+}
+
+function sourceTypeLabel(value) {
+  return SOURCE_TYPE_OPTIONS.find(option => option.value === value)?.label || 'Fonte manual'
+}
+
+function countBriefImages(images) {
+  return Object.values(images || {}).reduce((total, value) => {
+    if (Array.isArray(value)) return total + value.length
+    return total + (value ? 1 : 0)
+  }, 0)
+}
+
+function slugForDownload(value) {
+  return String(value || 'vitra-premium')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72)
+}
+
+function evaluateMetaAdReadiness(ad) {
+  const ordered = [...(ad.assets || [])].sort(
+    (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
+  )
+  const first = ordered[0] || {}
+  const meta = first.metadata?.meta_ad || {}
+  const formats = new Set(ordered.map(asset => asset.aspect_ratio))
+  const hasPropertyImage = ordered.every(asset => Boolean(asset.source_image_url))
+  const rendered = ordered.every(asset => Boolean(asset.public_url) && ['generated', 'approved'].includes(asset.status))
+  const approved = ordered.every(asset => asset.status === 'approved')
+  const hasDestination = Boolean(meta.url_params || first.metadata?.source_intake?.landing_url || first.metadata?.source_intake?.whatsapp_url)
+  const checks = [
+    { id: 'formats', label: '3 cortes Meta', ok: AD_FORMAT_ORDER.every(format => formats.has(format)) },
+    { id: 'property_image', label: 'Foto do imovel', ok: hasPropertyImage },
+    { id: 'render', label: 'Imagens renderizadas', ok: rendered },
+    { id: 'texts', label: 'Textos + CTA', ok: Boolean(first.headline && (meta.texto_principal || first.copy) && first.cta) },
+    { id: 'destination', label: 'Destino / UTM', ok: hasDestination },
+    { id: 'approval', label: 'Aprovacao humana', ok: approved },
+  ]
+
+  return {
+    ok: checks.every(check => check.ok),
+    qaReady: checks.filter(check => check.id !== 'approval').every(check => check.ok),
+    checks,
+  }
+}
+
+function buildAutomationSteps(campaign, assets, publications) {
+  const brief = campaign?.brief || {}
+  const source = brief.source_intake || {}
+  const campaignAssets = assets.filter(asset => asset.campaign_id === campaign?.id)
+  const metaAssets = campaignAssets.filter(asset => asset.channel === 'meta_ads')
+  const metaAds = groupMetaAds(metaAssets)
+  const imageCount = countBriefImages(brief.images)
+  const renderedCount = metaAssets.filter(asset => Boolean(asset.public_url) && ['generated', 'approved'].includes(asset.status)).length
+  const qaReadyCount = metaAds.filter(ad => evaluateMetaAdReadiness(ad).qaReady).length
+  const approvedCount = metaAssets.filter(asset => asset.status === 'approved').length
+
+  return [
+    {
+      label: 'Fonte recebida',
+      detail: source.url ? `${sourceTypeLabel(source.type)} registrado` : imageCount ? `${imageCount} imagem(ns) enviada(s)` : 'Aguardando link ou imagens',
+      done: Boolean(source.url || imageCount),
+    },
+    {
+      label: 'Brief estruturado',
+      detail: brief.product_data?.name ? 'Dados comerciais prontos' : 'Completar dados do imovel',
+      done: Boolean(brief.product_data?.name && (brief.product_data?.location || campaign?.city)),
+    },
+    {
+      label: 'Fotos vinculadas',
+      detail: imageCount ? `${imageCount} arquivo(s) no bucket cards` : 'Sem fotos de origem',
+      done: imageCount > 0,
+    },
+    {
+      label: 'Criativos gerados',
+      detail: `${renderedCount}/${metaAssets.length || 0} cortes Meta renderizados`,
+      done: metaAssets.length > 0 && renderedCount === metaAssets.length,
+    },
+    {
+      label: 'QA automatico',
+      detail: `${qaReadyCount}/${metaAds.length || 0} anuncios prontos para revisao`,
+      done: metaAds.length > 0 && qaReadyCount === metaAds.length,
+    },
+    {
+      label: 'Aprovacao e exportacao',
+      detail: `${approvedCount}/${metaAssets.length || 0} cortes aprovados · ${publications.length} publicacao(oes)`,
+      done: metaAssets.length > 0 && approvedCount === metaAssets.length,
+    },
+  ]
+}
+
+function downloadMetaAdsPackage(campaign, ads) {
+  const payload = {
+    export_type: 'vitra_premium_meta_ads_package',
+    generated_at: new Date().toISOString(),
+    campaign: {
+      id: campaign.id,
+      name: campaign.name,
+      slug: campaign.slug,
+      product_name: campaign.product_name,
+      objective: campaign.campaign_objective,
+      audience: campaign.target_audience,
+      period: {
+        start_date: campaign.start_date,
+        end_date: campaign.end_date,
+      },
+      source_intake: campaign.brief?.source_intake || null,
+      qa_policy: campaign.brief?.qa_policy || null,
+    },
+    human_gate: {
+      publish_policy: 'draft_or_manual_upload_first',
+      requires_budget_authorization: true,
+      requires_final_creative_approval: true,
+    },
+    ads: ads.map(ad => {
+      const ordered = [...ad.assets].sort(
+        (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
+      )
+      const first = ordered[0] || {}
+      const meta = first.metadata?.meta_ad || {}
+      return {
+        group_key: ad.key,
+        group_label: ad.label,
+        readiness: evaluateMetaAdReadiness(ad),
+        meta_fields: {
+          ad_name: meta.nome || `${campaign.name} | ${ad.label}`,
+          primary_text: meta.texto_principal || first.copy || '',
+          headline: first.headline || '',
+          description: meta.descricao || '',
+          cta: first.cta || '',
+          url_params: meta.url_params || '',
+        },
+        placements: ordered.map(asset => ({
+          asset_id: asset.id,
+          format: asset.aspect_ratio,
+          placement: META_PLACEMENTS[asset.aspect_ratio] || null,
+          status: asset.status,
+          public_url: asset.public_url,
+          storage_path: asset.storage_path,
+          template_key: asset.template_key,
+        })),
+      }
+    }),
+  }
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${slugForDownload(campaign.slug || campaign.name)}-meta-ads-package.json`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+export default function PremiumDashboard({ focusMode = null }) {
+  const isPaidTrafficMode = focusMode === 'trafego'
   const [workspace, setWorkspace] = useState({
     campaigns: [],
     assets: [],
@@ -199,7 +376,7 @@ export default function PremiumDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedCampaignId, setSelectedCampaignId] = useState(null)
-  const [activeTab, setActiveTab] = useState('campanhas')
+  const [activeTab, setActiveTab] = useState(isPaidTrafficMode ? 'trafego' : 'campanhas')
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingPublication, setSavingPublication] = useState(false)
@@ -208,6 +385,13 @@ export default function PremiumDashboard() {
   const [assetBusyId, setAssetBusyId] = useState(null)
   const [rendering, setRendering] = useState(false)
   const [notice, setNotice] = useState(null)
+  const [campaignSubmitError, setCampaignSubmitError] = useState(null)
+
+  function openCampaignModal() {
+    setCampaignSubmitError(null)
+    setError(null)
+    setModalOpen(true)
+  }
 
   async function refresh(selectCampaignId = selectedCampaignId) {
     setLoading(true)
@@ -264,27 +448,41 @@ export default function PremiumDashboard() {
     }
   }, [scoped, workspace.campaigns.length])
 
+  const paidTrafficOverview = useMemo(() => {
+    const metaAssets = workspace.assets.filter(asset => asset.channel === 'meta_ads')
+    const adGroups = groupMetaAdsByCampaign(metaAssets)
+    return {
+      campaigns: new Set(metaAssets.map(asset => asset.campaign_id).filter(Boolean)).size,
+      cuts: metaAssets.length,
+      queued: metaAssets.filter(asset => asset.status === 'queued').length,
+      readyAds: adGroups.filter(ad => evaluateMetaAdReadiness(ad).ok).length,
+      adGroups: adGroups.length,
+    }
+  }, [workspace.assets])
+
   async function handleCreateCampaign(form) {
     setSaving(true)
     setError(null)
+    setCampaignSubmitError(null)
     setNotice(null)
     let campaign
     try {
       campaign = await createPremiumCampaign(form)
     } catch (err) {
       setError(err)
+      setCampaignSubmitError(err)
       setSaving(false)
-      return
+      throw err
     }
     setModalOpen(false)
     setSaving(false)
     await refresh(campaign.id)
-    setActiveTab('assets')
+    setActiveTab(isPaidTrafficMode ? 'trafego' : 'assets')
 
     // Trigger automatico: renderiza os criativos da campanha recem-criada em lotes.
     setRendering(true)
     try {
-      const result = await renderCampaignAssets(campaign.id, { batch: 5 })
+      const result = await renderCampaignAssets(campaign.id, { batch: 1 })
       if (result.error && !result.rendered) throw result.error
       setNotice(`Campanha criada. ${result.rendered} criativo(s) gerado(s) automaticamente${result.failed ? `, ${result.failed} com erro` : ''}.`)
     } catch (renderErr) {
@@ -396,14 +594,16 @@ export default function PremiumDashboard() {
               <div className="mb-3 flex items-center gap-3">
                 <span className="h-px w-10 bg-gold-500/70" />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-gold-400">
-                  Operacao de alto padrao
+                  {isPaidTrafficMode ? 'Centro operacional de midia paga' : 'Operacao de alto padrao'}
                 </p>
               </div>
               <h1 className="font-display text-4xl font-semibold leading-tight text-white md:text-5xl">
-                Central de curadoria e campanhas
+                {isPaidTrafficMode ? 'Tráfego Pago Premium' : 'Central de curadoria e campanhas'}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/52">
-                Campanhas, assets, publicacoes e metricas reais conectados ao Supabase da Vitra Premium.
+                {isPaidTrafficMode
+                  ? 'Fila dedicada para gerar, revisar, aprovar e exportar criativos Meta Ads com a identidade Vitra Premium.'
+                  : 'Campanhas, assets, publicacoes e metricas reais conectados ao Supabase da Vitra Premium.'}
               </p>
             </div>
 
@@ -417,7 +617,7 @@ export default function PremiumDashboard() {
                 Atualizar
               </button>
               <button
-                onClick={() => setModalOpen(true)}
+                onClick={openCampaignModal}
                 className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/10 px-4 py-2 text-sm font-semibold text-gold-200 transition hover:bg-gold-500/20"
               >
                 <Plus size={16} />
@@ -426,18 +626,33 @@ export default function PremiumDashboard() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-4">
-            <StatTile label="Campanhas" value={totals.campaigns} sub="no modelo Premium" icon={Briefcase} />
-            <StatTile label="Assets" value={totals.assets} sub={selectedCampaign ? 'campanha selecionada' : 'aguardando'} icon={Layers3} />
-            <StatTile label="Publicacoes" value={totals.publications} sub={`${totals.posts} conteudos planejados`} icon={Send} tone="#E4C06E" />
-            <StatTile
-              label="Investimento"
-              value={formatNumber(totals.paidSpend, { style: 'currency', currency: 'BRL' })}
-              sub={`${formatNumber(totals.leads)} leads importados`}
-              icon={BarChart3}
-              tone="#D4A84A"
-            />
-          </div>
+          {isPaidTrafficMode ? (
+            <div className="grid gap-3 md:grid-cols-4">
+              <StatTile label="Campanhas com Ads" value={paidTrafficOverview.campaigns} sub="com cortes Meta" icon={Briefcase} />
+              <StatTile label="Cortes Meta" value={paidTrafficOverview.cuts} sub={`${paidTrafficOverview.queued} aguardando render`} icon={Megaphone} />
+              <StatTile label="Anuncios prontos" value={`${paidTrafficOverview.readyAds}/${paidTrafficOverview.adGroups}`} sub="QA + aprovacao" icon={CheckCircle2} tone="#F0C95C" />
+              <StatTile
+                label="Investimento"
+                value={formatNumber(totals.paidSpend, { style: 'currency', currency: 'BRL' })}
+                sub={`${formatNumber(totals.leads)} leads importados`}
+                icon={BarChart3}
+                tone="#D4A84A"
+              />
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-4">
+              <StatTile label="Campanhas" value={totals.campaigns} sub="no modelo Premium" icon={Briefcase} />
+              <StatTile label="Assets" value={totals.assets} sub={selectedCampaign ? 'campanha selecionada' : 'aguardando'} icon={Layers3} />
+              <StatTile label="Publicacoes" value={totals.publications} sub={`${totals.posts} conteudos planejados`} icon={Send} tone="#E4C06E" />
+              <StatTile
+                label="Investimento"
+                value={formatNumber(totals.paidSpend, { style: 'currency', currency: 'BRL' })}
+                sub={`${formatNumber(totals.leads)} leads importados`}
+                icon={BarChart3}
+                tone="#D4A84A"
+              />
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
             <div className="flex flex-wrap items-center gap-2 text-xs text-white/45">
@@ -482,26 +697,28 @@ export default function PremiumDashboard() {
           </div>
         )}
 
-        <div className="mb-6 flex gap-1 overflow-x-auto border-b border-white/10">
-          {TABS.map(({ id, label, icon: Icon }) => {
-            const active = activeTab === id
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className="inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition"
-                style={{
-                  color: active ? '#D4A84A' : 'rgba(255,255,255,0.52)',
-                  borderColor: active ? '#C4942A' : 'transparent',
-                  background: active ? 'rgba(196,148,42,0.07)' : 'transparent',
-                }}
-              >
-                <Icon size={15} />
-                {label}
-              </button>
-            )
-          })}
-        </div>
+        {!isPaidTrafficMode && (
+          <div className="mb-6 flex gap-1 overflow-x-auto border-b border-white/10">
+            {TABS.map(({ id, label, icon: Icon }) => {
+              const active = activeTab === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className="inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition"
+                  style={{
+                    color: active ? '#D4A84A' : 'rgba(255,255,255,0.52)',
+                    borderColor: active ? '#C4942A' : 'transparent',
+                    background: active ? 'rgba(196,148,42,0.07)' : 'transparent',
+                  }}
+                >
+                  <Icon size={15} />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {loading && (
           <div className="flex min-h-72 items-center justify-center">
@@ -512,20 +729,39 @@ export default function PremiumDashboard() {
           </div>
         )}
 
-        {!loading && activeTab === 'campanhas' && (
+        {!loading && isPaidTrafficMode && (
+          <PaidTrafficWorkspace
+            campaigns={workspace.campaigns}
+            selectedCampaign={selectedCampaign}
+            selectedCampaignId={selectedCampaignId}
+            onSelect={setSelectedCampaignId}
+            onCreate={openCampaignModal}
+            assets={workspace.assets}
+            publications={workspace.publications}
+            scopedAssets={scoped.assets}
+            rendering={rendering}
+            busyId={assetBusyId}
+            notice={notice}
+            onRender={handleRenderCampaign}
+            onApproveGroup={handleApproveGroup}
+            onEditAd={setEditingAd}
+          />
+        )}
+
+        {!loading && !isPaidTrafficMode && activeTab === 'campanhas' && (
           <CampaignsSection
             campaigns={workspace.campaigns}
             selectedCampaign={selectedCampaign}
             selectedCampaignId={selectedCampaignId}
             onSelect={setSelectedCampaignId}
-            onCreate={() => setModalOpen(true)}
+            onCreate={openCampaignModal}
             assets={workspace.assets}
             posts={workspace.posts}
             publications={workspace.publications}
           />
         )}
 
-        {!loading && activeTab === 'assets' && (
+        {!loading && !isPaidTrafficMode && activeTab === 'assets' && (
           <AssetsSection
             campaign={selectedCampaign}
             assets={scoped.assets.filter(a => a.channel !== 'meta_ads')}
@@ -540,7 +776,7 @@ export default function PremiumDashboard() {
           />
         )}
 
-        {!loading && activeTab === 'trafego' && (
+        {!loading && !isPaidTrafficMode && activeTab === 'trafego' && (
           <TrafegoPagoSection
             campaign={selectedCampaign}
             assets={scoped.assets}
@@ -553,7 +789,7 @@ export default function PremiumDashboard() {
           />
         )}
 
-        {!loading && activeTab === 'publicacoes' && (
+        {!loading && !isPaidTrafficMode && activeTab === 'publicacoes' && (
           <PublicationsSection
             campaign={selectedCampaign}
             posts={scoped.posts}
@@ -564,11 +800,11 @@ export default function PremiumDashboard() {
           />
         )}
 
-        {!loading && activeTab === 'metricas' && (
+        {!loading && !isPaidTrafficMode && activeTab === 'metricas' && (
           <MetricsSection campaign={selectedCampaign} publications={scoped.publications} metrics={scoped.metrics} totals={totals} snapshots={workspace.snapshots} />
         )}
 
-        {!loading && activeTab === 'modelo' && (
+        {!loading && !isPaidTrafficMode && activeTab === 'modelo' && (
           <DataModelSection accounts={workspace.accounts} />
         )}
       </div>
@@ -576,6 +812,7 @@ export default function PremiumDashboard() {
       {modalOpen && (
         <NewCampaignModal
           saving={saving}
+          submitError={campaignSubmitError}
           onClose={() => setModalOpen(false)}
           onSubmit={handleCreateCampaign}
         />
@@ -598,6 +835,127 @@ export default function PremiumDashboard() {
           onSave={handleSaveAd}
         />
       )}
+    </div>
+  )
+}
+
+function PaidTrafficWorkspace({
+  campaigns,
+  selectedCampaign,
+  selectedCampaignId,
+  onSelect,
+  onCreate,
+  assets,
+  publications,
+  scopedAssets,
+  rendering,
+  busyId,
+  notice,
+  onRender,
+  onApproveGroup,
+  onEditAd,
+}) {
+  if (!campaigns.length) {
+    return (
+      <EmptyState
+        icon={Megaphone}
+        title="Nenhuma campanha pronta para tráfego pago"
+        note="Crie a primeira campanha Premium para abrir a esteira de geração, QA e exportação dos criativos Meta Ads."
+      />
+    )
+  }
+
+  const selectedPublications = selectedCampaign
+    ? publications.filter(publication => publication.campaign_id === selectedCampaign.id)
+    : []
+
+  return (
+    <div className="space-y-6">
+      <PaidTrafficCampaignSelector
+        campaigns={campaigns}
+        selectedCampaignId={selectedCampaignId}
+        assets={assets}
+        onSelect={onSelect}
+        onCreate={onCreate}
+      />
+
+      {selectedCampaign && (
+        <AutomationWorkflowPanel
+          campaign={selectedCampaign}
+          assets={assets}
+          publications={selectedPublications}
+        />
+      )}
+
+      <TrafegoPagoSection
+        campaign={selectedCampaign}
+        assets={scopedAssets}
+        rendering={rendering}
+        busyId={busyId}
+        notice={notice}
+        onRender={onRender}
+        onApproveGroup={onApproveGroup}
+        onEditAd={onEditAd}
+      />
+    </div>
+  )
+}
+
+function PaidTrafficCampaignSelector({ campaigns, selectedCampaignId, assets, onSelect, onCreate }) {
+  return (
+    <div className="rounded-lg border border-gold-500/18 bg-[#0B0B0C] p-4">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <Megaphone size={15} className="text-gold-400" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Campanha de mídia ativa</p>
+          </div>
+          <p className="text-sm leading-6 text-white/52">
+            Escolha a campanha para gerar cortes, revisar QA e exportar o pacote de anúncios. A aba dentro de Premium continua como visão contextual.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/10 px-3.5 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20"
+        >
+          <Plus size={15} />
+          Nova campanha
+        </button>
+      </div>
+
+      <div className="grid gap-2 lg:grid-cols-3">
+        {campaigns.map(campaign => {
+          const campaignAssets = assets.filter(asset => asset.campaign_id === campaign.id && asset.channel === 'meta_ads')
+          const adGroups = groupMetaAds(campaignAssets)
+          const readyAds = adGroups.filter(ad => evaluateMetaAdReadiness(ad).ok).length
+          const active = selectedCampaignId === campaign.id
+
+          return (
+            <button
+              key={campaign.id}
+              type="button"
+              onClick={() => onSelect(campaign.id)}
+              className="rounded-md border p-3 text-left transition"
+              style={{
+                borderColor: active ? 'rgba(196,148,42,0.55)' : 'rgba(255,255,255,0.09)',
+                background: active ? 'rgba(196,148,42,0.10)' : 'rgba(255,255,255,0.025)',
+              }}
+            >
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <p className="line-clamp-2 text-sm font-semibold leading-5 text-white">{campaign.name}</p>
+                {active && <CheckCircle2 size={14} className="mt-0.5 flex-shrink-0 text-gold-300" />}
+              </div>
+              <p className="truncate text-xs text-white/42">{campaign.product_name || campaign.property_type || 'Campanha Premium'}</p>
+              <div className="mt-3 flex items-center gap-2 text-[10px] text-white/40">
+                <span>{campaignAssets.length} cortes</span>
+                <span className="h-1 w-1 rounded-full bg-white/18" />
+                <span>{readyAds}/{adGroups.length || 0} anúncios prontos</span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -669,6 +1027,12 @@ function CampaignsSection({ campaigns, selectedCampaign, selectedCampaignId, onS
             </p>
           )}
 
+          <AutomationWorkflowPanel
+            campaign={selectedCampaign}
+            assets={assets}
+            publications={publications.filter(publication => publication.campaign_id === selectedCampaign.id)}
+          />
+
           <div className="grid gap-4 md:grid-cols-3">
             <BriefItem label="Produto" value={selectedCampaign.product_name} />
             <BriefItem label="Localização" value={selectedCampaign.brief?.product_data?.location || [selectedCampaign.neighborhood, selectedCampaign.city].filter(Boolean).join(', ')} />
@@ -692,6 +1056,74 @@ function CampaignsSection({ campaigns, selectedCampaign, selectedCampaignId, onS
       ) : (
         <EmptyState icon={Target} title="Selecione uma campanha" />
       )}
+    </div>
+  )
+}
+
+function AutomationWorkflowPanel({ campaign, assets, publications }) {
+  const source = campaign.brief?.source_intake || {}
+  const steps = buildAutomationSteps(campaign, assets, publications)
+  const doneCount = steps.filter(step => step.done).length
+  const nextStep = steps.find(step => !step.done)
+
+  return (
+    <div className="mb-6 rounded-lg border border-gold-500/20 bg-black/20 p-4">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <Wand2 size={15} className="text-gold-400" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Esteira de automacao</p>
+          </div>
+          <p className="max-w-2xl text-sm leading-6 text-white/58">
+            Fluxo pensado para receber fonte, montar brief, gerar cortes Meta Ads, checar prontidao e exportar pacote sem execucao manual de peca por peca.
+          </p>
+        </div>
+        <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-white/55">
+          <span className="text-white/35">Progresso</span>
+          <span className="ml-2 font-semibold text-gold-200">{doneCount}/{steps.length}</span>
+        </div>
+      </div>
+
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <BriefItem label="Fonte principal" value={source.url ? sourceTypeLabel(source.type) : 'Brief/upload manual'} />
+        <BriefItem label="Destino comercial" value={source.landing_url || source.whatsapp_url || 'Definir antes da subida'} />
+        <BriefItem label="Intervencao humana" value="Confirmar brief, aprovar criativos e autorizar verba" />
+      </div>
+
+      {source.url && (
+        <a
+          href={source.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-gold-200 transition hover:text-gold-100"
+        >
+          <ExternalLink size={13} />
+          Abrir fonte registrada
+        </a>
+      )}
+
+      <div className="grid gap-2 md:grid-cols-3">
+        {steps.map((step, index) => {
+          const active = !step.done && step === nextStep
+          return (
+            <div
+              key={step.label}
+              className="rounded-md border px-3 py-3"
+              style={{
+                borderColor: step.done ? 'rgba(196,148,42,0.35)' : active ? 'rgba(240,201,92,0.45)' : 'rgba(255,255,255,0.08)',
+                background: step.done ? 'rgba(196,148,42,0.08)' : active ? 'rgba(240,201,92,0.08)' : 'rgba(255,255,255,0.02)',
+              }}
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Etapa {index + 1}</span>
+                {step.done ? <CheckCircle2 size={14} className="text-gold-300" /> : active ? <Clock size={14} className="text-gold-200" /> : <span className="h-2 w-2 rounded-full bg-white/15" />}
+              </div>
+              <p className="text-sm font-semibold text-white">{step.label}</p>
+              <p className="mt-1 text-xs leading-5 text-white/45">{step.detail}</p>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -1177,6 +1609,26 @@ function groupMetaAds(assets) {
   return [...map.values()]
 }
 
+function groupMetaAdsByCampaign(assets) {
+  const map = new Map()
+  for (const asset of assets) {
+    if (asset.channel !== 'meta_ads') continue
+    const adKey = asset.metadata?.ad_group || 'meta'
+    const campaignKey = asset.campaign_id || 'sem-campanha'
+    const key = `${campaignKey}:${adKey}`
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        campaign_id: asset.campaign_id,
+        label: AD_GROUP_LABEL[adKey] || adKey.replace(/^meta-/, ''),
+        assets: [],
+      })
+    }
+    map.get(key).assets.push(asset)
+  }
+  return [...map.values()]
+}
+
 function TrafegoPagoSection({ campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
   if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
   const ads = groupMetaAds(assets)
@@ -1193,6 +1645,7 @@ function TrafegoPagoSection({ campaign, assets, rendering, busyId, notice, onRen
   const queued = placements.filter(a => a.status === 'queued').length
   const generated = placements.filter(a => a.status === 'generated').length
   const approved = placements.filter(a => a.status === 'approved').length
+  const readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok).length
 
   return (
     <div className="space-y-6">
@@ -1203,25 +1656,37 @@ function TrafegoPagoSection({ campaign, assets, rendering, busyId, notice, onRen
             Cada anúncio sai nos 3 cortes que o Gerenciador pede — <span className="text-white/70">Quadrado 1:1 (feed)</span>, <span className="text-white/70">Vertical 9:16 (stories/reels)</span> e <span className="text-white/70">Horizontal 1,91:1 (recomendado)</span> — prontos para o passo de corte de mídia.
           </p>
         </div>
-        <button
-          onClick={onRender}
-          disabled={rendering || queued === 0}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-          {rendering ? 'Gerando…' : `Gerar cortes${queued ? ` (${queued})` : ''}`}
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            onClick={onRender}
+            disabled={rendering || queued === 0}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+            {rendering ? 'Gerando…' : `Gerar cortes${queued ? ` (${queued})` : ''}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadMetaAdsPackage(campaign, ads)}
+            disabled={!ads.length}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-white/72 transition hover:border-gold-500/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <Download size={16} />
+            Exportar pacote
+          </button>
+        </div>
       </div>
 
       {notice && (
         <div className="rounded-lg border border-gold-500/25 bg-gold-500/8 px-4 py-3 text-xs text-gold-100">{notice}</div>
       )}
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-5">
         <StatTile label="Anúncios" value={ads.length} sub={`${placements.length} cortes`} icon={Megaphone} />
         <StatTile label="Pendentes" value={queued} sub="aguardando corte" icon={Clock} tone="#E4C06E" />
         <StatTile label="Gerados" value={generated} sub="cortes prontos" icon={ImageIcon} tone="#D4A84A" />
         <StatTile label="Aprovados" value={approved} sub="prontos p/ subir" icon={CheckCircle2} tone="#F0C95C" />
+        <StatTile label="QA final" value={`${readyAds}/${ads.length}`} sub="anuncios exportaveis" icon={Target} tone="#C4942A" />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
@@ -1251,6 +1716,8 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
   const meta = ad.assets[0]?.metadata?.meta_ad || {}
   const headline = ad.assets[0]?.headline || ''
   const cta = ad.assets[0]?.cta || ''
+  const readiness = evaluateMetaAdReadiness(ad)
+  const pendingChecks = readiness.checks.filter(check => !check.ok).length
   const fileName = `${ad.key}-${(current?.aspect_ratio || '').replace(':', 'x')}.png`
 
   return (
@@ -1307,6 +1774,31 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
         <AdField label="Título" value={headline} />
         <AdField label="Texto principal" value={meta.texto_principal} clamp />
         <AdField label="CTA" value={cta} />
+      </div>
+
+      <div className="border-t border-white/10 px-4 py-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {readiness.ok ? <CheckCircle2 size={14} className="text-gold-300" /> : <AlertTriangle size={14} className="text-gold-200" />}
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">QA operacional</p>
+          </div>
+          <span className="text-[10px] text-white/38">{readiness.ok ? 'exportavel' : `${pendingChecks} pendencia(s)`}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {readiness.checks.map(check => (
+            <span
+              key={check.id}
+              className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[10px] ${
+                check.ok
+                  ? 'border-gold-500/25 bg-gold-500/8 text-gold-100'
+                  : 'border-white/10 bg-white/[0.025] text-white/38'
+              }`}
+            >
+              {check.ok ? <Check size={11} /> : <Clock size={11} />}
+              {check.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">
@@ -1773,8 +2265,9 @@ function PlatformLabel({ value }) {
   )
 }
 
-function NewCampaignModal({ saving, onClose, onSubmit }) {
+function NewCampaignModal({ saving, submitError, onClose, onSubmit }) {
   const [form, setForm] = useState(INITIAL_FORM)
+  const [localError, setLocalError] = useState(null)
 
   function update(field, value) {
     setForm(current => ({ ...current, [field]: value }))
@@ -1790,9 +2283,20 @@ function NewCampaignModal({ saving, onClose, onSubmit }) {
     }))
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
-    onSubmit(form)
+    const productName = form.product_name.trim()
+    if (!productName) {
+      setLocalError('Informe o Nome do Produto no inicio do formulario para criar a campanha.')
+      return
+    }
+
+    setLocalError(null)
+    try {
+      await onSubmit(form)
+    } catch (err) {
+      setLocalError(errorMessage(err))
+    }
   }
 
   const inputClass = 'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-white/25 transition focus:border-gold-500/55'
@@ -1814,16 +2318,72 @@ function NewCampaignModal({ saving, onClose, onSubmit }) {
           </button>
         </div>
 
-        <form onSubmit={submit} className="flex max-h-[calc(92vh-76px)] flex-col">
+        <form onSubmit={submit} noValidate className="flex max-h-[calc(92vh-76px)] flex-col">
           <div className="space-y-7 overflow-y-auto px-6 py-6">
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Origem e Automacao</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Fonte das fotos e informacoes" labelClass={labelClass}>
+                  <select
+                    value={form.source_type}
+                    onChange={event => update('source_type', event.target.value)}
+                    className={inputClass}
+                  >
+                    {SOURCE_TYPE_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Link ou caminho da fonte" labelClass={labelClass}>
+                  <input
+                    value={form.source_url}
+                    onChange={event => update('source_url', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: Google Drive, site, pasta da rede ou PDF"
+                  />
+                </Field>
+
+                <Field label="Landing page / destino" labelClass={labelClass}>
+                  <input
+                    value={form.landing_url}
+                    onChange={event => update('landing_url', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: https://..."
+                  />
+                </Field>
+
+                <Field label="WhatsApp / atendimento" labelClass={labelClass}>
+                  <input
+                    value={form.whatsapp_url}
+                    onChange={event => update('whatsapp_url', event.target.value)}
+                    className={inputClass}
+                    placeholder="Ex: link wa.me ou canal de atendimento"
+                  />
+                </Field>
+
+                <Field label="Observacoes para automacao" labelClass={labelClass} className="md:col-span-2">
+                  <textarea
+                    value={form.automation_notes}
+                    onChange={event => update('automation_notes', event.target.value)}
+                    className={`${inputClass} min-h-20 resize-y`}
+                    placeholder="Ex: priorizar vista, evitar imagens de obra, destacar privacidade e liquidez"
+                  />
+                </Field>
+              </div>
+              <p className="text-xs leading-5 text-white/42">
+                A ferramenta registra a fonte, usa os uploads como materia-prima imediata e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
+              </p>
+            </section>
+
             <section className="space-y-4">
               <p className={sectionTitleClass}>Dados do Produto</p>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Nome do Produto" labelClass={labelClass}>
                   <input
-                    required
                     value={form.product_name}
                     onChange={event => update('product_name', event.target.value)}
+                    aria-invalid={Boolean(localError && !form.product_name.trim())}
                     className={inputClass}
                     placeholder="Ex: Lake Baikal"
                   />
@@ -1954,22 +2514,32 @@ function NewCampaignModal({ saving, onClose, onSubmit }) {
             </section>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-white/10 bg-[#181818] px-6 py-5 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-white/65 transition hover:border-white/20 hover:text-white"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-wait disabled:opacity-60"
-            >
-              {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              Criar Campanha
-            </button>
+          <div className="border-t border-white/10 bg-[#181818] px-6 py-5">
+            {(localError || submitError) && (
+              <div className="mb-4 rounded-lg border border-red-400/25 bg-red-950/30 px-4 py-3 text-xs leading-5 text-red-100/82">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-red-300" />
+                  <span>{localError || errorMessage(submitError)}</span>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-white/65 transition hover:border-white/20 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-wait disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                {saving ? 'Criando campanha…' : 'Criar Campanha'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

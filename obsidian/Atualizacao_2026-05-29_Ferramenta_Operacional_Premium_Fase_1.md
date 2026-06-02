@@ -125,8 +125,9 @@ Aplicada no dashboard React:
 ### Fase 2 - Captura Completa da Campanha
 
 O modal `Nova campanha` foi ampliado com os campos do prototipo:
+- nome do produto;
 - tagline/assinatura do empreendimento;
-- localizacao completa;
+- localizacao;
 - metragem;
 - suites;
 - andares/torres;
@@ -134,7 +135,15 @@ O modal `Nova campanha` foi ampliado com os campos do prototipo:
 - preco;
 - headline sugerida;
 - copy sugerida;
-- uploads de fachada, living, varanda, infraestrutura e extras multiplos.
+- CTA padrao;
+- uploads de fachada/principal, interior/living, varanda/vista, infraestrutura/lazer e extras multiplos.
+
+Atualizacao posterior de paridade:
+- o modal React foi ajustado para conter somente os mesmos campos visiveis do prototipo `planejamento_vitra_premium/dashboard-conteudo.html`;
+- foram removidos do modal visivel os campos operacionais extras: nome da campanha, tipo de imovel, bairro, cidade, objetivo, midia, datas, publico e oferta/promessa;
+- esses campos continuam com defaults internos quando necessarios para persistencia no banco;
+- o nome da campanha passa a usar o nome do produto como fallback, mantendo a experiencia do prototipo;
+- a localizacao preenchida no modal passa a aparecer no resumo da campanha a partir de `brief.product_data.location`.
 
 Persistencia definida:
 - dados extras em `premium_campaigns.brief.product_data`;
@@ -155,8 +164,10 @@ Implementado no React:
 ### Validacoes
 
 - `npm.cmd run build` no dashboard: sucesso.
+- `npm.cmd run build` no clone do repositorio dedicado: sucesso.
 - `git diff --check -- dashboard`: sucesso.
 - REST mascarado para `premium_campaigns`: `200`.
+- Commit publicado no repositorio dedicado: `bdc4804 feat: apply premium operational dashboard phase 2`.
 
 ### Bloqueios Restantes
 

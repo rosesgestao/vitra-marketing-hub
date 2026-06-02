@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3, Bot, CalendarDays, Gem, Layers, Zap } from 'lucide-react'
+import { BarChart3, Bot, CalendarDays, Gem, Layers, Megaphone, Zap } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -10,6 +10,7 @@ import { PremiumHorizontalLogo, PremiumV } from './components/PremiumBrand.jsx'
 
 const VIEWS = [
   { id: 'premium', label: 'Premium', icon: Gem },
+  { id: 'trafego', label: 'Tráfego Pago', icon: Megaphone },
   { id: 'pipeline', label: 'Pipeline', icon: Zap },
   { id: 'calendario', label: 'Calendário', icon: CalendarDays },
   { id: 'kanban', label: 'Conteúdos', icon: Layers },
@@ -92,6 +93,7 @@ export default function App() {
 
       <main className="flex-1 overflow-y-auto bg-transparent">
         {view === 'premium' && <PremiumDashboard />}
+        {view === 'trafego' && <PremiumDashboard focusMode="trafego" />}
         {view === 'pipeline' && <Pipeline />}
         {view === 'calendario' && <Calendario />}
         {view === 'kanban' && <Kanban />}
