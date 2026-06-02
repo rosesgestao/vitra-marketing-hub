@@ -178,3 +178,15 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - O pacote exportado de Meta Ads passa a incluir a estrategia de validacao criativa da campanha.
 - A renderizacao continua em lote unitario para reduzir risco de limite de worker ao gerar alto volume de criativos com fotos.
 - Validacao executada: `node --check dashboard\src\lib\premiumData.js` e `npm.cmd run build` no dashboard, ambos com sucesso.
+
+## 2026-06-02 - Templates Padronizados a Partir das Referencias Premium
+
+- Analisada a pasta `referencias-criativos-exemplos-vitra-premium/` com 11 JPGs de referencia.
+- Leitura tecnica: as referencias possuem boa logica comercial para trafego pago, mas a estetica original tem tracos de varejo imobiliario, azul dominante, excesso de preco/chamadas e caixas muito agressivas.
+- Decisao: preservar a logica de performance das referencias e traduzir para identidade Vitra Premium, com preto + dourado, linguagem editorial, tipografia Playfair/Inter, foto protagonista e CTA consultivo.
+- Criados 5 modelos reutilizaveis: `premium-photo-offer`, `premium-editorial-panel`, `premium-dark-spec`, `premium-location-panorama` e `premium-gallery-proof`.
+- Cada conceito de Meta Ads agora grava `metadata.visual_template`, permitindo que o renderizador aplique estrutura visual padronizada sem exigir escolha manual do usuario.
+- A aba `Trafego Pago` exibe o nome do modelo visual usado em cada anuncio para facilitar QA.
+- O pacote exportado de Meta Ads inclui `visual_template` no grupo do anuncio e em cada placement.
+- O worker full-res e a Edge Function `render-asset` foram atualizados para respeitar os modelos visuais.
+- Documentacao tecnica criada em `docs/templates-criativos-vitra-premium.md`.

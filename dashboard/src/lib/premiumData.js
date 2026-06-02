@@ -106,6 +106,54 @@ const META_CREATIVE_CONCEPTS = [
 
 const SUPPORT_ASSET_BLUEPRINTS = ASSET_BLUEPRINTS.filter(([, , channel]) => channel !== 'meta_ads')
 
+const PREMIUM_VISUAL_MODELS = {
+  'premium-photo-offer': {
+    key: 'premium-photo-offer',
+    label: 'Foto protagonista + oferta',
+    purpose: 'Usar quando a imagem do imovel tem alto apelo imediato e pode conduzir a peca.',
+    reference_pattern: 'Foto full-bleed, moldura fina, faixa de destaque e CTA discreto.',
+  },
+  'premium-editorial-panel': {
+    key: 'premium-editorial-panel',
+    label: 'Painel editorial + imagem',
+    purpose: 'Usar para conceitos de awareness, investimento e autoridade.',
+    reference_pattern: 'Bloco tipografico sofisticado sobre campo preto com imagem como contraponto.',
+  },
+  'premium-dark-spec': {
+    key: 'premium-dark-spec',
+    label: 'Ficha premium escura',
+    purpose: 'Usar para diferenciais, argumentos racionais e captura de lead.',
+    reference_pattern: 'Imagem escurecida, lista curta de atributos e CTA consultivo.',
+  },
+  'premium-location-panorama': {
+    key: 'premium-location-panorama',
+    label: 'Panorama de localizacao',
+    purpose: 'Usar para vista, bairro, distancia, orla e argumentos de localizacao.',
+    reference_pattern: 'Imagem ampla com base editorial e marcador dourado de localizacao.',
+  },
+  'premium-gallery-proof': {
+    key: 'premium-gallery-proof',
+    label: 'Prova visual / galeria',
+    purpose: 'Usar quando a campanha precisa reforcar variedade, estrutura ou prova visual.',
+    reference_pattern: 'Composicao com area de imagem e painel de prova sem excesso comercial.',
+  },
+}
+
+const VISUAL_MODEL_BY_ANGLE = {
+  editorial: 'premium-editorial-panel',
+  curadoria: 'premium-dark-spec',
+  criterio: 'premium-editorial-panel',
+  diferenciais: 'premium-dark-spec',
+  localizacao: 'premium-location-panorama',
+  lifestyle: 'premium-photo-offer',
+  investimento: 'premium-editorial-panel',
+  escassez: 'premium-photo-offer',
+  arquitetura: 'premium-photo-offer',
+  liquidez: 'premium-dark-spec',
+  prova: 'premium-gallery-proof',
+  whatsapp: 'premium-dark-spec',
+}
+
 // Fase narrativa da campanha por blueprint: 1=Teaser, 2=Revelacao, 3=Urgencia
 const PHASE_BY_BLUEPRINT = {
   'meta-awareness-feed': '1',
@@ -242,6 +290,11 @@ function buildCampaignAssetBlueprints(form) {
     ...buildMetaAssetBlueprints(form),
     ...SUPPORT_ASSET_BLUEPRINTS,
   ]
+}
+
+function visualModelForConcept(concept) {
+  const key = VISUAL_MODEL_BY_ANGLE[concept?.angle] || 'premium-editorial-panel'
+  return PREMIUM_VISUAL_MODELS[key]
 }
 
 function buildSourceIntake(form) {
@@ -733,7 +786,9 @@ export async function createPremiumCampaign(form) {
           key: concept.key,
           label: concept.label,
           angle: concept.angle,
+          visual_model: visualModelForConcept(concept),
         })),
+        visual_models: Object.values(PREMIUM_VISUAL_MODELS),
       },
       suggested_headline: productData.suggested_headline,
       suggested_copy: productData.suggested_copy,
@@ -1079,6 +1134,14 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
     const adGroup = channel === 'meta_ads' ? concept?.key || blueprintKey.replace(/-(feed|story|wide)$/, '') : null
     const selectedImage = sourceImages.length ? sourceImages[index % sourceImages.length] : null
     const primaryImage = selectedImage?.public_url || null
+    const visualTemplate = channel === 'meta_ads'
+      ? visualModelForConcept(concept)
+      : {
+          key: templateKey,
+          label: title,
+          purpose: 'Asset operacional de apoio da campanha Premium.',
+          reference_pattern: 'Segue a identidade editorial Premium do renderizador.',
+        }
     const metadata = {
       blueprint_key: blueprintKey,
       phase: 'phase_2_react_capture',
@@ -1090,6 +1153,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
         label: concept.label,
         angle: concept.angle,
       } : null,
+      visual_template: visualTemplate,
       brand_scope: 'vitra_premium',
       visual_rules: ['black_gold', 'editorial', 'luxury_refined'],
       product_data: productData,

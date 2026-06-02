@@ -330,6 +330,7 @@ function downloadMetaAdsPackage(campaign, ads) {
       return {
         group_key: ad.key,
         group_label: ad.label,
+        visual_template: first.metadata?.visual_template || null,
         readiness: evaluateMetaAdReadiness(ad),
         meta_fields: {
           ad_name: meta.nome || `${campaign.name} | ${ad.label}`,
@@ -347,6 +348,7 @@ function downloadMetaAdsPackage(campaign, ads) {
           public_url: asset.public_url,
           storage_path: asset.storage_path,
           template_key: asset.template_key,
+          visual_template: asset.metadata?.visual_template || null,
         })),
       }
     }),
@@ -1720,6 +1722,7 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
   const meta = ad.assets[0]?.metadata?.meta_ad || {}
   const headline = ad.assets[0]?.headline || ''
   const cta = ad.assets[0]?.cta || ''
+  const visualTemplate = ad.assets[0]?.metadata?.visual_template || {}
   const readiness = evaluateMetaAdReadiness(ad)
   const pendingChecks = readiness.checks.filter(check => !check.ok).length
   const fileName = `${ad.key}-${(current?.aspect_ratio || '').replace(':', 'x')}.png`
@@ -1772,6 +1775,9 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
         <p className="text-[11px] text-white/45">
           <span className="text-white/70">{place.label}</span> · {place.sub}
         </p>
+        {visualTemplate.label && (
+          <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-gold-400/70">{visualTemplate.label}</p>
+        )}
       </div>
 
       <div className="space-y-2 border-t border-white/10 px-4 py-3">
