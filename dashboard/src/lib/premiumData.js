@@ -79,6 +79,33 @@ const AD_GROUP_LABEL = {
   'meta-retarget': 'Retargeting',
 }
 
+const META_CREATIVE_VARIATION_MIN = 3
+const META_CREATIVE_VARIATION_DEFAULT = 8
+const META_CREATIVE_VARIATION_MAX = 12
+
+const META_FORMAT_BLUEPRINTS = [
+  { key: 'feed', format: 'feed', title: '1:1', aspectRatio: '1:1', templateSuffix: 'feed' },
+  { key: 'story', format: 'story', title: '9:16', aspectRatio: '9:16', templateSuffix: 'story' },
+  { key: 'wide', format: 'wide', title: '1.91:1', aspectRatio: '1.91:1', templateSuffix: 'wide' },
+]
+
+const META_CREATIVE_CONCEPTS = [
+  { key: 'meta-awareness-editorial', label: 'Awareness - Editorial', phase: '1', templateBase: 'premium-editorial', angle: 'editorial' },
+  { key: 'meta-leads-curadoria', label: 'Leads - Curadoria', phase: '2', templateBase: 'premium-lead', angle: 'curadoria' },
+  { key: 'meta-retarget-criterio', label: 'Retargeting - Criterio', phase: '3', templateBase: 'premium-retarget', angle: 'criterio' },
+  { key: 'meta-diferenciais-produto', label: 'Diferenciais - Produto', phase: '2', templateBase: 'premium-lead', angle: 'diferenciais' },
+  { key: 'meta-localizacao-valor', label: 'Localizacao - Valor', phase: '1', templateBase: 'premium-editorial', angle: 'localizacao' },
+  { key: 'meta-lifestyle-experiencia', label: 'Lifestyle - Experiencia', phase: '2', templateBase: 'premium-editorial', angle: 'lifestyle' },
+  { key: 'meta-investimento-patrimonio', label: 'Investimento - Patrimonio', phase: '2', templateBase: 'premium-lead', angle: 'investimento' },
+  { key: 'meta-escassez-convite', label: 'Escassez - Convite', phase: '3', templateBase: 'premium-retarget', angle: 'escassez' },
+  { key: 'meta-vista-arquitetura', label: 'Vista - Arquitetura', phase: '1', templateBase: 'premium-editorial', angle: 'arquitetura' },
+  { key: 'meta-liquidez-decisao', label: 'Liquidez - Decisao', phase: '2', templateBase: 'premium-lead', angle: 'liquidez' },
+  { key: 'meta-prova-premium', label: 'Prova - Premium', phase: '2', templateBase: 'premium-retarget', angle: 'prova' },
+  { key: 'meta-whatsapp-consultivo', label: 'WhatsApp - Consultivo', phase: '3', templateBase: 'premium-lead', angle: 'whatsapp' },
+]
+
+const SUPPORT_ASSET_BLUEPRINTS = ASSET_BLUEPRINTS.filter(([, , channel]) => channel !== 'meta_ads')
+
 // Fase narrativa da campanha por blueprint: 1=Teaser, 2=Revelacao, 3=Urgencia
 const PHASE_BY_BLUEPRINT = {
   'meta-awareness-feed': '1',
@@ -145,7 +172,7 @@ const POST_BLUEPRINTS = [
     hook: 'A planta certa organiza a vida antes mesmo da mudanca.',
   },
   {
-    assetKey: 'meta-leads-feed',
+    assetKey: 'meta-leads-curadoria-feed',
     platform: 'facebook',
     format: 'feed',
     editorial_pillar: 'Imoveis & Produtos',
@@ -174,6 +201,47 @@ export function slugify(value) {
 
 function cleanText(value) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function clampNumber(value, min, max, fallback) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return fallback
+  return Math.max(min, Math.min(max, Math.round(number)))
+}
+
+function metaCreativeVariationCount(form) {
+  return clampNumber(
+    form.creative_variations,
+    META_CREATIVE_VARIATION_MIN,
+    META_CREATIVE_VARIATION_MAX,
+    META_CREATIVE_VARIATION_DEFAULT,
+  )
+}
+
+function selectedMetaCreativeConcepts(form) {
+  return META_CREATIVE_CONCEPTS.slice(0, metaCreativeVariationCount(form))
+}
+
+function buildMetaAssetBlueprints(form) {
+  return selectedMetaCreativeConcepts(form).flatMap(concept => (
+    META_FORMAT_BLUEPRINTS.map(format => [
+      `${concept.key}-${format.key}`,
+      'meta_ad',
+      'meta_ads',
+      format.format,
+      `Meta Ads ${concept.label} - ${format.title}`,
+      format.aspectRatio,
+      `${concept.templateBase}-${format.templateSuffix}`,
+      concept,
+    ])
+  ))
+}
+
+function buildCampaignAssetBlueprints(form) {
+  return [
+    ...buildMetaAssetBlueprints(form),
+    ...SUPPORT_ASSET_BLUEPRINTS,
+  ]
 }
 
 function buildSourceIntake(form) {
@@ -274,6 +342,7 @@ function buildInputSnapshot(form, sourceIntake) {
     price: cleanText(form.price),
     target_audience: cleanText(form.target_audience),
     campaign_objective: cleanText(form.campaign_objective),
+    creative_variations: metaCreativeVariationCount(form),
     image_slots: Object.fromEntries(
       Object.entries(imageSlots).map(([slot, files]) => [slot, files.length]),
     ),
@@ -631,6 +700,8 @@ export async function createPremiumCampaign(form) {
   const productData = buildProductData(form, product)
   const sourceIntake = buildSourceIntake(form)
   const automationWorkflow = buildAutomationWorkflow(sourceIntake)
+  const campaignBlueprints = buildCampaignAssetBlueprints(form)
+  const metaCreativeConcepts = selectedMetaCreativeConcepts(form)
 
   const campaignPayload = {
     name,
@@ -654,6 +725,16 @@ export async function createPremiumCampaign(form) {
       product_data: productData,
       source_intake: sourceIntake,
       automation_workflow: automationWorkflow,
+      creative_validation: {
+        variation_count: metaCreativeConcepts.length,
+        cuts_per_variation: META_FORMAT_BLUEPRINTS.length,
+        total_meta_cuts: metaCreativeConcepts.length * META_FORMAT_BLUEPRINTS.length,
+        concepts: metaCreativeConcepts.map(concept => ({
+          key: concept.key,
+          label: concept.label,
+          angle: concept.angle,
+        })),
+      },
       suggested_headline: productData.suggested_headline,
       suggested_copy: productData.suggested_copy,
       visual_direction: 'Vitra Premium editorial, black and gold, high-end real estate',
@@ -671,10 +752,12 @@ export async function createPremiumCampaign(form) {
     },
     content_plan: {
       blueprint_version: 'premium_phase_2_react',
-      asset_count: ASSET_BLUEPRINTS.length,
+      asset_count: campaignBlueprints.length,
       post_count: POST_BLUEPRINTS.length,
       automation_level: 'low_touch_paid_traffic',
       meta_ads_formats: ['1:1', '9:16', '1.91:1'],
+      meta_ads_variations: metaCreativeConcepts.length,
+      meta_ads_cuts: metaCreativeConcepts.length * META_FORMAT_BLUEPRINTS.length,
     },
   }
 
@@ -729,6 +812,8 @@ export async function createPremiumCampaign(form) {
         source_images: flattenImages(sourceImages).length,
         auto_selected_images: externalImages.images.length,
         source_image_warnings: externalImages.warnings || [],
+        creative_variations: metaCreativeConcepts.length,
+        meta_ads_cuts: metaCreativeConcepts.length * META_FORMAT_BLUEPRINTS.length,
         assets: insertedAssets?.length || 0,
         posts: insertedPosts?.length || 0,
       },
@@ -744,6 +829,7 @@ export async function createPremiumCampaign(form) {
         storage_bucket: 'cards',
         asset_ids: (insertedAssets || []).map(asset => asset.id),
         automation_workflow: automationWorkflow,
+        creative_validation: campaignPayload.brief.creative_validation,
       },
       output_payload: {
         status: 'waiting_render',
@@ -911,7 +997,7 @@ export function saveAssetEdit(assetId, { headline, copy, cta }) {
 
 // Dispara a Edge Function render-asset em lotes pequenos (limite de memoria do worker).
 // Usa a publishable key do cliente (functions.invoke envia apikey/Authorization).
-export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 30 } = {}) {
+export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60 } = {}) {
   let rendered = 0
   let failed = 0
   let lastError = null
@@ -985,18 +1071,25 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
   const cta = form.cta || 'Solicitar curadoria'
   const productData = buildProductData(form, product)
   const sourceImages = flattenImages(uploadedImages)
+  const campaignBlueprints = buildCampaignAssetBlueprints(form)
 
-  return ASSET_BLUEPRINTS.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey], index) => {
-    const headline = buildHeadline(product, place, index, form)
-    const copy = buildAssetCopy(product, offer, channel, form)
-    const adGroup = channel === 'meta_ads' ? blueprintKey.replace(/-(feed|story|wide)$/, '') : null
+  return campaignBlueprints.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey, concept], index) => {
+    const headline = buildHeadline(product, place, index, form, concept)
+    const copy = buildAssetCopy(product, offer, channel, form, concept)
+    const adGroup = channel === 'meta_ads' ? concept?.key || blueprintKey.replace(/-(feed|story|wide)$/, '') : null
     const selectedImage = sourceImages.length ? sourceImages[index % sourceImages.length] : null
     const primaryImage = selectedImage?.public_url || null
     const metadata = {
       blueprint_key: blueprintKey,
       phase: 'phase_2_react_capture',
-      campaign_phase: phaseForBlueprint(blueprintKey),
+      campaign_phase: concept?.phase || phaseForBlueprint(blueprintKey),
       ad_group: adGroup,
+      ad_label: concept?.label || null,
+      creative_concept: concept ? {
+        key: concept.key,
+        label: concept.label,
+        angle: concept.angle,
+      } : null,
       brand_scope: 'vitra_premium',
       visual_rules: ['black_gold', 'editorial', 'luxury_refined'],
       product_data: productData,
@@ -1009,7 +1102,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
 
     if (channel === 'meta_ads') {
       metadata.meta_ad = {
-        nome: `${campaign.name} | ${AD_GROUP_LABEL[adGroup] || 'Meta Ads'} | ${format}`,
+        nome: `${campaign.name} | ${concept?.label || AD_GROUP_LABEL[adGroup] || 'Meta Ads'} | ${format}`,
         texto_principal: copy,
         descricao: cleanText(form.tagline) || null,
         url_params: buildDefaultUrlParams(campaign, blueprintKey),
@@ -1066,8 +1159,27 @@ function buildPostPayloads(campaign, assets, form) {
   })
 }
 
-function buildHeadline(product, place, index, form) {
-  if (form.suggested_headline?.trim()) return form.suggested_headline.trim()
+function buildHeadline(product, place, index, form, concept = null) {
+  const suggested = cleanText(form.suggested_headline)
+  if (suggested && (!concept || concept.angle === 'editorial')) return suggested
+
+  if (concept?.angle) {
+    const conceptHeadlines = {
+      editorial: `${product}: uma categoria acima`,
+      curadoria: `Curadoria premium em ${place || 'Porto Alegre'}`,
+      criterio: 'Para comprar com criterio',
+      diferenciais: 'Diferenciais que sustentam valor',
+      localizacao: `Localizacao rara em ${place || 'Porto Alegre'}`,
+      lifestyle: 'Experiencia de morar em outro patamar',
+      investimento: 'Alto padrao como decisao patrimonial',
+      escassez: 'Uma oportunidade para poucos perfis',
+      arquitetura: 'Arquitetura, liquidez e presenca',
+      liquidez: 'Liquidez com assinatura premium',
+      prova: 'O padrao que muda a comparacao',
+      whatsapp: 'Receba a curadoria completa',
+    }
+    return conceptHeadlines[concept.angle] || conceptHeadlines.editorial
+  }
 
   const variants = [
     `${product}: uma categoria acima`,
@@ -1078,8 +1190,9 @@ function buildHeadline(product, place, index, form) {
   return variants[index % variants.length]
 }
 
-function buildAssetCopy(product, offer, channel, form) {
-  if (form.suggested_copy?.trim()) return form.suggested_copy.trim()
+function buildAssetCopy(product, offer, channel, form, concept = null) {
+  const suggested = cleanText(form.suggested_copy)
+  if (suggested && (!concept || concept.angle === 'editorial')) return suggested
 
   if (channel === 'whatsapp') {
     return `Ola. Separei uma curadoria Vitra Premium sobre ${product}. ${offer}`
@@ -1087,6 +1200,29 @@ function buildAssetCopy(product, offer, channel, form) {
 
   if (channel === 'email') {
     return `Uma leitura consultiva sobre ${product}, com foco em localizacao, escassez e potencial patrimonial.`
+  }
+
+  if (channel === 'meta_ads' && concept?.angle) {
+    const place = cleanText(form.location) || cleanText(form.neighborhood) || 'Porto Alegre'
+    const differentials = cleanText(form.differentials)
+    const area = cleanText(form.area)
+    const suites = cleanText(form.suites)
+    const details = [area, suites, differentials].filter(Boolean).join('. ')
+    const conceptCopies = {
+      editorial: `${offer}. Uma campanha Vitra Premium com linguagem editorial, foco em alto padrao e vinculo direto com performance.`,
+      curadoria: `Receba uma leitura reservada sobre ${product}. Curadoria Vitra Premium para avaliar contexto, valor e proximo passo com criterio.`,
+      criterio: `Antes de decidir, compare localizacao, planta, liquidez e experiencia. ${product} entra na selecao para quem compra com criterio.`,
+      diferenciais: details ? `${details}. Diferenciais que ajudam a transformar desejo em decisao de compra.` : `${product} foi selecionado pelos diferenciais que sustentam percepcao de valor e desejo real de compra.`,
+      localizacao: `Em ${place}, a localizacao muda a conversa. Conheca uma curadoria premium para avaliar valor, escassez e potencial de decisao.`,
+      lifestyle: `Mais do que metragem, uma experiencia de morar. ${product} combina presenca, conforto e leitura premium de estilo de vida.`,
+      investimento: `Alto padrao tambem e tese patrimonial. Avalie ${product} com foco em liquidez, escassez e preservacao de valor.`,
+      escassez: `Algumas oportunidades nao pedem volume de oferta. Pedem curadoria, timing e uma conversa objetiva sobre disponibilidade.`,
+      arquitetura: `Arquitetura, vista e implantacao criam percepcao. Conheca os pontos que fazem ${product} se destacar no alto padrao.`,
+      liquidez: `A melhor compra premium combina desejo e saida. Veja por que ${product} pode fazer sentido para quem pensa em liquidez.`,
+      prova: `Compare o padrao, a localizacao e os diferenciais antes de decidir. A curadoria Vitra Premium organiza essa leitura para voce.`,
+      whatsapp: `Solicite a curadoria completa de ${product} e receba as informacoes essenciais para avaliar a oportunidade com tranquilidade.`,
+    }
+    return conceptCopies[concept.angle] || conceptCopies.editorial
   }
 
   return `${offer}. Uma campanha Vitra Premium com linguagem editorial, foco em alto padrao e vinculo direto com performance.`

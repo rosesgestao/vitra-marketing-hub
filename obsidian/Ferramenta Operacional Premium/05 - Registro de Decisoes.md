@@ -165,3 +165,16 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - A renderizacao automatica foi reduzida para lote unitario, evitando `WORKER_RESOURCE_LIMIT` ao renderizar criativos com fundo fotografico.
 - A campanha mais recente `Louvre Gallerie 4` foi atualizada com 9 imagens reais, 9 assets Meta Ads receberam `source_image_url` e 9 criativos foram renderizados com sucesso.
 - Validacoes executadas: `node --check`, `npm.cmd run build`, teste do endpoint local, upload Storage e inspeção visual de criativo renderizado com foto real do imovel.
+
+## 2026-06-02 - Validação Criativa com Mais Variações
+
+- Decidido ampliar a etapa de teste criativo de trafego pago para refletir a pratica recomendada por especialistas em marketing imobiliario.
+- O modelo antigo gerava 3 anuncios Meta fixos (`Awareness`, `Leads`, `Retargeting`), cada um com 3 cortes, totalizando 9 criativos.
+- O modal `Nova Campanha` agora permite escolher entre 3, 5, 8, 10 ou 12 variacoes criativas para teste.
+- Cada variacao continua saindo nos 3 formatos obrigatorios da Meta: `1:1`, `9:16` e `1.91:1`.
+- A configuracao padrao passa a ser 8 variacoes, totalizando 24 cortes Meta por campanha.
+- As variacoes testam angulos diferentes: editorial, curadoria, criterio de compra, diferenciais, localizacao, lifestyle, investimento, escassez, arquitetura, liquidez, prova premium e WhatsApp consultivo.
+- A campanha registra `brief.creative_validation` com quantidade, cortes por variacao, total de cortes e conceitos usados.
+- O pacote exportado de Meta Ads passa a incluir a estrategia de validacao criativa da campanha.
+- A renderizacao continua em lote unitario para reduzir risco de limite de worker ao gerar alto volume de criativos com fotos.
+- Validacao executada: `node --check dashboard\src\lib\premiumData.js` e `npm.cmd run build` no dashboard, ambos com sucesso.

@@ -51,6 +51,7 @@ const INITIAL_FORM = {
   landing_url: '',
   whatsapp_url: '',
   automation_notes: '',
+  creative_variations: 8,
   product_name: '',
   tagline: '',
   property_type: 'Apartamento alto padrão',
@@ -313,6 +314,7 @@ function downloadMetaAdsPackage(campaign, ads) {
       },
       source_intake: campaign.brief?.source_intake || null,
       qa_policy: campaign.brief?.qa_policy || null,
+      creative_validation: campaign.brief?.creative_validation || null,
     },
     human_gate: {
       publish_policy: 'draft_or_manual_upload_first',
@@ -1603,7 +1605,8 @@ function groupMetaAds(assets) {
   for (const a of assets) {
     if (a.channel !== 'meta_ads') continue
     const key = a.metadata?.ad_group || 'meta'
-    if (!map.has(key)) map.set(key, { key, label: AD_GROUP_LABEL[key] || key.replace(/^meta-/, ''), assets: [] })
+    const label = a.metadata?.ad_label || AD_GROUP_LABEL[key] || key.replace(/^meta-/, '')
+    if (!map.has(key)) map.set(key, { key, label, assets: [] })
     map.get(key).assets.push(a)
   }
   return [...map.values()]
@@ -1616,11 +1619,12 @@ function groupMetaAdsByCampaign(assets) {
     const adKey = asset.metadata?.ad_group || 'meta'
     const campaignKey = asset.campaign_id || 'sem-campanha'
     const key = `${campaignKey}:${adKey}`
+    const label = asset.metadata?.ad_label || AD_GROUP_LABEL[adKey] || adKey.replace(/^meta-/, '')
     if (!map.has(key)) {
       map.set(key, {
         key,
         campaign_id: asset.campaign_id,
-        label: AD_GROUP_LABEL[adKey] || adKey.replace(/^meta-/, ''),
+        label,
         assets: [],
       })
     }
@@ -2360,6 +2364,20 @@ function NewCampaignModal({ saving, submitError, onClose, onSubmit }) {
                     className={inputClass}
                     placeholder="Ex: link wa.me ou canal de atendimento"
                   />
+                </Field>
+
+                <Field label="Variacoes criativas para teste" labelClass={labelClass}>
+                  <select
+                    value={form.creative_variations}
+                    onChange={event => update('creative_variations', Number(event.target.value))}
+                    className={inputClass}
+                  >
+                    <option value={3}>3 variacoes - 9 cortes</option>
+                    <option value={5}>5 variacoes - 15 cortes</option>
+                    <option value={8}>8 variacoes - 24 cortes</option>
+                    <option value={10}>10 variacoes - 30 cortes</option>
+                    <option value={12}>12 variacoes - 36 cortes</option>
+                  </select>
                 </Field>
 
                 <Field label="Observacoes para automacao" labelClass={labelClass} className="md:col-span-2">
