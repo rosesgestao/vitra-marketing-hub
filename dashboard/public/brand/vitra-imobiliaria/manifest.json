@@ -1,0 +1,85 @@
+{
+  "brand_scope": "vitra_imobiliaria",
+  "name": "Vitra Imobiliaria",
+  "source_library": "D:/LEONARDO/Vitra/vitra-agentes-marketing/assets/brand/logos-brandbook-vitra-imobiliaria",
+  "copied_at": "2026-06-03",
+  "selection_policy": "approved horizontal and vertical 8K variants, SVG logo set, png-6x icons, isolated V and profile-safe seals; 16K files excluded from operational package.",
+  "assets": {
+    "horizontal": {
+      "approved": {
+        "png_8k": "/brand/vitra-imobiliaria/logos/horizontal/approved/vitra-mae-horizontal-aprovada-8k.png"
+      },
+      "variants_8k": {
+        "branco": "/brand/vitra-imobiliaria/logos/horizontal/variants/vitra-mae-horizontal-aprovada-branco-8k.png",
+        "dourado": "/brand/vitra-imobiliaria/logos/horizontal/variants/vitra-mae-horizontal-aprovada-dourado-8k.png",
+        "escuro": "/brand/vitra-imobiliaria/logos/horizontal/variants/vitra-mae-horizontal-aprovada-escuro-8k.png",
+        "navy": "/brand/vitra-imobiliaria/logos/horizontal/variants/vitra-mae-horizontal-aprovada-navy-8k.png"
+      },
+      "svg": {
+        "branco": "/brand/vitra-imobiliaria/svg/logo-horizontal-branco.svg",
+        "dourado": "/brand/vitra-imobiliaria/svg/logo-horizontal-dourado.svg",
+        "escuro": "/brand/vitra-imobiliaria/svg/logo-horizontal-escuro.svg",
+        "navy": "/brand/vitra-imobiliaria/svg/logo-horizontal-navy.svg"
+      }
+    },
+    "vertical": {
+      "approved": {
+        "png_8k": "/brand/vitra-imobiliaria/logos/vertical/approved/vitra-mae-vertical-aprovada-8k.png"
+      },
+      "variants_8k": {
+        "branco": "/brand/vitra-imobiliaria/logos/vertical/variants/vitra-mae-vertical-aprovada-branco-8k.png",
+        "dourado": "/brand/vitra-imobiliaria/logos/vertical/variants/vitra-mae-vertical-aprovada-dourado-8k.png",
+        "escuro": "/brand/vitra-imobiliaria/logos/vertical/variants/vitra-mae-vertical-aprovada-escuro-8k.png",
+        "navy": "/brand/vitra-imobiliaria/logos/vertical/variants/vitra-mae-vertical-aprovada-navy-8k.png"
+      },
+      "svg": {
+        "escuro": "/brand/vitra-imobiliaria/svg/logo-vertical-escuro.svg",
+        "navy": "/brand/vitra-imobiliaria/svg/logo-vertical-navy.svg"
+      }
+    },
+    "icon": {
+      "svg": {
+        "branco": "/brand/vitra-imobiliaria/svg/icone-branco.svg",
+        "colorido": "/brand/vitra-imobiliaria/svg/icone-colorido.svg",
+        "dourado": "/brand/vitra-imobiliaria/svg/icone-dourado.svg",
+        "navy": "/brand/vitra-imobiliaria/svg/icone-navy.svg"
+      },
+      "png_6x": {
+        "branco": "/brand/vitra-imobiliaria/png-6x/icone-branco.png",
+        "colorido": "/brand/vitra-imobiliaria/png-6x/icone-colorido.png",
+        "dourado": "/brand/vitra-imobiliaria/png-6x/icone-dourado.png",
+        "navy": "/brand/vitra-imobiliaria/png-6x/icone-navy.png"
+      }
+    },
+    "isolated_v": {
+      "svg": {
+        "branco": "/brand/vitra-imobiliaria/svg/v-isolado-branco.svg",
+        "colorido": "/brand/vitra-imobiliaria/svg/v-isolado-colorido.svg",
+        "dourado": "/brand/vitra-imobiliaria/svg/v-isolado-dourado.svg",
+        "navy": "/brand/vitra-imobiliaria/svg/v-isolado-navy.svg"
+      },
+      "png_6x": {
+        "branco": "/brand/vitra-imobiliaria/png-6x/v-isolado-branco.png",
+        "colorido": "/brand/vitra-imobiliaria/png-6x/v-isolado-colorido.png",
+        "dourado": "/brand/vitra-imobiliaria/png-6x/v-isolado-dourado.png",
+        "navy": "/brand/vitra-imobiliaria/png-6x/v-isolado-navy.png"
+      }
+    },
+    "seal": {
+      "claro": {
+        "svg": "/brand/vitra-imobiliaria/svg/selo-circular-claro.svg",
+        "png_6x": "/brand/vitra-imobiliaria/png-6x/selo-circular-claro.png"
+      },
+      "escuro": {
+        "svg": "/brand/vitra-imobiliaria/svg/selo-circular-escuro.svg",
+        "png_6x": "/brand/vitra-imobiliaria/png-6x/selo-circular-escuro.png"
+      }
+    }
+  },
+  "usage": {
+    "dashboard_sidebar": "horizontal.svg.escuro",
+    "paid_traffic_dark_creatives": "horizontal.svg.branco or icon.svg.colorido",
+    "avatar": "isolated_v.png_6x.colorido",
+    "raster_export_fallback": "png_8k"
+  }
+}

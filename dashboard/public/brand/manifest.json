@@ -1,0 +1,24 @@
+{
+  "version": "2026-06-03",
+  "scope": "operational_brand_assets",
+  "policy": "approved_subset_only",
+  "description": "Canonical approved brand assets bundled with the operational dashboard. Source libraries remain in vitra-agentes-marketing; this package contains only production-ready assets needed by the tool.",
+  "brands": {
+    "vitra_premium": {
+      "name": "Vitra Premium",
+      "manifest": "/brand/vitra-premium/manifest.json",
+      "base_path": "/brand/vitra-premium"
+    },
+    "vitra_imobiliaria": {
+      "name": "Vitra Imobiliaria",
+      "manifest": "/brand/vitra-imobiliaria/manifest.json",
+      "base_path": "/brand/vitra-imobiliaria"
+    }
+  },
+  "rules": [
+    "Do not depend on absolute Windows paths for runtime brand assets.",
+    "Do not import experimental or test folders into this operational package.",
+    "Prefer SVG for UI/render composition and PNG 8K or png-6x for export previews and raster fallbacks.",
+    "Supabase Edge Functions may keep critical logo SVG inline; this package is the dashboard/public asset source."
+  ]
+}

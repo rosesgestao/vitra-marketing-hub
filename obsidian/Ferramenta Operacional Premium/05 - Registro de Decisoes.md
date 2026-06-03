@@ -245,3 +245,14 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Validado remotamente que as colunas geradas `brand_scope` existem em `premium_campaigns`, `premium_campaign_assets`, `premium_content_posts`, `premium_publications` e `premium_generation_jobs`.
 - Validado remotamente que os indices `idx_premium_*_brand_scope` foram criados nas cinco tabelas operacionais.
 - A plataforma multi-marca agora possui isolamento funcional no frontend e suporte estrutural no banco para filtros server-side por marca.
+
+## 2026-06-03 - Assets Aprovados Centralizados no Dashboard
+
+- Decidido que a ferramenta operacional deve manter seu proprio pacote de assets aprovados, sem depender em runtime de caminhos absolutos do projeto `vitra-agentes-marketing`.
+- Criado o pacote publico `dashboard/public/brand/` com manifests controlados para `vitra_premium` e `vitra_imobiliaria`.
+- Foram copiados apenas assets essenciais aprovados: SVGs, PNGs 8K e PNGs 6x necessarios para UI, avatars, logos horizontais, logos verticais e variacoes de aplicacao.
+- Arquivos 16K e pastas experimentais/teste, como `horizontal-teste-descritor-largo`, ficaram fora do pacote operacional.
+- O pacote final possui 51 arquivos e aproximadamente 10,8 MB.
+- `brandProfiles.js` passou a apontar para `assetBasePath`, `assetManifestPath` e `approvedAssets` de cada marca.
+- O render remoto `render-asset` continua com SVG inline para preservar estabilidade no Supabase Edge Runtime, enquanto o dashboard passa a ter uma biblioteca publica canônica para uso operacional e futuras telas/exportadores.
+- Validacoes executadas: parse dos tres manifests JSON e `npm.cmd run build` no dashboard, ambos com sucesso.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="600" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vitra Imobiliária - V isolado navy">
+  <title>Vitra Imobiliária - V isolado navy</title>
+  <g id="vitra-v-isolado-navy" transform="translate(50 50) scale(1.28) translate(-50 -52.5)">
+    <polygon points="20,33 34,33 27,50" fill="#4A7EC7"/>
+    <polygon points="20,33 27,50 50,72" fill="#0A1628"/>
+    <polygon points="34,33 27,50 50,72" fill="#142D58"/>
+    <polygon points="80,33 66,33 73,50" fill="#C4942A"/>
+    <polygon points="80,33 73,50 50,72" fill="#7A6014"/>
+    <polygon points="66,33 73,50 50,72" fill="#A67C1A"/>
+  </g>
+</svg>

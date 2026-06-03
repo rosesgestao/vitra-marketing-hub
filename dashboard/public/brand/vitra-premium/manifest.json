@@ -1,0 +1,31 @@
+{
+  "brand_scope": "vitra_premium",
+  "name": "Vitra Premium",
+  "source_library": "D:/LEONARDO/Vitra/vitra-agentes-marketing/assets/brand/logos-brandbook-vitra-premium",
+  "copied_at": "2026-06-03",
+  "selection_policy": "approved horizontal, approved vertical and approved off-white inverted horizontal; experimental descriptor-wide test folder excluded.",
+  "assets": {
+    "horizontal": {
+      "approved": {
+        "svg": "/brand/vitra-premium/logos/horizontal/approved/vitra-premium-horizontal-aprovada.svg",
+        "png_8k": "/brand/vitra-premium/logos/horizontal/approved/vitra-premium-horizontal-aprovada-8k.png"
+      },
+      "invertida_off_white": {
+        "svg": "/brand/vitra-premium/logos/horizontal/invertida-off-white/vitra-premium-horizontal-aprovada-invertida-off-white.svg",
+        "png_8k": "/brand/vitra-premium/logos/horizontal/invertida-off-white/vitra-premium-horizontal-aprovada-invertida-off-white-8k.png"
+      }
+    },
+    "vertical": {
+      "approved": {
+        "svg": "/brand/vitra-premium/logos/vertical/approved/vitra-premium-vertical-aprovada.svg",
+        "png_8k": "/brand/vitra-premium/logos/vertical/approved/vitra-premium-vertical-aprovada-8k.png"
+      }
+    }
+  },
+  "usage": {
+    "dashboard_sidebar": "horizontal.approved.svg",
+    "brandbook_light_application": "horizontal.invertida_off_white.svg",
+    "hero_or_stacked_layout": "vertical.approved.svg",
+    "raster_export_fallback": "png_8k"
+  }
+}

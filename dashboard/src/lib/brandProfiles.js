@@ -34,6 +34,15 @@ export const BRAND_PROFILES = {
     emptyTrafficNote: 'Crie a primeira campanha Premium para abrir a esteira de geração, QA e exportação dos criativos Meta Ads.',
     campaignFallback: 'Campanha Premium',
     metaPackageType: 'vitra_premium_meta_ads_package',
+    assetBasePath: '/brand/vitra-premium',
+    assetManifestPath: '/brand/vitra-premium/manifest.json',
+    approvedAssets: {
+      horizontalLogo: '/brand/vitra-premium/logos/horizontal/approved/vitra-premium-horizontal-aprovada.svg',
+      horizontalLogoPng8k: '/brand/vitra-premium/logos/horizontal/approved/vitra-premium-horizontal-aprovada-8k.png',
+      horizontalInvertidaOffWhite: '/brand/vitra-premium/logos/horizontal/invertida-off-white/vitra-premium-horizontal-aprovada-invertida-off-white.svg',
+      verticalLogo: '/brand/vitra-premium/logos/vertical/approved/vitra-premium-vertical-aprovada.svg',
+      verticalLogoPng8k: '/brand/vitra-premium/logos/vertical/approved/vitra-premium-vertical-aprovada-8k.png',
+    },
   },
   [BRAND_SCOPES.imobiliaria]: {
     scope: BRAND_SCOPES.imobiliaria,
@@ -65,6 +74,16 @@ export const BRAND_PROFILES = {
     emptyTrafficNote: 'Crie a primeira campanha da marca-mãe para gerar variações de criativos Meta Ads sem misturar com Premium.',
     campaignFallback: 'Campanha Vitra Imobiliária',
     metaPackageType: 'vitra_imobiliaria_meta_ads_package',
+    assetBasePath: '/brand/vitra-imobiliaria',
+    assetManifestPath: '/brand/vitra-imobiliaria/manifest.json',
+    approvedAssets: {
+      horizontalLogo: '/brand/vitra-imobiliaria/svg/logo-horizontal-escuro.svg',
+      horizontalLogoPng8k: '/brand/vitra-imobiliaria/logos/horizontal/approved/vitra-mae-horizontal-aprovada-8k.png',
+      verticalLogo: '/brand/vitra-imobiliaria/svg/logo-vertical-escuro.svg',
+      verticalLogoPng8k: '/brand/vitra-imobiliaria/logos/vertical/approved/vitra-mae-vertical-aprovada-8k.png',
+      isolatedV: '/brand/vitra-imobiliaria/svg/v-isolado-colorido.svg',
+      avatarPng: '/brand/vitra-imobiliaria/png-6x/v-isolado-colorido.png',
+    },
   },
 }
 

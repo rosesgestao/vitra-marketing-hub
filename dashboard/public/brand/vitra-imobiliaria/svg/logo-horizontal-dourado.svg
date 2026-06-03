@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="672" height="192" viewBox="0 0 672 192" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vitra Imobiliária - logo horizontal dourado">
+  <title>Vitra Imobiliária - logo horizontal dourado</title>
+  <svg x="16" y="16" width="160" height="160" viewBox="0 0 100 100" overflow="visible">
+    <g id="vitra-icon-dourado">
+    <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#07111F" stroke="#C4942A" stroke-width="2.5"/>
+    <polygon points="50,9 86,29.5 86,70.5 50,91 14,70.5 14,29.5" fill="none" stroke="rgba(212,168,74,0.18)" stroke-width="0.8"/>
+    <polygon points="20,33 34,33 27,50" fill="#F0C95C"/>
+    <polygon points="20,33 27,50 50,72" fill="#9B7A1C"/>
+    <polygon points="34,33 27,50 50,72" fill="#C4942A"/>
+    <polygon points="80,33 66,33 73,50" fill="#F0C95C"/>
+    <polygon points="80,33 73,50 50,72" fill="#9B7A1C"/>
+    <polygon points="66,33 73,50 50,72" fill="#D4A84A"/>
+  </g>
+  </svg>
+  <line x1="252" y1="18" x2="252" y2="174" stroke="#C4942A" stroke-width="2.5" opacity="0.95"/>
+  <g id="wordmark-horizontal" color="#D4A84A" fill="currentColor" font-family="Inter, sans-serif" font-size="84" font-weight="700">
+    <text x="342" y="97" text-anchor="middle">V</text>
+    <text x="422" y="97" text-anchor="middle">I</text>
+    <text x="502" y="97" text-anchor="middle">T</text>
+    <text x="572" y="97" text-anchor="middle">R</text>
+    <path fill="currentColor" fill-rule="evenodd"
+    d="M642,39 L671,97 L613,97 Z
+       M642,65.1 L652.15,85.4 L631.85,85.4 Z"/>
+  </g>
+  <g id="descriptor-horizontal">
+    <text x="315.000" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">I</text>
+    <text x="341.900" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">M</text>
+    <text x="383.800" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">O</text>
+    <text x="423.700" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">B</text>
+    <text x="460.600" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">I</text>
+    <text x="487.500" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">L</text>
+    <text x="522.400" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">I</text>
+    <text x="550.300" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">Á</text>
+    <text x="589.200" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">R</text>
+    <text x="626.100" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">I</text>
+    <text x="654.000" y="160" fill="#C4942A" opacity="1" font-family="Inter, sans-serif" font-size="24" font-weight="600">A</text>
+  </g>
+</svg>
