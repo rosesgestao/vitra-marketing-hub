@@ -236,3 +236,12 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Edge Function `render-asset` publicada novamente no projeto Supabase ativo `birxcfkyuzqnhyvetbjv`.
 - Validacoes executadas: `npm.cmd run build` no dashboard e `deno check supabase/functions/render-asset/index.ts`, ambos com sucesso.
 - Tentativa de validacao visual pelo navegador interno falhou por erro do runtime de browser do Codex antes da abertura da pagina; a validacao funcional ficou coberta por build, Deno e deploy remoto.
+
+## 2026-06-03 - Migracao Multi-Marca Aplicada no Supabase
+
+- Finalizada a pendencia tecnica da migracao `supabase/migration-brand-scope-multimarca.sql`.
+- O checkout local foi linkado ao projeto Supabase ativo `birxcfkyuzqnhyvetbjv`.
+- A migracao foi aplicada no banco remoto via `supabase db query --linked --file`.
+- Validado remotamente que as colunas geradas `brand_scope` existem em `premium_campaigns`, `premium_campaign_assets`, `premium_content_posts`, `premium_publications` e `premium_generation_jobs`.
+- Validado remotamente que os indices `idx_premium_*_brand_scope` foram criados nas cinco tabelas operacionais.
+- A plataforma multi-marca agora possui isolamento funcional no frontend e suporte estrutural no banco para filtros server-side por marca.
