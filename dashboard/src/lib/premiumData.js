@@ -105,19 +105,21 @@ const META_CREATIVE_CONCEPTS = [
   { key: 'meta-whatsapp-consultivo', label: 'WhatsApp - Consultivo', phase: '3', templateBase: 'premium-lead', angle: 'whatsapp' },
 ]
 
+export const VITRA_IMOBILIARIA_TEMPLATE_BASE = 'vitra-imobiliaria-dual-photo-offer'
+
 const VITRA_IMOBILIARIA_META_CREATIVE_CONCEPTS = [
-  { key: 'meta-awareness-mercado', label: 'Awareness - Mercado', phase: '1', templateBase: 'premium-editorial', angle: 'editorial' },
-  { key: 'meta-leads-imovel', label: 'Leads - Imóvel', phase: '2', templateBase: 'premium-lead', angle: 'curadoria' },
-  { key: 'meta-retarget-visita', label: 'Retargeting - Visita', phase: '3', templateBase: 'premium-retarget', angle: 'criterio' },
-  { key: 'meta-diferenciais-produto', label: 'Diferenciais - Produto', phase: '2', templateBase: 'premium-lead', angle: 'diferenciais' },
-  { key: 'meta-localizacao-valor', label: 'Localização - Valor', phase: '1', templateBase: 'premium-editorial', angle: 'localizacao' },
-  { key: 'meta-bairro-cotidiano', label: 'Bairro - Cotidiano', phase: '2', templateBase: 'premium-editorial', angle: 'lifestyle' },
-  { key: 'meta-investimento-patrimonio', label: 'Investimento - Patrimônio', phase: '2', templateBase: 'premium-lead', angle: 'investimento' },
-  { key: 'meta-oportunidade-convite', label: 'Oportunidade - Convite', phase: '3', templateBase: 'premium-retarget', angle: 'escassez' },
-  { key: 'meta-planta-espaco', label: 'Planta - Espaço', phase: '1', templateBase: 'premium-editorial', angle: 'arquitetura' },
-  { key: 'meta-liquidez-decisao', label: 'Liquidez - Decisão', phase: '2', templateBase: 'premium-lead', angle: 'liquidez' },
-  { key: 'meta-prova-portfolio', label: 'Prova - Portfólio', phase: '2', templateBase: 'premium-retarget', angle: 'prova' },
-  { key: 'meta-whatsapp-atendimento', label: 'WhatsApp - Atendimento', phase: '3', templateBase: 'premium-lead', angle: 'whatsapp' },
+  { key: 'meta-awareness-mercado', label: 'Awareness - Mercado', phase: '1', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'editorial' },
+  { key: 'meta-leads-imovel', label: 'Leads - Imóvel', phase: '2', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'curadoria' },
+  { key: 'meta-retarget-visita', label: 'Retargeting - Visita', phase: '3', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'criterio' },
+  { key: 'meta-diferenciais-produto', label: 'Diferenciais - Produto', phase: '2', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'diferenciais' },
+  { key: 'meta-localizacao-valor', label: 'Localização - Valor', phase: '1', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'localizacao' },
+  { key: 'meta-bairro-cotidiano', label: 'Bairro - Cotidiano', phase: '2', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'lifestyle' },
+  { key: 'meta-investimento-patrimonio', label: 'Investimento - Patrimônio', phase: '2', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'investimento' },
+  { key: 'meta-oportunidade-convite', label: 'Oportunidade - Convite', phase: '3', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'escassez' },
+  { key: 'meta-planta-espaco', label: 'Planta - Espaço', phase: '1', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'arquitetura' },
+  { key: 'meta-liquidez-decisao', label: 'Liquidez - Decisão', phase: '2', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'liquidez' },
+  { key: 'meta-prova-portfolio', label: 'Prova - Portfólio', phase: '2', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'prova' },
+  { key: 'meta-whatsapp-atendimento', label: 'WhatsApp - Atendimento', phase: '3', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'whatsapp' },
 ]
 
 const SUPPORT_ASSET_BLUEPRINTS = ASSET_BLUEPRINTS.filter(([, , channel]) => channel !== 'meta_ads')
@@ -331,6 +333,47 @@ function visualModelForConcept(concept, brandProfile = getBrandProfile()) {
     purpose: `Usar em campanhas da ${brandProfile.name}, mantendo navy, dourado e comunicação consultiva.`,
     reference_pattern: 'Foto do imóvel, hierarquia clara de informação e CTA de atendimento.',
   }
+}
+
+function visualTemplateForAsset({ channel, templateKey, title, concept, brandProfile = getBrandProfile() }) {
+  if (channel === 'meta_ads' && brandProfile.scope === BRAND_SCOPES.imobiliaria) {
+    return {
+      key: templateKey,
+      family: VITRA_IMOBILIARIA_TEMPLATE_BASE,
+      label: 'Template aprovado Vitra Imobiliaria - duas fotos + oferta',
+      purpose: 'Gerar criativos Meta Ads da marca-mae mantendo estrutura visual padronizada e variaveis por campanha.',
+      reference_pattern: 'Logo horizontal aprovada, headline em duas linhas, descricao curta, capsula de preco, duas fotos do imovel, dois diferenciais, CTA dourado e slogan.',
+      variable_fields: ['photos', 'headline', 'description', 'price', 'differentials', 'cta'],
+      fixed_brand_rules: ['navy_gold', 'approved_horizontal_logo', '135px_safe_zone', 'thin_gold_frame_optional'],
+      approved_reference_files: [
+        '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-1x1-sem-moldura.png',
+        '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-9x16-sem-moldura.png',
+        '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-1-91x1-sem-moldura.png',
+      ],
+    }
+  }
+
+  return channel === 'meta_ads'
+    ? visualModelForConcept(concept, brandProfile)
+    : {
+        key: templateKey,
+        label: title,
+        purpose: brandProfile.supportAssetPurpose,
+        reference_pattern: brandProfile.supportAssetPattern,
+      }
+}
+
+export function isVitraImobiliariaApprovedTemplateAsset(asset) {
+  const templateKey = String(asset?.template_key || asset?.metadata?.visual_template?.key || '')
+  return asset?.channel === 'meta_ads' &&
+    templateKey.startsWith(VITRA_IMOBILIARIA_TEMPLATE_BASE)
+}
+
+export function needsVitraImobiliariaApprovedTemplateRender(asset) {
+  if (!isVitraImobiliariaApprovedTemplateAsset(asset)) return false
+  return asset.status === 'queued' ||
+    !asset.public_url ||
+    asset.metadata?.rendered_template_family !== VITRA_IMOBILIARIA_TEMPLATE_BASE
 }
 
 function buildSourceIntake(form) {
@@ -1103,15 +1146,38 @@ export function saveAssetEdit(assetId, { headline, copy, cta }) {
 
 // Dispara a Edge Function render-asset em lotes pequenos (limite de memoria do worker).
 // Usa a publishable key do cliente (functions.invoke envia apikey/Authorization).
-export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60 } = {}) {
+export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60, assetIds = [] } = {}) {
   let rendered = 0
   let failed = 0
   let lastError = null
+  const ids = [...new Set((assetIds || []).filter(Boolean))]
+  const batchSize = Math.max(1, Number(batch) || 1)
 
   try {
     await ensureCampaignSourceImages(campaignId)
   } catch (error) {
     lastError = error
+  }
+
+  if (ids.length) {
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const chunk = ids.slice(i, i + batchSize)
+      try {
+        const res = await supabase.functions.invoke('render-asset', {
+          body: { campaign_id: campaignId, asset_ids: chunk, limit: chunk.length },
+        })
+        if (res.error) {
+          lastError = res.error
+        } else {
+          rendered += res.data?.rendered || 0
+          failed += res.data?.failed || 0
+        }
+      } catch (err) {
+        lastError = err
+      }
+    }
+
+    return { rendered, failed, error: rendered === 0 ? lastError : null }
   }
 
   for (let i = 0; i < maxBatches; i++) {
@@ -1185,14 +1251,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
     const adGroup = channel === 'meta_ads' ? concept?.key || blueprintKey.replace(/-(feed|story|wide)$/, '') : null
     const selectedImage = sourceImages.length ? sourceImages[index % sourceImages.length] : null
     const primaryImage = selectedImage?.public_url || null
-    const visualTemplate = channel === 'meta_ads'
-      ? visualModelForConcept(concept, brandProfile)
-      : {
-          key: templateKey,
-          label: title,
-          purpose: brandProfile.supportAssetPurpose,
-          reference_pattern: brandProfile.supportAssetPattern,
-        }
+    const visualTemplate = visualTemplateForAsset({ channel, templateKey, title, concept, brandProfile })
     const metadata = {
       blueprint_key: blueprintKey,
       phase: 'phase_2_react_capture',

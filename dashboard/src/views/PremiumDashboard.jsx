@@ -38,6 +38,7 @@ import {
   createPremiumCampaign,
   createManualPublication,
   loadPremiumWorkspace,
+  needsVitraImobiliariaApprovedTemplateRender,
   renderCampaignAssets,
   saveAd,
   saveAssetEdit,
@@ -243,8 +244,12 @@ function evaluateMetaAdReadiness(ad) {
   const meta = first.metadata?.meta_ad || {}
   const formats = new Set(ordered.map(asset => asset.aspect_ratio))
   const hasPropertyImage = ordered.every(asset => Boolean(asset.source_image_url))
-  const rendered = ordered.every(asset => Boolean(asset.public_url) && ['generated', 'approved'].includes(asset.status))
-  const approved = ordered.every(asset => asset.status === 'approved')
+  const rendered = ordered.every(asset => (
+    Boolean(asset.public_url) &&
+    ['generated', 'approved'].includes(asset.status) &&
+    !needsVitraImobiliariaApprovedTemplateRender(asset)
+  ))
+  const approved = ordered.every(asset => asset.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(asset))
   const hasDestination = Boolean(meta.url_params || first.metadata?.source_intake?.landing_url || first.metadata?.source_intake?.whatsapp_url)
   const checks = [
     { id: 'formats', label: '3 cortes Meta', ok: AD_FORMAT_ORDER.every(format => formats.has(format)) },
@@ -468,10 +473,11 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   const paidTrafficOverview = useMemo(() => {
     const metaAssets = workspace.assets.filter(asset => asset.channel === 'meta_ads')
     const adGroups = groupMetaAdsByCampaign(metaAssets)
+    const pendingRender = metaAssets.filter(asset => asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset)).length
     return {
       campaigns: new Set(metaAssets.map(asset => asset.campaign_id).filter(Boolean)).size,
       cuts: metaAssets.length,
-      queued: metaAssets.filter(asset => asset.status === 'queued').length,
+      queued: pendingRender,
       readyAds: adGroups.filter(ad => evaluateMetaAdReadiness(ad).ok).length,
       adGroups: adGroups.length,
     }
@@ -587,7 +593,13 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     setError(null)
     setNotice(null)
     try {
-      const result = await renderCampaignAssets(selectedCampaign.id)
+      const assetIds = scoped.assets
+        .filter(asset => (
+          !['whatsapp', 'email'].includes(asset.channel) &&
+          (asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset))
+        ))
+        .map(asset => asset.id)
+      const result = await renderCampaignAssets(selectedCampaign.id, { assetIds })
       if (result.error && !result.rendered) throw result.error
       setNotice(`Renderização concluída: ${result.rendered} criativo(s) gerado(s)${result.failed ? `, ${result.failed} com erro` : ''}.`)
       await refresh(selectedCampaign.id)
@@ -1241,9 +1253,9 @@ function AssetsSection({ brandProfile = getBrandProfile(), campaign, assets, job
   if (!assets.length) return <EmptyState icon={Layers3} title="Sem assets para esta campanha" />
 
   const total = assets.length
-  const queued = assets.filter(a => a.status === 'queued').length
-  const generated = assets.filter(a => a.status === 'generated').length
-  const approved = assets.filter(a => a.status === 'approved').length
+  const pendingRender = assets.filter(a => a.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(a)).length
+  const generated = assets.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
+  const approved = assets.filter(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const progress = total ? Math.round((approved / total) * 100) : 0
 
   const categories = assets.reduce((acc, asset) => {
@@ -1267,12 +1279,12 @@ function AssetsSection({ brandProfile = getBrandProfile(), campaign, assets, job
         </div>
         <button
           onClick={onRender}
-          disabled={rendering || queued === 0}
+          disabled={rendering || pendingRender === 0}
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-          title={queued === 0 ? 'Nenhum asset pendente de renderização' : 'Gerar criativos dos assets pendentes'}
+          title={pendingRender === 0 ? 'Nenhum asset pendente de renderização' : 'Gerar criativos dos assets pendentes'}
         >
           {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-          {rendering ? 'Gerando…' : `Gerar criativos${queued ? ` (${queued})` : ''}`}
+          {rendering ? 'Gerando…' : `Gerar criativos${pendingRender ? ` (${pendingRender})` : ''}`}
         </button>
       </div>
 
@@ -1284,7 +1296,7 @@ function AssetsSection({ brandProfile = getBrandProfile(), campaign, assets, job
 
       <div className="grid gap-3 md:grid-cols-4">
         <StatTile label="Total assets" value={total} sub="na campanha" icon={Layers3} />
-        <StatTile label="Pendentes" value={queued} sub="aguardando render" icon={Clock} tone="#E4C06E" />
+        <StatTile label="Pendentes" value={pendingRender} sub="aguardando render" icon={Clock} tone="#E4C06E" />
         <StatTile label="Gerados" value={generated} sub="criativos prontos" icon={ImageIcon} tone="#D4A84A" />
         <StatTile label="Aprovados" value={approved} sub={`${progress}% da campanha`} icon={CheckCircle2} tone="#F0C95C" />
       </div>
@@ -1427,9 +1439,10 @@ function AssetCard({ brandProfile = getBrandProfile(), asset, campaign, busy, on
   const dimension = DIMENSION_LABEL[asset.aspect_ratio]
   const channelTag = CHANNEL_TAG[asset.channel] || (asset.channel || '').toUpperCase()
   const kicker = campaign?.brief?.product_data?.tagline || campaign?.product_name || brandProfile.name
-  const approved = asset.status === 'approved'
+  const needsApprovedRender = needsVitraImobiliariaApprovedTemplateRender(asset)
+  const approved = asset.status === 'approved' && !needsApprovedRender
   const nonVisual = NON_VISUAL.has(asset.channel)
-  const hasImage = Boolean(asset.public_url)
+  const hasImage = Boolean(asset.public_url) && !needsApprovedRender
   const phase = asset.metadata?.campaign_phase
 
   return (
@@ -1479,7 +1492,7 @@ function AssetCard({ brandProfile = getBrandProfile(), asset, campaign, busy, on
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={onApprove}
-              disabled={busy || approved}
+              disabled={busy || approved || needsApprovedRender}
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
               style={{
                 background: approved ? 'rgba(196,148,42,0.12)' : 'rgba(29,158,117,0.18)',
@@ -1672,9 +1685,9 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
     )
   }
   const placements = assets.filter(a => a.channel === 'meta_ads')
-  const queued = placements.filter(a => a.status === 'queued').length
-  const generated = placements.filter(a => a.status === 'generated').length
-  const approved = placements.filter(a => a.status === 'approved').length
+  const pendingRender = placements.filter(a => a.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(a)).length
+  const generated = placements.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
+  const approved = placements.filter(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok).length
 
   return (
@@ -1689,11 +1702,11 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
         <div className="flex flex-col gap-2 sm:flex-row">
           <button
             onClick={onRender}
-            disabled={rendering || queued === 0}
+            disabled={rendering || pendingRender === 0}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {rendering ? 'Gerando…' : `Gerar cortes${queued ? ` (${queued})` : ''}`}
+            {rendering ? 'Gerando…' : `Gerar cortes${pendingRender ? ` (${pendingRender})` : ''}`}
           </button>
           <button
             type="button"
@@ -1713,7 +1726,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
 
       <div className="grid gap-3 md:grid-cols-5">
         <StatTile label="Anúncios" value={ads.length} sub={`${placements.length} cortes`} icon={Megaphone} />
-        <StatTile label="Pendentes" value={queued} sub="aguardando corte" icon={Clock} tone="#E4C06E" />
+        <StatTile label="Pendentes" value={pendingRender} sub="aguardando corte" icon={Clock} tone="#E4C06E" />
         <StatTile label="Gerados" value={generated} sub="cortes prontos" icon={ImageIcon} tone="#D4A84A" />
         <StatTile label="Aprovados" value={approved} sub="prontos p/ subir" icon={CheckCircle2} tone="#F0C95C" />
         <StatTile label="QA final" value={`${readyAds}/${ads.length}`} sub="anuncios exportaveis" icon={Target} tone="#C4942A" />
@@ -1742,7 +1755,10 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
   const safeIdx = Math.min(idx, ordered.length - 1)
   const current = ordered[safeIdx]
   const place = META_PLACEMENTS[current?.aspect_ratio] || {}
-  const allApproved = ad.assets.every(a => a.status === 'approved')
+  const currentNeedsRender = needsVitraImobiliariaApprovedTemplateRender(current)
+  const hasPendingRender = ad.assets.some(a => a.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(a))
+  const hasRenderableImage = Boolean(current?.public_url) && !currentNeedsRender
+  const allApproved = ad.assets.every(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a))
   const meta = ad.assets[0]?.metadata?.meta_ad || {}
   const headline = ad.assets[0]?.headline || ''
   const cta = ad.assets[0]?.cta || ''
@@ -1758,7 +1774,7 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
           <Megaphone size={14} className="text-gold-400" />
           <p className="text-sm font-semibold text-white">Anúncio · {ad.label}</p>
         </div>
-        <StatusPill value={allApproved ? 'approved' : current?.status} />
+        <StatusPill value={allApproved ? 'approved' : currentNeedsRender ? 'queued' : current?.status} />
       </div>
 
       <div className="flex gap-1 px-3 pt-3">
@@ -1784,12 +1800,12 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
       </div>
 
       <div className="relative mx-3 mt-3 flex h-60 items-center justify-center overflow-hidden rounded-lg bg-black">
-        {current?.public_url ? (
+        {hasRenderableImage ? (
           <img src={current.public_url} alt={current.title} className="max-h-full max-w-full object-contain" loading="lazy" />
         ) : (
           <div className="flex flex-col items-center gap-2 text-white/40">
             <ImageIcon size={22} className="text-gold-500/50" />
-            <span className="text-[11px]">{current?.status === 'queued' ? 'aguardando corte' : 'sem render'}</span>
+            <span className="text-[11px]">{currentNeedsRender || current?.status === 'queued' ? 'aguardando corte' : 'sem render'}</span>
           </div>
         )}
         <span className="absolute right-2 top-2 rounded bg-black/55 px-2 py-1 text-[10px] text-white/80">{place.dim}</span>
@@ -1838,18 +1854,18 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
       <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">
         <button
           onClick={onApprove}
-          disabled={busy || allApproved}
+          disabled={busy || allApproved || hasPendingRender}
           className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
           style={{
-            background: allApproved ? 'rgba(196,148,42,0.12)' : 'rgba(29,158,117,0.18)',
-            color: allApproved ? '#F0C95C' : '#6ee7b7',
+            background: allApproved ? 'rgba(196,148,42,0.12)' : hasPendingRender ? 'rgba(255,255,255,0.05)' : 'rgba(29,158,117,0.18)',
+            color: allApproved ? '#F0C95C' : hasPendingRender ? 'rgba(255,255,255,0.4)' : '#6ee7b7',
             opacity: busy ? 0.6 : 1,
           }}
         >
           {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
           {allApproved ? 'Aprovado' : 'Aprovar anúncio'}
         </button>
-        {current?.public_url ? (
+        {hasRenderableImage ? (
           <a
             href={current.public_url}
             download={fileName}
