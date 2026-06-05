@@ -15,6 +15,12 @@ const OFF_WHITE = "#F5F5F0";   // brandbook --off-white (copy)
 const SCALE = 0.55;
 const PHASE_TAG: Record<string, string> = { "1": "FASE 1 - TEASER", "2": "FASE 2 - REVELACAO", "3": "FASE 3 - URGENCIA" };
 const VITRA_IMOBILIARIA_TEMPLATE_BASE = "vitra-imobiliaria-dual-photo-offer";
+const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
+  VITRA_IMOBILIARIA_TEMPLATE_BASE,
+  "vitra-imobiliaria-patios-gallery",
+  "vitra-imobiliaria-financiamento-orla",
+  "vitra-imobiliaria-menino-deus-offer",
+];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
   "premium-editorial-panel": "Painel editorial + imagem",
@@ -24,6 +30,15 @@ const MODEL_LABEL: Record<string, string> = {
   "vitra-imobiliaria-dual-photo-offer-feed": "Vitra Imobiliaria - duas fotos + oferta 1:1",
   "vitra-imobiliaria-dual-photo-offer-story": "Vitra Imobiliaria - duas fotos + oferta 9:16",
   "vitra-imobiliaria-dual-photo-offer-wide": "Vitra Imobiliaria - duas fotos + oferta 1.91:1",
+  "vitra-imobiliaria-patios-gallery-feed": "Vitra Imobiliaria - patios + galeria 1:1",
+  "vitra-imobiliaria-patios-gallery-story": "Vitra Imobiliaria - patios + galeria 9:16",
+  "vitra-imobiliaria-patios-gallery-wide": "Vitra Imobiliaria - patios + galeria 1.91:1",
+  "vitra-imobiliaria-financiamento-orla-feed": "Vitra Imobiliaria - financiamento Orla 1:1",
+  "vitra-imobiliaria-financiamento-orla-story": "Vitra Imobiliaria - financiamento Orla 9:16",
+  "vitra-imobiliaria-financiamento-orla-wide": "Vitra Imobiliaria - financiamento Orla 1.91:1",
+  "vitra-imobiliaria-menino-deus-offer-feed": "Vitra Imobiliaria - Menino Deus 1:1",
+  "vitra-imobiliaria-menino-deus-offer-story": "Vitra Imobiliaria - Menino Deus 9:16",
+  "vitra-imobiliaria-menino-deus-offer-wide": "Vitra Imobiliaria - Menino Deus 1.91:1",
 };
 
 const LOGO_INNER = `<g transform="translate(3,2) scale(0.87)"><polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/><polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/><polygon points="25,37 39,37 32,54" fill="#FFE08A"/><polygon points="25,37 32,54 55,76" fill="#8B6914"/><polygon points="39,37 32,54 55,76" fill="#C4942A"/><polygon points="85,37 71,37 78,54" fill="#F0C95C"/><polygon points="85,37 78,54 55,76" fill="#7A5C10"/><polygon points="71,37 78,54 55,76" fill="#D4A84A"/></g><line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/><text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/><text x="122.50" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6108" fill="#C4942A">PREMIUM</text>`;
@@ -31,7 +46,7 @@ const VITRA_LOGO_INNER = `<g transform="translate(5,7) scale(0.78)"><polygon poi
 
 function brandScopeFor(campaign: any, asset: any) {
   const key = String(asset?.metadata?.visual_template?.key || asset?.template_key || "");
-  if (key.startsWith(VITRA_IMOBILIARIA_TEMPLATE_BASE)) return "vitra_imobiliaria";
+  if (isVitraImobiliariaTemplateKey(key)) return "vitra_imobiliaria";
   return asset?.metadata?.brand_scope ||
     campaign?.brief?.brand_scope ||
     campaign?.brief?.qa_policy?.brand_scope ||
@@ -158,8 +173,20 @@ async function toDataUri(url: string | null): Promise<string | null> {
 }
 function h(type: string, style: Record<string, unknown>, children: unknown = null) { return { type, props: { style, children } }; }
 
+function templateFamilyFromKey(key: string) {
+  const value = String(key || "");
+  for (const suffix of ["-feed", "-story", "-wide"]) {
+    if (value.endsWith(suffix)) return value.slice(0, -suffix.length);
+  }
+  return value;
+}
+
+function isVitraImobiliariaTemplateKey(key: string) {
+  return VITRA_IMOBILIARIA_TEMPLATE_FAMILIES.includes(templateFamilyFromKey(key));
+}
+
 function isVitraImobiliariaTemplate(key: string, brandProfile: ReturnType<typeof brandRenderProfile>) {
-  return brandProfile.scope === "vitra_imobiliaria" && key.startsWith(VITRA_IMOBILIARIA_TEMPLATE_BASE);
+  return brandProfile.scope === "vitra_imobiliaria" && isVitraImobiliariaTemplateKey(key);
 }
 
 function esc(value: unknown) {
@@ -277,7 +304,7 @@ function approvedDescription(pd: any, asset: any) {
 
 function modelKey(asset: any): string {
   const key = asset?.metadata?.visual_template?.key || asset?.template_key || "premium-editorial-panel";
-  return MODEL_LABEL[key] || key.startsWith(VITRA_IMOBILIARIA_TEMPLATE_BASE) ? key : "premium-editorial-panel";
+  return MODEL_LABEL[key] || isVitraImobiliariaTemplateKey(key) ? key : "premium-editorial-panel";
 }
 
 function productFeatures(productData: any, campaign: any, max = 4): string[] {
@@ -405,7 +432,151 @@ function approvedTemplateLayout(ar: string) {
   };
 }
 
-function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>) {
+function templateFrame(asset: any) {
+  return asset?.metadata?.visual_template?.frame === "gold" || asset?.metadata?.frame === "gold";
+}
+
+function outerFrame(W: number, H: number, frame: boolean, inset = 22, radius = 20) {
+  return frame ? `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${H - inset * 2}" rx="${radius}" fill="none" stroke="${GOLD}" stroke-width="1.4" opacity="0.82"/>` : "";
+}
+
+function baseDefs(idBase: string, photoDefs: string) {
+  return `<defs>
+    <radialGradient id="${idBase}-bg" cx="50%" cy="44%" r="70%">
+      <stop offset="0%" stop-color="#0A1B32"/>
+      <stop offset="66%" stop-color="#07111F"/>
+      <stop offset="100%" stop-color="#050C16"/>
+    </radialGradient>
+    ${photoDefs}
+    <filter id="${idBase}-shadow" x="-20%" y="-35%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.24"/>
+    </filter>
+    <filter id="pillShadow" x="-20%" y="-35%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.24"/>
+    </filter>
+  </defs>`;
+}
+
+function featureArrow(x: number, y: number, text: string, size = 24) {
+  return `<g>
+    <path d="M${x} ${y - 9} H${x + 42} M${x + 26} ${y - 24} L${x + 48} ${y - 9} L${x + 26} ${y + 6}" fill="none" stroke="${GOLD_LIGHT}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${textLine(x + 72, y, compactText(text, 42), { fill: OFF_WHITE, size, weight: 850, anchor: "start" })}
+  </g>`;
+}
+
+function buildVitraPatiosGallerySvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
+  const headline = wrapText((asset.headline || pd.suggested_headline || campaign?.name || "OPORTUNIDADE").toString().toUpperCase(), 18, 2);
+  const features = productFeatures(pd, campaign, 4);
+  while (features.length < 4) features.push(features[0] || "Atendimento consultivo Vitra");
+  const price = formatMoneyLike(pd.price || campaign?.offer || "");
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+  const photos = isStory
+    ? [[120, 690, 840, 258, 18], [120, 978, 840, 258, 18], [120, 1266, 840, 258, 18]]
+    : isWide
+      ? [[760, 66, 380, 148, 10], [760, 240, 380, 148, 10], [760, 414, 380, 148, 10]]
+      : [[630, 188, 384, 208, 10], [630, 424, 384, 208, 10], [630, 660, 384, 208, 10]];
+  const photoDefs = photos.map((p, i) => `<clipPath id="${idBase}-p${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("");
+  const logo = isStory ? [318, 78, 444, 100] : isWide ? [74, 54, 300, 68] : [358, 52, 364, 82];
+  const headX = isStory ? 540 : isWide ? 64 : 56;
+  const anchor = isStory ? "middle" : "start";
+  const titleY = isStory ? 318 : isWide ? 190 : 225;
+  const priceX = isStory ? 540 : isWide ? 74 : 110;
+  const priceY = isStory ? 610 : isWide ? 405 : 540;
+  const loc = pd.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(", ");
+  const locationY = isStory ? 1825 : isWide ? 548 : 957;
+  const neighborhoodY = isStory ? 1864 : isWide ? 572 : 1008;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${baseDefs(idBase, photoDefs)}
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
+  ${outerFrame(W, H, frame, isWide ? 10 : 22, isStory ? 34 : 20)}
+  <svg x="${logo[0]}" y="${logo[1]}" width="${logo[2]}" height="${logo[3]}" viewBox="0 0 300 100">${brandProfile.logo}</svg>
+  ${textLine(headX, titleY, headline[0] || "OPORTUNIDADE", { anchor, fill: "#FFFFFF", size: isWide ? 58 : isStory ? 78 : 74, weight: 900 })}
+  ${textLine(headX, titleY + (isWide ? 70 : 100), headline[1] || "", { anchor, fill: GOLD_LIGHT, size: isWide ? 61 : isStory ? 82 : 77, weight: 900 })}
+  ${textLine(priceX, isStory ? 535 : isWide ? 350 : 464, "OPORTUNIDADE POR:", { anchor, fill: OFF_WHITE, size: isWide ? 22 : 30, weight: 500 })}
+  ${textLine(priceX, priceY, price || "CONSULTE", { anchor, fill: GOLD_LIGHT, size: isWide ? 50 : isStory ? 70 : 66, weight: 900 })}
+  ${photos.map((p, i) => imageLayer(images[i] || images[0], `${idBase}-p${i}`, p[0], p[1], p[2], p[3], p[4])).join("")}
+  ${isWide ? `
+    ${featureArrow(74, 454, features[0], 18)}
+    ${featureArrow(74, 496, features[1], 18)}
+    ${featureArrow(442, 454, features[2], 18)}
+    ${featureArrow(442, 496, features[3], 18)}
+  ` : `
+    ${features.map((text, index) => featureArrow(isStory ? 328 : 96, (isStory ? 1576 : 608) + index * (isStory ? 54 : 56), text, isStory ? 22 : 24)).join("")}
+  `}
+  ${textLine(isWide ? 646 : 540, locationY, compactText(loc || "Porto Alegre", isWide ? 44 : 58), { fill: OFF_WHITE, size: isWide ? 14 : isStory ? 21 : 27, weight: 600 })}
+  ${textLine(isWide ? 646 : 540, neighborhoodY, compactText(campaign?.neighborhood || pd.neighborhood || campaign?.city || "VITRA", 30), { fill: "#FFFFFF", size: isWide ? 18 : isStory ? 30 : 35, weight: 900 })}
+</svg>`;
+}
+
+function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+  const headline = wrapText((asset.headline || pd.suggested_headline || campaign?.name || "1DORM E 2DORM JUNTO A NOVA ORLA").toString().toUpperCase(), 22, 2);
+  const photos = isStory
+    ? [[116, 548, 848, 360, 30], [116, 952, 848, 360, 30]]
+    : isWide
+      ? [[70, 265, 438, 180, 24], [548, 265, 438, 180, 24]]
+      : [[72, 340, 452, 222, 30], [556, 340, 452, 222, 30]];
+  const photoDefs = photos.map((p, i) => `<clipPath id="${idBase}-p${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("");
+  const logo = isStory ? [334, 86, 392, 92] : isWide ? [54, 96, 178, 42] : [445, 36, 190, 46];
+  const price = formatMoneyLike(pd.price || campaign?.offer || "");
+  const neighborhood = campaign?.neighborhood || pd.neighborhood || "BAIRRO";
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${baseDefs(idBase, photoDefs)}
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
+  ${outerFrame(W, H, frame, isWide ? 6 : 22, isStory ? 34 : 20)}
+  <svg x="${logo[0]}" y="${logo[1]}" width="${logo[2]}" height="${logo[3]}" viewBox="0 0 300 100">${brandProfile.logo}</svg>
+  ${textLine(isWide ? 276 : 540, isStory ? 300 : isWide ? 92 : 176, headline[0] || "OPORTUNIDADE", { fill: "#FFFFFF", size: isWide ? 72 : isStory ? 92 : 82, weight: 900 })}
+  ${textLine(isWide ? 276 : 540, isStory ? 390 : isWide ? 160 : 256, headline[1] || "", { fill: GOLD_LIGHT, size: isWide ? 66 : isStory ? 86 : 76, weight: 900 })}
+  ${textLine(isWide ? 276 : 540, isStory ? 456 : isWide ? 202 : 310, "ATE 100% FINANCIADO", { fill: OFF_WHITE, size: isWide ? 22 : 30, weight: 800, spacing: isWide ? 5 : 9 })}
+  ${photos.map((p, i) => imageLayer(images[i] || images[0], `${idBase}-p${i}`, p[0], p[1], p[2], p[3], p[4])).join("")}
+  ${priceChip(isStory ? 126 : isWide ? 230 : 130, isStory ? 1464 : isWide ? 496 : 725, isStory ? 828 : isWide ? 740 : 820, isStory ? 210 : isWide ? 80 : 190, price || "Consulte")}
+  ${textLine(W / 2, isStory ? 1766 : isWide ? 612 : 1018, compactText(neighborhood, 28).toUpperCase(), { fill: OFF_WHITE, size: isWide ? 18 : 30, weight: 600, spacing: isWide ? 7 : 16 })}
+</svg>`;
+}
+
+function buildVitraMeninoDeusSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+  const hero = images[0] || null;
+  const heroRect = isStory ? [0, 0, 1080, 900, 0] : isWide ? [0, 0, 628, 628, 0] : [0, 0, 1080, 610, 0];
+  const photoDefs = `<clipPath id="${idBase}-hero"><rect x="${heroRect[0]}" y="${heroRect[1]}" width="${heroRect[2]}" height="${heroRect[3]}" rx="${heroRect[4]}" ry="${heroRect[4]}"/></clipPath>`;
+  const neighborhood = (campaign?.neighborhood || pd.neighborhood || "OPORTUNIDADE").toString().toUpperCase();
+  const feature = (pd.suites || pd.area || asset.headline || "2 DORMITORIOS C/ SUITE").toString().toUpperCase();
+  const price = formatMoneyLike(pd.price || campaign?.offer || "");
+  const features = productFeatures(pd, campaign, 4);
+  const loc = pd.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(" - ");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${baseDefs(idBase, photoDefs)}
+  <rect width="${W}" height="${H}" fill="#F5F5F0"/>
+  ${imageLayer(hero, `${idBase}-hero`, heroRect[0], heroRect[1], heroRect[2], heroRect[3], heroRect[4])}
+  <rect x="0" y="${isStory ? 852 : isWide ? 600 : 580}" width="${isWide ? 628 : 1080}" height="${isStory ? 64 : isWide ? 28 : 48}" fill="#0A1628"/>
+  ${isWide ? `<rect x="628" y="0" width="572" height="628" fill="#F5F5F0"/>` : ""}
+  <rect x="${isWide ? 38 : isStory ? 64 : 52}" y="${isWide ? 42 : isStory ? 68 : 42}" width="${isWide ? 306 : isStory ? 330 : 324}" height="${isWide ? 174 : isStory ? 252 : 244}" fill="#0A1628" opacity="0.94"/>
+  ${textLine(isWide ? 191 : isStory ? 229 : 214, isWide ? 102 : isStory ? 154 : 112, "OPORTUNIDADE", { fill: "#FFFFFF", size: isWide ? 22 : 30, weight: 500, spacing: 5 })}
+  ${textLine(isWide ? 191 : isStory ? 229 : 214, isWide ? 152 : isStory ? 226 : 176, compactText(neighborhood, 18), { fill: "#FFFFFF", size: isWide ? 36 : 52, weight: 900, spacing: 4 })}
+  <svg x="${isWide ? 900 : isStory ? 736 : 806}" y="${isWide ? 48 : isStory ? 82 : 64}" width="${isWide ? 180 : isStory ? 224 : 196}" height="${isWide ? 42 : isStory ? 52 : 46}" viewBox="0 0 300 100">${brandProfile.logo}</svg>
+  <rect x="${isWide ? 458 : isStory ? 130 : 196}" y="${isWide ? 210 : isStory ? 858 : 594}" width="${isWide ? 664 : isStory ? 820 : 724}" height="${isWide ? 68 : isStory ? 96 : 74}" fill="#0A1628" filter="url(#${idBase}-shadow)"/>
+  ${textLine(isWide ? 790 : isStory ? 540 : 558, isWide ? 254 : isStory ? 918 : 640, compactText(feature, 32), { fill: "#FFFFFF", size: isWide ? 31 : isStory ? 42 : 38, weight: 900, spacing: 7 })}
+  ${textLine(isWide ? 760 : isStory ? 280 : 260, isWide ? 390 : isStory ? 1190 : 806, "APENAS", { anchor: "start", fill: "#0A1628", size: isWide ? 20 : isStory ? 31 : 25, weight: 600, spacing: 5 })}
+  ${textLine(isWide ? 760 : isStory ? 170 : 246, isWide ? 436 : isStory ? 1286 : 870, price || "CONSULTE", { anchor: "start", fill: "#0A1628", size: isWide ? 52 : isStory ? 78 : 65, weight: 900 })}
+  ${features.slice(0, 4).map((item, index) => textLine(isWide ? 894 : 540, (isWide ? 496 : isStory ? 1338 : 852) + index * (isWide ? 28 : isStory ? 50 : 36), compactText(item, 42), { fill: "#0A1628", size: isWide ? 20 : isStory ? 32 : 25, weight: 800 })).join("")}
+  ${textLine(isWide ? 900 : isStory ? 600 : 612, isWide ? 596 : isStory ? 1722 : 1022, compactText(loc || "PORTO ALEGRE", isWide ? 36 : 44).toUpperCase(), { fill: "#0A1628", size: isWide ? 16 : isStory ? 27 : 25, weight: 850 })}
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+</svg>`;
+}
+
+function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
   const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
@@ -423,7 +594,10 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   const [ctaX, ctaY, ctaW, ctaH, ctaTextY, ctaSize] = layout.cta as number[];
   const [photoA, photoB] = layout.photos as number[][];
   const idBase = `asset-${String(asset.id || "preview").replace(/[^a-z0-9_-]/gi, "-")}`;
-  const frame = asset?.metadata?.visual_template?.frame === "gold" || asset?.metadata?.frame === "gold";
+  if (templateFamily === "vitra-imobiliaria-patios-gallery") return buildVitraPatiosGallerySvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-financiamento-orla") return buildVitraFinancingSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-menino-deus-offer") return buildVitraMeninoDeusSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
   const h1 = lines[0] || "VITRA IMOBILIARIA";
@@ -550,6 +724,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
   let step = "init";
   const brandProfile = brandRenderProfile(campaign, asset);
   const model = modelKey(asset);
+  const templateFamily = templateFamilyFromKey(model);
   const ar = (asset.aspect_ratio || "1:1").toString();
   const base = DIMS[ar] || DIMS["1:1"];
   const useApprovedVitraTemplate = isVitraImobiliariaTemplate(model, brandProfile);
@@ -563,14 +738,15 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
       step = "load_template_images";
       const imageUrls = imageUrlsForApprovedTemplate(asset, campaign);
       const imageData: Array<string | null> = [];
+      const maxTemplateImages = templateFamily === "vitra-imobiliaria-patios-gallery" ? 3 : 2;
       for (const url of imageUrls) {
-        if (imageData.length >= 2) break;
+        if (imageData.length >= maxTemplateImages) break;
         const dataUri = await toDataUri(url);
         if (dataUri) imageData.push(dataUri);
       }
-      while (imageData.length < 2) imageData.push(imageData[0] || null);
+      while (imageData.length < maxTemplateImages) imageData.push(imageData[0] || null);
       step = "build_approved_template_svg";
-      const svg = buildVitraImobiliariaApprovedSvg(asset, campaign, imageData, W, H, brandProfile);
+      const svg = buildVitraImobiliariaApprovedSvg(asset, campaign, imageData, W, H, brandProfile, templateFamily);
       step = "init_wasm";
       await ensureWasm();
       step = "resvg";
@@ -595,7 +771,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
           ...(asset.metadata || {}),
           brand_scope:brandProfile.scope,
           brand_name:brandProfile.name,
-          rendered_template_family: VITRA_IMOBILIARIA_TEMPLATE_BASE,
+          rendered_template_family: templateFamily,
           rendered_image_count: imageData.filter(Boolean).length,
           last_render_error:null,
         },

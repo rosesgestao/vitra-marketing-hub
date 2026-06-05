@@ -256,3 +256,37 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - `brandProfiles.js` passou a apontar para `assetBasePath`, `assetManifestPath` e `approvedAssets` de cada marca.
 - O render remoto `render-asset` continua com SVG inline para preservar estabilidade no Supabase Edge Runtime, enquanto o dashboard passa a ter uma biblioteca publica canônica para uso operacional e futuras telas/exportadores.
 - Validacoes executadas: parse dos tres manifests JSON e `npm.cmd run build` no dashboard, ambos com sucesso.
+
+## 2026-06-04 - Templates Aprovados da Vitra Imobiliaria para Trafego Pago
+
+- Decidido que os templates da Vitra Imobiliaria serao aprovados individualmente antes de entrar no fluxo automatico da ferramenta.
+- A marca-mae deve ter catalogo proprio de templates, separado do catalogo da Vitra Premium, para evitar mistura de identidade, tom, CTA e posicionamento.
+- Aprovado o Template 01 `vitra-imobiliaria-dual-photo-offer` para campanhas de oportunidade/oferta com duas fotos, capsula de preco, CTA e slogan.
+- Aprovado o Template 02 `vitra-imobiliaria-patios-gallery` para imoveis com argumentos de patio, suite, metragem, baixo condominio, vaga/localizacao e galeria com tres fotos.
+- O Template 02 foi aprovado nos formatos `1:1`, `9:16` e `1.91:1`, com variantes com moldura fina dourada e sem moldura.
+- Aprovado o Template 03 `vitra-imobiliaria-financiamento-orla` para campanhas de financiamento, oportunidade a partir, bairro/localizacao e argumentos de acesso/valorizacao.
+- O Template 03 foi aprovado nos formatos `1:1`, `9:16` e `1.91:1`, usando logo horizontal aprovada no topo, headline centralizada, duas fotos com moldura dourada, bloco de preco e bairro no rodape.
+- O Template 03 tambem foi padronizado com variantes `com-moldura` e `sem-moldura`, seguindo o mesmo criterio operacional dos Templates 01 e 02.
+- Criado o catalogo `docs/templates-criativos-vitra-imobiliaria.md` para registrar os modelos aprovados da marca-mae.
+- Criado o gerador `dashboard/scripts/generate-vitra-imobiliaria-template-02-patios-galeria.mjs` para reproduzir o Template 02 em todos os formatos aprovados.
+- Criado o gerador `dashboard/scripts/generate-vitra-imobiliaria-template-03-financiamento-orla.mjs` para reproduzir o Template 03 em todos os formatos aprovados.
+- Regra de produto/design: novos modelos de criativos da marca-mae devem ser primeiro gerados, ajustados e aprovados visualmente antes de ficarem disponiveis para selecao no modal `Nova Campanha`.
+- Commit publicado no GitHub: `8a62774 feat: add Vitra Imobiliaria paid traffic templates`.
+
+## 2026-06-04 - Template 04 Menino Deus Aprovado
+
+- Aprovado o Template 04 `vitra-imobiliaria-menino-deus-offer` para campanhas de oportunidade por bairro, menor valor de condominio, diferenciais comerciais e imoveis com foto protagonista.
+- O Template 04 foi aprovado nos formatos `1:1`, `9:16` e `1.91:1`, com variantes `com-moldura` e `sem-moldura`.
+- O modelo usa foto hero, tarja de oportunidade/bairro, logo horizontal aprovada, faixa de caracteristica principal, bloco de preco, argumento lateral, diferenciais e localizacao com pin.
+- Correcoes aprovadas: tarjas e faixas no navy oficial `#0A1628`, ajuste da palavra `OPORTUNIDADE` dentro do retangulo, separador de preco afastado de `MIL`, pin vinculado ao endereco e faixas de transicao padronizadas.
+- Criado o gerador `dashboard/scripts/generate-vitra-imobiliaria-template-04-menino-deus.mjs` para reproduzir o Template 04 em todos os formatos aprovados.
+
+## 2026-06-04 - Catalogo de Templates no Modal Nova Campanha
+
+- Decidido que os templates aprovados deixam de ser apenas referencias visuais e passam a ser selecionaveis no fluxo operacional.
+- Criado o catalogo central `dashboard/src/lib/creativeTemplateCatalog.js`, filtrado por `brand_scope`.
+- Vitra Premium permanece com selecao automatica por objetivo/angulo, preservando a logica ja validada.
+- Vitra Imobiliaria passa a exibir no modal `Nova Campanha` os templates aprovados `dual-photo-offer`, `patios-gallery`, `financiamento-orla` e `menino-deus-offer`.
+- Quando o template possui variantes aprovadas, o usuario escolhe entre `sem moldura` e `com moldura`.
+- A escolha e persistida no `brief`, `content_plan`, metadata dos assets e job de renderizacao.
+- A Edge Function `render-asset` reconhece as familias aprovadas da marca-mae e aplica a rota visual correspondente na geracao dos criativos Meta Ads.

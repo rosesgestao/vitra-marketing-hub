@@ -27,14 +27,17 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 ## Atualizacoes do Projeto
 
 - [[../Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fase_1]]
+- [[../Atualizacao_2026-06-04_Templates_Vitra_Imobiliaria_Trafego_Pago]]
 
 ## Estado Atual
 
-- Fase 1 React + Supabase iniciada.
+- Plataforma operacional multi-marca em evolucao, com ambientes separados para Vitra Premium e Vitra Imobiliaria.
 - Projeto Supabase confirmado: `Marketing Vitra Imobiliaria` (`birxcfkyuzqnhyvetbjv`).
-- Migracao Premium aplicada no Supabase.
-- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`, commit `d22eb86`.
-- Proxima etapa: backend de jobs, renderizacao com Storage e pipeline de assets.
+- Migracao multi-marca aplicada no Supabase.
+- Assets aprovados das duas marcas centralizados em `dashboard/public/brand/`.
+- Templates aprovados da Vitra Imobiliaria registrados para trafego pago.
+- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`, commit `8a62774`.
+- Proxima etapa: transformar o catalogo de templates aprovados em selecao operacional no modal `Nova Campanha`.
 
 ## Arquivos de Referencia
 
@@ -51,4 +54,4 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 
 ## Regra de Marca
 
-Esta ferramenta pertence ao universo Vitra Premium. Nao deve misturar assets, linguagem, CTAs ou estrategia da marca-mae Vitra Imobiliaria sem validacao explicita do Brand System Vitra.
+Esta ferramenta opera ambientes de marca separados. Vitra Premium e Vitra Imobiliaria nao devem misturar assets, linguagem, CTAs, templates ou estrategia sem validacao explicita do Brand System Vitra.

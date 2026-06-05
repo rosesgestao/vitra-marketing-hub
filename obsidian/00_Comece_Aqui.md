@@ -42,6 +42,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 12. **[[Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fase_1]]**
     Registro da Fase 1 da ferramenta operacional Premium: dashboard React, Supabase, migracao aplicada, commits publicados e proximos passos.
 
+13. **[[Atualizacao_2026-06-04_Templates_Vitra_Imobiliaria_Trafego_Pago]]**
+    Registro da aprovacao dos templates reutilizaveis de trafego pago da Vitra Imobiliaria dentro da plataforma operacional multi-marca.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto

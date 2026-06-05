@@ -1,5 +1,14 @@
 import { supabase } from './supabase.js'
 import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandProfiles.js'
+import {
+  creativeTemplateForTemplateKey,
+  defaultCreativeTemplateForBrand,
+  frameForTemplateVariant,
+  isApprovedTemplateKeyForBrand,
+  normalizeCreativeTemplateSelection,
+  referencesForTemplateVariant,
+  templateFamilyFromTemplateKey,
+} from './creativeTemplateCatalog.js'
 
 export const PREMIUM_TABLES = [
   {
@@ -294,7 +303,37 @@ function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfile()) {
   return metaCreativeConceptsForBrand(brandProfile).slice(0, metaCreativeVariationCount(form))
 }
 
+function selectedCreativeTemplate(form, brandProfile = getBrandProfile()) {
+  return normalizeCreativeTemplateSelection(
+    brandProfile.scope,
+    form.creative_template_id,
+    form.creative_template_variant,
+  )
+}
+
+function selectedCreativeTemplateSummary(form, brandProfile = getBrandProfile()) {
+  const { template, variant } = selectedCreativeTemplate(form, brandProfile)
+  if (!template) return null
+  return {
+    id: template.id,
+    family: template.family,
+    mode: template.mode,
+    name: template.name,
+    variant: variant ? {
+      id: variant.id,
+      label: variant.label,
+      frame: variant.frame,
+    } : null,
+    formats: template.formats,
+  }
+}
+
 function buildMetaAssetBlueprints(form, brandProfile = getBrandProfile()) {
+  const { template } = selectedCreativeTemplate(form, brandProfile)
+  const templateBaseOverride = brandProfile.scope === BRAND_SCOPES.imobiliaria && template?.family
+    ? template.family
+    : null
+
   return selectedMetaCreativeConcepts(form, brandProfile).flatMap(concept => (
     META_FORMAT_BLUEPRINTS.map(format => [
       `${concept.key}-${format.key}`,
@@ -303,7 +342,7 @@ function buildMetaAssetBlueprints(form, brandProfile = getBrandProfile()) {
       format.format,
       `Meta Ads ${concept.label} - ${format.title}`,
       format.aspectRatio,
-      `${concept.templateBase}-${format.templateSuffix}`,
+      `${templateBaseOverride || concept.templateBase}-${format.templateSuffix}`,
       concept,
     ])
   ))
@@ -335,21 +374,29 @@ function visualModelForConcept(concept, brandProfile = getBrandProfile()) {
   }
 }
 
-function visualTemplateForAsset({ channel, templateKey, title, concept, brandProfile = getBrandProfile() }) {
+function visualTemplateForAsset({ channel, templateKey, title, concept, form, brandProfile = getBrandProfile() }) {
   if (channel === 'meta_ads' && brandProfile.scope === BRAND_SCOPES.imobiliaria) {
+    const { template: selectedTemplate, variant } = selectedCreativeTemplate(form || {}, brandProfile)
+    const template = creativeTemplateForTemplateKey(brandProfile.scope, templateKey) ||
+      selectedTemplate ||
+      defaultCreativeTemplateForBrand(brandProfile.scope)
+    const variantId = variant?.id || template?.defaultVariant || null
+    const family = template?.family || templateFamilyFromTemplateKey(templateKey)
+
     return {
       key: templateKey,
-      family: VITRA_IMOBILIARIA_TEMPLATE_BASE,
-      label: 'Template aprovado Vitra Imobiliaria - duas fotos + oferta',
-      purpose: 'Gerar criativos Meta Ads da marca-mae mantendo estrutura visual padronizada e variaveis por campanha.',
-      reference_pattern: 'Logo horizontal aprovada, headline em duas linhas, descricao curta, capsula de preco, duas fotos do imovel, dois diferenciais, CTA dourado e slogan.',
-      variable_fields: ['photos', 'headline', 'description', 'price', 'differentials', 'cta'],
-      fixed_brand_rules: ['navy_gold', 'approved_horizontal_logo', '135px_safe_zone', 'thin_gold_frame_optional'],
-      approved_reference_files: [
-        '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-1x1-sem-moldura.png',
-        '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-9x16-sem-moldura.png',
-        '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-1-91x1-sem-moldura.png',
-      ],
+      family,
+      template_id: template?.id || family,
+      variant: variantId,
+      variant_label: variant?.label || null,
+      frame: frameForTemplateVariant(template, variantId),
+      label: template?.name || 'Template aprovado Vitra Imobiliaria',
+      purpose: template?.bestFor || 'Gerar criativos Meta Ads da marca-mae mantendo estrutura visual padronizada e variaveis por campanha.',
+      reference_pattern: template?.shortName || 'Template visual aprovado pelo Brand System Vitra.',
+      variable_fields: template?.variableFields || ['photos', 'headline', 'description', 'price', 'differentials', 'cta'],
+      fixed_brand_rules: template?.fixedBrandRules || ['navy_gold', 'approved_horizontal_logo', 'safe_zone'],
+      approved_reference_files: referencesForTemplateVariant(template, variantId),
+      available_formats: template?.formats || ['1:1', '9:16', '1.91:1'],
     }
   }
 
@@ -366,14 +413,16 @@ function visualTemplateForAsset({ channel, templateKey, title, concept, brandPro
 export function isVitraImobiliariaApprovedTemplateAsset(asset) {
   const templateKey = String(asset?.template_key || asset?.metadata?.visual_template?.key || '')
   return asset?.channel === 'meta_ads' &&
-    templateKey.startsWith(VITRA_IMOBILIARIA_TEMPLATE_BASE)
+    isApprovedTemplateKeyForBrand(BRAND_SCOPES.imobiliaria, templateKey)
 }
 
 export function needsVitraImobiliariaApprovedTemplateRender(asset) {
   if (!isVitraImobiliariaApprovedTemplateAsset(asset)) return false
+  const templateKey = String(asset?.template_key || asset?.metadata?.visual_template?.key || '')
+  const family = asset.metadata?.visual_template?.family || templateFamilyFromTemplateKey(templateKey)
   return asset.status === 'queued' ||
     !asset.public_url ||
-    asset.metadata?.rendered_template_family !== VITRA_IMOBILIARIA_TEMPLATE_BASE
+    asset.metadata?.rendered_template_family !== family
 }
 
 function buildSourceIntake(form) {
@@ -843,6 +892,7 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
   const automationWorkflow = buildAutomationWorkflow(sourceIntake)
   const campaignBlueprints = buildCampaignAssetBlueprints(form, brandProfile)
   const metaCreativeConcepts = selectedMetaCreativeConcepts(form, brandProfile)
+  const creativeTemplate = selectedCreativeTemplateSummary(form, brandProfile)
 
   const campaignPayload = {
     name,
@@ -868,6 +918,7 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
       product_data: productData,
       source_intake: sourceIntake,
       automation_workflow: automationWorkflow,
+      creative_template: creativeTemplate,
       creative_validation: {
         variation_count: metaCreativeConcepts.length,
         cuts_per_variation: META_FORMAT_BLUEPRINTS.length,
@@ -898,6 +949,7 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
     content_plan: {
       brand_scope: brandProfile.scope,
       blueprint_version: 'premium_phase_2_react',
+      creative_template: creativeTemplate,
       asset_count: campaignBlueprints.length,
       post_count: POST_BLUEPRINTS.length,
       automation_level: 'low_touch_paid_traffic',
@@ -959,6 +1011,7 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
         source_images: flattenImages(sourceImages).length,
         auto_selected_images: externalImages.images.length,
         source_image_warnings: externalImages.warnings || [],
+        creative_template: creativeTemplate,
         creative_variations: metaCreativeConcepts.length,
         meta_ads_cuts: metaCreativeConcepts.length * META_FORMAT_BLUEPRINTS.length,
         assets: insertedAssets?.length || 0,
@@ -977,6 +1030,7 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
         storage_bucket: 'cards',
         asset_ids: (insertedAssets || []).map(asset => asset.id),
         automation_workflow: automationWorkflow,
+        creative_template: creativeTemplate,
         creative_validation: campaignPayload.brief.creative_validation,
       },
       output_payload: {
@@ -1244,6 +1298,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
   const productData = buildProductData(form, product)
   const sourceImages = flattenImages(uploadedImages)
   const campaignBlueprints = buildCampaignAssetBlueprints(form, brandProfile)
+  const creativeTemplate = selectedCreativeTemplateSummary(form, brandProfile)
 
   return campaignBlueprints.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey, concept], index) => {
     const headline = buildHeadline(product, place, index, form, concept, brandProfile)
@@ -1251,7 +1306,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
     const adGroup = channel === 'meta_ads' ? concept?.key || blueprintKey.replace(/-(feed|story|wide)$/, '') : null
     const selectedImage = sourceImages.length ? sourceImages[index % sourceImages.length] : null
     const primaryImage = selectedImage?.public_url || null
-    const visualTemplate = visualTemplateForAsset({ channel, templateKey, title, concept, brandProfile })
+    const visualTemplate = visualTemplateForAsset({ channel, templateKey, title, concept, form, brandProfile })
     const metadata = {
       blueprint_key: blueprintKey,
       phase: 'phase_2_react_capture',
@@ -1264,6 +1319,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
         angle: concept.angle,
       } : null,
       visual_template: visualTemplate,
+      creative_template_selection: creativeTemplate,
       brand_scope: brandProfile.scope,
       brand_name: brandProfile.name,
       visual_rules: brandProfile.visualRules,

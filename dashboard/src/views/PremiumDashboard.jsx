@@ -45,6 +45,11 @@ import {
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
+import {
+  creativeTemplatesForBrand,
+  defaultCreativeTemplateForBrand,
+  normalizeCreativeTemplateSelection,
+} from '../lib/creativeTemplateCatalog.js'
 
 const INITIAL_FORM = {
   name: '',
@@ -54,6 +59,8 @@ const INITIAL_FORM = {
   whatsapp_url: '',
   automation_notes: '',
   creative_variations: 8,
+  creative_template_id: '',
+  creative_template_variant: '',
   product_name: '',
   tagline: '',
   property_type: 'Apartamento alto padrão',
@@ -84,8 +91,15 @@ const INITIAL_FORM = {
 }
 
 function initialFormForBrand(brandProfile) {
+  const defaultTemplate = defaultCreativeTemplateForBrand(brandProfile.scope)
+  const defaultVariant = defaultTemplate?.variants?.find(variant => variant.id === defaultTemplate.defaultVariant) ||
+    defaultTemplate?.variants?.[0] ||
+    null
+
   return {
     ...INITIAL_FORM,
+    creative_template_id: defaultTemplate?.id || '',
+    creative_template_variant: defaultVariant?.id || '',
     property_type: brandProfile.defaultProductType,
     target_audience: brandProfile.defaultAudience,
     cta: brandProfile.defaultCta,
@@ -2318,9 +2332,30 @@ function PlatformLabel({ value }) {
 function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit }) {
   const [form, setForm] = useState(() => initialFormForBrand(brandProfile))
   const [localError, setLocalError] = useState(null)
+  const templateOptions = useMemo(() => creativeTemplatesForBrand(brandProfile.scope), [brandProfile.scope])
+  const { template: selectedTemplate, variant: selectedTemplateVariant } = useMemo(
+    () => normalizeCreativeTemplateSelection(brandProfile.scope, form.creative_template_id, form.creative_template_variant),
+    [brandProfile.scope, form.creative_template_id, form.creative_template_variant],
+  )
+
+  useEffect(() => {
+    setForm(initialFormForBrand(brandProfile))
+    setLocalError(null)
+  }, [brandProfile.scope])
 
   function update(field, value) {
     setForm(current => ({ ...current, [field]: value }))
+  }
+
+  function selectTemplate(template) {
+    const variant = template.variants?.find(item => item.id === template.defaultVariant) ||
+      template.variants?.[0] ||
+      null
+    setForm(current => ({
+      ...current,
+      creative_template_id: template.id,
+      creative_template_variant: variant?.id || '',
+    }))
   }
 
   function updateImage(field, files) {
@@ -2438,6 +2473,92 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
               <p className="text-xs leading-5 text-white/42">
                 A ferramenta registra a fonte, usa os uploads como materia-prima imediata e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
               </p>
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex flex-col gap-2 border-b border-white/10 pb-3 sm:flex-row sm:items-end sm:justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Catalogo de Templates</p>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.20em] text-white/35">{brandProfile.name}</span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {templateOptions.map(template => {
+                  const selected = selectedTemplate?.id === template.id
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => selectTemplate(template)}
+                      className={`group overflow-hidden rounded-lg border text-left transition ${
+                        selected
+                          ? 'border-gold-500/70 bg-gold-500/12 shadow-[0_0_0_1px_rgba(196,148,42,0.18)]'
+                          : 'border-white/10 bg-black/24 hover:border-gold-500/35 hover:bg-gold-500/6'
+                      }`}
+                    >
+                      <div className="grid grid-cols-[118px_1fr] gap-0">
+                        <div className="flex h-full min-h-[118px] items-center justify-center border-r border-white/10 bg-[#07111F]">
+                          {template.preview ? (
+                            <img
+                              src={template.preview}
+                              alt=""
+                              className="h-full w-full object-cover opacity-90 transition group-hover:opacity-100"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center px-4">
+                              <BrandHorizontalLogo brandScope={brandProfile.scope} className="scale-90" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex min-h-[118px] flex-col justify-between p-4">
+                          <div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-white">{template.name}</p>
+                                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-400/85">{template.shortName}</p>
+                              </div>
+                              <span className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                                selected ? 'border-gold-500/50 text-gold-200' : 'border-white/10 text-white/35'
+                              }`}>
+                                {selected ? 'Selecionado' : 'Escolher'}
+                              </span>
+                            </div>
+                            <p className="mt-3 line-clamp-2 text-xs leading-5 text-white/48">{template.bestFor}</p>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {template.formats.map(format => (
+                              <span key={format} className="rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-white/45">
+                                {format}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {selectedTemplate?.variants?.length > 1 && (
+                <div className="inline-flex rounded-lg border border-white/10 bg-black/35 p-1">
+                  {selectedTemplate.variants.map(variant => {
+                    const selected = selectedTemplateVariant?.id === variant.id
+                    return (
+                      <button
+                        key={variant.id}
+                        type="button"
+                        onClick={() => update('creative_template_variant', variant.id)}
+                        className={`rounded-md px-3 py-2 text-xs font-semibold transition ${
+                          selected
+                            ? 'bg-gold-500/18 text-gold-100'
+                            : 'text-white/48 hover:bg-white/5 hover:text-white/70'
+                        }`}
+                      >
+                        {variant.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </section>
 
             <section className="space-y-4">
