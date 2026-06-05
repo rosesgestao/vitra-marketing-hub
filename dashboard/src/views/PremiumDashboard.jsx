@@ -52,6 +52,7 @@ import {
   formKeyForTemplateField,
   imageSlotsForTemplate,
   normalizeCreativeTemplateSelection,
+  variationContractForTemplate,
 } from '../lib/creativeTemplateCatalog.js'
 
 const INITIAL_FORM = {
@@ -2336,6 +2337,10 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   )
   const selectedFieldGroups = useMemo(() => fieldGroupsForTemplate(selectedTemplate), [selectedTemplate])
   const selectedImageSlots = useMemo(() => imageSlotsForTemplate(selectedTemplate), [selectedTemplate])
+  const selectedVariationContract = useMemo(
+    () => variationContractForTemplate(selectedTemplate),
+    [selectedTemplate],
+  )
 
   useEffect(() => {
     setForm(initialFormForBrand(brandProfile))
@@ -2491,18 +2496,21 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   />
                 </Field>
 
-                <Field label="Variacoes criativas para teste" labelClass={labelClass}>
+                <Field label="Variacoes por template aprovado" labelClass={labelClass}>
                   <select
                     value={form.creative_variations}
                     onChange={event => update('creative_variations', Number(event.target.value))}
                     className={inputClass}
                   >
-                    <option value={3}>3 variacoes - 9 cortes</option>
-                    <option value={5}>5 variacoes - 15 cortes</option>
-                    <option value={8}>8 variacoes - 24 cortes</option>
-                    <option value={10}>10 variacoes - 30 cortes</option>
-                    <option value={12}>12 variacoes - 36 cortes</option>
+                    <option value={3}>3 variacoes por template - 9 cortes</option>
+                    <option value={5}>5 variacoes por template - 15 cortes</option>
+                    <option value={8}>8 variacoes por template - 24 cortes</option>
+                    <option value={10}>10 variacoes por template - 30 cortes</option>
+                    <option value={12}>12 variacoes por template - 36 cortes</option>
                   </select>
+                  <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
+                    Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
+                  </span>
                 </Field>
 
                 <Field label="Observacoes para automacao" labelClass={labelClass} className="md:col-span-2">
@@ -2601,6 +2609,36 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                       </button>
                     )
                   })}
+                </div>
+              )}
+
+              {selectedVariationContract && (
+                <div className="rounded-lg border border-white/10 bg-black/24 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-400/85">
+                    Variacao controlada pelo template
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Pode variar</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(selectedVariationContract.mutableSlots || []).map(slot => (
+                          <span key={slot} className="rounded border border-gold-500/25 bg-gold-500/10 px-2 py-1 text-[10px] font-semibold text-gold-100/80">
+                            {slot.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Permanece fixo</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(selectedVariationContract.lockedSlots || []).map(slot => (
+                          <span key={slot} className="rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-white/45">
+                            {slot.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </section>

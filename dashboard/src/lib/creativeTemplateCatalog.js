@@ -122,6 +122,61 @@ function vitraImobiliariaReference(prefix) {
   }
 }
 
+const templateVariationContracts = {
+  dualPhotoOffer: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem a composicao aprovada e alterna somente argumento comercial, textos, CTA e ordem das fotos.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'format_grid'],
+    mutableSlots: ['headline', 'subtitle', 'price', 'differentials', 'cta', 'photos'],
+    recipes: [
+      { id: 'oferta-direta', label: 'Oferta direta', phase: '1', angle: 'editorial', headline: '{headline}', copy: '{offer}. Imovel com informacao clara, fotos do produto e proximo passo simples.', cta: '{cta}' },
+      { id: 'valor-comparativo', label: 'Valor comparativo', phase: '2', angle: 'investimento', headline: '{product}: valor para avaliar agora', copy: 'Compare preco, localizacao e diferenciais antes de decidir. A Vitra organiza as informacoes essenciais.', cta: 'Fale com a Vitra' },
+      { id: 'localizacao-bairro', label: 'Localizacao e bairro', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'A localizacao entra como criterio central da decisao. Veja fotos, pontos de interesse e condicoes do imovel.', cta: 'Receber informacoes' },
+      { id: 'diferenciais-produto', label: 'Diferenciais do imovel', phase: '2', angle: 'diferenciais', headline: 'Diferenciais que ajudam na decisao', copy: '{details}. Uma leitura objetiva para entender se este imovel combina com sua busca.', cta: 'Conhecer diferenciais' },
+      { id: 'decisao-rapida', label: 'Convite para avaliacao', phase: '3', angle: 'escassez', headline: 'Oportunidade para avaliar agora', copy: 'Alguns imoveis pedem uma avaliacao rapida e bem informada. Fale com a Vitra para confirmar disponibilidade.', cta: 'Avaliar agora' },
+    ],
+  },
+  patiosGallery: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem galeria, setas e hierarquia aprovadas, variando chamada, ordem de beneficios e foto principal.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'benefit_arrows', 'photo_grid'],
+    mutableSlots: ['headline', 'price', 'features', 'location', 'photos'],
+    recipes: [
+      { id: 'patios-suite', label: 'Configuracao forte', phase: '1', angle: 'diferenciais', headline: '{headline}', copy: '{details}. Destaques que ajudam a entender valor de uso e decisao.', cta: 'Fale com a Vitra' },
+      { id: 'area-privativa', label: 'Area e uso', phase: '2', angle: 'arquitetura', headline: '{area} com boa leitura de uso', copy: 'Planta, area e rotina precisam fazer sentido juntos. Veja os principais pontos deste imovel.', cta: 'Ver detalhes' },
+      { id: 'baixo-custo', label: 'Custo de moradia', phase: '2', angle: 'investimento', headline: 'Compra com criterio de custo e valor', copy: 'Compare valor, condominio e diferenciais antes de decidir. A Vitra ajuda nessa leitura.', cta: 'Comparar informacoes' },
+      { id: 'localizacao-proxima', label: 'Proximidade', phase: '1', angle: 'localizacao', headline: '{product}: perto do que importa', copy: '{location}. Um argumento de localizacao para avaliar junto das fotos e caracteristicas.', cta: 'Conhecer localizacao' },
+      { id: 'visita-decisao', label: 'Chamada para visita', phase: '3', angle: 'escassez', headline: 'Veja se este imovel encaixa na sua rotina', copy: 'Fotos, beneficios e localizacao reunidos para uma avaliacao mais rapida e objetiva.', cta: 'Agendar conversa' },
+    ],
+  },
+  financiamentoOrla: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem bloco de financiamento, fotos duplas e preco aprovado; varia chamada, tese de oportunidade e bairro.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'price_box', 'rounded_photo_frames'],
+    mutableSlots: ['headline', 'financing_claim', 'price', 'neighborhood', 'photos'],
+    recipes: [
+      { id: 'financiamento', label: 'Financiamento', phase: '1', angle: 'investimento', headline: '{headline}', copy: '{financing_claim}. Oportunidade para avaliar condicoes, bairro e fotos do empreendimento.', cta: 'Fale com a Vitra' },
+      { id: 'preco-partida', label: 'Preco de partida', phase: '2', angle: 'curadoria', headline: 'Oportunidade a partir de {price}', copy: 'Confira se esta faixa de valor faz sentido para sua busca e receba os detalhes com a Vitra.', cta: 'Receber detalhes' },
+      { id: 'bairro', label: 'Bairro e localizacao', phase: '1', angle: 'localizacao', headline: '{product} em {neighborhood}', copy: 'Localizacao, fotos e condicoes em uma peca objetiva para comparar antes de decidir.', cta: 'Conhecer o bairro' },
+      { id: 'primeira-compra', label: 'Primeira compra', phase: '2', angle: 'lifestyle', headline: 'Um caminho mais claro para comprar', copy: 'A Vitra organiza as informacoes do imovel para voce entender preco, fotos e proximos passos.', cta: 'Entender condicoes' },
+      { id: 'urgencia', label: 'Avaliacao rapida', phase: '3', angle: 'escassez', headline: 'Avalie disponibilidade e condicoes', copy: 'Campanhas com preco de entrada pedem confirmacao rapida. Fale com a Vitra para seguir com seguranca.', cta: 'Confirmar disponibilidade' },
+    ],
+  },
+  meninoDeus: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem foto protagonista, tarjas navy e bloco comercial claro; varia bairro, argumento e diferencais.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'official_blue_bands', 'address_lockup'],
+    mutableSlots: ['hero_photo', 'neighborhood', 'headline', 'price', 'condo_argument', 'features', 'address'],
+    recipes: [
+      { id: 'bairro-destaque', label: 'Bairro em destaque', phase: '1', angle: 'localizacao', headline: 'Oportunidade em {neighborhood}', copy: '{location}. Uma leitura objetiva para quem quer morar ou investir com apoio da Vitra.', cta: 'Fale com a Vitra' },
+      { id: 'valor-condominio', label: 'Valor e condominio', phase: '2', angle: 'investimento', headline: '{product}: compare custo e valor', copy: 'Preco, condominio e diferenciais reunidos para uma decisao mais segura.', cta: 'Comparar detalhes' },
+      { id: 'suite-configuracao', label: 'Configuracao do imovel', phase: '2', angle: 'diferenciais', headline: '{suites}', copy: '{details}. Veja se a configuracao faz sentido para sua rotina.', cta: 'Ver configuracao' },
+      { id: 'foto-protagonista', label: 'Foto protagonista', phase: '1', angle: 'lifestyle', headline: 'Veja o imovel antes de decidir', copy: 'A foto principal conduz a primeira leitura. Depois, a Vitra ajuda a validar valor, bairro e proximos passos.', cta: 'Receber fotos' },
+      { id: 'convite-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme se ainda esta disponivel', copy: 'Se a localizacao e o valor fazem sentido, o proximo passo e validar disponibilidade com a Vitra.', cta: 'Confirmar disponibilidade' },
+    ],
+  },
+}
+
 export const CREATIVE_TEMPLATE_CATALOG = {
   [BRAND_SCOPES.premium]: [
     {
@@ -159,6 +214,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
         { id: 'living', label: 'Foto direita / lazer', multiple: false, required: true },
         { id: 'extras', label: 'Imagens extras', multiple: true },
       ],
+      variationContract: templateVariationContracts.dualPhotoOffer,
       references: {
         [TEMPLATE_FRAME_VARIANTS.noFrame]: [
           '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-1x1-sem-moldura.png',
@@ -192,6 +248,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
         { id: 'varanda', label: 'Foto 3 / detalhe complementar', multiple: false, required: true },
         { id: 'extras', label: 'Imagens extras', multiple: true },
       ],
+      variationContract: templateVariationContracts.patiosGallery,
       references: vitraImobiliariaReference('template-02-patios-galeria'),
       variableFields: ['photos', 'headline', 'price', 'features', 'location'],
       fixedBrandRules: ['navy_gold', 'approved_horizontal_logo', 'safe_zone', 'benefit_arrows'],
@@ -213,6 +270,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
         { id: 'living', label: 'Foto direita / empreendimento', multiple: false, required: true },
         { id: 'extras', label: 'Imagens extras', multiple: true },
       ],
+      variationContract: templateVariationContracts.financiamentoOrla,
       references: vitraImobiliariaReference('template-03-financiamento-orla'),
       variableFields: ['photos', 'headline', 'financing_claim', 'price', 'neighborhood'],
       fixedBrandRules: ['navy_gold', 'approved_horizontal_logo', 'rounded_photo_frames', 'price_box'],
@@ -233,6 +291,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
         { id: 'fachada', label: 'Foto protagonista', multiple: false, required: true },
         { id: 'extras', label: 'Imagens extras', multiple: true },
       ],
+      variationContract: templateVariationContracts.meninoDeus,
       references: vitraImobiliariaReference('template-04-menino-deus'),
       variableFields: ['hero_photo', 'neighborhood', 'headline', 'price', 'condo_argument', 'features', 'address'],
       fixedBrandRules: ['navy_offwhite', 'official_blue_bands', 'approved_logo', 'address_lockup'],
@@ -297,6 +356,20 @@ export function formKeyForTemplateField(field) {
 
 export function imageSlotsForTemplate(template) {
   return template?.imageSlots?.length ? template.imageSlots : DEFAULT_TEMPLATE_IMAGE_SLOTS
+}
+
+export function variationContractForTemplate(template) {
+  return template?.variationContract || {
+    strategy: 'default_template_slots_only',
+    description: 'Mantem o template selecionado e varia apenas os campos preenchidos no brief.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette'],
+    mutableSlots: template?.variableFields || ['photos', 'headline', 'copy', 'cta'],
+    recipes: [],
+  }
+}
+
+export function variationRecipesForTemplate(template) {
+  return variationContractForTemplate(template).recipes || []
 }
 
 export function frameForTemplateVariant(template, variantId) {

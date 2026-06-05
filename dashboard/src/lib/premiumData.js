@@ -11,6 +11,8 @@ import {
   normalizeCreativeTemplateSelection,
   referencesForTemplateVariant,
   templateFamilyFromTemplateKey,
+  variationContractForTemplate,
+  variationRecipesForTemplate,
 } from './creativeTemplateCatalog.js'
 
 export const PREMIUM_TABLES = [
@@ -302,7 +304,42 @@ function metaCreativeConceptsForBrand(brandProfile) {
     : META_CREATIVE_CONCEPTS
 }
 
+function selectedTemplateVariationConcepts(form, brandProfile = getBrandProfile()) {
+  if (brandProfile.scope !== BRAND_SCOPES.imobiliaria) return []
+
+  const { template } = selectedCreativeTemplate(form, brandProfile)
+  const recipes = variationRecipesForTemplate(template)
+  if (!template?.family || !recipes.length) return []
+
+  const count = metaCreativeVariationCount(form)
+  return Array.from({ length: count }, (_, index) => {
+    const recipe = recipes[index % recipes.length]
+    const cycle = Math.floor(index / recipes.length) + 1
+    const label = recipe.label
+      ? cycle > 1 ? `${recipe.label} ${cycle}` : recipe.label
+      : `Variacao ${index + 1}`
+    const recipeKey = slugify(recipe.id || recipe.label || `variacao-${index + 1}`)
+    return {
+      key: `meta-template-${slugify(template.family)}-${String(index + 1).padStart(2, '0')}-${recipeKey}`,
+      label,
+      phase: recipe.phase || String((index % 3) + 1),
+      templateBase: template.family,
+      angle: recipe.angle || 'template',
+      slot_focus: recipe.slotFocus || recipe.mutableSlots || [],
+      template_recipe: {
+        ...recipe,
+        index: index + 1,
+        total: count,
+      },
+      variation_index: index,
+    }
+  })
+}
+
 function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfile()) {
+  const templateConcepts = selectedTemplateVariationConcepts(form, brandProfile)
+  if (templateConcepts.length) return templateConcepts
+
   return metaCreativeConceptsForBrand(brandProfile).slice(0, metaCreativeVariationCount(form))
 }
 
@@ -317,6 +354,8 @@ function selectedCreativeTemplate(form, brandProfile = getBrandProfile()) {
 function selectedCreativeTemplateSummary(form, brandProfile = getBrandProfile()) {
   const { template, variant } = selectedCreativeTemplate(form, brandProfile)
   if (!template) return null
+  const variationContract = variationContractForTemplate(template)
+  const variationRecipes = variationRecipesForTemplate(template)
   return {
     id: template.id,
     family: template.family,
@@ -335,6 +374,21 @@ function selectedCreativeTemplateSummary(form, brandProfile = getBrandProfile())
       required: Boolean(slot.required),
       multiple: Boolean(slot.multiple),
     })),
+    variation_contract: {
+      strategy: variationContract.strategy,
+      description: variationContract.description,
+      locked_slots: variationContract.lockedSlots || [],
+      mutable_slots: variationContract.mutableSlots || template.variableFields || [],
+      image_strategy: variationContract.imageStrategy || 'rotate_primary_image_keep_template_slots',
+      recipe_count: variationRecipes.length,
+      recipes: variationRecipes.map(recipe => ({
+        id: recipe.id || null,
+        label: recipe.label || null,
+        phase: recipe.phase || null,
+        angle: recipe.angle || null,
+        slot_focus: recipe.slotFocus || recipe.mutableSlots || [],
+      })),
+    },
   }
 }
 
@@ -668,6 +722,10 @@ function imageSourceUrls(sourceIntake = {}) {
   ].map(cleanText).filter(Boolean)))
 }
 
+function isLocalSourcePath(value) {
+  return /^[a-zA-Z]:[\\/]/.test(cleanText(value))
+}
+
 function mergeExternalImages(imageGroups = {}, externalImages = []) {
   if (!externalImages.length) return imageGroups
 
@@ -755,6 +813,10 @@ async function ingestExternalImagesFromSources(sourceIntake = {}) {
     }
   }
 
+  if (urls.some(isLocalSourcePath)) {
+    return localFallback()
+  }
+
   try {
     const { data, error } = await supabase.functions.invoke('ingest-source-images', {
       body: { urls, limit: 12 },
@@ -779,6 +841,120 @@ function sourceImageSelection(image) {
     score: image.score || null,
     reason: image.reason || null,
   }
+}
+
+function splitContentItems(value) {
+  return cleanText(value)
+    .split(/[\n;,]+/)
+    .map(item => item.replace(/^[-\u2022\s]+/, '').trim())
+    .filter(Boolean)
+}
+
+function rotateItems(items, index = 0) {
+  if (!items.length) return []
+  const offset = Math.abs(Number(index) || 0) % items.length
+  return [...items.slice(offset), ...items.slice(0, offset)]
+}
+
+function variationTokens(product, place, form, brandProfile = getBrandProfile()) {
+  const differentials = splitContentItems(form.differentials)
+  const location = cleanText(form.location)
+  const neighborhood = cleanText(form.neighborhood)
+  const area = cleanText(form.area)
+  const suites = cleanText(form.suites)
+  const towers = cleanText(form.towers)
+  const details = [area, suites, towers, differentials.slice(0, 2).join(', ')].filter(Boolean).join('. ')
+
+  return {
+    product: cleanText(product) || 'Imovel Vitra',
+    place: place || location || neighborhood || 'Porto Alegre',
+    location: location || neighborhood || place || 'Porto Alegre',
+    neighborhood: neighborhood || location || 'Porto Alegre',
+    area,
+    suites,
+    towers,
+    price: cleanText(form.price),
+    price_from: cleanText(form.price_from),
+    headline: cleanText(form.suggested_headline) || cleanText(product),
+    copy: cleanText(form.suggested_copy),
+    offer: cleanText(form.offer) || brandProfile.defaultOffer,
+    cta: cleanText(form.cta) || brandProfile.defaultCta,
+    details,
+    financing_claim: cleanText(form.financing_claim) || cleanText(form.tagline),
+    tagline: cleanText(form.tagline),
+    differential1: differentials[0] || area || suites,
+    differential2: differentials[1] || suites || neighborhood,
+    differential3: differentials[2] || towers || location,
+    differential4: differentials[3] || cleanText(form.price),
+  }
+}
+
+function renderVariationText(template, tokens) {
+  return cleanText(template)
+    .replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) => cleanText(tokens[key]) || '')
+    .replace(/\s+([.,;:])/g, '$1')
+    .replace(/^[.,;:]\s*/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function templateRecipeText(concept, field, product, place, form, brandProfile = getBrandProfile()) {
+  const recipe = concept?.template_recipe
+  if (!recipe?.[field]) return ''
+  return renderVariationText(recipe[field], variationTokens(product, place, form, brandProfile))
+}
+
+function templateVariationMetadata(concept) {
+  const recipe = concept?.template_recipe
+  if (!recipe) return null
+  return {
+    id: recipe.id || null,
+    label: recipe.label || null,
+    phase: recipe.phase || null,
+    angle: recipe.angle || null,
+    index: recipe.index || null,
+    total: recipe.total || null,
+    slot_focus: concept?.slot_focus || recipe.slotFocus || recipe.mutableSlots || [],
+  }
+}
+
+function buildTemplateVariationProductData(productData, concept, form, index, headline, copy, cta, brandProfile = getBrandProfile()) {
+  const recipe = concept?.template_recipe
+  if (!recipe) {
+    return {
+      ...productData,
+      suggested_headline: headline || productData.suggested_headline,
+      suggested_copy: copy || productData.suggested_copy,
+      cta: cta || productData.cta,
+    }
+  }
+
+  const tokens = variationTokens(productData.name, productData.location || productData.neighborhood, form, brandProfile)
+  const variationIndex = Number(concept?.variation_index ?? index) || 0
+  const differentials = splitContentItems(productData.differentials)
+  const rotatedDifferentials = rotateItems(differentials, variationIndex)
+  const slotOverrides = Object.fromEntries(
+    Object.entries(recipe.slotOverrides || {})
+      .map(([key, value]) => [key, renderVariationText(value, tokens)])
+      .filter(([, value]) => Boolean(value)),
+  )
+
+  return {
+    ...productData,
+    ...slotOverrides,
+    differentials: rotatedDifferentials.length ? rotatedDifferentials.join('\n') : productData.differentials,
+    suggested_headline: headline || productData.suggested_headline,
+    suggested_copy: copy || productData.suggested_copy,
+    cta: cta || productData.cta,
+  }
+}
+
+function selectTemplateVariationImage(sourceImages, concept, format, index) {
+  if (!sourceImages.length) return null
+  const formatOffset = { feed: 0, story: 1, wide: 2 }[format] || 0
+  const variationIndex = Number(concept?.variation_index ?? index) || 0
+  const recipeOffset = Number(concept?.template_recipe?.photoOffset || 0)
+  return sourceImages[(variationIndex + formatOffset + recipeOffset) % sourceImages.length]
 }
 
 async function ensureCampaignSourceImages(campaignId) {
@@ -1361,8 +1537,20 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
   return campaignBlueprints.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey, concept], index) => {
     const headline = buildHeadline(product, place, index, form, concept, brandProfile)
     const copy = buildAssetCopy(product, offer, channel, form, concept, brandProfile)
+    const assetCta = templateRecipeText(concept, 'cta', product, place, form, brandProfile) || cta
+    const assetProductData = buildTemplateVariationProductData(
+      productData,
+      concept,
+      form,
+      index,
+      headline,
+      copy,
+      assetCta,
+      brandProfile,
+    )
+    const templateVariation = templateVariationMetadata(concept)
     const adGroup = channel === 'meta_ads' ? concept?.key || blueprintKey.replace(/-(feed|story|wide)$/, '') : null
-    const selectedImage = sourceImages.length ? sourceImages[index % sourceImages.length] : null
+    const selectedImage = selectTemplateVariationImage(sourceImages, concept, format, index)
     const primaryImage = selectedImage?.public_url || null
     const visualTemplate = visualTemplateForAsset({ channel, templateKey, title, concept, form, brandProfile })
     const metadata = {
@@ -1375,7 +1563,10 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
         key: concept.key,
         label: concept.label,
         angle: concept.angle,
+        slot_focus: concept.slot_focus || [],
+        variation_index: concept.variation_index ?? null,
       } : null,
+      template_variation: templateVariation,
       visual_template: visualTemplate,
       creative_template_selection: creativeTemplate,
       template_values: templateValues,
@@ -1383,12 +1574,12 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
       brand_scope: brandProfile.scope,
       brand_name: brandProfile.name,
       visual_rules: brandProfile.visualRules,
-      product_data: productData,
+      product_data: assetProductData,
       source_images: uploadedImages,
       source_image_selection: sourceImageSelection(selectedImage),
       source_intake: sourceIntake,
       automation_stage: channel === 'meta_ads' ? 'queued_for_render_and_qa' : 'planned_support_asset',
-      qa_checks: buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta, sourceIntake, brandProfile }),
+      qa_checks: buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, copy, cta: assetCta, sourceIntake, brandProfile }),
     }
 
     if (channel === 'meta_ads') {
@@ -1408,7 +1599,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
       title,
       headline,
       copy,
-      cta,
+      cta: assetCta,
       status: channel === 'whatsapp' || channel === 'email' ? 'planned' : 'queued',
       aspect_ratio: aspectRatio,
       template_key: templateKey,
@@ -1452,8 +1643,10 @@ function buildPostPayloads(campaign, assets, form, brandProfile = getBrandProfil
 }
 
 function buildHeadline(product, place, index, form, concept = null, brandProfile = getBrandProfile()) {
+  const recipeHeadline = templateRecipeText(concept, 'headline', product, place, form, brandProfile)
+  if (recipeHeadline) return recipeHeadline
+
   const suggested = cleanText(form.suggested_headline)
-  if (suggested && brandProfile.scope === BRAND_SCOPES.imobiliaria && cleanText(form.creative_template_id)) return suggested
   if (suggested && (!concept || concept.angle === 'editorial')) return suggested
 
   if (concept?.angle) {
@@ -1502,8 +1695,11 @@ function buildHeadline(product, place, index, form, concept = null, brandProfile
 }
 
 function buildAssetCopy(product, offer, channel, form, concept = null, brandProfile = getBrandProfile()) {
+  const place = cleanText(form.location) || cleanText(form.neighborhood) || 'Porto Alegre'
+  const recipeCopy = templateRecipeText(concept, 'copy', product, place, form, brandProfile)
+  if (recipeCopy) return recipeCopy
+
   const suggested = cleanText(form.suggested_copy)
-  if (suggested && brandProfile.scope === BRAND_SCOPES.imobiliaria && cleanText(form.creative_template_id)) return suggested
   if (suggested && (!concept || concept.angle === 'editorial')) return suggested
 
   if (channel === 'whatsapp') {
@@ -1521,7 +1717,6 @@ function buildAssetCopy(product, offer, channel, form, concept = null, brandProf
   }
 
   if (channel === 'meta_ads' && concept?.angle) {
-    const place = cleanText(form.location) || cleanText(form.neighborhood) || 'Porto Alegre'
     const differentials = cleanText(form.differentials)
     const area = cleanText(form.area)
     const suites = cleanText(form.suites)

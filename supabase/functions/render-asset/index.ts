@@ -114,8 +114,23 @@ async function loadResvgFont() {
 }
 const DIMS: Record<string, [number, number]> = { "1:1": [1080,1080], "9:16": [1080,1920], "4:5": [1080,1350], "16:9": [1280,720], "1.91:1": [1200,628], "desktop": [1200,630] };
 
+function storageTransformUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.pathname.includes("/storage/v1/object/public/")) return null;
+    parsed.pathname = parsed.pathname.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
+    parsed.searchParams.set("width", "700");
+    parsed.searchParams.set("quality", "62");
+    parsed.searchParams.set("resize", "contain");
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 function imageUrlCandidates(url: string): string[] {
-  const candidates = [url];
+  const transformed = storageTransformUrl(url);
+  const candidates = transformed ? [transformed, url] : [url];
   if (/\.webp($|[?#])/i.test(url)) {
     candidates.push(url.replace(/(jpe?g|png)\.webp($|[?#])/i, "$1$2"));
     candidates.push(url.replace(/\.webp($|[?#])/i, "$1"));
@@ -465,7 +480,7 @@ function featureArrow(x: number, y: number, text: string, size = 24) {
 }
 
 function buildVitraPatiosGallerySvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
-  const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const headline = wrapText((asset.headline || pd.suggested_headline || campaign?.name || "OPORTUNIDADE").toString().toUpperCase(), 18, 2);
   const features = productFeatures(pd, campaign, 4);
   while (features.length < 4) features.push(features[0] || "Atendimento consultivo Vitra");
@@ -513,7 +528,7 @@ function buildVitraPatiosGallerySvg(asset: any, campaign: any, images: Array<str
 }
 
 function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
-  const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
   const isWide = W > H * 1.35;
@@ -544,7 +559,7 @@ function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string 
 }
 
 function buildVitraMeninoDeusSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
-  const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
   const isWide = W > H * 1.35;
@@ -582,7 +597,7 @@ function buildVitraMeninoDeusSvg(asset: any, campaign: any, images: Array<string
 function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
-  const pd = campaign?.brief?.product_data ?? asset?.metadata?.product_data ?? {};
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const headline = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
   const lines = wrapText(headline, ar === "1.91:1" ? 18 : 24, 2);
   const description = approvedDescription(pd, asset);
@@ -837,7 +852,7 @@ Deno.serve(async (req) => {
   if (!campaignId && !assetIds) return new Response(JSON.stringify({ error:"informe campaign_id ou asset_ids" }), { status:400, headers:cors });
   const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth:{ persistSession:false } });
   let q = svc.from("premium_campaign_assets").select("*");
-  if (assetIds) q = q.in("id", assetIds); else q = q.eq("campaign_id", campaignId).not("channel","in","(whatsapp,email)").eq("status","queued");
+  if (assetIds) q = q.in("id", assetIds); else q = q.eq("campaign_id", campaignId).eq("channel","meta_ads").eq("status","queued");
   const { data: assets, error: aErr } = await q.limit(limit);
   if (aErr) return new Response(JSON.stringify({ error: aErr.message }), { status:500, headers:cors });
   if (!assets || assets.length === 0) return new Response(JSON.stringify({ rendered:0, failed:0, remaining:0, message:"nenhum asset queued" }), { headers:cors });
@@ -858,7 +873,7 @@ Deno.serve(async (req) => {
       }).eq("id", asset.id);
     }
   }
-  const { count: remaining } = await svc.from("premium_campaign_assets").select("id",{ count:"exact", head:true }).eq("campaign_id", cId).not("channel","in","(whatsapp,email)").eq("status","queued");
+  const { count: remaining } = await svc.from("premium_campaign_assets").select("id",{ count:"exact", head:true }).eq("campaign_id", cId).eq("channel","meta_ads").eq("status","queued");
   if (!remaining) await svc.from("premium_generation_jobs").update({ status: failed===0 ? "done":"error", progress:100, finished_at:new Date().toISOString(), output_payload:{ rendered, failed, results }, error_message: failed?`${failed} falharam`:null }).eq("campaign_id", cId).eq("job_type","asset_render").eq("status","running");
   return new Response(JSON.stringify({ campaign_id:cId, rendered, failed, remaining: remaining || 0, results }), { headers:cors });
 });
