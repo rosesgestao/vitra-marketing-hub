@@ -527,6 +527,7 @@ function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string 
   const logo = isStory ? [334, 86, 392, 92] : isWide ? [54, 96, 178, 42] : [445, 36, 190, 46];
   const price = formatMoneyLike(pd.price || campaign?.offer || "");
   const neighborhood = campaign?.neighborhood || pd.neighborhood || "BAIRRO";
+  const financingClaim = (pd.financing_claim || pd.tagline || "ATE 100% FINANCIADO").toString().toUpperCase();
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
@@ -535,7 +536,7 @@ function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string 
   <svg x="${logo[0]}" y="${logo[1]}" width="${logo[2]}" height="${logo[3]}" viewBox="0 0 300 100">${brandProfile.logo}</svg>
   ${textLine(isWide ? 276 : 540, isStory ? 300 : isWide ? 92 : 176, headline[0] || "OPORTUNIDADE", { fill: "#FFFFFF", size: isWide ? 72 : isStory ? 92 : 82, weight: 900 })}
   ${textLine(isWide ? 276 : 540, isStory ? 390 : isWide ? 160 : 256, headline[1] || "", { fill: GOLD_LIGHT, size: isWide ? 66 : isStory ? 86 : 76, weight: 900 })}
-  ${textLine(isWide ? 276 : 540, isStory ? 456 : isWide ? 202 : 310, "ATE 100% FINANCIADO", { fill: OFF_WHITE, size: isWide ? 22 : 30, weight: 800, spacing: isWide ? 5 : 9 })}
+  ${textLine(isWide ? 276 : 540, isStory ? 456 : isWide ? 202 : 310, compactText(financingClaim, 30), { fill: OFF_WHITE, size: isWide ? 22 : 30, weight: 800, spacing: isWide ? 5 : 9 })}
   ${photos.map((p, i) => imageLayer(images[i] || images[0], `${idBase}-p${i}`, p[0], p[1], p[2], p[3], p[4])).join("")}
   ${priceChip(isStory ? 126 : isWide ? 230 : 130, isStory ? 1464 : isWide ? 496 : 725, isStory ? 828 : isWide ? 740 : 820, isStory ? 210 : isWide ? 80 : 190, price || "Consulte")}
   ${textLine(W / 2, isStory ? 1766 : isWide ? 612 : 1018, compactText(neighborhood, 28).toUpperCase(), { fill: OFF_WHITE, size: isWide ? 18 : 30, weight: 600, spacing: isWide ? 7 : 16 })}
@@ -553,6 +554,7 @@ function buildVitraMeninoDeusSvg(asset: any, campaign: any, images: Array<string
   const neighborhood = (campaign?.neighborhood || pd.neighborhood || "OPORTUNIDADE").toString().toUpperCase();
   const feature = (pd.suites || pd.area || asset.headline || "2 DORMITORIOS C/ SUITE").toString().toUpperCase();
   const price = formatMoneyLike(pd.price || campaign?.offer || "");
+  const condoArgument = (pd.condo_argument || campaign?.offer || "MENOR VALOR DO CONDOMINIO").toString().toUpperCase();
   const features = productFeatures(pd, campaign, 4);
   const loc = pd.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(" - ");
 
@@ -570,6 +572,7 @@ function buildVitraMeninoDeusSvg(asset: any, campaign: any, images: Array<string
   ${textLine(isWide ? 790 : isStory ? 540 : 558, isWide ? 254 : isStory ? 918 : 640, compactText(feature, 32), { fill: "#FFFFFF", size: isWide ? 31 : isStory ? 42 : 38, weight: 900, spacing: 7 })}
   ${textLine(isWide ? 760 : isStory ? 280 : 260, isWide ? 390 : isStory ? 1190 : 806, "APENAS", { anchor: "start", fill: "#0A1628", size: isWide ? 20 : isStory ? 31 : 25, weight: 600, spacing: 5 })}
   ${textLine(isWide ? 760 : isStory ? 170 : 246, isWide ? 436 : isStory ? 1286 : 870, price || "CONSULTE", { anchor: "start", fill: "#0A1628", size: isWide ? 52 : isStory ? 78 : 65, weight: 900 })}
+  ${textLine(isWide ? 1042 : isStory ? 668 : 770, isWide ? 436 : isStory ? 1286 : 870, compactText(condoArgument, 28), { fill: "#0A1628", size: isWide ? 18 : isStory ? 25 : 25, weight: 900 })}
   ${features.slice(0, 4).map((item, index) => textLine(isWide ? 894 : 540, (isWide ? 496 : isStory ? 1338 : 852) + index * (isWide ? 28 : isStory ? 50 : 36), compactText(item, 42), { fill: "#0A1628", size: isWide ? 20 : isStory ? 32 : 25, weight: 800 })).join("")}
   ${textLine(isWide ? 900 : isStory ? 600 : 612, isWide ? 596 : isStory ? 1722 : 1022, compactText(loc || "PORTO ALEGRE", isWide ? 36 : 44).toUpperCase(), { fill: "#0A1628", size: isWide ? 16 : isStory ? 27 : 25, weight: 850 })}
   ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}

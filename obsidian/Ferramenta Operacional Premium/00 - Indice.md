@@ -35,9 +35,9 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 - Projeto Supabase confirmado: `Marketing Vitra Imobiliaria` (`birxcfkyuzqnhyvetbjv`).
 - Migracao multi-marca aplicada no Supabase.
 - Assets aprovados das duas marcas centralizados em `dashboard/public/brand/`.
-- Templates aprovados da Vitra Imobiliaria registrados para trafego pago.
-- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`, commit `8a62774`.
-- Proxima etapa: transformar o catalogo de templates aprovados em selecao operacional no modal `Nova Campanha`.
+- Templates aprovados da Vitra Imobiliaria registrados para trafego pago e disponiveis como catalogo operacional no modal `Nova Campanha`, com campos e slots de imagem dinamicos por template.
+- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`, commit `5962391`.
+- Proxima etapa: validar em uso real o preenchimento guiado por template e acompanhar ajustes finos de renderizacao.
 
 ## Arquivos de Referencia
 

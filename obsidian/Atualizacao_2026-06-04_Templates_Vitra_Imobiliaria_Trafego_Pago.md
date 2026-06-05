@@ -84,6 +84,7 @@ Para a Vitra Imobiliaria, a regra definida foi aprovar cada template individualm
 
 - Repositorio: `leoferrazbrasil/vitra-premium-ferramenta-operacional`
 - Commit publicado: `8a62774 feat: add Vitra Imobiliaria paid traffic templates`
+- Commit publicado: `5962391 feat: add Vitra Imobiliaria template catalog`
 - Branch: `main`
 
 ## Catalogo Operacional Implementado
@@ -100,3 +101,19 @@ O catalogo de templates aprovados da Vitra Imobiliaria foi transformado em funci
 - A selecao escolhida passa a ser persistida no `brief`, no `content_plan`, no metadata dos assets e no job de renderizacao.
 - A funcao `render-asset` passou a reconhecer as familias aprovadas da marca-mae e renderizar de acordo com a familia escolhida.
 - Vitra Premium permanece no modo automatico por objetivo/angulo, sem misturar os templates da marca-mae.
+
+## Configuracao Dinamica por Template
+
+O catalogo evoluiu de uma lista visual para um contrato operacional de template.
+
+- Cada template aprovado agora declara seus proprios grupos de campos obrigatorios e opcionais.
+- O modal `Nova Campanha` exibe apenas os campos necessarios para o template selecionado.
+- Cada template declara seus proprios slots de imagem, incluindo quantidade, rotulo, obrigatoriedade e suporte a multiplas imagens.
+- A validacao do modal passa a considerar o template escolhido: campos obrigatorios e fotos obrigatorias sao checados antes da criacao da campanha.
+- Quando o usuario informa Google Drive, site do imovel ou outra fonte externa de fotos, o fluxo permite seguir sem upload manual imediato.
+- Os valores preenchidos no template sao persistidos como `template_values`.
+- Os slots de imagem do template sao persistidos como `template_image_slots`.
+- Essas informacoes seguem para campanha, plano de conteudo, metadata dos assets e jobs de renderizacao.
+- A funcao Supabase `render-asset` passou a usar campos variaveis especificos dos templates, como chamada de financiamento e argumento lateral de condominio.
+
+Regra registrada: novos templates devem ser adicionados primeiro ao catalogo como manifesto de campos e imagens, para que a interface, a persistencia e o renderizador continuem escalaveis sem criar formularios duplicados.

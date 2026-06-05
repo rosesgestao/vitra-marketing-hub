@@ -48,6 +48,9 @@ import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import {
   creativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
+  fieldGroupsForTemplate,
+  formKeyForTemplateField,
+  imageSlotsForTemplate,
   normalizeCreativeTemplateSelection,
 } from '../lib/creativeTemplateCatalog.js'
 
@@ -72,6 +75,9 @@ const INITIAL_FORM = {
   towers: '',
   differentials: '',
   price: '',
+  price_from: '',
+  condo_argument: '',
+  financing_claim: '',
   suggested_headline: '',
   suggested_copy: '',
   target_audience: 'Compradores e investidores de alto padrão em Porto Alegre',
@@ -111,16 +117,7 @@ const SOURCE_TYPE_OPTIONS = [
   { value: 'site', label: 'Site do empreendimento' },
   { value: 'folder', label: 'Pasta local / rede' },
   { value: 'pdf', label: 'PDF comercial' },
-  { value: 'landing', label: 'Landing page' },
   { value: 'manual', label: 'Brief manual' },
-]
-
-const IMAGE_FIELDS = [
-  { id: 'fachada', label: 'Fachada / principal', multiple: false },
-  { id: 'living', label: 'Interior / living', multiple: false },
-  { id: 'varanda', label: 'Varanda / vista', multiple: false },
-  { id: 'infraestrutura', label: 'Infraestrutura / lazer', multiple: false },
-  { id: 'extras', label: 'Imagens extras', multiple: true },
 ]
 
 const TABS = [
@@ -2337,6 +2334,8 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     () => normalizeCreativeTemplateSelection(brandProfile.scope, form.creative_template_id, form.creative_template_variant),
     [brandProfile.scope, form.creative_template_id, form.creative_template_variant],
   )
+  const selectedFieldGroups = useMemo(() => fieldGroupsForTemplate(selectedTemplate), [selectedTemplate])
+  const selectedImageSlots = useMemo(() => imageSlotsForTemplate(selectedTemplate), [selectedTemplate])
 
   useEffect(() => {
     setForm(initialFormForBrand(brandProfile))
@@ -2358,14 +2357,62 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     }))
   }
 
-  function updateImage(field, files) {
+  function updateImage(field, files, multiple = false) {
     setForm(current => ({
       ...current,
       images: {
         ...current.images,
-        [field]: field === 'extras' ? Array.from(files || []) : files?.[0] || null,
+        [field]: multiple ? Array.from(files || []) : files?.[0] || null,
       },
     }))
+  }
+
+  function updateTemplateField(field, value) {
+    update(formKeyForTemplateField(field), value)
+  }
+
+  function templateFieldValue(field) {
+    return form[formKeyForTemplateField(field)] ?? ''
+  }
+
+  function imageSlotCount(slot) {
+    const value = form.images?.[slot.id]
+    return slot.multiple ? (value?.length || 0) : value ? 1 : 0
+  }
+
+  function renderTemplateField(field) {
+    const commonProps = {
+      value: templateFieldValue(field),
+      onChange: event => updateTemplateField(field, event.target.value),
+      className: inputClass,
+      placeholder: field.placeholder || '',
+      required: Boolean(field.required),
+      maxLength: field.maxLength,
+    }
+
+    if (field.type === 'textarea' || field.type === 'list') {
+      return (
+        <>
+          <textarea
+            {...commonProps}
+            className={`${inputClass} min-h-20 resize-y`}
+          />
+          {field.helper && <span className="mt-1.5 block text-[11px] leading-4 text-white/35">{field.helper}</span>}
+        </>
+      )
+    }
+
+    if (field.type === 'select') {
+      return (
+        <select {...commonProps}>
+          {(field.options || []).map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      )
+    }
+
+    return <input {...commonProps} inputMode={field.type === 'money' ? 'text' : undefined} />
   }
 
   async function submit(event) {
@@ -2373,6 +2420,21 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     const productName = form.product_name.trim()
     if (!productName) {
       setLocalError('Informe o Nome do Produto no inicio do formulario para criar a campanha.')
+      return
+    }
+
+    const requiredField = selectedFieldGroups
+      .flatMap(group => group.fields || [])
+      .find(field => field.required && !String(form[formKeyForTemplateField(field)] || '').trim())
+    if (requiredField) {
+      setLocalError(`Preencha o campo obrigatorio: ${requiredField.label}.`)
+      return
+    }
+
+    const hasExternalImageSource = Boolean(form.source_url?.trim())
+    const requiredImageSlot = selectedImageSlots.find(slot => slot.required && imageSlotCount(slot) === 0)
+    if (requiredImageSlot && !hasExternalImageSource) {
+      setLocalError(`Envie a imagem obrigatoria "${requiredImageSlot.label}" ou informe uma fonte externa com fotos do imovel.`)
       return
     }
 
@@ -2426,24 +2488,6 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                     onChange={event => update('source_url', event.target.value)}
                     className={inputClass}
                     placeholder="Ex: Google Drive, site, pasta da rede ou PDF"
-                  />
-                </Field>
-
-                <Field label="Landing page / destino" labelClass={labelClass}>
-                  <input
-                    value={form.landing_url}
-                    onChange={event => update('landing_url', event.target.value)}
-                    className={inputClass}
-                    placeholder="Ex: https://..."
-                  />
-                </Field>
-
-                <Field label="WhatsApp / atendimento" labelClass={labelClass}>
-                  <input
-                    value={form.whatsapp_url}
-                    onChange={event => update('whatsapp_url', event.target.value)}
-                    className={inputClass}
-                    placeholder="Ex: link wa.me ou canal de atendimento"
                   />
                 </Field>
 
@@ -2561,6 +2605,35 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
               )}
             </section>
 
+            {selectedFieldGroups.map(group => (
+              <section key={group.id} className="space-y-4">
+                <div className="border-b border-white/10 pb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">{group.title}</p>
+                  {group.description && <p className="mt-2 text-xs leading-5 text-white/42">{group.description}</p>}
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {(group.fields || []).map(field => {
+                    const key = formKeyForTemplateField(field)
+                    const full = field.colSpan === 'full' || field.type === 'textarea' || field.type === 'list'
+                    return (
+                      <Field
+                        key={`${group.id}-${field.key}`}
+                        label={`${field.label}${field.required ? ' *' : ''}`}
+                        labelClass={labelClass}
+                        className={full ? 'md:col-span-2' : ''}
+                      >
+                        <div aria-invalid={key === 'product_name' && Boolean(localError && !form.product_name.trim())}>
+                          {renderTemplateField(field)}
+                        </div>
+                      </Field>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+
+            {!selectedFieldGroups.length && (
+              <>
             <section className="space-y-4">
               <p className={sectionTitleClass}>Dados do Produto</p>
               <div className="grid gap-4 md:grid-cols-2">
@@ -2668,20 +2741,21 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                 />
               </Field>
             </section>
+              </>
+            )}
 
             <section className="space-y-4">
               <p className={sectionTitleClass}>Upload de Imagens</p>
               <div className="grid gap-3 md:grid-cols-2">
-                {IMAGE_FIELDS.map(field => {
-                  const value = form.images[field.id]
-                  const count = field.multiple ? value.length : value ? 1 : 0
+                {selectedImageSlots.map(field => {
+                  const count = imageSlotCount(field)
                   const emptyLabel = field.multiple ? '+ Upload (múltiplas)' : '+ Upload'
                   return (
                     <label
                       key={field.id}
                       className="cursor-pointer rounded-lg border border-dashed border-gold-500/25 bg-gold-500/5 p-4 transition hover:border-gold-500/50 hover:bg-gold-500/10"
                     >
-                      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">{field.label}</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">{field.label}{field.required ? ' *' : ''}</span>
                       <span className="mt-3 block text-center text-xs font-semibold text-gold-400">
                         {count ? `${count} arquivo${count > 1 ? 's' : ''}` : emptyLabel}
                       </span>
@@ -2689,7 +2763,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                         type="file"
                         accept="image/*"
                         multiple={field.multiple}
-                        onChange={event => updateImage(field.id, event.target.files)}
+                        onChange={event => updateImage(field.id, event.target.files, field.multiple)}
                         className="sr-only"
                       />
                     </label>

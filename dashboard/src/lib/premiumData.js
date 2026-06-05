@@ -3,7 +3,10 @@ import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandP
 import {
   creativeTemplateForTemplateKey,
   defaultCreativeTemplateForBrand,
+  fieldsForTemplate,
   frameForTemplateVariant,
+  formKeyForTemplateField,
+  imageSlotsForTemplate,
   isApprovedTemplateKeyForBrand,
   normalizeCreativeTemplateSelection,
   referencesForTemplateVariant,
@@ -325,7 +328,44 @@ function selectedCreativeTemplateSummary(form, brandProfile = getBrandProfile())
       frame: variant.frame,
     } : null,
     formats: template.formats,
+    field_keys: fieldsForTemplate(template).map(field => field.key),
+    image_slots: imageSlotsForTemplate(template).map(slot => ({
+      id: slot.id,
+      label: slot.label,
+      required: Boolean(slot.required),
+      multiple: Boolean(slot.multiple),
+    })),
   }
+}
+
+function selectedTemplateValues(form, brandProfile = getBrandProfile()) {
+  const { template } = selectedCreativeTemplate(form, brandProfile)
+  if (!template) return {}
+
+  return Object.fromEntries(
+    fieldsForTemplate(template)
+      .map(field => {
+        const key = formKeyForTemplateField(field)
+        const value = cleanText(form[key])
+        return [field.key, value || null]
+      })
+      .filter(([, value]) => value !== null),
+  )
+}
+
+function selectedTemplateImageSlots(form, brandProfile = getBrandProfile()) {
+  const { template } = selectedCreativeTemplate(form, brandProfile)
+  return imageSlotsForTemplate(template).map(slot => {
+    const value = form.images?.[slot.id]
+    const count = slot.multiple ? (Array.isArray(value) ? value.length : 0) : value ? 1 : 0
+    return {
+      id: slot.id,
+      label: slot.label,
+      required: Boolean(slot.required),
+      multiple: Boolean(slot.multiple),
+      files: count,
+    }
+  })
 }
 
 function buildMetaAssetBlueprints(form, brandProfile = getBrandProfile()) {
@@ -510,7 +550,7 @@ function buildInitialQaChecks({ channel, aspectRatio, primaryImage, headline, co
   ]
 }
 
-function buildInputSnapshot(form, sourceIntake) {
+function buildInputSnapshot(form, sourceIntake, brandProfile = getBrandProfile()) {
   const imageSlots = imageGroupsFromForm(form)
   return {
     source_intake: sourceIntake,
@@ -524,6 +564,8 @@ function buildInputSnapshot(form, sourceIntake) {
     target_audience: cleanText(form.target_audience),
     campaign_objective: cleanText(form.campaign_objective),
     creative_variations: metaCreativeVariationCount(form),
+    template_values: selectedTemplateValues(form, brandProfile),
+    template_image_slots: selectedTemplateImageSlots(form, brandProfile),
     image_slots: Object.fromEntries(
       Object.entries(imageSlots).map(([slot, files]) => [slot, files.length]),
     ),
@@ -539,20 +581,24 @@ function buildProductData(form, product) {
     towers: cleanText(form.towers),
     differentials: cleanText(form.differentials),
     price: cleanText(form.price),
+    price_from: cleanText(form.price_from),
+    financing_claim: cleanText(form.financing_claim) || cleanText(form.tagline),
+    condo_argument: cleanText(form.condo_argument) || cleanText(form.offer),
     suggested_headline: cleanText(form.suggested_headline),
     suggested_copy: cleanText(form.suggested_copy),
+    cta: cleanText(form.cta),
+    neighborhood: cleanText(form.neighborhood),
     location: cleanText(form.location),
   }
 }
 
 function imageGroupsFromForm(form) {
-  return {
-    fachada: form.images?.fachada ? [form.images.fachada] : [],
-    living: form.images?.living ? [form.images.living] : [],
-    varanda: form.images?.varanda ? [form.images.varanda] : [],
-    infraestrutura: form.images?.infraestrutura ? [form.images.infraestrutura] : [],
-    extras: Array.isArray(form.images?.extras) ? form.images.extras : [],
-  }
+  return Object.fromEntries(
+    Object.entries(form.images || {}).map(([slot, value]) => [
+      slot,
+      Array.isArray(value) ? value.filter(Boolean) : value ? [value] : [],
+    ]),
+  )
 }
 
 async function uploadCampaignImages(campaign, slug, form) {
@@ -893,6 +939,8 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
   const campaignBlueprints = buildCampaignAssetBlueprints(form, brandProfile)
   const metaCreativeConcepts = selectedMetaCreativeConcepts(form, brandProfile)
   const creativeTemplate = selectedCreativeTemplateSummary(form, brandProfile)
+  const templateValues = selectedTemplateValues(form, brandProfile)
+  const templateImageSlots = selectedTemplateImageSlots(form, brandProfile)
 
   const campaignPayload = {
     name,
@@ -919,6 +967,8 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
       source_intake: sourceIntake,
       automation_workflow: automationWorkflow,
       creative_template: creativeTemplate,
+      template_values: templateValues,
+      template_image_slots: templateImageSlots,
       creative_validation: {
         variation_count: metaCreativeConcepts.length,
         cuts_per_variation: META_FORMAT_BLUEPRINTS.length,
@@ -950,6 +1000,8 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
       brand_scope: brandProfile.scope,
       blueprint_version: 'premium_phase_2_react',
       creative_template: creativeTemplate,
+      template_values: templateValues,
+      template_image_slots: templateImageSlots,
       asset_count: campaignBlueprints.length,
       post_count: POST_BLUEPRINTS.length,
       automation_level: 'low_touch_paid_traffic',
@@ -1003,7 +1055,7 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
       progress: 100,
       started_at: now,
       finished_at: now,
-      input_payload: buildInputSnapshot(form, sourceIntake),
+      input_payload: buildInputSnapshot(form, sourceIntake, brandProfile),
       output_payload: {
         brand_scope: brandProfile.scope,
         campaign_id: campaign.id,
@@ -1012,6 +1064,8 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
         auto_selected_images: externalImages.images.length,
         source_image_warnings: externalImages.warnings || [],
         creative_template: creativeTemplate,
+        template_values: templateValues,
+        template_image_slots: templateImageSlots,
         creative_variations: metaCreativeConcepts.length,
         meta_ads_cuts: metaCreativeConcepts.length * META_FORMAT_BLUEPRINTS.length,
         assets: insertedAssets?.length || 0,
@@ -1031,6 +1085,8 @@ export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.pr
         asset_ids: (insertedAssets || []).map(asset => asset.id),
         automation_workflow: automationWorkflow,
         creative_template: creativeTemplate,
+        template_values: templateValues,
+        template_image_slots: templateImageSlots,
         creative_validation: campaignPayload.brief.creative_validation,
       },
       output_payload: {
@@ -1299,6 +1355,8 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
   const sourceImages = flattenImages(uploadedImages)
   const campaignBlueprints = buildCampaignAssetBlueprints(form, brandProfile)
   const creativeTemplate = selectedCreativeTemplateSummary(form, brandProfile)
+  const templateValues = selectedTemplateValues(form, brandProfile)
+  const templateImageSlots = selectedTemplateImageSlots(form, brandProfile)
 
   return campaignBlueprints.map(([blueprintKey, assetType, channel, format, title, aspectRatio, templateKey, concept], index) => {
     const headline = buildHeadline(product, place, index, form, concept, brandProfile)
@@ -1320,6 +1378,8 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
       } : null,
       visual_template: visualTemplate,
       creative_template_selection: creativeTemplate,
+      template_values: templateValues,
+      template_image_slots: templateImageSlots,
       brand_scope: brandProfile.scope,
       brand_name: brandProfile.name,
       visual_rules: brandProfile.visualRules,
@@ -1393,6 +1453,7 @@ function buildPostPayloads(campaign, assets, form, brandProfile = getBrandProfil
 
 function buildHeadline(product, place, index, form, concept = null, brandProfile = getBrandProfile()) {
   const suggested = cleanText(form.suggested_headline)
+  if (suggested && brandProfile.scope === BRAND_SCOPES.imobiliaria && cleanText(form.creative_template_id)) return suggested
   if (suggested && (!concept || concept.angle === 'editorial')) return suggested
 
   if (concept?.angle) {
@@ -1442,6 +1503,7 @@ function buildHeadline(product, place, index, form, concept = null, brandProfile
 
 function buildAssetCopy(product, offer, channel, form, concept = null, brandProfile = getBrandProfile()) {
   const suggested = cleanText(form.suggested_copy)
+  if (suggested && brandProfile.scope === BRAND_SCOPES.imobiliaria && cleanText(form.creative_template_id)) return suggested
   if (suggested && (!concept || concept.angle === 'editorial')) return suggested
 
   if (channel === 'whatsapp') {

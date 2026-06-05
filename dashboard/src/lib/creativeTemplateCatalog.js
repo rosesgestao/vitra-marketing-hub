@@ -12,6 +12,101 @@ const variantOptions = [
   { id: TEMPLATE_FRAME_VARIANTS.goldFrame, label: 'Com moldura', frame: 'gold' },
 ]
 
+export const DEFAULT_TEMPLATE_IMAGE_SLOTS = [
+  { id: 'fachada', label: 'Fachada / principal', multiple: false, required: true },
+  { id: 'living', label: 'Interior / living', multiple: false },
+  { id: 'varanda', label: 'Varanda / vista', multiple: false },
+  { id: 'infraestrutura', label: 'Infraestrutura / lazer', multiple: false },
+  { id: 'extras', label: 'Imagens extras', multiple: true },
+]
+
+const commonPremiumFieldGroups = [
+  {
+    id: 'product',
+    title: 'Dados do Produto',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Lake Baikal' },
+      { key: 'tagline', label: 'Tagline / Empreendimento', type: 'text', placeholder: 'Ex: GOLDEN LAKE - MULTIPLAN' },
+      { key: 'location', label: 'Localizacao', type: 'text', placeholder: 'Ex: Orla do Guaiba, Porto Alegre' },
+      { key: 'area', label: 'Metragem', type: 'text', placeholder: 'Ex: 195 a 250 m2' },
+      { key: 'suites', label: 'Suites', type: 'text', placeholder: 'Ex: 4 suites' },
+      { key: 'towers', label: 'Andares / Torres', type: 'text', placeholder: 'Ex: 2 torres de 30 pavimentos' },
+      { key: 'differentials', label: 'Diferenciais', type: 'textarea', placeholder: 'Ex: Beach Club, lago cristalino, spa', colSpan: 'full' },
+      { key: 'price', label: 'Preco', type: 'money', placeholder: 'Ex: Sob consulta' },
+    ],
+  },
+  {
+    id: 'copy',
+    title: 'Textos Base',
+    fields: [
+      { key: 'suggested_headline', label: 'Headline sugerida', type: 'text', placeholder: 'Ex: O proximo capitulo de sofisticacao na Orla', colSpan: 'full' },
+      { key: 'suggested_copy', label: 'Copy sugerida', type: 'textarea', placeholder: 'Ex: Residencias de 195 a 250 m2 com 4 suites.', colSpan: 'full' },
+      { key: 'cta', label: 'CTA padrao', type: 'text', placeholder: 'Ex: Conheca o projeto', colSpan: 'full' },
+    ],
+  },
+]
+
+const dualPhotoOfferFieldGroups = [
+  {
+    id: 'offer',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Isla Zona Sul' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, placeholder: 'Ex: More ou invista no coracao da Zona Norte', colSpan: 'full' },
+      { key: 'area', label: 'Subtitulo / caracteristica', type: 'text', placeholder: 'Ex: 2 dormitorios com suite, churrasqueira e ate 2 vagas', colSpan: 'full' },
+      { key: 'price_from', label: 'Valor de', type: 'money', placeholder: 'Ex: R$ 450 mil' },
+      { key: 'price', label: 'Valor por', type: 'money', required: true, placeholder: 'Ex: R$ 399 mil' },
+      { key: 'differentials', label: 'Diferenciais', type: 'list', required: true, placeholder: 'Um diferencial por linha', helper: 'Use 2 itens para este layout.', colSpan: 'full' },
+      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Clique para receber mais informacoes', colSpan: 'full' },
+    ],
+  },
+]
+
+const patiosGalleryFieldGroups = [
+  {
+    id: 'gallery',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Casa com patio' },
+      { key: 'suggested_headline', label: 'Headline principal', type: 'text', required: true, placeholder: 'Ex: 2 dorm. c/ suite com 2 patios', colSpan: 'full' },
+      { key: 'price', label: 'Valor de oportunidade', type: 'money', required: true, placeholder: 'Ex: R$ 419.000,00' },
+      { key: 'differentials', label: 'Caracteristicas do imovel', type: 'list', required: true, placeholder: '106m2 privativos\nSuite e churrasqueira\nBaixo custo condominio\nVaga escritura coberta', colSpan: 'full' },
+      { key: 'location', label: 'Texto de localizacao', type: 'text', placeholder: 'Ex: A 10 min. do Praia de Belas', colSpan: 'full' },
+      { key: 'neighborhood', label: 'Bairro', type: 'text', placeholder: 'Ex: Medianeira' },
+    ],
+  },
+]
+
+const financiamentoOrlaFieldGroups = [
+  {
+    id: 'financing',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Nova Orla' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, placeholder: 'Ex: 1 dorm e 2 dorm junto a Nova Orla', colSpan: 'full' },
+      { key: 'financing_claim', formKey: 'tagline', label: 'Chamada de financiamento', type: 'text', placeholder: 'Ex: Ate 100% financiado', colSpan: 'full' },
+      { key: 'price', label: 'Valor a partir de', type: 'money', required: true, placeholder: 'Ex: R$ 242.050,00' },
+      { key: 'neighborhood', label: 'Bairro / localizacao curta', type: 'text', placeholder: 'Ex: Bairro Cristal' },
+    ],
+  },
+]
+
+const meninoDeusFieldGroups = [
+  {
+    id: 'opportunity',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Oportunidade Menino Deus' },
+      { key: 'neighborhood', label: 'Bairro em destaque', type: 'text', required: true, placeholder: 'Ex: Menino Deus' },
+      { key: 'suites', label: 'Faixa principal', type: 'text', required: true, placeholder: 'Ex: 2 dormitorios c/ suite', colSpan: 'full' },
+      { key: 'price', label: 'Valor', type: 'money', required: true, placeholder: 'Ex: R$ 539 mil' },
+      { key: 'condo_argument', formKey: 'offer', label: 'Argumento lateral', type: 'text', placeholder: 'Ex: Menor valor do condominio' },
+      { key: 'differentials', label: 'Diferenciais', type: 'list', placeholder: '61m2 - Churrasqueira e sacada\nInfraestrutura completa\nImovel nunca habitado\n10o andar com vista livre', colSpan: 'full' },
+      { key: 'location', label: 'Endereco / localizacao', type: 'text', required: true, placeholder: 'Ex: Av. Jose de Alencar - Menino Deus', colSpan: 'full' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -40,6 +135,8 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       defaultVariant: 'auto',
       variants: [{ id: 'auto', label: 'Automatico', frame: 'auto' }],
       preview: null,
+      fieldGroups: commonPremiumFieldGroups,
+      imageSlots: DEFAULT_TEMPLATE_IMAGE_SLOTS,
       variableFields: ['photos', 'headline', 'copy', 'differentials', 'cta'],
       fixedBrandRules: ['black_gold', 'premium_positioning', 'editorial_hierarchy'],
     },
@@ -56,6 +153,12 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
       variants: variantOptions,
       preview: '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-1x1-sem-moldura.png',
+      fieldGroups: dualPhotoOfferFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto esquerda / fachada', multiple: false, required: true },
+        { id: 'living', label: 'Foto direita / lazer', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
       references: {
         [TEMPLATE_FRAME_VARIANTS.noFrame]: [
           '/generated/vitra-imobiliaria/criativo-zona-norte-nova-identidade-1x1-sem-moldura.png',
@@ -82,6 +185,13 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       defaultVariant: TEMPLATE_FRAME_VARIANTS.goldFrame,
       variants: variantOptions,
       preview: '/generated/vitra-imobiliaria/template-02-patios-galeria-1x1-com-moldura.png',
+      fieldGroups: patiosGalleryFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto 1 / ambiente principal', multiple: false, required: true },
+        { id: 'living', label: 'Foto 2 / area externa', multiple: false, required: true },
+        { id: 'varanda', label: 'Foto 3 / detalhe complementar', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
       references: vitraImobiliariaReference('template-02-patios-galeria'),
       variableFields: ['photos', 'headline', 'price', 'features', 'location'],
       fixedBrandRules: ['navy_gold', 'approved_horizontal_logo', 'safe_zone', 'benefit_arrows'],
@@ -97,6 +207,12 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
       variants: variantOptions,
       preview: '/generated/vitra-imobiliaria/template-03-financiamento-orla-1x1-sem-moldura.png',
+      fieldGroups: financiamentoOrlaFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto esquerda / localizacao', multiple: false, required: true },
+        { id: 'living', label: 'Foto direita / empreendimento', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
       references: vitraImobiliariaReference('template-03-financiamento-orla'),
       variableFields: ['photos', 'headline', 'financing_claim', 'price', 'neighborhood'],
       fixedBrandRules: ['navy_gold', 'approved_horizontal_logo', 'rounded_photo_frames', 'price_box'],
@@ -112,6 +228,11 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
       variants: variantOptions,
       preview: '/generated/vitra-imobiliaria/template-04-menino-deus-1x1-sem-moldura.png',
+      fieldGroups: meninoDeusFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto protagonista', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
       references: vitraImobiliariaReference('template-04-menino-deus'),
       variableFields: ['hero_photo', 'neighborhood', 'headline', 'price', 'condo_argument', 'features', 'address'],
       fixedBrandRules: ['navy_offwhite', 'official_blue_bands', 'approved_logo', 'address_lockup'],
@@ -160,6 +281,22 @@ export function isApprovedTemplateKeyForBrand(brandScope, templateKey) {
 export function referencesForTemplateVariant(template, variantId) {
   if (!template?.references) return []
   return template.references[variantId] || template.references[template.defaultVariant] || []
+}
+
+export function fieldGroupsForTemplate(template) {
+  return template?.fieldGroups?.length ? template.fieldGroups : []
+}
+
+export function fieldsForTemplate(template) {
+  return fieldGroupsForTemplate(template).flatMap(group => group.fields || [])
+}
+
+export function formKeyForTemplateField(field) {
+  return field?.formKey || field?.key
+}
+
+export function imageSlotsForTemplate(template) {
+  return template?.imageSlots?.length ? template.imageSlots : DEFAULT_TEMPLATE_IMAGE_SLOTS
 }
 
 export function frameForTemplateVariant(template, variantId) {
