@@ -222,20 +222,30 @@ function compactText(value: unknown, max = 120) {
 }
 
 function wrapText(value: unknown, maxChars: number, maxLines: number) {
-  const words = compactText(value, maxChars * maxLines + 20).split(/\s+/).filter(Boolean);
+  // Fase 2 (P2): preenche cada linha ate maxChars e, se o texto exceder maxLines,
+  // trunca a ultima linha com reticencias (em vez de cortar palavras no meio e
+  // descartar o resto silenciosamente).
+  const words = String(value ?? "").replace(/\s+/g, " ").trim().split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let line = "";
-  for (const word of words) {
+  let idx = 0;
+  for (; idx < words.length; idx++) {
+    const word = words[idx];
     const next = line ? `${line} ${word}` : word;
     if (next.length > maxChars && line) {
       lines.push(line);
       line = word;
-      if (lines.length === maxLines - 1) break;
+      if (lines.length === maxLines) { line = ""; break; }
     } else {
       line = next;
     }
   }
-  if (line && lines.length < maxLines) lines.push(line);
+  if (line && lines.length < maxLines) { lines.push(line); idx = words.length; }
+  if (idx < words.length && lines.length) {
+    let tail = lines[lines.length - 1];
+    while (tail.length > 0 && tail.length + 1 > maxChars) tail = tail.slice(0, -1);
+    lines[lines.length - 1] = `${tail.replace(/[\s….,;:!?-]+$/, "")}…`;
+  }
   return lines.slice(0, maxLines);
 }
 

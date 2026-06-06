@@ -429,3 +429,16 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Branching (preferido para validar) indisponivel: exige Pro; a validacao foi por dry-run transacional.
 - Frontend retrocompativel ainda NAO publicado (sem config de deploy no repo; host manual).
 - Nota de atualizacao: [[../Atualizacao_2026-06-06_Deploy_Fase1_Producao]].
+
+## 2026-06-06 - Fase 2 Iniciada (P1 duplicacao + P2 headline) e Fix de Autocomplete
+
+- Teste real da Fase 1 expos na saida os problemas mapeados: copy duplicada (8 variacoes, 5 receitas
+  -> 3 anuncios identicos) e headline truncada. Branch `fase2/variacao-headline-ux`.
+- P1: cap das variacoes ao numero de receitas distintas do template (sem duplicar copy) + aviso no
+  modal. DECISAO: nao inventar copy de marca — ampliar o leque de angulos por template e tarefa de
+  conteudo com o marketing (follow-up).
+- P2: `wrapText` com reticencias (corrige tambem perda de palavras em headlines curtas) + `maxLength`/
+  helper nas headlines (financiamento usa `financingHeadlineParts`, que rejeita > 34 chars).
+- Fix: `autoComplete="off"` nos modais (elimina o popup do navegador "Salvar documento de identidade?").
+- Validacao: 51 testes, build, deno check. Edge re-deployada; frontend pendente de host (sem Vercel/config).
+- Nota: [[../Atualizacao_2026-06-06_Fase2_P1_P2_Autocomplete]].

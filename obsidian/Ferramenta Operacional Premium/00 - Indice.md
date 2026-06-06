@@ -37,6 +37,7 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 - [[../Atualizacao_2026-06-06_Fase0_Rede_de_Seguranca]]
 - [[../Atualizacao_2026-06-06_Fase1_Fluxo_Automatico]]
 - [[../Atualizacao_2026-06-06_Deploy_Fase1_Producao]]
+- [[../Atualizacao_2026-06-06_Fase2_P1_P2_Autocomplete]]
 
 ## Estado Atual
 

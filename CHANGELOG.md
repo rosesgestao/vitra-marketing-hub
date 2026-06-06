@@ -1,5 +1,34 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Fase 2 (P1 duplicacao + P2 headline) + fix de autocomplete
+
+Comprovado em producao no teste real: 8 variacoes com 5 receitas geravam 3 anuncios de copy
+identica, e a headline longa truncava ("TESTE DE HEADLINE NO"). Correcoes:
+
+### P1 — duplicacao de copy
+- premiumData.js: `selectedTemplateVariationConcepts` capa a contagem ao numero de receitas
+  distintas do template (`Math.min`), eliminando anuncios com headline/copy repetida; novo
+  `distinctConceptCapacity`.
+- PremiumDashboard.jsx (modal): aviso dinamico quando a contagem escolhida excede os angulos
+  distintos do template ("N angulos distintos — serao gerados N anuncios sem repeticao").
+- variation.test.js: baseline de duplicacao trocado por asserts de distincao; +2 testes.
+
+### P2 — headline
+- render-asset/index.ts: `wrapText` agora preenche as duas linhas e trunca a ultima com
+  reticencias (em vez de cortar palavra no meio e descartar o resto) — corrige tambem casos em
+  que headlines curtas perdiam palavras. Ajuda patios/dual-photo/generico.
+- creativeTemplateCatalog.js: `maxLength` + helper nas headlines (financiamento 34, patios 40,
+  dual-photo 44) — previne na origem a headline que nao cabe (a financiamento usa
+  `financingHeadlineParts`, que rejeita headlines > 34 chars).
+- PremiumDashboard.jsx: `renderTemplateField` passa a exibir o helper tambem em inputs de texto.
+
+### Fix de UX
+- Modais (Nova Campanha e edicao): `autoComplete="off"` no form e nos inputs — elimina o popup
+  do navegador "Salvar documento de identidade?" que classificava a headline como dado pessoal.
+
+### Validacao
+- npm run test:run => 51 passed; npm run build => ok; deno check render-asset => ok.
+
 ## Sessao 2026-06-06 — Deploy da Fase 1 em producao
 
 Backend da Fase 1 aplicado no projeto ativo `birxcfkyuzqnhyvetbjv`: migration claim+reaper,

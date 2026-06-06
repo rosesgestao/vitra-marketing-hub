@@ -314,7 +314,9 @@ export function selectedTemplateVariationConcepts(form, brandProfile = getBrandP
   const recipes = variationRecipesForTemplate(template)
   if (!template?.family || !recipes.length) return []
 
-  const count = metaCreativeVariationCount(form)
+  // Fase 2 (P1): nao gerar mais variacoes do que ha receitas distintas, senao os
+  // anuncios repetem headline/copy (so muda a foto). Cap no numero de angulos do template.
+  const count = Math.min(metaCreativeVariationCount(form), recipes.length)
   return Array.from({ length: count }, (_, index) => {
     const recipe = recipes[index % recipes.length]
     const cycle = Math.floor(index / recipes.length) + 1
@@ -344,6 +346,17 @@ export function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfil
   if (templateConcepts.length) return templateConcepts
 
   return metaCreativeConceptsForBrand(brandProfile).slice(0, metaCreativeVariationCount(form))
+}
+
+// Fase 2 (P1): quantos ANGULOS distintos o template oferece (limite util de variacoes
+// sem repetir copy). Usado para informar a escolha no modal e evitar duplicatas.
+export function distinctConceptCapacity(form, brandProfile = getBrandProfile()) {
+  if (brandProfile.scope === BRAND_SCOPES.imobiliaria) {
+    const { template } = selectedCreativeTemplate(form, brandProfile)
+    const recipes = variationRecipesForTemplate(template)
+    if (template?.family && recipes.length) return recipes.length
+  }
+  return metaCreativeConceptsForBrand(brandProfile).length
 }
 
 export function selectedCreativeTemplate(form, brandProfile = getBrandProfile()) {

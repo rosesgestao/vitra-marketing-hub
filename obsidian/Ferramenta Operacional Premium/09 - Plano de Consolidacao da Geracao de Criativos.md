@@ -67,7 +67,7 @@ Sem `ALTER TABLE`: tentativas/timestamp ficam em `metadata` (o enum de status ja
 - **DEPLOYADA em producao (2026-06-06):** migrations aplicadas, secret no Vault (chave PUBLISHABLE), Edge `render-asset` v36 publicada, cron agendado (jobid 1, a cada minuto) e funcoes travadas (service_role). Verificado em prod (Edge 200/401, pg_net 200, cron succeeded). Frontend retrocompativel ainda nao publicado. Ver [[../Atualizacao_2026-06-06_Deploy_Fase1_Producao]].
 - **Limitacoes documentadas (follow-up):** edicao de anuncio durante render ativo pode gerar 1 render duplicado; o status do job `asset_render` pode nao finalizar com precisao quando a campanha mistura motores (Edge x worker) ou termina so em dead-letter — cosmetico (o asset renderiza/dead-letter corretamente); dashboard so enxerga 600 assets (o cron nao tem esse teto).
 
-### Fase 2 - Qualidade de variacao, fotos e fidelidade
+### Fase 2 - Qualidade de variacao, fotos e fidelidade  *(P1 duplicacao + P2 headline FEITOS em 2026-06-06 — ver [[../Atualizacao_2026-06-06_Fase2_P1_P2_Autocomplete]]; faltam fotos slot-aware, HEIC, resolucao Premium e auto-fit de headline longa)*
 - Acabar com a duplicacao de copy quando count > recipes (variar por ciclo / ampliar recipes); variar preco/ancora por angulo; respeitar `suggested_headline/copy` do usuario em mais variacoes.
 - Selecao de fotos **slot-aware** via `metadata.source_images` (fachada/lazer corretos), em vez do indice global achatado.
 - Poucas fotos sem repeticao silenciosa; parar de marcar `generated` com placeholder de foto faltante.

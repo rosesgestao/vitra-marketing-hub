@@ -7,6 +7,7 @@ import {
   selectedMetaCreativeConcepts,
   selectedTemplateVariationConcepts,
   buildMetaAssetBlueprints,
+  distinctConceptCapacity,
 } from '../premiumData.js'
 
 // Testes de CARACTERIZACAO da Fase 0: documentam o comportamento ATUAL como
@@ -61,18 +62,18 @@ describe('selectedTemplateVariationConcepts (contrato por template)', () => {
     expect(selectedTemplateVariationConcepts({ creative_variations: 8 }, premium)).toEqual([])
   })
 
-  it('Imobiliaria com template default gera N conceitos a partir das recipes', () => {
-    const concepts = selectedTemplateVariationConcepts({ creative_variations: 8 }, imobiliaria)
-    expect(concepts).toHaveLength(8)
+  it('Imobiliaria gera ate o numero de receitas distintas', () => {
+    const concepts = selectedTemplateVariationConcepts({ creative_variations: 5 }, imobiliaria)
+    expect(concepts).toHaveLength(5)
     expect(concepts[0].template_recipe).toBeTruthy()
     expect(concepts[0].variation_index).toBe(0)
   })
 
-  it('BASELINE: com 8 variacoes e 5 recipes, a copy se REPETE (recipes[index % 5])', () => {
-    // Bug conhecido (Fase 2): variacao 6 reusa a recipe da variacao 1.
+  it('Fase 2 (P1): pedir 8 com 5 receitas gera 5 SEM repetir recipe (era 8 com duplicatas)', () => {
     const concepts = selectedTemplateVariationConcepts({ creative_variations: 8 }, imobiliaria)
-    expect(concepts[5].template_recipe.id).toBe(concepts[0].template_recipe.id)
-    expect(concepts[6].template_recipe.id).toBe(concepts[1].template_recipe.id)
+    expect(concepts).toHaveLength(5)
+    const recipeIds = concepts.map(c => c.template_recipe.id)
+    expect(new Set(recipeIds).size).toBe(recipeIds.length) // todos os angulos distintos
   })
 })
 
@@ -86,6 +87,15 @@ describe('selectedMetaCreativeConcepts (selecao efetiva)', () => {
     const concepts = selectedMetaCreativeConcepts({ creative_variations: 5 }, imobiliaria)
     expect(concepts).toHaveLength(5)
     expect(concepts[0].template_recipe).toBeTruthy()
+  })
+})
+
+describe('distinctConceptCapacity (Fase 2 P1)', () => {
+  it('template aprovado da Imobiliaria expoe 5 angulos distintos', () => {
+    expect(distinctConceptCapacity({}, imobiliaria)).toBe(5)
+  })
+  it('Premium expoe os 12 conceitos genericos', () => {
+    expect(distinctConceptCapacity({}, premium)).toBe(12)
   })
 })
 

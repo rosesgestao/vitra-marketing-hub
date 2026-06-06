@@ -40,6 +40,7 @@ import {
   createManualPublication,
   loadPremiumWorkspace,
   needsVitraImobiliariaApprovedTemplateRender,
+  distinctConceptCapacity,
   isRenderablePendingAsset,
   renderCampaignAssets,
   saveAd,
@@ -1998,7 +1999,7 @@ function AdEditModal({ ad, saving, onClose, onSave }) {
             <X size={16} />
           </button>
         </div>
-        <form onSubmit={submit} className="max-h-[calc(92vh-72px)] space-y-4 overflow-y-auto px-6 py-5">
+        <form onSubmit={submit} autoComplete="off" className="max-h-[calc(92vh-72px)] space-y-4 overflow-y-auto px-6 py-5">
           <Field label="Nome do anúncio" labelClass={labelClass}>
             <input value={form.nome} onChange={e => set('nome', e.target.value)} className={inputClass} />
           </Field>
@@ -2061,7 +2062,7 @@ function AssetEditModal({ asset, saving, onClose, onSave }) {
             <X size={16} />
           </button>
         </div>
-        <form onSubmit={submit} className="space-y-4 px-6 py-5">
+        <form onSubmit={submit} autoComplete="off" className="space-y-4 px-6 py-5">
           <Field label="Headline" labelClass={labelClass}>
             <input value={form.headline} onChange={e => setForm(f => ({ ...f, headline: e.target.value }))} className={inputClass} />
           </Field>
@@ -2127,7 +2128,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
 
   return (
     <div className="grid gap-6 xl:grid-cols-[360px,1fr]">
-      <form onSubmit={submit} className="rounded-lg border border-gold-500/20 bg-[#101010] p-4">
+      <form onSubmit={submit} autoComplete="off" className="rounded-lg border border-gold-500/20 bg-[#101010] p-4">
         <div className="mb-4 border-b border-white/10 pb-3">
           <p className="text-sm font-semibold text-white">Mapear publicação real</p>
           <p className="mt-1 text-xs leading-5 text-white/42">Vincule o conteúdo planejado ao post publicado para destravar métricas por peça.</p>
@@ -2446,6 +2447,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
       placeholder: field.placeholder || '',
       required: Boolean(field.required),
       maxLength: field.maxLength,
+      autoComplete: 'off',
     }
 
     if (field.type === 'textarea' || field.type === 'list') {
@@ -2471,7 +2473,12 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
       )
     }
 
-    return <input {...commonProps} inputMode={field.type === 'money' ? 'text' : undefined} />
+    return (
+      <>
+        <input {...commonProps} inputMode={field.type === 'money' ? 'text' : undefined} />
+        {field.helper && <span className="mt-1.5 block text-[11px] leading-4 text-white/35">{field.helper}</span>}
+      </>
+    )
   }
 
   async function submit(event) {
@@ -2524,7 +2531,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
           </button>
         </div>
 
-        <form onSubmit={submit} noValidate className="flex max-h-[calc(92vh-76px)] flex-col">
+        <form onSubmit={submit} noValidate autoComplete="off" className="flex max-h-[calc(92vh-76px)] flex-col">
           <div className="space-y-7 overflow-y-auto px-6 py-6">
             <section className="space-y-4">
               <p className={sectionTitleClass}>Origem e Automacao</p>
@@ -2555,6 +2562,11 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
                     Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
                   </span>
+                  {form.creative_variations > distinctConceptCapacity(form, brandProfile) && (
+                    <span className="mt-1 block text-[11px] leading-4 text-gold-300/80">
+                      Este template tem {distinctConceptCapacity(form, brandProfile)} angulos distintos — serao gerados {distinctConceptCapacity(form, brandProfile)} anuncios sem repeticao ({distinctConceptCapacity(form, brandProfile) * 3} cortes). Acima disso a copy se repetiria.
+                    </span>
+                  )}
                 </Field>
 
                 <Field label="Observacoes para automacao" labelClass={labelClass} className="md:col-span-2">
