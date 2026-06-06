@@ -366,3 +366,25 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Principio: nada de prometer na UI automacao que nao existe; mudancas incrementais, reversiveis e
   validadas por build; mexer em seguranca/RLS so com coordenacao previa.
 - Detalhamento, esforco e decisoes pendentes em [[08 - Auditoria e Plano de Evolucao]].
+
+## 2026-06-06 - Plano da Pipeline de Criativos e Fase 0 Executada
+
+- Realizado mergulho dirigido na funcionalidade central (geracao de criativos para trafego pago)
+  e registrado o plano de consolidacao em [[09 - Plano de Consolidacao da Geracao de Criativos]],
+  com status das 11 dimensoes e plano faseado (Fase 0 a 4).
+- Diagnostico-chave: a pipeline gera N x 3 variacoes e o caminho feliz funciona, mas o fluxo
+  automatico esta quebrado (3 drenadores divergentes, Edge sem claim atomico nem marcacao de
+  `error`, cron com placeholder de auth) e havia ausencia total de testes.
+- Decisao: executar a Fase 0 (rede de seguranca) primeiro, sem excecao, antes de qualquer
+  refatoracao das Fases 1-4.
+- Fase 0 entregue na branch `fase0/rede-de-seguranca`:
+  - Vitest + `vitest.config.js` standalone (node, sem o middleware de dev); scripts `test`/`test:run`.
+  - 41 testes de caracterizacao das funcoes puras de geracao/variacao/distribuicao de imagem/formatos
+    e do catalogo; bugs conhecidos congelados como baseline.
+  - 12 funcoes puras de `premiumData.js` expostas com `export` (mudanca aditiva, sem alterar logica).
+  - CI em `.github/workflows/ci.yml`: `npm ci` + `test:run` + `vite build` + `deno check` nas Edge Functions.
+  - Validacao: `npm run test:run` (41 passed) e `npm run build` (ok, bundle identico).
+- Nota de atualizacao: [[../Atualizacao_2026-06-06_Fase0_Rede_de_Seguranca]].
+- Proximo passo: Fase 1 do plano da pipeline (drain unico server-side, claim atomico, maquina de
+  estados `queued -> rendering -> generated | error` com retry, corrigir o cron, tirar o render-worker
+  do caminho concorrente).
