@@ -6,6 +6,7 @@ import {
   Briefcase,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -96,6 +97,14 @@ const INITIAL_FORM = {
     extras: [],
   },
 }
+
+const CREATIVE_VARIATION_OPTIONS = [
+  { value: 3, label: '3 variacoes por template - 9 cortes' },
+  { value: 5, label: '5 variacoes por template - 15 cortes' },
+  { value: 8, label: '8 variacoes por template - 24 cortes' },
+  { value: 10, label: '10 variacoes por template - 30 cortes' },
+  { value: 12, label: '12 variacoes por template - 36 cortes' },
+]
 
 function initialFormForBrand(brandProfile) {
   const defaultTemplate = defaultCreativeTemplateForBrand(brandProfile.scope)
@@ -2452,11 +2461,12 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
 
     if (field.type === 'select') {
       return (
-        <select {...commonProps}>
-          {(field.options || []).map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+        <BrandedSelect
+          value={commonProps.value}
+          onChange={value => updateTemplateField(field, value)}
+          options={field.options || []}
+          placeholder={field.placeholder || 'Selecionar'}
+        />
       )
     }
 
@@ -2519,15 +2529,11 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
               <p className={sectionTitleClass}>Origem e Automacao</p>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Fonte das fotos e informacoes" labelClass={labelClass}>
-                  <select
+                  <BrandedSelect
                     value={form.source_type}
-                    onChange={event => update('source_type', event.target.value)}
-                    className={inputClass}
-                  >
-                    {SOURCE_TYPE_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
+                    onChange={value => update('source_type', value)}
+                    options={SOURCE_TYPE_OPTIONS}
+                  />
                 </Field>
 
                 <Field label="Link ou caminho da fonte" labelClass={labelClass}>
@@ -2540,17 +2546,11 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                 </Field>
 
                 <Field label="Variacoes por template aprovado" labelClass={labelClass}>
-                  <select
+                  <BrandedSelect
                     value={form.creative_variations}
-                    onChange={event => update('creative_variations', Number(event.target.value))}
-                    className={inputClass}
-                  >
-                    <option value={3}>3 variacoes por template - 9 cortes</option>
-                    <option value={5}>5 variacoes por template - 15 cortes</option>
-                    <option value={8}>8 variacoes por template - 24 cortes</option>
-                    <option value={10}>10 variacoes por template - 30 cortes</option>
-                    <option value={12}>12 variacoes por template - 36 cortes</option>
-                  </select>
+                    onChange={value => update('creative_variations', Number(value))}
+                    options={CREATIVE_VARIATION_OPTIONS}
+                  />
                   <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
                     Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
                   </span>
@@ -2883,6 +2883,87 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+function BrandedSelect({ value, options = [], onChange, placeholder = 'Selecionar', disabled = false }) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
+  const normalizedOptions = options.map(option => (
+    typeof option === 'string' ? { value: option, label: option } : option
+  ))
+  const selectedOption = normalizedOptions.find(option => String(option.value) === String(value))
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    function closeOnOutsideClick(event) {
+      if (!rootRef.current?.contains(event.target)) setOpen(false)
+    }
+
+    window.addEventListener('pointerdown', closeOnOutsideClick)
+    return () => window.removeEventListener('pointerdown', closeOnOutsideClick)
+  }, [open])
+
+  function choose(optionValue) {
+    onChange(optionValue)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen(current => !current)}
+        onKeyDown={event => {
+          if (event.key === 'Escape') setOpen(false)
+        }}
+        className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:cursor-not-allowed disabled:opacity-55 ${
+          open
+            ? 'border-gold-500/65 bg-[#07111F] text-gold-50 shadow-[0_0_0_1px_rgba(196,148,42,0.18)]'
+            : 'border-white/10 bg-black/35 text-white hover:border-gold-500/38 hover:bg-[#07111F]/70'
+        }`}
+      >
+        <span className={selectedOption ? 'truncate text-white' : 'truncate text-white/30'}>
+          {selectedOption?.label || placeholder}
+        </span>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-gold-300/80 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-[80] mt-1 max-h-64 overflow-y-auto rounded-lg border border-gold-500/35 bg-[#07111F] py-1 shadow-2xl shadow-black/80"
+        >
+          {normalizedOptions.map(option => {
+            const selected = String(option.value) === String(value)
+            return (
+              <button
+                key={String(option.value)}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => choose(option.value)}
+                className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition focus:outline-none ${
+                  selected
+                    ? 'bg-gold-500/18 text-gold-100'
+                    : 'text-white/72 hover:bg-white/[0.055] hover:text-white focus:bg-white/[0.055] focus:text-white'
+                }`}
+              >
+                <span className="min-w-0 truncate">{option.label}</span>
+                {selected && <Check size={14} className="shrink-0 text-gold-300" />}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

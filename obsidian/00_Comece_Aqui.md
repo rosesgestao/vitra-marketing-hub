@@ -48,6 +48,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 14. **[[Atualizacao_2026-06-05_Variacoes_Por_Template_Aprovado]]**
     Registro da transformacao da antiga logica de variacoes criativas em variacoes por template aprovado, com contratos de campos variaveis, deploy da funcao `render-asset` e commit publicado.
 
+15. **[[Atualizacao_2026-06-06_Geracao_Automatica_Render_Asset]]**
+    Registro da correcao do CORS da funcao `render-asset`, tratamento do erro transitorio `546`, validacoes remotas e commit publicado.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto

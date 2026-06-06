@@ -21,6 +21,9 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-financiamento-orla",
   "vitra-imobiliaria-menino-deus-offer",
 ];
+const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION: Record<string, string> = {
+  "vitra-imobiliaria-financiamento-orla": "financiamento-orla-approved-v7",
+};
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
   "premium-editorial-panel": "Painel editorial + imagem",
@@ -479,6 +482,145 @@ function featureArrow(x: number, y: number, text: string, size = 24) {
   </g>`;
 }
 
+function isFinancingVisualHeadline(value: unknown) {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return false;
+  if (/R\$\s*[\d.,]+|OPORTUNIDADE\s+A\s+PARTIR/i.test(text)) return false;
+  if (text.length > 34 && !/\bJUNTO\b/i.test(text)) return false;
+  return true;
+}
+
+function financingHeadlineParts(asset: any, campaign: any) {
+  const campaignPd = campaign?.brief?.product_data ?? {};
+  const assetPd = asset?.metadata?.product_data ?? {};
+  const templateValues = asset?.metadata?.template_values ?? {};
+  const variableHeadline =
+    assetPd.suggested_headline ||
+    asset?.headline ||
+    "";
+  const raw = (
+    (isFinancingVisualHeadline(variableHeadline) ? variableHeadline : "") ||
+    templateValues.suggested_headline ||
+    assetPd.template_headline ||
+    campaignPd.suggested_headline ||
+    campaignPd.headline ||
+    "1DORM E 2DORM JUNTO A NOVA ORLA"
+  ).toString().replace(/\s+/g, " ").trim().toUpperCase();
+  const normalized = raw || "1DORM E 2DORM JUNTO A NOVA ORLA";
+  const marker = normalized.match(/\s+JUNTO\s+/);
+  if (marker?.index && marker.index > 0) {
+    return [
+      normalized.slice(0, marker.index).trim(),
+      normalized.slice(marker.index + 1).trim(),
+    ];
+  }
+  const split = normalized.split(/\s*[|/]\s*/).filter(Boolean);
+  if (split.length >= 2) return [split[0], split.slice(1).join(" ")];
+  const fromPrice = normalized.match(/\s+A\s+PARTIR\s+DE\s+/);
+  if (fromPrice?.index && fromPrice.index > 0) {
+    return [
+      normalized.slice(0, fromPrice.index + " A PARTIR".length).trim(),
+      normalized.slice(fromPrice.index + " A PARTIR".length).trim(),
+    ];
+  }
+  const lines = wrapText(normalized, 18, 2);
+  return [lines[0] || "1DORM E 2DORM", lines[1] || "JUNTO A NOVA ORLA"];
+}
+
+function financingDefs(idBase: string, photoDefs: string) {
+  return `<defs>
+    <radialGradient id="${idBase}-financingBg" cx="42%" cy="28%" r="92%">
+      <stop offset="0%" stop-color="#123B86"/>
+      <stop offset="43%" stop-color="#0A1628"/>
+      <stop offset="100%" stop-color="#07111F"/>
+    </radialGradient>
+    <linearGradient id="${idBase}-blueVeil" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#164DA6" stop-opacity="0.58"/>
+      <stop offset="42%" stop-color="#0A1628" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#07111F" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="${idBase}-goldStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F0C95C"/>
+      <stop offset="54%" stop-color="#C4942A"/>
+      <stop offset="100%" stop-color="#9B7A1C"/>
+    </linearGradient>
+    ${photoDefs}
+    <filter id="${idBase}-softShadow" x="-20%" y="-30%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.24"/>
+    </filter>
+  </defs>`;
+}
+
+function financingBackground(W: number, H: number, idBase: string) {
+  return `<rect width="${W}" height="${H}" fill="url(#${idBase}-financingBg)"/>
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-blueVeil)" opacity="0.82"/>
+  <path d="M${-W * 0.12} 0 L${W * 0.34} 0 L${W * 0.18} ${H} H${-W * 0.12} Z" fill="#2E6BB5" opacity="0.11"/>
+  <path d="M${W * 0.74} 0 L${W + 40} 0 V${H} H${W * 0.88} Z" fill="#C4942A" opacity="0.04"/>`;
+}
+
+function financingFrame(W: number, H: number, frame: boolean, isStory: boolean, isWide: boolean) {
+  if (!frame) return "";
+  const inset = isWide ? 6 : 22;
+  const radius = isStory ? 34 : isWide ? 20 : 28;
+  return `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${H - inset * 2}" rx="${radius}" fill="none" stroke="${GOLD}" stroke-width="1.3" opacity="0.78"/>`;
+}
+
+function textSizeForWidth(text: unknown, base: number, min: number, idealChars: number) {
+  const length = String(text ?? "").replace(/\s+/g, " ").trim().length;
+  if (!length || length <= idealChars) return base;
+  return Math.max(min, Math.round(base * (idealChars / length)));
+}
+
+function financingTitleBlock(x: number, y: number, lineA: string, lineB: string, claim: string, opts: Record<string, any>) {
+  const anchor = opts.anchor || "middle";
+  const family = "Arial Narrow, Impact, Inter, Arial, sans-serif";
+  const lineAChars = opts.lineAChars || opts.lineChars || 24;
+  const lineBChars = opts.lineBChars || opts.lineChars || 24;
+  const sizeA = textSizeForWidth(lineA, opts.sizeA, opts.minSizeA || Math.round(opts.sizeA * 0.72), lineAChars);
+  const sizeB = textSizeForWidth(lineB, opts.sizeB, opts.minSizeB || Math.round(opts.sizeB * 0.72), lineBChars);
+  return `${textLine(x, y, compactText(lineA, Math.max(lineAChars + 8, 32)), { anchor, fill: "#FFFFFF", family, size: sizeA, weight: 900 })}
+  ${textLine(x, y + opts.gapA, compactText(lineB, Math.max(lineBChars + 8, 32)), { anchor, fill: GOLD_LIGHT, family, size: sizeB, weight: 900 })}
+  ${textLine(x, y + opts.gapB, compactText(claim, 30), { anchor, fill: OFF_WHITE, family: "Inter, Arial, sans-serif", size: opts.claimSize, weight: 800, spacing: opts.claimSpacing })}`;
+}
+
+function financingPhotoLayer(href: string | null, idBase: string, id: string, x: number, y: number, w: number, h: number, rx: number, strokeWidth: number, shadow = true) {
+  const fallback = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="#07111F"/>
+    <text x="${x + w / 2}" y="${y + h / 2}" text-anchor="middle" fill="${GOLD}" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="3">FOTO DO IMOVEL</text>`;
+  const filter = shadow ? ` filter="url(#${idBase}-softShadow)"` : "";
+  return `<g${filter}>
+    ${href ? `<image href="${esc(href)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>` : fallback}
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="url(#${idBase}-goldStroke)" stroke-width="${strokeWidth}"/>
+  </g>`;
+}
+
+function financingPriceBox(x: number, y: number, w: number, h: number, labelY: number, priceY: number, labelSize: number, priceSize: number, price: string, idBase: string, radius = 34) {
+  const family = "Arial Narrow, Impact, Inter, Arial, sans-serif";
+  const safePriceSize = textSizeForWidth(price || "CONSULTE", priceSize, Math.round(priceSize * 0.72), priceSize >= 100 ? 11 : 14);
+  return `<g>
+    ${textLine(x + w / 2, labelY, "OPORTUNIDADE A PARTIR", { fill: OFF_WHITE, family: "Inter, Arial, sans-serif", size: labelSize, weight: 800, spacing: 9 })}
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${radius}" fill="#0A1628" opacity="0.78" stroke="url(#${idBase}-goldStroke)" stroke-width="7"/>
+    ${textLine(x + w / 2, priceY, price || "CONSULTE", { fill: GOLD_LIGHT, family, size: safePriceSize, weight: 900 })}
+  </g>`;
+}
+
+function templateVariationIndex(asset: any) {
+  const value =
+    asset?.metadata?.template_variation?.index ??
+    asset?.metadata?.creative_concept?.variation_index ??
+    asset?.metadata?.template_recipe?.index ??
+    0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function rotateFinancingImages(images: Array<string | null>, asset: any, isStory: boolean, isWide: boolean) {
+  const unique = [...new Set(images.filter(Boolean).map((url) => String(url)))];
+  if (unique.length <= 1) return unique;
+  const formatOffset = isWide ? 2 : isStory ? 1 : 0;
+  const offset = (templateVariationIndex(asset) + formatOffset) % unique.length;
+  return [...unique.slice(offset), ...unique.slice(0, offset)];
+}
+
 function buildVitraPatiosGallerySvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const headline = wrapText((asset.headline || pd.suggested_headline || campaign?.name || "OPORTUNIDADE").toString().toUpperCase(), 18, 2);
@@ -532,7 +674,7 @@ function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string 
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
   const isWide = W > H * 1.35;
-  const headline = wrapText((asset.headline || pd.suggested_headline || campaign?.name || "1DORM E 2DORM JUNTO A NOVA ORLA").toString().toUpperCase(), 22, 2);
+  const [headlineA, headlineB] = financingHeadlineParts(asset, campaign);
   const photos = isStory
     ? [[116, 548, 848, 360, 30], [116, 952, 848, 360, 30]]
     : isWide
@@ -541,19 +683,32 @@ function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string 
   const photoDefs = photos.map((p, i) => `<clipPath id="${idBase}-p${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("");
   const logo = isStory ? [334, 86, 392, 92] : isWide ? [54, 96, 178, 42] : [445, 36, 190, 46];
   const price = formatMoneyLike(pd.price || campaign?.offer || "");
-  const neighborhood = campaign?.neighborhood || pd.neighborhood || "BAIRRO";
-  const financingClaim = (pd.financing_claim || pd.tagline || "ATE 100% FINANCIADO").toString().toUpperCase();
+  const neighborhood = pd.neighborhood || campaign?.neighborhood || "BAIRRO";
+  const financingClaim = (pd.financing_claim || pd.tagline || "ATE 100% FINANCIADO").toString().replace(/\s+/g, " ").trim().toUpperCase();
+  const strokeWidth = isWide ? 5 : 7;
+  const orderedImages = rotateFinancingImages(images, asset, isStory, isWide);
+  const photoA = orderedImages[0] || orderedImages[1] || null;
+  const photoB = orderedImages[1] || orderedImages[0] || null;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  ${baseDefs(idBase, photoDefs)}
-  <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
-  ${outerFrame(W, H, frame, isWide ? 6 : 22, isStory ? 34 : 20)}
+  ${financingDefs(idBase, photoDefs)}
+  ${financingBackground(W, H, idBase)}
+  ${financingFrame(W, H, frame, isStory, isWide)}
   <svg x="${logo[0]}" y="${logo[1]}" width="${logo[2]}" height="${logo[3]}" viewBox="0 0 300 100">${brandProfile.logo}</svg>
-  ${textLine(isWide ? 276 : 540, isStory ? 300 : isWide ? 92 : 176, headline[0] || "OPORTUNIDADE", { fill: "#FFFFFF", size: isWide ? 72 : isStory ? 92 : 82, weight: 900 })}
-  ${textLine(isWide ? 276 : 540, isStory ? 390 : isWide ? 160 : 256, headline[1] || "", { fill: GOLD_LIGHT, size: isWide ? 66 : isStory ? 86 : 76, weight: 900 })}
-  ${textLine(isWide ? 276 : 540, isStory ? 456 : isWide ? 202 : 310, compactText(financingClaim, 30), { fill: OFF_WHITE, size: isWide ? 22 : 30, weight: 800, spacing: isWide ? 5 : 9 })}
-  ${photos.map((p, i) => imageLayer(images[i] || images[0], `${idBase}-p${i}`, p[0], p[1], p[2], p[3], p[4])).join("")}
-  ${priceChip(isStory ? 126 : isWide ? 230 : 130, isStory ? 1464 : isWide ? 496 : 725, isStory ? 828 : isWide ? 740 : 820, isStory ? 210 : isWide ? 80 : 190, price || "Consulte")}
+  ${isWide
+    ? financingTitleBlock(276, 92, headlineA, headlineB, financingClaim, { anchor: "start", sizeA: 72, sizeB: 66, claimSize: 22, claimSpacing: 5, gapA: 68, gapB: 110, lineAChars: 22, lineBChars: 25, minSizeA: 44, minSizeB: 43 })
+    : isStory
+      ? financingTitleBlock(540, 300, headlineA, headlineB, financingClaim, { sizeA: 92, sizeB: 86, claimSize: 30, claimSpacing: 9, gapA: 90, gapB: 156, lineAChars: 20, lineBChars: 23, minSizeA: 54, minSizeB: 52 })
+      : financingTitleBlock(540, 176, headlineA, headlineB, financingClaim, { sizeA: 82, sizeB: 76, claimSize: 28, claimSpacing: 9, gapA: 80, gapB: 134, lineAChars: 20, lineBChars: 23, minSizeA: 52, minSizeB: 50 })
+  }
+  ${financingPhotoLayer(photoA, idBase, `${idBase}-p0`, photos[0][0], photos[0][1], photos[0][2], photos[0][3], photos[0][4], strokeWidth, !isStory)}
+  ${financingPhotoLayer(photoB, idBase, `${idBase}-p1`, photos[1][0], photos[1][1], photos[1][2], photos[1][3], photos[1][4], strokeWidth, !isStory)}
+  ${isWide
+    ? financingPriceBox(230, 496, 740, 80, 480, 558, 20, 56, price, idBase, 22)
+    : isStory
+      ? financingPriceBox(126, 1464, 828, 210, 1412, 1608, 30, 102, price, idBase, 34)
+      : financingPriceBox(130, 725, 820, 190, 692, 858, 31, 112, price, idBase, 34)
+  }
   ${textLine(W / 2, isStory ? 1766 : isWide ? 612 : 1018, compactText(neighborhood, 28).toUpperCase(), { fill: OFF_WHITE, size: isWide ? 18 : 30, weight: 600, spacing: isWide ? 7 : 16 })}
 </svg>`;
 }
@@ -756,7 +911,11 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
       step = "load_template_images";
       const imageUrls = imageUrlsForApprovedTemplate(asset, campaign);
       const imageData: Array<string | null> = [];
-      const maxTemplateImages = templateFamily === "vitra-imobiliaria-patios-gallery" ? 3 : 2;
+      const maxTemplateImages = templateFamily === "vitra-imobiliaria-financiamento-orla"
+        ? 3
+        : templateFamily === "vitra-imobiliaria-patios-gallery"
+          ? 3
+          : 2;
       for (const url of imageUrls) {
         if (imageData.length >= maxTemplateImages) break;
         const dataUri = await toDataUri(url);
@@ -790,6 +949,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
           brand_scope:brandProfile.scope,
           brand_name:brandProfile.name,
           rendered_template_family: templateFamily,
+          ...(VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[templateFamily] ? { rendered_template_version: VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[templateFamily] } : {}),
           rendered_image_count: imageData.filter(Boolean).length,
           last_render_error:null,
         },
@@ -853,7 +1013,7 @@ Deno.serve(async (req) => {
   let body: any = {}; try { body = await req.json(); } catch {}
   const campaignId = body.campaign_id || null;
   const assetIds = Array.isArray(body.asset_ids) ? body.asset_ids : null;
-  const limit = Math.min(Number(body.limit || 4), 12);
+  const limit = Math.min(Math.max(Number(body.limit || 1), 1), 3);
   if (!campaignId && !assetIds) return new Response(JSON.stringify({ error:"informe campaign_id ou asset_ids" }), { status:400, headers:cors });
   const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth:{ persistSession:false } });
   let q = svc.from("premium_campaign_assets").select("*");

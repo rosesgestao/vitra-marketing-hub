@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BarChart3, Bot, Building2, CalendarDays, Gem, Layers, Megaphone, Zap } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
@@ -37,12 +37,36 @@ const OPERATIONS = [
 ]
 
 const ALL_VIEWS = [...BRAND_SECTIONS.flatMap(section => section.items), ...OPERATIONS]
+const DEFAULT_VIEW_ID = 'premium'
+const NAV_STORAGE_KEY = 'vitra-operational-dashboard.active-view'
+
+function normalizeViewId(viewId) {
+  return ALL_VIEWS.some(item => item.id === viewId) ? viewId : DEFAULT_VIEW_ID
+}
+
+function readInitialView() {
+  if (typeof window === 'undefined') return DEFAULT_VIEW_ID
+
+  try {
+    return normalizeViewId(window.localStorage.getItem(NAV_STORAGE_KEY))
+  } catch {
+    return DEFAULT_VIEW_ID
+  }
+}
 
 export default function App() {
-  const [view, setView] = useState('premium')
+  const [view, setView] = useState(readInitialView)
   const currentView = ALL_VIEWS.find(item => item.id === view) || ALL_VIEWS[0]
   const activeBrandScope = currentView.brandScope || BRAND_SCOPES.premium
   const activeBrand = getBrandProfile(activeBrandScope)
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(NAV_STORAGE_KEY, normalizeViewId(view))
+    } catch {
+      // Navegadores em modo restrito podem bloquear storage; nesse caso mantemos o estado em memória.
+    }
+  }, [view])
 
   return (
     <div className="flex h-screen overflow-hidden bg-black text-white">

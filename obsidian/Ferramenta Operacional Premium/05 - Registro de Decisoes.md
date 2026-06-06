@@ -304,3 +304,16 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Validacoes executadas: `deno check`, `node --check`, `npm.cmd run build` e `git diff --check`.
 - O projeto nao possui script `lint`, portanto `npm.cmd run lint` nao foi aplicavel.
 - Commit publicado no GitHub: `6286f9f Implementa variacoes por template aprovado`.
+
+## 2026-06-06 - Geracao Automatica de Cortes Render Asset
+
+- Identificado que o navegador chamava `render-asset`, mas a funcao remota bloqueava o preflight porque `x-client-info` nao estava permitido no CORS.
+- A Edge Function `render-asset` foi atualizada para permitir `authorization`, `x-client-info`, `apikey`, `content-type` e os metodos `POST, OPTIONS`.
+- A funcao foi publicada no Supabase ativo `birxcfkyuzqnhyvetbjv`.
+- Validado remotamente que o preflight `OPTIONS` agora retorna `access-control-allow-headers` com `x-client-info`.
+- Apos a correcao de CORS, o erro transitorio `546` foi reproduzido e tratado como oscilacao da Edge Function.
+- O frontend passou a fazer retry curto e controlado para `546`, `502`, `503`, `504` e `failed to fetch`.
+- O processamento automatico permanece em lotes unitarios por asset para reduzir risco de limite de runtime/memoria.
+- Chamada real para asset pendente retornou `200 OK` e gerou PNG no bucket `cards`.
+- Validacoes executadas: `deno check supabase/functions/render-asset/index.ts`, teste remoto de preflight, POST real da funcao, `npm.cmd run build` e `git diff --check`.
+- Commit publicado no GitHub: `65fe9a5 Corrige geracao automatica de criativos`.
