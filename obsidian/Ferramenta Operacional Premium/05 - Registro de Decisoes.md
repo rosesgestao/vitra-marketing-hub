@@ -412,3 +412,20 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
   publicar a Edge, agendar o cron) ficam PENDENTES DE AUTORIZACAO explicita; nada foi aplicado no
   banco/projeto ativo nesta fase.
 - Nota de atualizacao: [[../Atualizacao_2026-06-06_Fase1_Fluxo_Automatico]].
+
+## 2026-06-06 - Deploy da Fase 1 em Producao
+
+- Autorizado e executado o deploy do backend da Fase 1 no projeto ativo `birxcfkyuzqnhyvetbjv`
+  (Postgres 17): migration claim+reaper, secret no Vault, funcao do cron, Edge `render-asset` v36
+  (via `npx supabase functions deploy`) e cron agendado (`cron.schedule`, jobid 1, a cada minuto).
+- Aprendizado: a `SUPABASE_ANON_KEY` da Edge e a chave PUBLISHABLE (`sb_publishable_...`), nao a
+  anon legada (JWT). O primeiro smoke test (anon legada) deu 401 e revelou o secret errado no
+  Vault; corrigido com `vault.update_secret` para a publishable e revalidado (200).
+- Verificacao em prod: Edge 200 (chave valida) / 401 (invalida); `net.http_post` (caminho do cron)
+  200 com `error_msg` null; `cron.job_run_details` com execucoes `succeeded`.
+- Seguranca: as 3 funcoes da Fase 1 foram travadas (`revoke execute from public, anon, authenticated`
+  + `grant to service_role`), corrigindo o advisor. Pendencia pre-existente (RLS permissivo, bucket
+  publico) segue como hardening separado (nota 08, Passo C).
+- Branching (preferido para validar) indisponivel: exige Pro; a validacao foi por dry-run transacional.
+- Frontend retrocompativel ainda NAO publicado (sem config de deploy no repo; host manual).
+- Nota de atualizacao: [[../Atualizacao_2026-06-06_Deploy_Fase1_Producao]].

@@ -1,5 +1,14 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Deploy da Fase 1 em producao
+
+Backend da Fase 1 aplicado no projeto ativo `birxcfkyuzqnhyvetbjv`: migration claim+reaper,
+secret no Vault (chave publishable), funcao do cron, Edge `render-asset` v36 (via CLI) e cron
+agendado (jobid 1, a cada minuto). Verificado: Edge 200/401, pg_net 200, cron `succeeded`.
+Funcoes SECURITY DEFINER travadas (`revoke ... from public`, `grant ... to service_role`).
+Reconciliados os arquivos de migration (revoke/grant correto e nota da chave publishable).
+Frontend retrocompativel ainda nao publicado (sem config de deploy no repo).
+
 ## Sessao 2026-06-06 — Fase 1: estabilizacao do fluxo automatico de render
 
 Torna a geracao de cortes confiavel sem o navegador aberto: drenador unico server-side, claim

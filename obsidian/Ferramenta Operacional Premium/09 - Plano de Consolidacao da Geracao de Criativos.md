@@ -64,7 +64,7 @@ Sem `ALTER TABLE`: tentativas/timestamp ficam em `metadata` (o enum de status ja
 - `ensureCampaignSourceImages` nao mexe em `generated`/`approved` nem ressuscita dead-letters.
 - Cache-busting na `public_url` (sufixo de versao) para o re-render aparecer.
 - Verificacao adversarial (4 revisores) aplicada; achados HIGH (orfao/retry infinito/job pendurado e botao desabilitado) corrigidos.
-- **Pendente de deploy (gated):** aplicar as migrations no banco, criar o secret no Vault, publicar a Edge e agendar o cron — requer autorizacao.
+- **DEPLOYADA em producao (2026-06-06):** migrations aplicadas, secret no Vault (chave PUBLISHABLE), Edge `render-asset` v36 publicada, cron agendado (jobid 1, a cada minuto) e funcoes travadas (service_role). Verificado em prod (Edge 200/401, pg_net 200, cron succeeded). Frontend retrocompativel ainda nao publicado. Ver [[../Atualizacao_2026-06-06_Deploy_Fase1_Producao]].
 - **Limitacoes documentadas (follow-up):** edicao de anuncio durante render ativo pode gerar 1 render duplicado; o status do job `asset_render` pode nao finalizar com precisao quando a campanha mistura motores (Edge x worker) ou termina so em dead-letter — cosmetico (o asset renderiza/dead-letter corretamente); dashboard so enxerga 600 assets (o cron nao tem esse teto).
 
 ### Fase 2 - Qualidade de variacao, fotos e fidelidade

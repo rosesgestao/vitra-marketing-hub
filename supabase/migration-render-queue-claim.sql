@@ -98,6 +98,9 @@ begin
 end;
 $$;
 
--- So o service role / Edge precisa reivindicar e reciclar; nao expor a anon.
-revoke all on function public.claim_render_assets(uuid, uuid[], int) from anon;
-revoke all on function public.reap_stale_render_assets(int, int) from anon;
+-- Lockdown: so o service_role (Edge) executa. Funcoes recebem EXECUTE de PUBLIC por
+-- padrao, entao revogar de PUBLIC (anon/authenticated herdam dai) e conceder ao service_role.
+revoke execute on function public.claim_render_assets(uuid, uuid[], int) from public, anon, authenticated;
+grant execute on function public.claim_render_assets(uuid, uuid[], int) to service_role;
+revoke execute on function public.reap_stale_render_assets(int, int) from public, anon, authenticated;
+grant execute on function public.reap_stale_render_assets(int, int) to service_role;

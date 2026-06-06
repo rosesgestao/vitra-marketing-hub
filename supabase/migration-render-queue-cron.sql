@@ -23,9 +23,10 @@ begin
   group by campaign_id order by min(created_at) asc limit 1;
   if cid is null then return; end if;
 
-  -- Chave lida do Vault (sem segredo versionado). A Edge aceita SERVICE_KEY ou ANON_KEY.
-  -- Pre-requisito (rodar uma vez, fora do versionamento):
-  --   select vault.create_secret('<service_role_ou_anon_key>', 'render_asset_invoke_key');
+  -- Chave lida do Vault (sem segredo versionado). A Edge aceita SERVICE_KEY ou ANON_KEY;
+  -- IMPORTANTE: a SUPABASE_ANON_KEY injetada na Edge e a chave PUBLISHABLE (sb_publishable_...),
+  -- NAO a anon legada (JWT). Pre-requisito (rodar uma vez, fora do versionamento):
+  --   select vault.create_secret('<publishable_ou_service_role_key>', 'render_asset_invoke_key');
   select decrypted_secret into v_key
   from vault.decrypted_secrets where name = 'render_asset_invoke_key' limit 1;
   if v_key is null then
@@ -41,6 +42,10 @@ begin
     timeout_milliseconds := 120000);
 end; $$;
 
--- Agendar a cada minuto (rodar uma vez, APOS aplicar esta migration, a do claim
--- atomico e criar o secret no Vault; e apos publicar a nova Edge render-asset):
+-- Lockdown: drain so e chamado pelo cron (owner postgres); revoga de PUBLIC/anon/authenticated.
+revoke execute on function public.drain_render_queue(int) from public, anon, authenticated;
+
+-- Agendar a cada minuto (rodar uma vez, APOS aplicar esta migration, a do claim atomico e
+-- criar o secret no Vault; e apos publicar a nova Edge render-asset).
+-- Aplicado em producao em 2026-06-06 (cron.job jobid 1):
 -- select cron.schedule('drain-render-queue', '* * * * *', $$ select public.drain_render_queue(4); $$);
