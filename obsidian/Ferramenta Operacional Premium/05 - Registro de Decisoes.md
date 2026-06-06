@@ -317,3 +317,52 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Chamada real para asset pendente retornou `200 OK` e gerou PNG no bucket `cards`.
 - Validacoes executadas: `deno check supabase/functions/render-asset/index.ts`, teste remoto de preflight, POST real da funcao, `npm.cmd run build` e `git diff --check`.
 - Commit publicado no GitHub: `65fe9a5 Corrige geracao automatica de criativos`.
+
+## 2026-06-06 - Reconciliacao do cofre com commits recentes
+
+- Registrado, para fechar a lacuna do log, que apos `65fe9a5` entraram na `main`:
+  `761cc88 Corrige renderizacao e navegacao do dashboard` e
+  `3cb812e Registra atualizacao do render asset no Obsidian`.
+- A partir daqui o cofre passa a ser reconciliado tambem com o estado tecnico real do projeto,
+  nao apenas com o ultimo commit.
+
+## 2026-06-06 - Auditoria Senior (Dev + Designer + Produto)
+
+- Executada auditoria senior multi-perspectiva do projeto (produto, frontend, backend/dados,
+  design/UX e fluxos ponta-a-ponta), com leitura do codigo real e verificacao de evidencias.
+- Estado real confirmado: Fases 1-3 concluidas; Fase 4 parcial (so importacao manual de
+  publicacao); Fase 5 parcial/ausente (metricas so manuais, integracao Meta 100% ausente).
+- Achados que contrariam a percepcao: abas Agentes/Pipeline consultam tabelas inexistentes no
+  schema Premium (visao de roadmap, nao operacional); geracao de copy e por templates, nao IA;
+  a "incompatibilidade de schema de metricas" do escopo nao existe no codigo.
+- Riscos priorizados: seguranca de Fase 1 exposta (RLS aberto, bucket publico, `verify_jwt=false`);
+  fila de render (corrida, mismatch de canal, cron com placeholder); ausencia de testes/CI.
+- Resultado consolidado registrado em [[08 - Auditoria e Plano de Evolucao]].
+
+## 2026-06-06 - Pass de Honestidade da UI
+
+- Decidido, como primeira acao de manutencao apos a auditoria, fazer um pass de baixo risco que
+  alinha a interface ao estado real, sem alterar schema, fila de render, RLS ou contratos de Edge.
+- Removido o rotulo interno do template (MODEL_LABEL) que era gravado no PNG final entregue.
+- Botoes "Aprovar" (AssetCard, CarouselCard, MetaAdCard) migrados do verde fora-de-paleta para a
+  escala gold do brandbook; logica de estados preservada.
+- StatTile de Leads: sub "Ads Insights" trocado por "entrada manual".
+- Criado componente reutilizavel `RoadmapNotice`; banner aplicado em Agentes e Pipeline marcando-as
+  como visao de roadmap ainda nao implementada (queries e comportamento inalterados).
+- `docs/escopo-oficial.md` item 6 reescrito como historico (sem pendencia de schema).
+- Validacao executada: `npm run build` no dashboard, com sucesso.
+- Trabalho feito na branch `limpeza/honestidade-ui`, merge fast-forward na `main` e push.
+- Commit publicado no GitHub: `652ba6e Alinha a UI ao estado real (pass de honestidade)`.
+- Nota de atualizacao: [[../Atualizacao_2026-06-06_Limpeza_Honestidade_UI]].
+
+## 2026-06-06 - Plano de Evolucao Acordado
+
+- Definida a ordem de evolucao a executar como mantenedor, preservando as decisoes ja tomadas:
+  (A) rede de seguranca (CI + Vitest nas funcoes puras + teste da fila),
+  (B) fila de render (reivindicacao atomica, alinhar filtro de canal, corrigir/desativar cron),
+  (C) endurecer fundacao (RLS/roles, bucket nao-publico, `verify_jwt`, centralizar `brand_scope`),
+  (D) refator dos god-files apos a rede de seguranca,
+  (E) fatia fina de integracao Meta (importar metricas organicas por post) para fechar o ciclo.
+- Principio: nada de prometer na UI automacao que nao existe; mudancas incrementais, reversiveis e
+  validadas por build; mexer em seguranca/RLS so com coordenacao previa.
+- Detalhamento, esforco e decisoes pendentes em [[08 - Auditoria e Plano de Evolucao]].

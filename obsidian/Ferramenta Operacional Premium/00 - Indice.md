@@ -23,11 +23,16 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 5. [[05 - Registro de Decisoes]]
 6. [[06 - Escopo Oficial do Projeto]]
 7. [[07 - Instrucoes para IA]]
+8. [[08 - Auditoria e Plano de Evolucao]]
 
 ## Atualizacoes do Projeto
 
 - [[../Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fase_1]]
+- [[../Atualizacao_2026-06-01_Automacao_Trafego_Pago_Premium]]
 - [[../Atualizacao_2026-06-04_Templates_Vitra_Imobiliaria_Trafego_Pago]]
+- [[../Atualizacao_2026-06-05_Variacoes_Por_Template_Aprovado]]
+- [[../Atualizacao_2026-06-06_Geracao_Automatica_Render_Asset]]
+- [[../Atualizacao_2026-06-06_Limpeza_Honestidade_UI]]
 
 ## Estado Atual
 
@@ -36,8 +41,10 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 - Migracao multi-marca aplicada no Supabase.
 - Assets aprovados das duas marcas centralizados em `dashboard/public/brand/`.
 - Templates aprovados da Vitra Imobiliaria registrados para trafego pago e disponiveis como catalogo operacional no modal `Nova Campanha`, com campos e slots de imagem dinamicos por template.
-- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`, commit `5962391`.
-- Proxima etapa: validar em uso real o preenchimento guiado por template e acompanhar ajustes finos de renderizacao.
+- Fases 1-3 concluidas (campanha -> assets -> aprovacao -> render server-side -> Storage); Fase 4 parcial (publicacao manual); Fase 5 parcial (metricas manuais, integracao Meta ainda ausente). Ver [[08 - Auditoria e Plano de Evolucao]].
+- Auditoria senior realizada em 2026-06-06 e pass de honestidade da UI ja aplicado na `main`.
+- Repositorio exclusivo atualizado: `leoferrazbrasil/vitra-premium-ferramenta-operacional`, commit `652ba6e`.
+- Em andamento: Fase 7 (Estabilizacao, Seguranca e Qualidade) — proximo passo recomendado e a rede de seguranca (CI + Vitest).
 
 ## Arquivos de Referencia
 

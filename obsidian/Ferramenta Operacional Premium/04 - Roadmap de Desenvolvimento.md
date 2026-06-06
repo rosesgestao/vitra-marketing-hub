@@ -34,10 +34,10 @@
 
 ## Fase 5 - Metricas
 
-- Corrigir schema e coletor de metricas.
-- Coletar metricas por publicacao real.
-- Separar metricas organicas e pagas.
-- Criar visao por campanha, asset, formato e canal.
+- ~~Corrigir schema e coletor de metricas.~~ (reconciliado em 2026-06-06: nao havia incompatibilidade — ver [[06 - Escopo Oficial do Projeto]]).
+- Coletar metricas por publicacao real (integracao Meta — ainda ausente).
+- Separar metricas organicas e pagas (estrutura ja existe; falta a coleta automatica).
+- Criar visao por campanha, asset, formato e canal (existe sobre dados manuais).
 - Registrar insights e plano de acao.
 
 ## Fase 6 - Aprendizado
@@ -45,6 +45,16 @@
 - Identificar melhores headlines, CTAs, formatos e fases.
 - Criar relatorio por campanha.
 - Alimentar proximas geracoes com historico de performance.
+
+## Fase 7 - Estabilizacao, Seguranca e Qualidade (planejada, 2026-06-06)
+
+Fase de manutencao derivada da auditoria senior. Detalhe e prioridades em
+[[08 - Auditoria e Plano de Evolucao]].
+
+- Rede de seguranca: CI (`vite build` + `deno check`) e Vitest nas funcoes puras de `premiumData.js` e `creativeTemplateCatalog.js`.
+- Fila de render: reivindicacao atomica, alinhar filtro de canal (assets `site`), corrigir/desativar o cron com placeholder, eleger renderizador canonico.
+- Endurecer fundacao: RLS com auth/roles, bucket nao-publico, `verify_jwt`, centralizar `brand_scope`, empacotar wasm/fontes do render.
+- Refator dos god-files (`PremiumDashboard.jsx`, `premiumData.js`) apos a rede de seguranca.
 
 ## Primeiro Marco Recomendado
 
@@ -60,6 +70,16 @@ Primeiro marco iniciado e aplicado:
 - O fluxo `Nova campanha` ja cria campanha, matriz inicial de assets, conteudos planejados e jobs de proxima etapa.
 
 Proximo marco: transformar os jobs planejados em execucao backend real com renderizacao via `card-builder.js` e Supabase Storage.
+
+## Status em 2026-06-06
+
+Apurado por auditoria senior (ver [[08 - Auditoria e Plano de Evolucao]]):
+
+- Fases 1, 2 e 3 concluidas: campanha -> assets -> aprovacao -> render server-side -> Storage funciona ponta a ponta.
+- Fase 4 parcial: so importacao/mapeamento manual de publicacao; publicacao automatica ausente.
+- Fase 5 parcial/ausente: metricas so por entrada manual; integracao Meta (Graph/Ads Insights) ainda nao existe em codigo.
+- Fase 6 nao iniciada.
+- Em andamento agora: Fase 7 (Estabilizacao, Seguranca e Qualidade), comecando pelo pass de honestidade da UI ja concluido (commit `652ba6e`).
 
 ## Prioridade Oficial
 
