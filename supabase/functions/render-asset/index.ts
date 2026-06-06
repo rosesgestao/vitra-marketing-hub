@@ -945,7 +945,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
         status:"generated",
         storage_bucket:"cards",
         storage_path:path,
-        public_url:pub.publicUrl,
+        public_url:`${pub.publicUrl}?v=${Date.now()}`,
         metadata:{
           ...(asset.metadata || {}),
           brand_scope:brandProfile.scope,
@@ -988,7 +988,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
       status:"generated",
       storage_bucket:"cards",
       storage_path:path,
-      public_url:pub.publicUrl,
+      public_url:`${pub.publicUrl}?v=${Date.now()}`,
       metadata:{ ...(asset.metadata || {}), brand_scope:brandProfile.scope, brand_name:brandProfile.name, last_render_error:null },
       updated_at:new Date().toISOString(),
     }).eq("id", asset.id);
@@ -1018,9 +1018,29 @@ Deno.serve(async (req) => {
   const limit = Math.min(Math.max(Number(body.limit || 1), 1), 3);
   if (!campaignId && !assetIds) return new Response(JSON.stringify({ error:"informe campaign_id ou asset_ids" }), { status:400, headers:cors });
   const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth:{ persistSession:false } });
-  let q = svc.from("premium_campaign_assets").select("*");
-  if (assetIds) q = q.in("id", assetIds); else q = q.eq("campaign_id", campaignId).eq("channel","meta_ads").eq("status","queued");
-  const { data: assets, error: aErr } = await q.limit(limit);
+  // Claim ATOMICO (Fase 1): marca os assets elegiveis como 'rendering' de forma
+  // atomica (FOR UPDATE SKIP LOCKED na funcao SQL), evitando corrida entre cron,
+  // dashboard e worker. Fallback defensivo para o fluxo legado enquanto a migration
+  // do claim (migration-render-queue-claim.sql) ainda nao estiver aplicada.
+  const MAX_RENDER_ATTEMPTS = 3;
+  // Recicla orfaos 'rendering' travados (crash/OOM) ANTES de reivindicar, para que
+  // voltem a 'queued' e o fluxo termine mesmo com o navegador fechado. Best-effort:
+  // se a migration do reaper ainda nao foi aplicada, o rpc retorna erro e seguimos.
+  await svc.rpc("reap_stale_render_assets", { p_max_attempts: MAX_RENDER_ATTEMPTS, p_orphan_minutes: 10 });
+  let assets: any[] | null = null;
+  let aErr: any = null;
+  const claim = await svc.rpc("claim_render_assets", { p_campaign: campaignId, p_asset_ids: assetIds, p_limit: limit });
+  if (!claim.error) {
+    assets = claim.data;
+  } else {
+    // Fallback transicional (migration do claim ainda nao aplicada): sem garantia
+    // atomica, mas restrito a meta_ads e a estados renderizaveis, para nao re-renderizar
+    // 'approved'/'rendering' nem assets de outros canais.
+    let q = svc.from("premium_campaign_assets").select("*").eq("channel","meta_ads");
+    if (assetIds) q = q.in("id", assetIds).in("status",["queued","generated","error"]); else q = q.eq("campaign_id", campaignId).eq("status","queued");
+    const legacy = await q.limit(limit);
+    assets = legacy.data; aErr = legacy.error;
+  }
   if (aErr) return new Response(JSON.stringify({ error: aErr.message }), { status:500, headers:cors });
   if (!assets || assets.length === 0) return new Response(JSON.stringify({ rendered:0, failed:0, remaining:0, message:"nenhum asset queued" }), { headers:cors });
   const cId = campaignId || assets[0].campaign_id;
@@ -1034,13 +1054,18 @@ Deno.serve(async (req) => {
       const error = String((e as Error)?.message || e);
       failed++;
       results.push({ id:asset.id, ok:false, error });
+      // Maquina de estados (Fase 1): incrementa tentativas; reenfileira ('queued')
+      // enquanto houver orcamento de retry, senao marca 'error' (dead-letter). Evita
+      // que o asset fique preso em loop e que o job 'asset_render' rode para sempre.
+      const attempts = (Number(asset.metadata?.render_attempts) || 0) + 1;
       await svc.from("premium_campaign_assets").update({
-        metadata: { ...(asset.metadata || {}), last_render_error: error },
+        status: attempts < MAX_RENDER_ATTEMPTS ? "queued" : "error",
+        metadata: { ...(asset.metadata || {}), last_render_error: error, render_attempts: attempts },
         updated_at:new Date().toISOString(),
       }).eq("id", asset.id);
     }
   }
-  const { count: remaining } = await svc.from("premium_campaign_assets").select("id",{ count:"exact", head:true }).eq("campaign_id", cId).eq("channel","meta_ads").eq("status","queued");
+  const { count: remaining } = await svc.from("premium_campaign_assets").select("id",{ count:"exact", head:true }).eq("campaign_id", cId).eq("channel","meta_ads").in("status",["queued","rendering"]);
   if (!remaining) await svc.from("premium_generation_jobs").update({ status: failed===0 ? "done":"error", progress:100, finished_at:new Date().toISOString(), output_payload:{ rendered, failed, results }, error_message: failed?`${failed} falharam`:null }).eq("campaign_id", cId).eq("job_type","asset_render").eq("status","running");
   return new Response(JSON.stringify({ campaign_id:cId, rendered, failed, remaining: remaining || 0, results }), { headers:cors });
 });

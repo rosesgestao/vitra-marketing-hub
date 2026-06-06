@@ -1,5 +1,42 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Fase 1: estabilizacao do fluxo automatico de render
+
+Torna a geracao de cortes confiavel sem o navegador aberto: drenador unico server-side, claim
+atomico, maquina de estados com retry/dead-letter e reaper de orfaos. Verificado por review
+adversarial. Codigo validado localmente; passos de deploy remoto pendentes de autorizacao.
+
+### supabase/
+- migration-render-queue-claim.sql (novo): `claim_render_assets` (FOR UPDATE SKIP LOCKED, dois
+  modos: drenagem `queued` e explicito por ids) e `reap_stale_render_assets` (recicla orfaos
+  'rendering' com orcamento de tentativas -> 'queued' ou dead-letter 'error'). Sem ALTER TABLE
+  (tentativas/timestamp em metadata).
+- functions/render-asset: reaper best-effort + claim atomico (com fallback transicional);
+  maquina de estados na falha (queued<3 / error dead-letter); remaining em (queued,rendering);
+  cache-busting na public_url.
+- migration-render-queue-cron.sql: le a chave do Vault (fim do placeholder 401), so meta_ads,
+  reaper antes de drenar; schedule comentado.
+
+### render-worker/
+- src/worker.js: o claim nunca reivindica meta_ads (a Edge e canonica) — elimina a corrida e a
+  divergencia de motor/marca.
+
+### dashboard/ (React)
+- src/lib/premiumData.js: predicado unico isRenderablePendingAsset/renderAttemptsFor/
+  MAX_RENDER_ATTEMPTS; pendingRenderableAssetIds usa select('*')+predicado; ensureCampaignSourceImages
+  preserva arte pronta e nao ressuscita dead-letters.
+- src/views/PremiumDashboard.jsx: auto-render, botao manual e contadores de "Gerar cortes" usam o
+  predicado unico (corrige o botao ficar desabilitado para assets em error/orfao).
+- src/lib/__tests__/renderQueue.test.js (novo): 8 testes do predicado.
+
+### Validacao
+- npm run test:run => 49 passed; npm run build => ok; deno check render-asset + ingest => ok.
+- Review adversarial (4 lentes): achados HIGH corrigidos (orfao/retry-infinito/job-pendurado e
+  botao desabilitado).
+- SQL validada por dry-run transacional (BEGIN ... ROLLBACK) no Postgres 17 do projeto ativo:
+  9/9 checagens OK (claim drain e explicito, reaper requeue e dead-letter, exclusao de canal),
+  sem persistir nada (confirmado 0 funcoes/0 linhas apos rollback). Branching indisponivel (exige Pro).
+
 ## Sessao 2026-06-06 — Fase 0: rede de seguranca (testes + CI)
 
 Primeira fase do plano de consolidacao da geracao de criativos. Sem mudanca de comportamento:

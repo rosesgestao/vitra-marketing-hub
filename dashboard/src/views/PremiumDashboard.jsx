@@ -40,6 +40,7 @@ import {
   createManualPublication,
   loadPremiumWorkspace,
   needsVitraImobiliariaApprovedTemplateRender,
+  isRenderablePendingAsset,
   renderCampaignAssets,
   saveAd,
   saveAssetEdit,
@@ -496,7 +497,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   const paidTrafficOverview = useMemo(() => {
     const metaAssets = workspace.assets.filter(asset => asset.channel === 'meta_ads')
     const adGroups = groupMetaAdsByCampaign(metaAssets)
-    const pendingRender = metaAssets.filter(asset => asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset)).length
+    const pendingRender = metaAssets.filter(asset => isRenderablePendingAsset(asset)).length
     return {
       campaigns: new Set(metaAssets.map(asset => asset.campaign_id).filter(Boolean)).size,
       cuts: metaAssets.length,
@@ -517,7 +518,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     const pendingAssets = scoped.assets.filter(asset => (
       asset.channel === 'meta_ads' &&
       asset.source_image_url &&
-      (asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset))
+      isRenderablePendingAsset(asset)
     ))
     if (!pendingAssets.length) return
 
@@ -660,7 +661,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
       const assetIds = scoped.assets
         .filter(asset => (
           !['whatsapp', 'email'].includes(asset.channel) &&
-          (asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset))
+          isRenderablePendingAsset(asset)
         ))
         .map(asset => asset.id)
       const result = await renderCampaignAssets(selectedCampaign.id, { assetIds })
@@ -1317,7 +1318,7 @@ function AssetsSection({ brandProfile = getBrandProfile(), campaign, assets, job
   if (!assets.length) return <EmptyState icon={Layers3} title="Sem assets para esta campanha" />
 
   const total = assets.length
-  const pendingRender = assets.filter(a => a.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(a)).length
+  const pendingRender = assets.filter(a => isRenderablePendingAsset(a)).length
   const generated = assets.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const approved = assets.filter(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const progress = total ? Math.round((approved / total) * 100) : 0
@@ -1749,7 +1750,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
     )
   }
   const placements = assets.filter(a => a.channel === 'meta_ads')
-  const pendingRender = placements.filter(a => a.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(a)).length
+  const pendingRender = placements.filter(a => isRenderablePendingAsset(a)).length
   const generated = placements.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const approved = placements.filter(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok).length
@@ -1820,7 +1821,7 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
   const current = ordered[safeIdx]
   const place = META_PLACEMENTS[current?.aspect_ratio] || {}
   const currentNeedsRender = needsVitraImobiliariaApprovedTemplateRender(current)
-  const hasPendingRender = ad.assets.some(a => a.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(a))
+  const hasPendingRender = ad.assets.some(a => isRenderablePendingAsset(a))
   const hasRenderableImage = Boolean(current?.public_url) && !currentNeedsRender
   const allApproved = ad.assets.every(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a))
   const meta = ad.assets[0]?.metadata?.meta_ad || {}

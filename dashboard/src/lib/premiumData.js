@@ -524,6 +524,28 @@ export function needsVitraImobiliariaApprovedTemplateRender(asset) {
     Boolean(expectedVersion && asset.metadata?.rendered_template_version !== expectedVersion)
 }
 
+export const MAX_RENDER_ATTEMPTS = 3
+const ORPHAN_RENDERING_MINUTES = 10
+
+export function renderAttemptsFor(asset) {
+  return Number(asset?.render_attempts ?? asset?.metadata?.render_attempts ?? 0) || 0
+}
+
+// Predicado UNICO de pendencia de render (Fase 1). Forward-compatible com a maquina
+// de estados da Edge: alem de 'queued' e templates aprovados desatualizados, reconhece
+// 'error' com orcamento de retry e 'rendering' orfao (travado alem do timeout), para
+// que assets nesses estados voltem a ser renderizados em vez de sumirem para sempre.
+export function isRenderablePendingAsset(asset, nowMs = Date.now()) {
+  if (!asset) return false
+  if (asset.status === 'error') return renderAttemptsFor(asset) < MAX_RENDER_ATTEMPTS
+  if (asset.status === 'rendering') {
+    const startedAt = Date.parse(asset.metadata?.last_render_attempt_at || asset.updated_at || '') || 0
+    return startedAt > 0 && (nowMs - startedAt) > ORPHAN_RENDERING_MINUTES * 60_000
+  }
+  if (asset.status === 'queued') return true
+  return needsVitraImobiliariaApprovedTemplateRender(asset)
+}
+
 function buildSourceIntake(form) {
   const sourceType = cleanText(form.source_type) || 'manual'
   const sourceUrl = cleanText(form.source_url)
@@ -978,7 +1000,14 @@ async function ensureCampaignSourceImages(campaignId) {
     .eq('channel', 'meta_ads')
 
   if (assetsError || !assets?.length) return { images: 0, requeued: 0, warnings: [] }
-  const missingImageAssets = assets.filter(asset => !asset.source_image_url)
+  // Fase 1: nao mexer em assets ja renderizados/aprovados (evita zerar public_url de
+  // arte pronta) nem ressuscitar dead-letters (error com tentativas esgotadas). So anexa
+  // foto e reenfileira assets que ainda precisam e podem renderizar.
+  const missingImageAssets = assets.filter(asset =>
+    !asset.source_image_url &&
+    asset.status !== 'approved' &&
+    asset.status !== 'generated' &&
+    !(asset.status === 'error' && renderAttemptsFor(asset) >= MAX_RENDER_ATTEMPTS))
   if (!missingImageAssets.length) return { images: 0, requeued: 0, warnings: [] }
 
   const sourceIntake = campaign.brief?.source_intake || {}
@@ -1439,7 +1468,7 @@ async function pendingRenderableAssetIds(campaignId, assetIds = []) {
   const ids = [...new Set((assetIds || []).filter(Boolean))]
   let query = supabase
     .from('premium_campaign_assets')
-    .select('id,status,channel,public_url,template_key,metadata')
+    .select('*')
     .eq('campaign_id', campaignId)
     .eq('channel', 'meta_ads')
 
@@ -1449,7 +1478,7 @@ async function pendingRenderableAssetIds(campaignId, assetIds = []) {
   if (error) throw error
 
   return (data || [])
-    .filter(asset => asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset))
+    .filter(asset => isRenderablePendingAsset(asset))
     .map(asset => asset.id)
 }
 

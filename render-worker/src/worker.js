@@ -28,10 +28,14 @@ async function getCampaign(id) {
 
 // Reivindica um lote de assets 'queued' marcando-os como 'rendering' (evita conflito com o cron edge).
 async function claim(n) {
+  // Fase 1: a Edge Function render-asset (satori/resvg) e o renderizador CANONICO de
+  // meta_ads. O worker NUNCA reivindica meta_ads, para nao competir com a Edge nem
+  // gerar a peca com o motor/identidade errados (corrida + divergencia de marca).
   const { data: queued, error } = await sb
     .from('premium_campaign_assets')
     .select('*')
     .not('channel', 'in', '(whatsapp,email)')
+    .neq('channel', 'meta_ads')
     .eq('status', 'queued')
     .order('created_at', { ascending: true })
     .limit(n)
