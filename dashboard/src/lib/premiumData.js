@@ -286,13 +286,13 @@ function cleanText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function clampNumber(value, min, max, fallback) {
+export function clampNumber(value, min, max, fallback) {
   const number = Number(value)
   if (!Number.isFinite(number)) return fallback
   return Math.max(min, Math.min(max, Math.round(number)))
 }
 
-function metaCreativeVariationCount(form) {
+export function metaCreativeVariationCount(form) {
   return clampNumber(
     form.creative_variations,
     META_CREATIVE_VARIATION_MIN,
@@ -301,13 +301,13 @@ function metaCreativeVariationCount(form) {
   )
 }
 
-function metaCreativeConceptsForBrand(brandProfile) {
+export function metaCreativeConceptsForBrand(brandProfile) {
   return brandProfile.scope === BRAND_SCOPES.imobiliaria
     ? VITRA_IMOBILIARIA_META_CREATIVE_CONCEPTS
     : META_CREATIVE_CONCEPTS
 }
 
-function selectedTemplateVariationConcepts(form, brandProfile = getBrandProfile()) {
+export function selectedTemplateVariationConcepts(form, brandProfile = getBrandProfile()) {
   if (brandProfile.scope !== BRAND_SCOPES.imobiliaria) return []
 
   const { template } = selectedCreativeTemplate(form, brandProfile)
@@ -339,14 +339,14 @@ function selectedTemplateVariationConcepts(form, brandProfile = getBrandProfile(
   })
 }
 
-function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfile()) {
+export function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfile()) {
   const templateConcepts = selectedTemplateVariationConcepts(form, brandProfile)
   if (templateConcepts.length) return templateConcepts
 
   return metaCreativeConceptsForBrand(brandProfile).slice(0, metaCreativeVariationCount(form))
 }
 
-function selectedCreativeTemplate(form, brandProfile = getBrandProfile()) {
+export function selectedCreativeTemplate(form, brandProfile = getBrandProfile()) {
   return normalizeCreativeTemplateSelection(
     brandProfile.scope,
     form.creative_template_id,
@@ -425,7 +425,7 @@ function selectedTemplateImageSlots(form, brandProfile = getBrandProfile()) {
   })
 }
 
-function buildMetaAssetBlueprints(form, brandProfile = getBrandProfile()) {
+export function buildMetaAssetBlueprints(form, brandProfile = getBrandProfile()) {
   const { template } = selectedCreativeTemplate(form, brandProfile)
   const templateBaseOverride = brandProfile.scope === BRAND_SCOPES.imobiliaria && template?.family
     ? template.family
@@ -716,7 +716,7 @@ async function uploadCampaignImages(campaign, slug, form) {
   return uploaded
 }
 
-function flattenImages(uploadedImages = {}) {
+export function flattenImages(uploadedImages = {}) {
   return Object.values(uploadedImages).flat().filter(Boolean)
 }
 
@@ -855,13 +855,13 @@ function splitContentItems(value) {
     .filter(Boolean)
 }
 
-function rotateItems(items, index = 0) {
+export function rotateItems(items, index = 0) {
   if (!items.length) return []
   const offset = Math.abs(Number(index) || 0) % items.length
   return [...items.slice(offset), ...items.slice(0, offset)]
 }
 
-function variationTokens(product, place, form, brandProfile = getBrandProfile()) {
+export function variationTokens(product, place, form, brandProfile = getBrandProfile()) {
   const differentials = splitContentItems(form.differentials)
   const location = cleanText(form.location)
   const neighborhood = cleanText(form.neighborhood)
@@ -894,7 +894,7 @@ function variationTokens(product, place, form, brandProfile = getBrandProfile())
   }
 }
 
-function renderVariationText(template, tokens) {
+export function renderVariationText(template, tokens) {
   return cleanText(template)
     .replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) => cleanText(tokens[key]) || '')
     .replace(/\s+([.,;:])/g, '$1')
@@ -954,7 +954,7 @@ function buildTemplateVariationProductData(productData, concept, form, index, he
   }
 }
 
-function selectTemplateVariationImage(sourceImages, concept, format, index) {
+export function selectTemplateVariationImage(sourceImages, concept, format, index) {
   if (!sourceImages.length) return null
   const formatOffset = { feed: 0, story: 1, wide: 2 }[format] || 0
   const variationIndex = Number(concept?.variation_index ?? index) || 0

@@ -1,5 +1,26 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Fase 0: rede de seguranca (testes + CI)
+
+Primeira fase do plano de consolidacao da geracao de criativos. Sem mudanca de comportamento:
+trava o estado atual com testes antes de refatorar.
+
+### dashboard/ (React)
+- package.json: adicionado Vitest (devDependency) e scripts test/test:run.
+- vitest.config.js (novo): config standalone (ambiente node), nao estende o vite.config para
+  nao carregar o middleware de dev no runtime de teste.
+- src/lib/premiumData.js: 12 funcoes puras de geracao/variacao ganharam `export` (sem alterar
+  logica) para serem testadas.
+- src/lib/__tests__/ (novo): 41 testes de caracterizacao (variacao, distribuicao de imagem,
+  catalogo de templates, estado de render), com os bugs conhecidos congelados como baseline.
+
+### CI
+- .github/workflows/ci.yml (novo): job dashboard (npm ci + test:run + vite build) e job
+  edge-functions (deno check em render-asset e ingest-source-images).
+
+### Validacao
+- npm run test:run => 41 passed; npm run build => ok (bundle identico).
+
 ## Sessao 2026-06-06 — Limpeza de honestidade da UI (sem mudanca de comportamento)
 
 Pass de baixo risco que alinha a interface ao que esta de fato implementado. Nenhuma
