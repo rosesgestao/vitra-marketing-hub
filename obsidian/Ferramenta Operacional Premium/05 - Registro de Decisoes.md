@@ -388,3 +388,27 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Proximo passo: Fase 1 do plano da pipeline (drain unico server-side, claim atomico, maquina de
   estados `queued -> rendering -> generated | error` com retry, corrigir o cron, tirar o render-worker
   do caminho concorrente).
+
+## 2026-06-06 - Fase 1 Implementada (Estabilizacao do Fluxo Automatico)
+
+- Entregue na branch `fase1/fluxo-automatico` o drenador unico server-side com claim atomico e
+  maquina de estados, para gerar os cortes sem o navegador aberto.
+- `claim_render_assets` (FOR UPDATE SKIP LOCKED, dois modos) + `reap_stale_render_assets` (recicla
+  orfaos com orcamento de tentativas), em `supabase/migration-render-queue-claim.sql`. Decisao:
+  SEM `ALTER TABLE` — tentativas/timestamp em `metadata` (enum de status ja inclui rendering/error),
+  reduzindo o risco de deploy na tabela quente.
+- Edge `render-asset`: reaper best-effort + claim + maquina de estados (queued<3 / error dead-letter)
+  + cache-busting; fallback transicional retrocompativel se a migration ainda nao estiver aplicada.
+- Cron le a chave do Vault e recicla orfaos antes de drenar; worker nunca reivindica meta_ads;
+  frontend com predicado unico `isRenderablePendingAsset` (corrige tambem o botao "Gerar cortes"
+  desabilitado para error/orfao).
+- Verificacao adversarial (4 revisores) ANTES do commit; achados HIGH corrigidos (orfao/retry
+  infinito/job pendurado; botao desabilitado). Limitacoes cosmeticas documentadas na nota da fase.
+- Validacao: `npm run test:run` (49), `npm run build`, `deno check` (render-asset + ingest). A SQL
+  foi validada por DRY-RUN transacional (BEGIN...ROLLBACK) no Postgres 17 do projeto ativo
+  `birxcfkyuzqnhyvetbjv`: 9/9 checagens OK (claim drain/explicito + reaper requeue/dead-letter),
+  sem persistir nada. Branching (preferido) indisponivel: exige plano Pro.
+- DECISAO DE SEGURANCA: os passos de deploy remoto (aplicar migrations, criar secret no Vault,
+  publicar a Edge, agendar o cron) ficam PENDENTES DE AUTORIZACAO explicita; nada foi aplicado no
+  banco/projeto ativo nesta fase.
+- Nota de atualizacao: [[../Atualizacao_2026-06-06_Fase1_Fluxo_Automatico]].

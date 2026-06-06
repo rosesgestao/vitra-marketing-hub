@@ -53,14 +53,19 @@ Testes de caracterizacao das funcoes puras de geracao/variacao + CI, antes de re
 - CI em `.github/workflows/ci.yml`: `npm ci` + `test:run` + `vite build` + `deno check` nas Edge Functions.
 - Mudanca aditiva no codigo: 12 funcoes puras de `premiumData.js` ganharam `export` (sem alterar logica).
 
-### Fase 1 - Estabilizar o fluxo automatico (a causa-raiz; D8 e D10)
-- Claim atomico: funcao SQL `claim_render_assets` (`UPDATE ... WHERE status='queued' ... RETURNING`, `FOR UPDATE SKIP LOCKED`); colunas `render_attempts`/`last_render_attempt_at`.
-- Maquina de estados na Edge: marcar `rendering` ao iniciar, `generated` no sucesso, **`error`** na falha (hoje fica preso em `queued`); retry ate N, depois dead-letter.
-- Consertar o cron: trocar o placeholder `<SUPABASE_PUBLISHABLE_KEY>` por secret/Vault e agendar; torna-lo o drenador primario (independe do navegador).
-- Eliminar a divergencia: tirar o `render-worker` Puppeteer do caminho de producao (ou restringi-lo a canais que a Edge nao cobre, nunca `meta_ads`/Imobiliaria).
-- Destravar orfaos: filtros de pendencia reconhecem `error` (tentativas < N) e `rendering` orfao (timeout).
-- Proteger `ensureCampaignSourceImages` para nao zerar `public_url` de assets ja gerados.
-- Cache-busting na `public_url` (`?v=updated_at`).
+### Fase 1 - Estabilizar o fluxo automatico (a causa-raiz; D8 e D10)  *(IMPLEMENTADA na branch fase1/fluxo-automatico)*
+Sem `ALTER TABLE`: tentativas/timestamp ficam em `metadata` (o enum de status ja inclui `rendering`/`error`).
+- Claim atomico: funcao SQL `claim_render_assets` (`UPDATE ... RETURNING` com `FOR UPDATE SKIP LOCKED`), em dois modos: drenagem (`queued`) e explicito por ids (`queued/generated/error`, nunca `approved`/`rendering`).
+- Reaper `reap_stale_render_assets`: orfao `rendering` (crash/OOM) > timeout volta a `queued` consumindo orcamento de tentativas, ou vira `error` (dead-letter) — garante TERMINACAO. Chamado pelo cron e pela Edge (best-effort) a cada invocacao.
+- Maquina de estados na Edge: `rendering` ao reivindicar, `generated` no sucesso, na falha `queued` (enquanto tentativas < 3) ou `error` (dead-letter).
+- Cron: troca o placeholder por leitura do Vault, so `meta_ads`, reaper antes de drenar; schedule ainda comentado (so age quando agendado manualmente).
+- `render-worker` nunca reivindica `meta_ads` (`.neq channel meta_ads`) — elimina a corrida e a divergencia de motor/marca.
+- Predicado unico `isRenderablePendingAsset` (queued / error com orcamento / rendering orfao / template aprovado desatualizado) usado em TODOS os pontos do dashboard, inclusive nos contadores que habilitam o botao "Gerar cortes".
+- `ensureCampaignSourceImages` nao mexe em `generated`/`approved` nem ressuscita dead-letters.
+- Cache-busting na `public_url` (sufixo de versao) para o re-render aparecer.
+- Verificacao adversarial (4 revisores) aplicada; achados HIGH (orfao/retry infinito/job pendurado e botao desabilitado) corrigidos.
+- **Pendente de deploy (gated):** aplicar as migrations no banco, criar o secret no Vault, publicar a Edge e agendar o cron — requer autorizacao.
+- **Limitacoes documentadas (follow-up):** edicao de anuncio durante render ativo pode gerar 1 render duplicado; o status do job `asset_render` pode nao finalizar com precisao quando a campanha mistura motores (Edge x worker) ou termina so em dead-letter — cosmetico (o asset renderiza/dead-letter corretamente); dashboard so enxerga 600 assets (o cron nao tem esse teto).
 
 ### Fase 2 - Qualidade de variacao, fotos e fidelidade
 - Acabar com a duplicacao de copy quando count > recipes (variar por ciclo / ampliar recipes); variar preco/ancora por angulo; respeitar `suggested_headline/copy` do usuario em mais variacoes.
