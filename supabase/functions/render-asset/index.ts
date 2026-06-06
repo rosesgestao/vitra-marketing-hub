@@ -839,7 +839,12 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
 }
 
 Deno.serve(async (req) => {
-  const cors = { "Access-Control-Allow-Origin":"*", "Access-Control-Allow-Headers":"authorization, apikey, content-type", "Content-Type":"application/json" };
+  const cors = {
+    "Access-Control-Allow-Origin":"*",
+    "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods":"POST, OPTIONS",
+    "Content-Type":"application/json"
+  };
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const auth = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   const apikey = req.headers.get("apikey") || "";

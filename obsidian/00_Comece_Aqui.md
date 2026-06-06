@@ -45,6 +45,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 13. **[[Atualizacao_2026-06-04_Templates_Vitra_Imobiliaria_Trafego_Pago]]**
     Registro da aprovacao dos templates reutilizaveis de trafego pago da Vitra Imobiliaria dentro da plataforma operacional multi-marca.
 
+14. **[[Atualizacao_2026-06-05_Variacoes_Por_Template_Aprovado]]**
+    Registro da transformacao da antiga logica de variacoes criativas em variacoes por template aprovado, com contratos de campos variaveis, deploy da funcao `render-asset` e commit publicado.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto

@@ -1430,13 +1430,63 @@ export function saveAssetEdit(assetId, { headline, copy, cta }) {
   })
 }
 
+async function pendingRenderableAssetIds(campaignId, assetIds = []) {
+  const ids = [...new Set((assetIds || []).filter(Boolean))]
+  let query = supabase
+    .from('premium_campaign_assets')
+    .select('id,status,channel,public_url,template_key,metadata')
+    .eq('campaign_id', campaignId)
+    .eq('channel', 'meta_ads')
+
+  if (ids.length) query = query.in('id', ids)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  return (data || [])
+    .filter(asset => asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset))
+    .map(asset => asset.id)
+}
+
+const waitForRenderRetry = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+function isTransientRenderInvokeError(error) {
+  const status = Number(error?.context?.status || error?.status || 0)
+  const message = String(error?.message || error || '').toLowerCase()
+  return status === 546 || status === 502 || status === 503 || status === 504 || message.includes('failed to fetch')
+}
+
+async function invokeRenderAssetChunk(campaignId, chunk) {
+  let lastError = null
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data, error } = await supabase.functions.invoke('render-asset', {
+      body: { campaign_id: campaignId, asset_ids: chunk, limit: chunk.length },
+    })
+    if (!error) return data || { rendered: 0, failed: chunk.length, remaining: chunk.length }
+    lastError = error
+    if (!isTransientRenderInvokeError(error) || attempt === 2) break
+    await waitForRenderRetry(1200 + attempt * 1800)
+  }
+  throw lastError
+}
+
+function renderAssetErrorMessage(error) {
+  if (!error) return 'Falha desconhecida na renderizacao do criativo.'
+  const details = [
+    error.message,
+    error.context?.status ? `HTTP ${error.context.status}` : null,
+    error.context?.statusText,
+  ].filter(Boolean)
+  return details.join(' - ') || String(error)
+}
+
 // Dispara a Edge Function render-asset em lotes pequenos (limite de memoria do worker).
-// Usa a publishable key do cliente (functions.invoke envia apikey/Authorization).
-export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60, assetIds = [] } = {}) {
+// Envia asset_ids explicitos para evitar que campanhas com upload manual fiquem presas
+// em queued quando o disparo automatico inicial nao completa o ciclo.
+export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60, assetIds = [], onProgress = null } = {}) {
   let rendered = 0
   let failed = 0
   let lastError = null
-  const ids = [...new Set((assetIds || []).filter(Boolean))]
   const batchSize = Math.max(1, Number(batch) || 1)
 
   try {
@@ -1445,52 +1495,42 @@ export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches =
     lastError = error
   }
 
-  if (ids.length) {
-    for (let i = 0; i < ids.length; i += batchSize) {
-      const chunk = ids.slice(i, i + batchSize)
-      try {
-        const res = await supabase.functions.invoke('render-asset', {
-          body: { campaign_id: campaignId, asset_ids: chunk, limit: chunk.length },
-        })
-        if (res.error) {
-          lastError = res.error
-        } else {
-          rendered += res.data?.rendered || 0
-          failed += res.data?.failed || 0
-        }
-      } catch (err) {
-        lastError = err
-      }
-    }
-
-    return { rendered, failed, error: rendered === 0 ? lastError : null }
+  let ids = []
+  try {
+    ids = await pendingRenderableAssetIds(campaignId, assetIds)
+  } catch (error) {
+    lastError = error
   }
 
-  for (let i = 0; i < maxBatches; i++) {
-    let data = null
+  const limitedIds = ids.slice(0, batchSize * maxBatches)
+  const total = limitedIds.length
+  let processed = 0
+  for (let i = 0; i < limitedIds.length; i += batchSize) {
+    const chunk = limitedIds.slice(i, i + batchSize)
     try {
-      const res = await supabase.functions.invoke('render-asset', {
-        body: { campaign_id: campaignId, limit: batch },
-      })
-      if (res.error) {
-        lastError = res.error
-      } else {
-        data = res.data
-      }
-    } catch (err) {
-      lastError = err
-    }
-
-    if (data) {
+      const data = await invokeRenderAssetChunk(campaignId, chunk)
       rendered += data.rendered || 0
       failed += data.failed || 0
-      if ((data.remaining || 0) <= 0) break
+    } catch (err) {
+      lastError = err
+      failed += chunk.length
     }
-    // Em erro (ex.: WORKER_RESOURCE_LIMIT) o progresso por asset persiste:
-    // continua tentando ate acabar os lotes.
+    processed += chunk.length
+    if (typeof onProgress === 'function') {
+      try {
+        await onProgress({ campaignId, processed, total, rendered, failed, error: lastError })
+      } catch {
+        // Atualizacao visual de progresso nao deve interromper o processamento.
+      }
+    }
   }
 
-  return { rendered, failed, error: rendered === 0 ? lastError : null }
+  return {
+    rendered,
+    failed,
+    error: rendered === 0 ? lastError : null,
+    errorMessage: rendered === 0 && lastError ? renderAssetErrorMessage(lastError) : null,
+  }
 }
 
 export async function createManualPublication(payload) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -420,6 +420,8 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   const [rendering, setRendering] = useState(false)
   const [notice, setNotice] = useState(null)
   const [campaignSubmitError, setCampaignSubmitError] = useState(null)
+  const autoRenderCampaignsRef = useRef(new Set())
+  const autoRenderRunningRef = useRef(null)
 
   function openCampaignModal() {
     setCampaignSubmitError(null)
@@ -427,8 +429,8 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     setModalOpen(true)
   }
 
-  async function refresh(selectCampaignId = selectedCampaignId) {
-    setLoading(true)
+  async function refresh(selectCampaignId = selectedCampaignId, { silent = false } = {}) {
+    if (!silent) setLoading(true)
     setError(null)
     try {
       const data = await loadPremiumWorkspace({ brandScope })
@@ -438,7 +440,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     } catch (err) {
       setError(err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -495,6 +497,59 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     }
   }, [workspace.assets])
 
+  useEffect(() => {
+    const shouldAutoRender = isPaidTrafficMode || activeTab === 'trafego'
+    const campaignId = selectedCampaign?.id
+    if (!shouldAutoRender || !campaignId || loading || saving) return
+    if (rendering && autoRenderRunningRef.current !== campaignId) return
+    if (autoRenderRunningRef.current === campaignId) return
+    if (autoRenderCampaignsRef.current.has(campaignId)) return
+
+    const pendingAssets = scoped.assets.filter(asset => (
+      asset.channel === 'meta_ads' &&
+      asset.source_image_url &&
+      (asset.status === 'queued' || needsVitraImobiliariaApprovedTemplateRender(asset))
+    ))
+    if (!pendingAssets.length) return
+
+    let lastRefreshAt = 0
+
+    autoRenderCampaignsRef.current.add(campaignId)
+    autoRenderRunningRef.current = campaignId
+    setRendering(true)
+    setError(null)
+    setNotice(`Gerando cortes automaticamente a partir das fotos enviadas... 0/${pendingAssets.length}`)
+
+    renderCampaignAssets(campaignId, {
+      batch: 1,
+      assetIds: pendingAssets.map(asset => asset.id),
+      onProgress: async ({ processed, total, rendered, failed }) => {
+        setNotice(`Gerando cortes automaticamente... ${processed}/${total} processado(s), ${rendered} gerado(s)${failed ? `, ${failed} com erro` : ''}.`)
+        if (processed - lastRefreshAt >= 1 || processed === total) {
+          lastRefreshAt = processed
+          await refresh(campaignId, { silent: true })
+        }
+      },
+    })
+      .then(result => {
+        if (result.error && !result.rendered) throw result.error
+        if (!result.rendered && result.failed) {
+          setNotice(`Nenhum corte foi gerado automaticamente. ${result.failed} tentativa(s) falharam; use Gerar cortes para tentar novamente.`)
+          return
+        }
+        setNotice(`Cortes gerados automaticamente: ${result.rendered} criativo(s)${result.failed ? `, ${result.failed} com erro` : ''}.`)
+      })
+      .catch(err => {
+        setError(err)
+        setNotice('A geracao automatica nao concluiu. Use Gerar cortes para tentar novamente.')
+      })
+      .finally(async () => {
+        if (autoRenderRunningRef.current === campaignId) autoRenderRunningRef.current = null
+        setRendering(false)
+        await refresh(campaignId, { silent: true })
+      })
+  }, [activeTab, isPaidTrafficMode, loading, saving, scoped.assets, selectedCampaign?.id])
+
   async function handleCreateCampaign(form) {
     setSaving(true)
     setError(null)
@@ -513,19 +568,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     setSaving(false)
     await refresh(campaign.id)
     setActiveTab(isPaidTrafficMode ? 'trafego' : 'assets')
-
-    // Trigger automatico: renderiza os criativos da campanha recem-criada em lotes.
-    setRendering(true)
-    try {
-      const result = await renderCampaignAssets(campaign.id, { batch: 1 })
-      if (result.error && !result.rendered) throw result.error
-      setNotice(`Campanha criada. ${result.rendered} criativo(s) gerado(s) automaticamente${result.failed ? `, ${result.failed} com erro` : ''}.`)
-    } catch (renderErr) {
-      setNotice('Campanha criada, mas a renderização automática não concluiu. Use “Gerar criativos” para retomar (o progresso é salvo por peça).')
-    } finally {
-      setRendering(false)
-      await refresh(campaign.id)
-    }
+    setNotice('Campanha criada. A geracao automatica dos cortes vai iniciar em segundo plano.')
   }
 
   async function handleCreatePublication(form) {

@@ -290,3 +290,17 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Quando o template possui variantes aprovadas, o usuario escolhe entre `sem moldura` e `com moldura`.
 - A escolha e persistida no `brief`, `content_plan`, metadata dos assets e job de renderizacao.
 - A Edge Function `render-asset` reconhece as familias aprovadas da marca-mae e aplica a rota visual correspondente na geracao dos criativos Meta Ads.
+
+## 2026-06-05 - Variacoes por Template Aprovado
+
+- Decidido manter a funcionalidade de variacoes criativas para teste, mas reposiciona-la como `Variacoes por template aprovado`.
+- A ferramenta nao deve redesenhar a peca a cada variacao; o template aprovado permanece fixo e apenas os campos permitidos pelo contrato do template podem mudar.
+- O catalogo de templates passa a declarar quais slots sao variaveis e quais elementos permanecem travados em cada modelo.
+- O modal `Nova Campanha` foi atualizado para mostrar essa logica ao usuario, reduzindo ambiguidade operacional.
+- A geracao de campanha passou a criar variacoes com `template_variation`, `creative_concept` e `product_data` por asset.
+- As variacoes combinam argumentos de venda, fotos, headlines, textos, CTAs, valores e diferenciais sem comprometer posicao de logo, margens, moldura, hierarquia e composicao.
+- A Edge Function `render-asset` foi atualizada para mesclar dados globais da campanha com dados especificos de cada asset antes da renderizacao.
+- A funcao `render-asset` foi publicada no projeto Supabase ativo `birxcfkyuzqnhyvetbjv` com `verify_jwt=false`, conforme o fluxo operacional atual.
+- Validacoes executadas: `deno check`, `node --check`, `npm.cmd run build` e `git diff --check`.
+- O projeto nao possui script `lint`, portanto `npm.cmd run lint` nao foi aplicavel.
+- Commit publicado no GitHub: `6286f9f Implementa variacoes por template aprovado`.
