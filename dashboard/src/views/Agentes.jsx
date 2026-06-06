@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { CheckCircle2, AlertCircle, Clock, Minus } from 'lucide-react'
-import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import { PremiumPageHeader, RoadmapNotice } from '../components/PremiumShell.jsx'
 
 const AGENTES_V2 = [
   { id: 1,  nome: 'Orquestrador',            desc: 'Relatórios e agendamento inteligente',       cron: '6h50 + 23h',    tabela: 'calendario_editorial',   cor: 'gold' },
@@ -114,6 +114,12 @@ export default function Agentes() {
           </div>
         }
       />
+
+      <RoadmapNotice>
+        Esta tela representa o <strong className="text-white/80">squad de agentes planejado</strong> (visao de roadmap). Os agentes ainda
+        nao estao implementados nesta ferramenta: os indicadores abaixo dependem de tabelas que nao fazem parte do schema
+        operacional Premium, entao podem aparecer permanentemente como "aguardando".
+      </RoadmapNotice>
 
       <div className="grid grid-cols-2 gap-3">
         {AGENTES_V2.map(ag => {

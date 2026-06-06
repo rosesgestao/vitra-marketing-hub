@@ -888,7 +888,9 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
       (model === "premium-dark-spec" || model === "premium-gallery-proof") ? featureNodes(features, W) : h("div", { display:"flex" }, ""),
       h("div", { display:"flex", marginTop:Math.round(H*0.028) }, h("div", { display:"flex", backgroundColor:GOLD, color:"#080808", fontWeight:700, fontSize:Math.round(W*0.020), padding:`${Math.round(W*0.014)}px ${Math.round(W*0.030)}px`, borderRadius:3 }, cta)),
     ]),
-    h("div", { display:"flex", fontSize:Math.round(W*0.011), letterSpacing:2, color:"rgba(245,245,240,0.34)" }, MODEL_LABEL[model]),
+    // Rotulo interno do template (MODEL_LABEL) removido da arte final em 2026-06-06:
+    // era texto de debug visivel no PNG entregue ao cliente. O rastreio interno do
+    // template permanece em metadata.visual_template; nao precisa aparecer na peca.
   ]));
   return h("div", { display:"flex", width:W, height:H, position:"relative", backgroundColor:brandProfile.bg }, layers);
 }

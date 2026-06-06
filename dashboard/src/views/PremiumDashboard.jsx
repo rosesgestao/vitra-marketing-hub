@@ -1559,8 +1559,8 @@ function AssetCard({ brandProfile = getBrandProfile(), asset, campaign, busy, on
               disabled={busy || approved || needsApprovedRender}
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
               style={{
-                background: approved ? 'rgba(196,148,42,0.12)' : 'rgba(29,158,117,0.18)',
-                color: approved ? '#F0C95C' : '#6ee7b7',
+                background: approved ? 'rgba(196,148,42,0.12)' : '#C4942A',
+                color: approved ? '#F0C95C' : '#0A0A0A',
                 opacity: busy ? 0.6 : 1,
               }}
             >
@@ -1671,8 +1671,8 @@ function CarouselCard({ brandProfile = getBrandProfile(), slides, campaign, busy
             title={!valid ? 'Ajuste o número de cartões para aprovar' : undefined}
             className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
             style={{
-              background: allApproved ? 'rgba(196,148,42,0.12)' : valid ? 'rgba(29,158,117,0.18)' : 'rgba(255,255,255,0.05)',
-              color: allApproved ? '#F0C95C' : valid ? '#6ee7b7' : 'rgba(255,255,255,0.4)',
+              background: allApproved ? 'rgba(196,148,42,0.12)' : valid ? '#C4942A' : 'rgba(255,255,255,0.05)',
+              color: allApproved ? '#F0C95C' : valid ? '#0A0A0A' : 'rgba(255,255,255,0.4)',
               opacity: busy ? 0.6 : 1,
             }}
           >
@@ -1921,8 +1921,8 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
           disabled={busy || allApproved || hasPendingRender}
           className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
           style={{
-            background: allApproved ? 'rgba(196,148,42,0.12)' : hasPendingRender ? 'rgba(255,255,255,0.05)' : 'rgba(29,158,117,0.18)',
-            color: allApproved ? '#F0C95C' : hasPendingRender ? 'rgba(255,255,255,0.4)' : '#6ee7b7',
+            background: allApproved ? 'rgba(196,148,42,0.12)' : hasPendingRender ? 'rgba(255,255,255,0.05)' : '#C4942A',
+            color: allApproved ? '#F0C95C' : hasPendingRender ? 'rgba(255,255,255,0.4)' : '#0A0A0A',
             opacity: busy ? 0.6 : 1,
           }}
         >
@@ -2277,7 +2277,7 @@ function MetricsSection({ campaign, publications, metrics, totals, snapshots }) 
       <div className="grid gap-3 md:grid-cols-4">
         <StatTile label="Alcance" value={formatNumber(totals.reach)} sub="snapshots por publicação" icon={Target} />
         <StatTile label="Impressões" value={formatNumber(totals.impressions)} sub={`${metrics.length} coletas`} icon={Activity} tone="#8EC4F0" />
-        <StatTile label="Leads" value={formatNumber(totals.leads)} sub="Ads Insights" icon={Sparkles} tone="#D4A84A" />
+        <StatTile label="Leads" value={formatNumber(totals.leads)} sub="entrada manual" icon={Sparkles} tone="#D4A84A" />
         <StatTile label="Posts vinculados" value={publications.length} sub={`${organic.length} orgânico · ${paid.length} pago`} icon={Radio} tone="#E4C06E" />
       </div>
 

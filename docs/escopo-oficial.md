@@ -55,11 +55,11 @@ Cada publicacao precisa registrar:
 - data/hora de publicacao;
 - metricas por coleta.
 
-### 6. Corrigir incompatibilidade no schema de metricas
+### 6. Schema de metricas (RECONCILIADO em 2026-06-06 — sem pendencia)
 
-O schema atual define campos como `likes`, `visualizacoes_video` e `novos_seguidores`, mas o coletor existente tenta inserir `seguidores`, `curtidas` e `visualizacoes`.
+A revisao do codigo versionado mostra que NAO existe a incompatibilidade descrita anteriormente. A tabela `premium_metrics` define `likes`, `video_views` e `follows`, e o registro manual (`createManualMetric` em `dashboard/src/lib/premiumData.js`) insere exatamente esses mesmos campos. Os termos em portugues (`curtidas`, `seguidores`, `visualizacoes`) aparecem apenas como rotulos de interface, nao como colunas, e nenhum coletor com nomes divergentes existe no repositorio.
 
-Essa incompatibilidade precisa ser corrigida antes de qualquer integracao operacional.
+Conclusao: este item permanece apenas como registro historico. Nao ha correcao de schema pendente aqui.
 
 ### 7. Diferenciar metricas organicas e pagas
 

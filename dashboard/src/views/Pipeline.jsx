@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { CheckCircle2, Clock, AlertCircle, Circle, ChevronRight, Users, Film } from 'lucide-react'
-import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import { PremiumPageHeader, RoadmapNotice } from '../components/PremiumShell.jsx'
 
 const FASES_V2 = [
   { id: 1, label: 'Inteligência',  cor: 'soft', agentes: ['Ag.2 Inteligência'],              tabela: 'inteligencia_mercado', descricao: 'Tendências + análise competitiva' },
@@ -76,6 +76,11 @@ export default function Pipeline() {
         title="Pipeline quinzenal"
         subtitle="Orquestracao dos agentes Premium, do monitoramento de mercado ate a publicacao final."
       />
+
+      <RoadmapNotice>
+        Este pipeline ilustra o <strong className="text-white/80">fluxo de agentes planejado</strong> (visao de roadmap). As fases ainda nao
+        sao executadas por automacoes nesta ferramenta e os contadores dependem de tabelas fora do schema operacional Premium.
+      </RoadmapNotice>
 
       {aprovacao?.status === 'planejado' && (
         <div className="card border-gold-600/40 bg-gold-500/5 flex items-center gap-3 mb-6">

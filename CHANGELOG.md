@@ -1,5 +1,30 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Limpeza de honestidade da UI (sem mudanca de comportamento)
+
+Pass de baixo risco que alinha a interface ao que esta de fato implementado. Nenhuma
+alteracao de schema, fila de render, RLS ou contrato de Edge Function.
+
+### supabase/functions/render-asset
+- index.ts: removido o no que imprimia o rotulo interno do template (MODEL_LABEL) no
+  canto da peca final — era texto de debug baked no PNG entregue. A constante MODEL_LABEL
+  permanece (ainda usada por modelKey); o rastreio interno continua em metadata.visual_template.
+
+### dashboard/ (React)
+- src/views/PremiumDashboard.jsx: botoes "Aprovar" (AssetCard, CarouselCard, MetaAdCard)
+  migrados do verde esmeralda fora de paleta (rgba(29,158,117)/#6ee7b7) para a escala gold
+  do brandbook (#C4942A solido + texto #0A0A0A). Logica de estados preservada.
+- src/views/PremiumDashboard.jsx: StatTile de Leads com sub "Ads Insights" (decorativo)
+  trocado por "entrada manual", refletindo que as metricas hoje sao digitadas a mao.
+- src/components/PremiumShell.jsx: novo componente reutilizavel RoadmapNotice.
+- src/views/Agentes.jsx e Pipeline.jsx: banner RoadmapNotice deixando explicito que o squad
+  de agentes / pipeline e visao de roadmap, ainda nao implementada (consultam tabelas fora
+  do schema operacional Premium). Comportamento e queries inalterados.
+
+### docs/
+- escopo-oficial.md: item 6 (incompatibilidade de schema de metricas) reconciliado com o
+  codigo — a incompatibilidade nao existe no repositorio; item mantido so como historico.
+
 ## Sessao 2026-06-01 — Pipeline de criativos (Fase 3) + UI de Producao
 
 ### dashboard/ (React)
