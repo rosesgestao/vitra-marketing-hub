@@ -703,15 +703,19 @@ async function convertHeicIfNeeded(file) {
   const isHeic = file?.type === 'image/heic' || file?.type === 'image/heif' ||
     name.endsWith('.heic') || name.endsWith('.heif')
   if (!isHeic) return file
+  console.info('[HEIC] Convertendo para JPEG:', file?.name)
   try {
     const heic2any = (await import('heic2any')).default
     const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
     const blob = Array.isArray(converted) ? converted[0] : converted
     const newName = (file.name || 'foto').replace(/\.(heic|heif)$/i, '') + '.jpg'
+    console.info('[HEIC] Convertido com sucesso:', newName)
     return new File([blob], newName, { type: 'image/jpeg' })
   } catch (error) {
-    console.warn('Falha ao converter HEIC, enviando o arquivo original:', error)
-    return file
+    // Visivel em vez de silencioso: subir HEIC que a Edge nao decodifica geraria
+    // criativo quebrado. Melhor avisar o operador com uma acao clara.
+    console.error('[HEIC] Falha na conversao:', file?.name, error)
+    throw new Error(`Nao foi possivel converter a foto HEIC "${file?.name || 'sem nome'}". Reinicie o servidor (Ctrl+C, npm install, npm run dev) ou envie essa foto em JPG/PNG.`)
   }
 }
 
