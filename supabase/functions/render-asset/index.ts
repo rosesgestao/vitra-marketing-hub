@@ -754,7 +754,10 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   const layout = approvedTemplateLayout(ar);
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const headline = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
-  const lines = wrapText(headline, ar === "1.91:1" ? 18 : 24, 2);
+  // Cap de quebra alinhado ao headlineChars do layout (25/24/24), nao mais 18 fixo no 1.91:1: com o
+  // fitFontSize cuidando da largura, deixar mais caracteres por linha evita truncar headlines longas
+  // (antes "VALOR PARA AVALIA..."); a fonte encolhe o quanto precisar para caber no orcamento.
+  const lines = wrapText(headline, (layout.headline as number[])[4] || 24, 2);
   const description = approvedDescription(pd, asset);
   const price = pd.price || campaign?.offer || "";
   const features = productDifferentials(pd, campaign);

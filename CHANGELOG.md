@@ -18,6 +18,9 @@ Dois itens da fabrica que exigiam deploy de Edge, num release so. Protegidos pel
   via `estimateTextWidthPx`, piso 38px) com orcamento por formato — a MESMA logica do harness #2.
 - `validateApprovedHeadline` passou a modelar o `fitFontSize` (harness reflete a arte). +3 testes (83 no total).
 - So encolhe headlines que de fato estouram; headlines normais ficam no tamanho-base (sem regressao).
+- Cap de quebra alinhado ao `headlineChars` do layout (1.91:1: 18 -> 24). Com o `fitFontSize` cuidando
+  da largura, headlines longas deixam de truncar ("VALOR PARA AVALIA...") e cabem INTEIRAS num corpo
+  menor. Verificado num dual-photo 1.91:1 real (headline de 39 chars).
 
 ## Sessao 2026-06-06 — Fase 2/3 (fechar a fabrica): ganhos sem deploy
 

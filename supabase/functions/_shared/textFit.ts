@@ -146,11 +146,11 @@ export function fitFontSize(text: string, baseSize: number, minSize: number, bud
   return Math.max(minSize, Math.floor(baseSize * (budgetPx / estimated)));
 }
 
-// Cap de caracteres por linha REALMENTE usado pela Edge na headline aprovada (index.ts:814:
-// wrapText(headline, ar === "1.91:1" ? 18 : 24, 2)). Note que diverge do headlineChars do layout
-// (24/25) — inconsistencia conhecida que o harness documenta.
+// Cap de caracteres por linha da headline aprovada, alinhado ao headlineChars do layout (25/24/24).
+// Antes o 1.91:1 era 18 fixo (truncava headlines longas); com o fitFontSize cuidando da largura, o
+// cap segue o layout e a fonte encolhe para caber. Espelha render-asset (wrapText(headline, layout.headline[4], 2)).
 export function approvedHeadlineWrapChars(format: string) {
-  return format === "1.91:1" ? 18 : 24;
+  return (approvedTemplateLayout(format).headline as number[])[4] || 24;
 }
 
 export type FitStatus = "ok" | "tight" | "overflow";

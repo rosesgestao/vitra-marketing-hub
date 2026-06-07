@@ -106,9 +106,9 @@ describe('validateApprovedHeadline (so SINALIZA overflow por formato)', () => {
     expect(narrow.status).toBe('ok')
   })
 
-  it('documenta o cap real de quebra da Edge (1.91:1=18, demais=24) — divergente do headlineChars do layout', () => {
-    expect(approvedHeadlineWrapChars('1.91:1')).toBe(18)
-    expect(approvedHeadlineWrapChars('1:1')).toBe(24)
+  it('cap de quebra alinhado ao headlineChars do layout (1.91:1=24 — era 18 e truncava; 1:1=25, 9:16=24)', () => {
+    expect(approvedHeadlineWrapChars('1.91:1')).toBe(24)
+    expect(approvedHeadlineWrapChars('1:1')).toBe(25)
     expect(approvedHeadlineWrapChars('9:16')).toBe(24)
   })
 })
