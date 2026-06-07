@@ -1,5 +1,23 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto de IA, degrau B: a IA sugere o template ideal (operador confirma)
+
+A IA le o anuncio colado e RECOMENDA o template de arte que melhor encaixa, com justificativa + nivel
+de confianca. O operador CONFIRMA ("Usar este template") ou mantem o atual — humano aprovador. So
+Imobiliaria (onde ha 2+ templates; no Premium, com 1 template, o botao nao aparece). Gated na mesma chave.
+
+- **Edge `suggest-template`** (espelha generate-copy): recebe o texto + os templates da marca
+  (id/nome/bestFor — catalogo e fonte de verdade) e devolve `{template_id, rationale, confidence}`.
+  Anti-alucinacao do id em 5 camadas: enum no schema + validateSuggestion (server) + checagem em
+  suggestTemplateWithAI (cliente) + guard no handler + templateOptions.find no apply. Um id forjado
+  morre em qualquer uma. config.toml verify_jwt=false; reusa ANTHROPIC_API_KEY.
+- **`_shared/templateSuggestion.ts`** (puro, cross-importado): schema/prompts/validateSuggestion. +6 testes.
+- **UI:** botao "💡 Sugerir o template ideal" na secao "Importar de um anuncio" + card de recomendacao
+  (nome + confianca + justificativa) com "Usar este template" / "Dispensar". Aplicar troca o template
+  (o useEffect de creative_template_id reseta extracao/marcas/sugestao/drafts — tudo coerente).
+- **Revisao adversarial:** veredito "degrau B solido" (sem high/medium); fechado 1 low de consistencia
+  (drafts de copy obsoletos limpos na troca de template). 128 testes; build + deno check verdes.
+
 ## Sessao 2026-06-07 — Copiloto de IA: fluxo unico (extrair fatos -> JA gerar a copy num passo)
 
 Encadeia degrau B' (extracao) + degrau A (copy) num clique: o operador cola o anuncio, a IA extrai os

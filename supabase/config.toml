@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.extract-facts]
 verify_jwt = false
+
+[functions.suggest-template]
+verify_jwt = false

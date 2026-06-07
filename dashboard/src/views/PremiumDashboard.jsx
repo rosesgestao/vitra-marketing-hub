@@ -44,6 +44,7 @@ import {
   generateCopyWithAI,
   extractFactsWithAI,
   buildFactsApplyPatch,
+  suggestTemplateWithAI,
   isRenderablePendingAsset,
   renderCampaignAssets,
   saveAd,
@@ -2432,6 +2433,8 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   const [extract, setExtract] = useState({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
   const [extractMode, setExtractMode] = useState('fill-empty')
   const [aiFilledKeys, setAiFilledKeys] = useState([])
+  // Degrau B: sugestao de template por IA (a IA recomenda; o operador confirma).
+  const [suggest, setSuggest] = useState({ loading: false, error: null, result: null })
   // Fluxo unico: ao gerar a copy, rola ate o painel "Copiloto de copy" (que fica abaixo dos campos)
   // para o operador ver que a copy foi gerada. O ref-flag dispara o scroll so apos a copy renderizar.
   const copyPanelRef = useRef(null)
@@ -2450,6 +2453,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
     setExtractMode('fill-empty')
     setAiFilledKeys([])
+    setSuggest({ loading: false, error: null, result: null })
   }, [brandProfile.scope])
 
   // Trocar de TEMPLATE muda o conjunto de campos: a extracao anterior (keyed por outras formKeys) e as
@@ -2457,6 +2461,10 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   useEffect(() => {
     setExtract(state => ({ ...state, result: null, error: null, applied: null }))
     setAiFilledKeys([])
+    setSuggest({ loading: false, error: null, result: null })
+    // Os rascunhos de copy foram gerados para os fatos do template anterior — limpa pra nao confundir
+    // (a copy ja aplicada em form.ai_copy_angles e preservada; e escolha deliberada do operador).
+    setAiCopy(state => ({ ...state, drafts: null, error: null }))
   }, [form.creative_template_id])
 
   function update(field, value) {
@@ -2564,6 +2572,42 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   function clearExtract() {
     setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
     setAiFilledKeys([])
+    setSuggest({ loading: false, error: null, result: null })
+  }
+
+  // Degrau B: a IA le o anuncio e RECOMENDA o template ideal; o operador confirma ("Usar este template").
+  async function handleSuggestTemplate() {
+    if (!extract.sourceText.trim()) {
+      setSuggest(state => ({ ...state, error: 'Cole o texto do anuncio antes de sugerir o template.' }))
+      return
+    }
+    setSuggest(state => ({ ...state, loading: true, error: null }))
+    try {
+      const res = await suggestTemplateWithAI(extract.sourceText, brandProfile)
+      if (!res || !res.valid || !res.templateId) {
+        setSuggest({ loading: false, error: 'A IA nao conseguiu recomendar um template. Escolha manualmente abaixo.', result: null })
+        return
+      }
+      const tpl = templateOptions.find(t => t.id === res.templateId)
+      setSuggest({
+        loading: false,
+        error: null,
+        result: { templateId: res.templateId, name: tpl?.name || tpl?.shortName || res.templateId, rationale: res.rationale, confidence: res.confidence },
+      })
+    } catch (err) {
+      setSuggest({ loading: false, error: errorMessage(err), result: null })
+    }
+  }
+
+  function applySuggestedTemplate() {
+    const id = suggest.result?.templateId
+    const tpl = id && templateOptions.find(t => t.id === id)
+    if (tpl) selectTemplate(tpl) // troca o template (o useEffect de creative_template_id reseta extracao/sugestao)
+    setSuggest({ loading: false, error: null, result: null })
+  }
+
+  function dismissSuggestion() {
+    setSuggest({ loading: false, error: null, result: null })
   }
 
   // Fluxo unico (degrau B' -> A): extrai os fatos do anuncio, aplica (fill-empty) e JA gera a copy a
@@ -2984,6 +3028,52 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   className={`${inputClass} min-h-28 resize-y`}
                   placeholder="Ex: Apartamento no Menino Deus, 2 dormitórios com suíte, 61m², churrasqueira e sacada. R$ 539 mil. Próximo ao Parque da Redenção..."
                 />
+
+                {templateOptions.length > 1 && (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleSuggestTemplate}
+                      disabled={suggest.loading || extract.loading || !extract.sourceText.trim()}
+                      className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/70 transition hover:border-gold-400/40 hover:text-gold-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {suggest.loading ? 'Analisando…' : '💡 Sugerir o template ideal'}
+                    </button>
+                    {suggest.error && (
+                      <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">{suggest.error}</p>
+                    )}
+                    {suggest.result && (() => {
+                      const alreadySelected = form.creative_template_id === suggest.result.templateId
+                      const confClass = suggest.result.confidence === 'high'
+                        ? 'border-emerald-400/40 text-emerald-300'
+                        : suggest.result.confidence === 'medium'
+                          ? 'border-amber-400/40 text-amber-300'
+                          : 'border-red-400/40 text-red-300'
+                      return (
+                        <div className="space-y-2 rounded-xl border border-gold-400/30 bg-black/20 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-400/85">Template recomendado</span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${confClass}`}>{suggest.result.confidence}</span>
+                          </div>
+                          <p className="text-sm font-semibold text-white/90">{suggest.result.name}</p>
+                          {suggest.result.rationale && <p className="text-[11px] leading-4 text-white/45">{suggest.result.rationale}</p>}
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            {alreadySelected ? (
+                              <span className="text-[11px] font-medium text-emerald-300">✓ já é o template selecionado</span>
+                            ) : (
+                              <button type="button" onClick={applySuggestedTemplate} className="rounded-full bg-gold-400 px-3 py-1.5 text-[11px] font-semibold text-black transition hover:bg-gold-300">
+                                Usar este template
+                              </button>
+                            )}
+                            <button type="button" onClick={dismissSuggestion} className="rounded-full border border-white/15 px-3 py-1.5 text-[11px] font-medium text-white/55 transition hover:text-white">
+                              Dispensar
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-3">
                   {aiCopyEnabled && (

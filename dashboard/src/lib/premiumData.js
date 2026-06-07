@@ -2,6 +2,7 @@ import { supabase } from './supabase.js'
 import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandProfiles.js'
 import {
   creativeTemplateForTemplateKey,
+  creativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
   fieldsForTemplate,
   frameForTemplateVariant,
@@ -490,6 +491,37 @@ export function buildFactsApplyPatch(form, extractedFields, { mode = 'fill-empty
     appliedKeys.push(key)
   }
   return { patch, appliedKeys, skippedKeys }
+}
+
+// Degrau B do copiloto: la a Edge suggest-template (Claude) com o TEXTO do anuncio + os templates da
+// marca (id/nome/bestFor). A IA RECOMENDA o melhor; o operador confirma. So sugere quando ha 2+
+// templates (senao nao ha o que escolher). O template_id e validado contra a lista (server e cliente).
+export async function suggestTemplateWithAI(sourceText, brandProfile = getBrandProfile()) {
+  const text = cleanText(sourceText)
+  if (!text) throw new Error('Cole o texto do anuncio antes de sugerir o template.')
+
+  const templates = creativeTemplatesForBrand(brandProfile.scope)
+    .map(t => ({ id: t.id, name: t.name || t.shortName, bestFor: t.bestFor }))
+    .filter(t => t.id)
+  if (templates.length < 2) return null
+
+  const { data, error } = await supabase.functions.invoke('suggest-template', {
+    body: { brand_scope: brandProfile.scope, source_text: text, templates },
+  })
+  if (error) {
+    let message = error.message || 'Falha ao sugerir o template.'
+    try { const detail = await error.context?.json?.(); if (detail?.message) message = detail.message } catch (_) { /* sem corpo */ }
+    throw new Error(message)
+  }
+  // Defesa cliente: so aceita um id que exista de fato na lista de templates da marca.
+  const validId = templates.some(t => t.id === data?.template_id) ? data.template_id : null
+  return {
+    templateId: validId,
+    rationale: cleanText(data?.rationale),
+    confidence: data?.confidence || 'low',
+    valid: Boolean(validId),
+    model: data?.model || '',
+  }
 }
 
 // Fase 2 (P1): quantos ANGULOS distintos o template oferece (limite util de variacoes
