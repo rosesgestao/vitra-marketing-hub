@@ -1,5 +1,21 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto de IA: fluxo unico (extrair fatos -> JA gerar a copy num passo)
+
+Encadeia degrau B' (extracao) + degrau A (copy) num clique: o operador cola o anuncio, a IA extrai os
+fatos, aplica (fill-empty) e JA gera a copy a partir do form preenchido. So Imobiliaria (a copy e MVP
+Imobiliaria; no Premium o botao combinado nao aparece, so a extracao). Frontend-only, entra por HMR.
+
+- **`handleExtractAndGenerate`** no modal: extractFactsWithAI -> buildFactsApplyPatch (fill-empty) ->
+  generateCopyWithAI. Usa o `nextForm` computado LOCALMENTE (o setForm e assincrono) para a copy ver
+  os fatos recem-aplicados. Guard: sem product_name no texto, para com aviso (a extracao ja entrou).
+- **UI:** botao primario "✨ Extrair e gerar copy" (Imobiliaria) ao lado de "Só extrair fatos"; rotulo
+  reflete a fase (Extraindo… / Gerando copy…). Ao gerar, rola ate o painel "Copiloto de copy".
+- **Revisao adversarial:** 1 regressao HIGH corrigida (re-extrair granular apos um fluxo combinado
+  deixava `applied` preso e escondia o botao "Aplicar") + drafts obsoletos limpos no inicio + botao
+  "Gerar copy" travado durante a extracao. Encadeamento assincrono/undo/marcas IA verificados solidos.
+- 122 testes; build verde.
+
 ## Sessao 2026-06-07 — Copiloto de IA, degrau B': IA extrai os fatos de um anuncio colado (ALCANCAVEL)
 
 Segundo degrau do copiloto: o operador COLA um anuncio/briefing em texto livre e a IA preenche os

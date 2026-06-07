@@ -2429,14 +2429,25 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
 
   // Degrau B' (importar de anuncio): estado da extracao + keys preenchidas pela IA. aiFilledKeys fica
   // FORA do form (state local) para nao vazar no payload de submit.
-  const [extract, setExtract] = useState({ loading: false, error: null, result: null, sourceText: '', applied: null })
+  const [extract, setExtract] = useState({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
   const [extractMode, setExtractMode] = useState('fill-empty')
   const [aiFilledKeys, setAiFilledKeys] = useState([])
+  // Fluxo unico: ao gerar a copy, rola ate o painel "Copiloto de copy" (que fica abaixo dos campos)
+  // para o operador ver que a copy foi gerada. O ref-flag dispara o scroll so apos a copy renderizar.
+  const copyPanelRef = useRef(null)
+  const pendingCopyScrollRef = useRef(false)
+
+  useEffect(() => {
+    if (pendingCopyScrollRef.current && aiCopy.drafts?.length) {
+      pendingCopyScrollRef.current = false
+      copyPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  })
 
   useEffect(() => {
     setForm(initialFormForBrand(brandProfile))
     setLocalError(null)
-    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null })
+    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
     setExtractMode('fill-empty')
     setAiFilledKeys([])
   }, [brandProfile.scope])
@@ -2495,7 +2506,9 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
       setExtract(state => ({ ...state, error: 'Cole o texto do anuncio antes de extrair.' }))
       return
     }
-    setExtract(state => ({ ...state, loading: true, error: null }))
+    // Reseta `applied` (de uma extracao/aplicacao anterior) para o novo resultado nascer "nao aplicado"
+    // e reexibir o botao "Aplicar" + o toggle de modo (gated por !extract.applied).
+    setExtract(state => ({ ...state, loading: true, error: null, applied: null }))
     try {
       const result = await extractFactsWithAI(extract.sourceText, selectedTemplate, brandProfile)
       setExtract(state => ({ ...state, loading: false, result }))
@@ -2549,8 +2562,65 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   }
 
   function clearExtract() {
-    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null })
+    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
     setAiFilledKeys([])
+  }
+
+  // Fluxo unico (degrau B' -> A): extrai os fatos do anuncio, aplica (fill-empty) e JA gera a copy a
+  // partir do form preenchido — tudo num clique. So Imobiliaria (a geracao de copy e MVP Imobiliaria).
+  // Usa o nextForm computado localmente (o state setForm e assincrono) para a copy ver os fatos novos.
+  async function handleExtractAndGenerate() {
+    if (!extract.sourceText.trim()) {
+      setExtract(state => ({ ...state, error: 'Cole o texto do anuncio antes de extrair.' }))
+      return
+    }
+    // Reseta `applied` (fresh start) e limpa drafts antigos (senao copy de outro imovel fica visivel
+    // se o guard de product_name interromper o fluxo).
+    setExtract(state => ({ ...state, loading: true, error: null, phase: 'extracting', applied: null }))
+    setAiCopy({ loading: false, error: null, drafts: null })
+    try {
+      // 1. Extrair os fatos do texto.
+      const result = await extractFactsWithAI(extract.sourceText, selectedTemplate, brandProfile)
+      // 2. Aplicar (fill-empty) — computa o form ja preenchido para a copy ser gerada a partir dele.
+      const allowed = new Set(fieldsForTemplate(selectedTemplate).map(formKeyForTemplateField))
+      const scoped = Object.fromEntries(Object.entries(result.fields).filter(([key]) => allowed.has(key)))
+      const { patch, appliedKeys } = buildFactsApplyPatch(form, scoped, { mode: 'fill-empty' })
+      const nextForm = { ...form, ...patch }
+      const prevValues = {}
+      appliedKeys.forEach(key => { prevValues[key] = form[key] ?? '' })
+      setForm(nextForm)
+      if (appliedKeys.length) setAiFilledKeys(current => Array.from(new Set([...current, ...appliedKeys])))
+      setExtract(state => ({
+        ...state,
+        result,
+        phase: 'generating',
+        applied: appliedKeys.length
+          ? {
+              keys: Array.from(new Set([...(state.applied?.keys || []), ...appliedKeys])),
+              prevValues: { ...prevValues, ...(state.applied?.prevValues || {}) },
+            }
+          : state.applied,
+      }))
+      // Sem nome do produto, a copy fica fraca: para o fluxo aqui (a extracao ja foi aplicada).
+      if (!String(nextForm.product_name || '').trim()) {
+        setExtract(state => ({
+          ...state,
+          loading: false,
+          phase: null,
+          error: 'Extrai os fatos, mas nao achei o Nome do Produto no texto. Preencha-o e use "Gerar copy com IA" abaixo.',
+        }))
+        return
+      }
+      // 3. Gerar a copy a partir do form ja preenchido com os fatos.
+      setAiCopy(state => ({ ...state, loading: true, error: null }))
+      const angles = await generateCopyWithAI(nextForm, brandProfile)
+      if (angles.length) pendingCopyScrollRef.current = true
+      setAiCopy({ loading: false, error: angles.length ? null : 'A IA nao retornou angulos. Tente novamente.', drafts: angles.length ? angles : null })
+      setExtract(state => ({ ...state, loading: false, phase: null }))
+    } catch (err) {
+      setExtract(state => ({ ...state, loading: false, phase: null, error: errorMessage(err) }))
+      setAiCopy(state => ({ ...state, loading: false }))
+    }
   }
 
   function selectTemplate(template) {
@@ -2902,7 +2972,9 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Importar de um anúncio · IA</p>
                   <p className="mt-2 text-xs leading-5 text-white/50">
-                    Cole um anúncio, briefing ou descrição do imóvel. A IA lê e <strong className="text-white/70">propõe</strong> os campos abaixo — só o que estiver no texto, com a evidência. Você revisa e aplica; nada é preenchido sem o seu clique.
+                    Cole um anúncio, briefing ou descrição do imóvel. {aiCopyEnabled
+                      ? <>A IA pode <strong className="text-white/70">só extrair os fatos</strong> — ou <strong className="text-white/70">extrair e já escrever a copy</strong> num passo só.</>
+                      : <>A IA lê e <strong className="text-white/70">propõe</strong> os campos abaixo — só o que estiver no texto.</>} Você revisa tudo antes; nada é preenchido sem o seu clique.
                   </p>
                 </div>
 
@@ -2914,19 +2986,32 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                 />
 
                 <div className="flex flex-wrap items-center gap-3">
+                  {aiCopyEnabled && (
+                    <button
+                      type="button"
+                      onClick={handleExtractAndGenerate}
+                      disabled={extract.loading || aiCopy.loading || !extract.sourceText.trim()}
+                      className="rounded-full bg-gold-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {extract.loading
+                        ? (extract.phase === 'generating' ? 'Gerando copy…' : 'Extraindo…')
+                        : '✨ Extrair e gerar copy'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={handleExtractFacts}
                     disabled={extract.loading || !extract.sourceText.trim()}
                     className="rounded-full border border-gold-400/40 bg-gold-400/10 px-4 py-2 text-xs font-semibold text-gold-200 transition hover:bg-gold-400/20 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {extract.loading ? 'Extraindo…' : 'Extrair fatos com IA'}
+                    {extract.loading && !aiCopyEnabled ? 'Extraindo…' : (aiCopyEnabled ? 'Só extrair fatos' : 'Extrair fatos com IA')}
                   </button>
                   {(extract.result || extract.sourceText) && (
                     <button
                       type="button"
                       onClick={clearExtract}
-                      className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/55 transition hover:text-white"
+                      disabled={extract.loading}
+                      className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/55 transition hover:text-white disabled:opacity-50"
                     >
                       Limpar
                     </button>
@@ -2955,18 +3040,20 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/40">{entries.length} campo(s) encontrados</span>
-                        <div className="flex items-center gap-1 rounded-full border border-white/10 p-0.5">
-                          {[['fill-empty', 'Preencher vazios'], ['overwrite', 'Sobrescrever']].map(([mode, label]) => (
-                            <button
-                              key={mode}
-                              type="button"
-                              onClick={() => setExtractMode(mode)}
-                              className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${extractMode === mode ? 'bg-gold-400 text-black' : 'text-white/50 hover:text-white'}`}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
+                        {!extract.applied && (
+                          <div className="flex items-center gap-1 rounded-full border border-white/10 p-0.5">
+                            {[['fill-empty', 'Preencher vazios'], ['overwrite', 'Sobrescrever']].map(([mode, label]) => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => setExtractMode(mode)}
+                                className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${extractMode === mode ? 'bg-gold-400 text-black' : 'text-white/50 hover:text-white'}`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -2995,13 +3082,15 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                         })}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={applyExtracted}
-                        className="rounded-full bg-gold-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-gold-300"
-                      >
-                        Aplicar ao formulário
-                      </button>
+                      {!extract.applied && (
+                        <button
+                          type="button"
+                          onClick={applyExtracted}
+                          className="rounded-full bg-gold-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-gold-300"
+                        >
+                          Aplicar ao formulário
+                        </button>
+                      )}
                     </div>
                   )
                 })()}
@@ -3162,7 +3251,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
             )}
 
             {aiCopyEnabled && (
-              <section className="space-y-4 rounded-2xl border border-gold-400/25 bg-gold-400/[0.04] p-5">
+              <section ref={copyPanelRef} className="space-y-4 rounded-2xl border border-gold-400/25 bg-gold-400/[0.04] p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Copiloto de copy · IA</p>
@@ -3173,7 +3262,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   <button
                     type="button"
                     onClick={handleGenerateCopy}
-                    disabled={aiCopy.loading}
+                    disabled={aiCopy.loading || extract.loading}
                     className="shrink-0 rounded-full border border-gold-400/40 bg-gold-400/10 px-4 py-2 text-xs font-semibold text-gold-200 transition hover:bg-gold-400/20 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {aiCopy.loading ? 'Gerando…' : aiCopy.drafts ? 'Gerar de novo' : 'Gerar copy com IA'}
