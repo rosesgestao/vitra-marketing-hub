@@ -80,8 +80,7 @@ const humanizeSlot = (slot) => SLOT_LABELS[slot] || String(slot).replace(/_/g, '
 
 const INITIAL_FORM = {
   name: '',
-  source_type: 'drive',
-  source_url: '',
+  source_type: 'manual',
   landing_url: '',
   whatsapp_url: '',
   automation_notes: '',
@@ -324,7 +323,7 @@ function buildAutomationSteps(campaign, assets, publications) {
   return [
     {
       label: 'Fonte recebida',
-      detail: source.url ? `${sourceTypeLabel(source.type)} registrado` : imageCount ? `${imageCount} imagem(ns) enviada(s)` : 'Aguardando link ou imagens',
+      detail: source.url ? `${sourceTypeLabel(source.type)} registrado` : imageCount ? `${imageCount} imagem(ns) enviada(s)` : 'Aguardando o upload das fotos',
       done: Boolean(source.url || imageCount),
     },
     {
@@ -2768,12 +2767,10 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
       .filter(field => field.required && !String(form[formKeyForTemplateField(field)] || '').trim())
       .map(field => field.label)
 
-    const hasExternalImageSource = Boolean(form.source_url?.trim())
-    const missingImageSlots = hasExternalImageSource
-      ? []
-      : selectedImageSlots
-        .filter(slot => slot.required && imageSlotCount(slot) === 0)
-        .map(slot => slot.label)
+    // Fluxo so com upload manual: os slots de imagem obrigatorios sao sempre exigidos.
+    const missingImageSlots = selectedImageSlots
+      .filter(slot => slot.required && imageSlotCount(slot) === 0)
+      .map(slot => slot.label)
 
     const allMissing = [...missingFields, ...missingImageSlots]
     if (allMissing.length) {
@@ -2781,7 +2778,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
         ? `Preencha o campo obrigatorio: ${allMissing[0]}.`
         : `Preencha os ${allMissing.length} campos obrigatorios: ${allMissing.join(', ')}.`
       setLocalError(missingImageSlots.length
-        ? `${base} As imagens podem vir de uma fonte externa com fotos do imovel.`
+        ? `${base} Faca o upload das fotos do imovel.`
         : base)
       return
     }
@@ -2816,25 +2813,8 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
         <form onSubmit={submit} noValidate autoComplete="off" className="flex max-h-[calc(92vh-76px)] flex-col">
           <div className="space-y-7 overflow-y-auto px-6 py-6">
             <section className="space-y-4">
-              <p className={sectionTitleClass}>Origem e Automacao</p>
+              <p className={sectionTitleClass}>Variacoes e Automacao</p>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Fonte das fotos e informacoes" labelClass={labelClass}>
-                  <BrandedSelect
-                    value={form.source_type}
-                    onChange={value => update('source_type', value)}
-                    options={SOURCE_TYPE_OPTIONS}
-                  />
-                </Field>
-
-                <Field label="Link ou caminho da fonte" labelClass={labelClass}>
-                  <input
-                    value={form.source_url}
-                    onChange={event => update('source_url', event.target.value)}
-                    className={inputClass}
-                    placeholder="Ex: Google Drive, site, pasta da rede ou PDF"
-                  />
-                </Field>
-
                 <Field label="Variacoes por template aprovado" labelClass={labelClass}>
                   <BrandedSelect
                     value={form.creative_variations}
@@ -2873,7 +2853,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                 </Field>
               </div>
               <p className="text-xs leading-5 text-white/42">
-                A ferramenta registra a fonte, usa os uploads como materia-prima imediata e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
+                A ferramenta usa as fotos enviadas como materia-prima, gera as variacoes e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
               </p>
             </section>
 

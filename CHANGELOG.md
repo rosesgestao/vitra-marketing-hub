@@ -1,5 +1,24 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Modal Nova Campanha: so upload manual (remove "Fonte das fotos e informacoes")
+
+Decisao de produto: o dropdown "Fonte das fotos e informacoes" (`source_type`) era DECORATIVO — nenhuma
+das 5 opcoes mudava comportamento (a ingestao keya no campo de URL; o tipo Drive/site/pasta e auto-
+detectado). E o caminho real de fotos e o upload manual (curado pelo operador, melhor qualidade que o
+auto-scrape de og:image). Removidos os DOIS campos (dropdown + "Link ou caminho da fonte"); o fluxo passa
+a depender so do upload manual das fotos do imovel.
+
+- Modal: removidos os campos `source_type` (dropdown) e `source_url` (link); secao renomeada de "Origem e
+  Automacao" para "Variacoes e Automacao". Texto da secao atualizado (sem "registra a fonte").
+- Validacao do submit: os slots de imagem obrigatorios passam a ser SEMPRE exigidos (antes eram
+  dispensados quando havia uma URL externa); a dica vira "Faca o upload das fotos do imovel".
+- `INITIAL_FORM`: `source_type` default 'manual', `source_url` removido. `buildSourceIntake` degrada
+  gracioso (cleanText(undefined)='' -> ingestion_mode 'manual_brief_upload'); a ingestao externa no-opa.
+- Display historico preservado: `sourceTypeLabel`/`SOURCE_TYPE_OPTIONS` ficam (campanhas antigas com
+  fonte ainda exibem o rotulo correto). Frontend-only (HMR). 139 testes; build verde.
+- Backend de ingestao por URL (vite middleware + Edge ingest-source-images + ingestExternalImagesFromSources)
+  fica DORMENTE (inalcancavel pela UI) — candidato a limpeza num follow-up dedicado.
+
 ## Sessao 2026-06-07 — Seguranca das Edges de IA: gate token (chave publica nao basta mais)
 
 As 3 Edges de IA (generate-copy, extract-facts, suggest-template) chamam a API PAGA da Anthropic e
