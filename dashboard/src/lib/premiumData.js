@@ -975,6 +975,10 @@ export function variationTokens(product, place, form, brandProfile = getBrandPro
     price: cleanText(form.price),
     price_from: cleanText(form.price_from),
     headline: cleanText(form.suggested_headline) || cleanText(product),
+    // Fase 2 (bug cross-cutting): headline SEM fallback para o nome do produto. Receitas que
+    // usam {headline_only} nao vazam o nome cru do empreendimento como headline da arte quando o
+    // operador nao preenche a headline sugerida — buildHeadline cai no fallback por angulo.
+    headline_only: cleanText(form.suggested_headline),
     copy: cleanText(form.suggested_copy),
     offer: cleanText(form.offer) || brandProfile.defaultOffer,
     cta: cleanText(form.cta) || brandProfile.defaultCta,

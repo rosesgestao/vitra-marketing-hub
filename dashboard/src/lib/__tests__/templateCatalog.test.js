@@ -43,6 +43,39 @@ describe('contratos de variacao (recipes)', () => {
   })
 })
 
+describe('regressao de copy nas receitas (Fase 2)', () => {
+  it('nenhuma receita Imobiliaria usa o token bruto {headline} (deve ser {headline_only})', () => {
+    for (const template of creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)) {
+      for (const recipe of variationRecipesForTemplate(template)) {
+        expect(recipe.headline).not.toMatch(/\{headline\}/)
+      }
+    }
+  })
+  it('nenhuma headline de receita do financiamento contem R$ (a arte descarta headlines com preco)', () => {
+    const fin = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-financiamento-orla')
+    for (const recipe of variationRecipesForTemplate(fin)) {
+      expect(recipe.headline).not.toMatch(/R\$/)
+    }
+  })
+})
+
+describe('maxLength das headlines alinhado ao render (Fase 2)', () => {
+  const maxLen = (template, key) => fieldsForTemplate(template).find(f => f.key === key)?.maxLength
+  it('dual=36, patios=30, financiamento=34', () => {
+    const dual = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-dual-photo-offer')
+    const patios = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-patios-gallery')
+    const fin = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-financiamento-orla')
+    expect(maxLen(dual, 'suggested_headline')).toBe(36)
+    expect(maxLen(patios, 'suggested_headline')).toBe(30)
+    expect(maxLen(fin, 'suggested_headline')).toBe(34)
+  })
+  it('menino-deus ganhou maxLength nos campos que a arte trunca (suites=32, condo_argument=28)', () => {
+    const menino = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-menino-deus-offer')
+    expect(maxLen(menino, 'suites')).toBe(32)
+    expect(maxLen(menino, 'condo_argument')).toBe(28)
+  })
+})
+
 describe('references por variante (moldura)', () => {
   it('retorna 3 referencias (1 por formato) para cada variante', () => {
     const dual = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-dual-photo-offer')

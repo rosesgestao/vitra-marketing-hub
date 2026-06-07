@@ -1,5 +1,37 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Fase 2 (cont.): auditoria de copy + correcoes tecnicas (frontend-only)
+
+Auditoria multi-agente (5 agentes, file:line) da geracao de copy dos 4 templates Imobiliaria.
+Achou 4 bugs cross-cutting; aplicadas as correcoes TECNICAS (sem inventar copy de marketing nova).
+As reescritas de copy + 20 angulos novos ficaram propostos para revisao do marketing.
+
+### Correcoes aplicadas (premiumData.js + creativeTemplateCatalog.js)
+- **Nome do produto vazando para a headline (HIGH):** novo token `headline_only` em `variationTokens`
+  (sem fallback para o nome do produto). As 3 receitas que usavam `{headline}` cru
+  (dual `oferta-direta`, patios `patios-suite`, financiamento `financiamento`) passaram a usar
+  `{headline_only}`; sem headline sugerida, `buildHeadline` cai no fallback por angulo (copy
+  existente) em vez de imprimir o nome cru do empreendimento. Corrige a duplicacao "Produto. Produto.".
+- **Headline de financiamento com R$ descartada pela arte (HIGH):** receita `preco-partida` usava
+  `Oportunidade a partir de {price}`, que a arte rejeitava (`isFinancingVisualHeadline`) caindo no
+  default fixo "1DORM E 2DORM...", alem de duplicar o rotulo da price box. Trocada por
+  `{headline_only}` + angle `curadoria`->`investimento` (fallback sem R$ e sem vocabulario Premium).
+  Frontend-only: a Edge ja renderiza certo quando o frontend para de mandar R$ na headline.
+- **maxLength desalinhado do render:** headline do dual 44->36, patios 36->30; menino-deus ganhou
+  `maxLength` nos campos que a arte trunca (`suites`=32 na tarja, `condo_argument`=28). Era o unico
+  template sem trava de tamanho.
+
+### Proximos (precisam de aval do marketing — NAO aplicados)
+- Reescrever copy de receitas que usam tokens de campos inexistentes (`{offer}` no dual, `{area}` no
+  patios) -> hoje viram filler institucional.
+- Diferenciar o angulo de escassez (hoje quase identico nos 4 templates).
+- Eliminar a reabertura do body com o bairro ja usado na headline (menino `bairro-destaque`).
+- Ampliar o leque com 20 angulos novos (5/template), todos brand-checados (0 mistura com a Premium).
+
+### Validacao
+- npm run test:run => 61 passed (+8 testes de regressao: headline_only, sem `{headline}` cru, sem R$
+  no financiamento, maxLength alinhado); npm run build => ok. Nenhum deploy de Edge necessario.
+
 ## Sessao 2026-06-06 — Fase 2: fotos slot-aware (deployada+verificada) + HEIC
 
 ### Fotos slot-aware (render-asset) — DEPLOYADA e VERIFICADA

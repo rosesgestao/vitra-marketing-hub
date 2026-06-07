@@ -8,6 +8,8 @@ import {
   selectedTemplateVariationConcepts,
   buildMetaAssetBlueprints,
   distinctConceptCapacity,
+  variationTokens,
+  renderVariationText,
 } from '../premiumData.js'
 
 // Testes de CARACTERIZACAO da Fase 0: documentam o comportamento ATUAL como
@@ -99,6 +101,24 @@ describe('distinctConceptCapacity (Fase 2 P1)', () => {
   })
   it('financiamento-orla expoe 9 angulos apos a ampliacao (Fase 2)', () => {
     expect(distinctConceptCapacity({ creative_template_id: 'vitra-imobiliaria-financiamento-orla' }, imobiliaria)).toBe(9)
+  })
+})
+
+describe('headline_only (Fase 2: nome do produto vazando para a headline da arte)', () => {
+  it('headline (legado) mantem o fallback para o nome do produto', () => {
+    const tokens = variationTokens('Residencial Aurora', 'Centro', {})
+    expect(tokens.headline).toBe('Residencial Aurora')
+  })
+  it('headline_only NAO faz fallback para o produto (fica vazio sem suggested_headline)', () => {
+    const tokens = variationTokens('Residencial Aurora', 'Centro', {})
+    expect(tokens.headline_only).toBe('')
+  })
+  it('headline_only usa a headline sugerida quando preenchida', () => {
+    const tokens = variationTokens('Residencial Aurora', 'Centro', { suggested_headline: 'More na Orla' })
+    expect(tokens.headline_only).toBe('More na Orla')
+  })
+  it('receita {headline_only} renderiza vazio sem suggested_headline (cai no fallback por angulo)', () => {
+    expect(renderVariationText('{headline_only}', variationTokens('Aurora', 'Centro', {}))).toBe('')
   })
 })
 

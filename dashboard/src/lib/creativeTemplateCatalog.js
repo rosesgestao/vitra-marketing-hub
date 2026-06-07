@@ -52,7 +52,7 @@ const dualPhotoOfferFieldGroups = [
     title: 'Campos do Template',
     fields: [
       { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Isla Zona Sul' },
-      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 44, helper: 'Headline curta — ate 44 caracteres para caber na arte.', placeholder: 'Ex: More ou invista no coracao da Zona Norte', colSpan: 'full' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 36, helper: 'Headline curta — ate 36 caracteres para caber na arte (2 linhas).', placeholder: 'Ex: More ou invista na Zona Norte', colSpan: 'full' },
       { key: 'area', label: 'Subtitulo / caracteristica', type: 'text', placeholder: 'Ex: 2 dormitorios com suite, churrasqueira e ate 2 vagas', colSpan: 'full' },
       { key: 'price_from', label: 'Valor de', type: 'money', placeholder: 'Ex: R$ 450 mil' },
       { key: 'price', label: 'Valor por', type: 'money', required: true, placeholder: 'Ex: R$ 399 mil' },
@@ -68,7 +68,7 @@ const patiosGalleryFieldGroups = [
     title: 'Campos do Template',
     fields: [
       { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Casa com patio' },
-      { key: 'suggested_headline', label: 'Headline principal', type: 'text', required: true, maxLength: 36, helper: 'Headline curta — ate 36 caracteres para caber na arte.', placeholder: 'Ex: 2 dorm. c/ suite com 2 patios', colSpan: 'full' },
+      { key: 'suggested_headline', label: 'Headline principal', type: 'text', required: true, maxLength: 30, helper: 'Headline bem curta — ate 30 caracteres para manter a fonte legivel ao lado das fotos.', placeholder: 'Ex: 2 dorm. c/ suite e 2 patios', colSpan: 'full' },
       { key: 'price', label: 'Valor de oportunidade', type: 'money', required: true, placeholder: 'Ex: R$ 419.000,00' },
       { key: 'differentials', label: 'Caracteristicas do imovel', type: 'list', required: true, placeholder: '106m2 privativos\nSuite e churrasqueira\nBaixo custo condominio\nVaga escritura coberta', colSpan: 'full' },
       { key: 'location', label: 'Texto de localizacao', type: 'text', placeholder: 'Ex: A 10 min. do Praia de Belas', colSpan: 'full' },
@@ -98,9 +98,9 @@ const meninoDeusFieldGroups = [
     fields: [
       { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Oportunidade Menino Deus' },
       { key: 'neighborhood', label: 'Bairro em destaque', type: 'text', required: true, placeholder: 'Ex: Menino Deus' },
-      { key: 'suites', label: 'Faixa principal', type: 'text', required: true, placeholder: 'Ex: 2 dormitorios c/ suite', colSpan: 'full' },
+      { key: 'suites', label: 'Faixa principal', type: 'text', required: true, maxLength: 32, helper: 'Aparece na tarja navy — ate 32 caracteres para caber na arte.', placeholder: 'Ex: 2 dormitorios c/ suite', colSpan: 'full' },
       { key: 'price', label: 'Valor', type: 'money', required: true, placeholder: 'Ex: R$ 539 mil' },
-      { key: 'condo_argument', formKey: 'offer', label: 'Argumento lateral', type: 'text', placeholder: 'Ex: Menor valor do condominio' },
+      { key: 'condo_argument', formKey: 'offer', label: 'Argumento lateral', type: 'text', maxLength: 28, helper: 'Argumento curto — ate 28 caracteres para caber na arte.', placeholder: 'Ex: Menor valor do condominio' },
       { key: 'differentials', label: 'Diferenciais', type: 'list', placeholder: '61m2 - Churrasqueira e sacada\nInfraestrutura completa\nImovel nunca habitado\n10o andar com vista livre', colSpan: 'full' },
       { key: 'location', label: 'Endereco / localizacao', type: 'text', required: true, placeholder: 'Ex: Av. Jose de Alencar - Menino Deus', colSpan: 'full' },
     ],
@@ -129,7 +129,7 @@ const templateVariationContracts = {
     lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'format_grid'],
     mutableSlots: ['headline', 'subtitle', 'price', 'differentials', 'cta', 'photos'],
     recipes: [
-      { id: 'oferta-direta', label: 'Oferta direta', phase: '1', angle: 'editorial', headline: '{headline}', copy: '{offer}. Imovel com informacao clara, fotos do produto e proximo passo simples.', cta: '{cta}' },
+      { id: 'oferta-direta', label: 'Oferta direta', phase: '1', angle: 'editorial', headline: '{headline_only}', copy: '{offer}. Imovel com informacao clara, fotos do produto e proximo passo simples.', cta: '{cta}' },
       { id: 'valor-comparativo', label: 'Valor comparativo', phase: '2', angle: 'investimento', headline: '{product}: valor para avaliar agora', copy: 'Compare preco, localizacao e diferenciais antes de decidir. A Vitra organiza as informacoes essenciais.', cta: 'Fale com a Vitra' },
       { id: 'localizacao-bairro', label: 'Localizacao e bairro', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'A localizacao entra como criterio central da decisao. Veja fotos, pontos de interesse e condicoes do imovel.', cta: 'Receber informacoes' },
       { id: 'diferenciais-produto', label: 'Diferenciais do imovel', phase: '2', angle: 'diferenciais', headline: 'Diferenciais que ajudam na decisao', copy: '{details}. Uma leitura objetiva para entender se este imovel combina com sua busca.', cta: 'Conhecer diferenciais' },
@@ -142,7 +142,7 @@ const templateVariationContracts = {
     lockedSlots: ['layout', 'logo', 'typography', 'palette', 'benefit_arrows', 'photo_grid'],
     mutableSlots: ['headline', 'price', 'features', 'location', 'photos'],
     recipes: [
-      { id: 'patios-suite', label: 'Configuracao forte', phase: '1', angle: 'diferenciais', headline: '{headline}', copy: '{details}. Destaques que ajudam a entender valor de uso e decisao.', cta: 'Fale com a Vitra' },
+      { id: 'patios-suite', label: 'Configuracao forte', phase: '1', angle: 'diferenciais', headline: '{headline_only}', copy: '{details}. Destaques que ajudam a entender valor de uso e decisao.', cta: 'Fale com a Vitra' },
       { id: 'area-privativa', label: 'Area e uso', phase: '2', angle: 'arquitetura', headline: '{area} com boa leitura de uso', copy: 'Planta, area e rotina precisam fazer sentido juntos. Veja os principais pontos deste imovel.', cta: 'Ver detalhes' },
       { id: 'baixo-custo', label: 'Custo de moradia', phase: '2', angle: 'investimento', headline: 'Compra com criterio de custo e valor', copy: 'Compare valor, condominio e diferenciais antes de decidir. A Vitra ajuda nessa leitura.', cta: 'Comparar informacoes' },
       { id: 'localizacao-proxima', label: 'Proximidade', phase: '1', angle: 'localizacao', headline: '{product}: perto do que importa', copy: '{location}. Um argumento de localizacao para avaliar junto das fotos e caracteristicas.', cta: 'Conhecer localizacao' },
@@ -155,8 +155,8 @@ const templateVariationContracts = {
     lockedSlots: ['layout', 'logo', 'typography', 'palette', 'price_box', 'rounded_photo_frames'],
     mutableSlots: ['headline', 'financing_claim', 'price', 'neighborhood', 'photos'],
     recipes: [
-      { id: 'financiamento', label: 'Financiamento', phase: '1', angle: 'investimento', headline: '{headline}', copy: '{financing_claim}. Oportunidade para avaliar condicoes, bairro e fotos do empreendimento.', cta: 'Fale com a Vitra' },
-      { id: 'preco-partida', label: 'Preco de partida', phase: '2', angle: 'curadoria', headline: 'Oportunidade a partir de {price}', copy: 'Confira se esta faixa de valor faz sentido para sua busca e receba os detalhes com a Vitra.', cta: 'Receber detalhes' },
+      { id: 'financiamento', label: 'Financiamento', phase: '1', angle: 'investimento', headline: '{headline_only}', copy: '{financing_claim}. Oportunidade para avaliar condicoes, bairro e fotos do empreendimento.', cta: 'Fale com a Vitra' },
+      { id: 'preco-partida', label: 'Preco de partida', phase: '2', angle: 'investimento', headline: '{headline_only}', copy: 'Confira se esta faixa de valor faz sentido para sua busca e receba os detalhes com a Vitra.', cta: 'Receber detalhes' },
       { id: 'bairro', label: 'Bairro e localizacao', phase: '1', angle: 'localizacao', headline: '{product} em {neighborhood}', copy: 'Localizacao, fotos e condicoes em uma peca objetiva para comparar antes de decidir.', cta: 'Conhecer o bairro' },
       { id: 'primeira-compra', label: 'Primeira compra', phase: '2', angle: 'lifestyle', headline: 'Um caminho mais claro para comprar', copy: 'A Vitra organiza as informacoes do imovel para voce entender preco, fotos e proximos passos.', cta: 'Entender condicoes' },
       { id: 'urgencia', label: 'Avaliacao rapida', phase: '3', angle: 'escassez', headline: 'Avalie disponibilidade e condicoes', copy: 'Campanhas com preco de entrada pedem confirmacao rapida. Fale com a Vitra para seguir com seguranca.', cta: 'Confirmar disponibilidade' },
