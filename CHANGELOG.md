@@ -1,5 +1,15 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Estabilidade: Premium full-res renderiza 1-por-vez (evita OOM em lote)
+
+Descoberto ao re-renderizar os Premium antigos: renderizar VARIOS criativos Premium full-res
+(satori) numa unica invocacao da Edge estoura o compute (OOM em lote) — e o cron usa `limit=4`
+(clampado a 3), entao campanhas Premium novas tambem poderiam estourar. Correcao na raiz:
+- `render-asset/index.ts`: probe barato do `brand_scope` do alvo (campaign_id ou asset_ids); se
+  Premium (ou indefinido, conservador), o `limit` da invocacao e capado em **1** — Premium renderiza
+  1-a-1. A Imobiliaria (SVG direto, leve) mantem ate 3 (sem perda de throughput). Render individual
+  ja e seguro pelos scales por formato. Elimina o OOM em lote no cron/dashboard.
+
 ## Sessao 2026-06-07 — Fase 2/3 (cont.): render-version Edge (#3) + auto-fit (#4)
 
 Dois itens da fabrica que exigiam deploy de Edge, num release so. Protegidos pelo harness do #2.

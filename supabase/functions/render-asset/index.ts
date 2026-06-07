@@ -1024,7 +1024,7 @@ Deno.serve(async (req) => {
   let body: any = {}; try { body = await req.json(); } catch {}
   const campaignId = body.campaign_id || null;
   const assetIds = Array.isArray(body.asset_ids) ? body.asset_ids : null;
-  const limit = Math.min(Math.max(Number(body.limit || 1), 1), 3);
+  let limit = Math.min(Math.max(Number(body.limit || 1), 1), 3);
   if (!campaignId && !assetIds) return new Response(JSON.stringify({ error:"informe campaign_id ou asset_ids" }), { status:400, headers:cors });
   const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth:{ persistSession:false } });
   // Claim ATOMICO (Fase 1): marca os assets elegiveis como 'rendering' de forma
@@ -1036,6 +1036,17 @@ Deno.serve(async (req) => {
   // voltem a 'queued' e o fluxo termine mesmo com o navegador fechado. Best-effort:
   // se a migration do reaper ainda nao foi aplicada, o rpc retorna erro e seguimos.
   await svc.rpc("reap_stale_render_assets", { p_max_attempts: MAX_RENDER_ATTEMPTS, p_orphan_minutes: 10 });
+  // Estabilidade (full-res): o caminho Premium (satori) estoura o compute da Edge se renderizar
+  // varios full-res numa unica invocacao (OOM em lote, comprovado). Cap em 1 por chamada para
+  // Premium; a Imobiliaria (SVG direto, leve) mantem ate 3. Probe barato do brand_scope do alvo;
+  // na duvida (sem brand_scope) trata como Premium e cap em 1 (conservador).
+  try {
+    let probeQ = svc.from("premium_campaign_assets").select("metadata").eq("channel", "meta_ads");
+    probeQ = campaignId ? probeQ.eq("campaign_id", campaignId) : probeQ.in("id", assetIds ?? []);
+    const probe = await probeQ.limit(1).maybeSingle();
+    const scope = probe.data?.metadata?.brand_scope || "vitra_premium";
+    if (scope !== "vitra_imobiliaria") limit = 1;
+  } catch (_) { /* probe best-effort: mantem o limit pedido */ }
   let assets: any[] | null = null;
   let aErr: any = null;
   const claim = await svc.rpc("claim_render_assets", { p_campaign: campaignId, p_asset_ids: assetIds, p_limit: limit });
