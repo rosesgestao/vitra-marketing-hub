@@ -1,5 +1,23 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Seguranca das Edges de IA: gate token (chave publica nao basta mais)
+
+As 3 Edges de IA (generate-copy, extract-facts, suggest-template) chamam a API PAGA da Anthropic e
+estavam protegidas so pela chave publishable (PUBLICA por design). Fechado com um GATE TOKEN: o caminho
+anon agora exige TAMBEM o header `x-copilot-gate` casando com o secret `COPILOT_GATE`. Provado em
+producao: anon SEM gate -> 403; anon COM gate -> 200; service role (cron) ISENTA.
+
+- **`_shared/edgeAuth.ts`** (novo): `decideAiEdgeAuth` (PURO, +7 testes) + `authorizeAiEdge` (wrapper Deno).
+  Service role isenta (server-side); anon exige o gate; sem o secret -> aberto (ativacao graciosa, nao
+  quebra o dashboard antes de ligar). As 3 Edges trocaram a auth inline por `authorizeAiEdge`; CORS ganhou
+  `x-copilot-gate`. render-asset NAO foi gated (nao chama API paga; e usada pela cron com service role).
+- **Dashboard** (`premiumData.js`): `copilotGateHeaders()` envia o header quando `VITE_COPILOT_GATE`
+  existe no `.env` (gitignored, local). Os 3 invokes passam o header.
+- **ATIVADO:** secret `COPILOT_GATE` setado + `VITE_COPILOT_GATE` no `.env`. (Reiniciar o `npm run dev`
+  para o dashboard em execucao pegar a nova env.)
+- **LIMITE documentado** (BRAND/edgeAuth): protege ferramenta interna/local. Se o dashboard for deployado
+  publicamente, o token vaza no bundle -> trocar por auth de usuario real (verify_jwt=true). 139 testes.
+
 ## Sessao 2026-06-07 — Copiloto de IA estendido ao PREMIUM (copy na voz do brandbook)
 
 A geracao de copy por IA (degrau A) + o fluxo unico (extrair+gerar) agora valem tambem para a Vitra

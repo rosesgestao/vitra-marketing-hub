@@ -7,9 +7,8 @@
 // A chave fica no secret ANTHROPIC_API_KEY (server-side; NUNCA no browser). Sem ela, retorna 503.
 
 import { validateCopyAngle, bannedVocabForScope } from "../_shared/copyValidation.ts";
+import { authorizeAiEdge } from "../_shared/edgeAuth.ts";
 
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const MODEL = Deno.env.get("COPILOT_COPY_MODEL") ?? "claude-sonnet-4-6";
 
@@ -89,16 +88,16 @@ function factsPrompt(facts: Record<string, unknown>, count: number, angleHints?:
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-copilot-gate",
     "Content-Type": "application/json",
   };
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "metodo nao permitido" }), { status: 405, headers: cors });
 
-  // Auth: aceita a service role ou a chave publishable (igual ao render-asset).
-  const presented = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || req.headers.get("apikey");
-  if (!presented || (presented !== SERVICE_KEY && presented !== ANON_KEY)) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: cors });
+  // Auth: service role (server) OU anon + gate token (x-copilot-gate). Ver _shared/edgeAuth.ts.
+  const auth = authorizeAiEdge(req);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.error, message: auth.message }), { status: auth.status, headers: cors });
   }
 
   if (!ANTHROPIC_API_KEY) {

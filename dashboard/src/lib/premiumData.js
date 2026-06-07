@@ -408,6 +408,14 @@ export function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfil
   return metaCreativeConceptsForBrand(brandProfile).slice(0, metaCreativeVariationCount(form))
 }
 
+// Gate token das Edges de IA (seguranca): so envia o header quando VITE_COPILOT_GATE existe no .env do
+// dashboard. As Edges (generate-copy/extract-facts/suggest-template) exigem esse token quando o secret
+// COPILOT_GATE esta setado — assim a chave publishable (publica) sozinha nao autoriza uma chamada paga.
+function copilotGateHeaders() {
+  const gate = import.meta.env?.VITE_COPILOT_GATE
+  return gate ? { 'x-copilot-gate': gate } : undefined
+}
+
 // Chama a Edge generate-copy (Claude) e devolve os angulos gerados+validados. A chave da IA fica
 // server-side (secret ANTHROPIC_API_KEY); aqui so passamos os fatos do imovel. Lanca erro acionavel.
 export async function generateCopyWithAI(form, brandProfile = getBrandProfile()) {
@@ -427,6 +435,7 @@ export async function generateCopyWithAI(form, brandProfile = getBrandProfile())
     condo_argument: cleanText(form.condo_argument) || cleanText(form.offer),
   }
   const { data, error } = await supabase.functions.invoke('generate-copy', {
+    headers: copilotGateHeaders(),
     body: {
       brand_scope: brandProfile.scope,
       template: template?.id || null,
@@ -481,6 +490,7 @@ export async function extractFactsWithAI(sourceText, selectedTemplate, brandProf
   if (!fieldSpecs.length) throw new Error('Escolha um template com campos para a IA preencher.')
 
   const { data, error } = await supabase.functions.invoke('extract-facts', {
+    headers: copilotGateHeaders(),
     body: {
       brand_scope: brandProfile.scope,
       source_text: text,
@@ -535,6 +545,7 @@ export async function suggestTemplateWithAI(sourceText, brandProfile = getBrandP
   if (templates.length < 2) return null
 
   const { data, error } = await supabase.functions.invoke('suggest-template', {
+    headers: copilotGateHeaders(),
     body: { brand_scope: brandProfile.scope, source_text: text, templates },
   })
   if (error) {
