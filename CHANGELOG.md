@@ -1,5 +1,22 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Fidelidade de marca: auditoria vs brandbooks oficiais + BRAND.md
+
+O usuario forneceu os brandbooks oficiais (Imobiliaria e Premium) + diretorios de logos. Auditei o
+projeto contra eles: **ja esta fiel** — cores (`#C4942A` dourado, `#0A1628`/`#07111F` navy, `#000`
+Premium, `#F0C95C` gold-light, facetas azuis), fontes (Inter + Playfair) e logos aprovadas (todas
+presentes em `public/brand/`, caminhos do brandProfiles resolvem) conferem. 3 melhorias aplicadas:
+
+- **`BRAND.md`** (novo, raiz): codifica o Brand System no repo — paleta exata por marca, construcao de
+  logo, tipografia, voz/lexico, regra de nao-mistura, e onde cada coisa vive no projeto. Fonte da
+  verdade aponta para os brandbooks HTML originais.
+- **Voz Premium do copiloto** (`generate-copy`): alinhada ao brandbook — "o luxo nao grita, sussurra",
+  frases curtas, SEM emojis/superlativos, lexico oficial (curadoria, seleto, atemporal, discreto,
+  singular...). So o ramo Premium mudou; Imobiliaria intacta (smoke-test 200, sem regressao). Deployada.
+- **Separacao de vocabulario** (`_shared/copyValidation.ts`): o lexico Premium do brandbook (seleto,
+  atemporal, singular, discreto, excepcional, sofisticado) agora e barrado se vazar na copy da
+  Imobiliaria. +1 teste; 132 no total.
+
 ## Sessao 2026-06-07 — Copiloto de IA: revalidacao AO VIVO da copy na edicao (fonte unica)
 
 Fecha o loop da edicao de copy: ao editar um rascunho da IA, os badges de issue passam a RECALCULAR

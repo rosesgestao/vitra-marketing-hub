@@ -11,6 +11,12 @@ describe('bannedVocabForScope', () => {
     expect(bannedVocabForScope('vitra_imobiliaria')).toContain('curadoria')
     expect(bannedVocabForScope('vitra_imobiliaria')).toContain('liquidez')
   })
+  it('Imobiliaria proibe o lexico oficial do brandbook Premium (seleto/atemporal/singular)', () => {
+    const banned = bannedVocabForScope('vitra_imobiliaria')
+    expect(banned).toContain('seleto')
+    expect(banned).toContain('atemporal')
+    expect(banned).toContain('singular')
+  })
   it('Premium proibe vocabulario de promocao barata', () => {
     expect(bannedVocabForScope('vitra_premium')).toContain('imperdivel')
     expect(bannedVocabForScope('vitra_premium')).not.toContain('curadoria')

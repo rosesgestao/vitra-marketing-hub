@@ -41,9 +41,9 @@ function brandVoice(scope: string) {
     return {
       nome: "Vitra Premium",
       paleta: "preto + dourado, editorial, alto padrao",
-      tom: "Editorial, sofisticado e consultivo. Posicionamento de alto padrao e patrimonio. Pode usar curadoria, arquitetura, liquidez, exclusividade, presenca.",
+      tom: "Editorial, sofisticado e DISCRETO (brandbook Premium: 'o luxo nao grita — sussurra'). Menos e mais: frases CURTAS, vocabulario preciso, SEM superlativos gratuitos e SEM emojis. Posicionamento de alto padrao e patrimonio. Lexico da marca: curadoria, excepcional, seleto, atemporal, exclusivo, patrimonio, experiencia, discreto, sofisticado, singular, arquitetura, presenca.",
       ctas: "Receba a curadoria, Agende uma visita reservada, Fale com um especialista",
-      evite: "Tom de promocao barata ou liquidacao. Nada de 'imperdivel', 'aproveite ja', 'ultima chance'.",
+      evite: "Tom de promocao barata ou liquidacao, superlativos gratuitos, emojis. Nada de 'imperdivel', 'aproveite ja', 'ultima chance', 'baratinho'.",
     };
   }
   return {

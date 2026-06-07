@@ -4,11 +4,13 @@
 // da auditoria de copy: tamanho de headline, nao repetir o nome do produto na headline E no inicio
 // do texto, e nao misturar vocabulario entre Premium e Imobiliaria (regra do Brand System).
 
-// Vocabulario editorial da Vitra Premium — NAO pode vazar para a Imobiliaria.
+// Vocabulario editorial da Vitra Premium — NAO pode vazar para a Imobiliaria. Inclui o lexico oficial
+// do brandbook Premium (Curadoria, Seleto, Atemporal, Discreto, Singular, Excepcional, Sofisticado...).
 const PREMIUM_VOCAB = [
   "curadoria", "curado", "uma categoria acima", "liquidez", "alto padrao", "alto padrão",
-  "leitura objetiva", "sofisticacao", "sofisticação", "exclusividade", "exclusivo", "exclusiva",
+  "leitura objetiva", "sofisticacao", "sofisticação", "sofisticado", "exclusividade", "exclusivo", "exclusiva",
   "patrimonial", "experiencia de morar", "experiência de morar", "assinatura premium", "requinte",
+  "seleto", "seleta", "atemporal", "singular", "discreto", "discreta", "excepcional",
 ];
 // Termos "promocao barata" que destoam do tom editorial da Premium.
 const CHEAP_VOCAB = [
