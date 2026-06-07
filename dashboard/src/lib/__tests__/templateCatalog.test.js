@@ -15,6 +15,8 @@ import {
   templateFamilyFromTemplateKey,
   isApprovedTemplateKeyForBrand,
   frameForTemplateVariant,
+  renderVersionForFamily,
+  VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION,
 } from '../creativeTemplateCatalog.js'
 
 describe('catalogo de templates por marca', () => {
@@ -86,6 +88,25 @@ describe('references por variante (moldura)', () => {
     const dual = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-dual-photo-offer')
     expect(frameForTemplateVariant(dual, 'com-moldura')).toBe('gold')
     expect(frameForTemplateVariant(dual, 'sem-moldura')).toBe('none')
+  })
+})
+
+describe('render-version (fonte unica no catalogo — Fase 3)', () => {
+  // ESPELHO DA EDGE: o mesmo mapa esta hardcoded em
+  // supabase/functions/render-asset/index.ts (VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION).
+  // Se mudar aqui, atualize a Edge no MESMO release (anti-loop de pendencia de render).
+  const EDGE_MIRROR = {
+    'vitra-imobiliaria-financiamento-orla': 'financiamento-orla-approved-v7',
+  }
+  it('mapa derivado do catalogo == espelho da Edge (anti-divergencia)', () => {
+    expect(VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION).toEqual(EDGE_MIRROR)
+  })
+  it('renderVersionForFamily retorna a versao do financiamento e null para as demais', () => {
+    expect(renderVersionForFamily('vitra-imobiliaria-financiamento-orla')).toBe('financiamento-orla-approved-v7')
+    expect(renderVersionForFamily('vitra-imobiliaria-dual-photo-offer')).toBeNull()
+    expect(renderVersionForFamily('vitra-imobiliaria-patios-gallery')).toBeNull()
+    expect(renderVersionForFamily('vitra-imobiliaria-menino-deus-offer')).toBeNull()
+    expect(renderVersionForFamily(undefined)).toBeNull()
   })
 })
 

@@ -278,6 +278,10 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       references: vitraImobiliariaReference('template-03-financiamento-orla'),
       variableFields: ['photos', 'headline', 'financing_claim', 'price', 'neighborhood'],
       fixedBrandRules: ['navy_gold', 'approved_horizontal_logo', 'rounded_photo_frames', 'price_box'],
+      // render-version (cache-busting): bump quando a ARTE deste template muda, para forcar
+      // re-render dos PNGs ja em storage. So esta family foi iterada ate aqui; as outras 3
+      // ficam sem renderVersion (nao disparam re-render retroativo). Fonte unica no catalogo.
+      renderVersion: 'financiamento-orla-approved-v7',
     },
     {
       id: 'vitra-imobiliaria-menino-deus-offer',
@@ -375,6 +379,25 @@ export function variationContractForTemplate(template) {
 export function variationRecipesForTemplate(template) {
   return variationContractForTemplate(template).recipes || []
 }
+
+// Fonte unica do render-version (cache-busting) por family: derivado do campo `renderVersion`
+// dos proprios templates do catalogo, em vez de um literal solto duplicado. Somente families
+// com bump explicito entram no mapa; as demais ficam fora (sem disparo de re-render).
+// (Fase 3) A Edge mantem um espelho proprio — o teste de guarda evita divergencia.
+export function renderVersionForFamily(family) {
+  if (!family) return null
+  for (const templates of Object.values(CREATIVE_TEMPLATE_CATALOG)) {
+    const match = templates.find(template => template.family === family)
+    if (match?.renderVersion) return match.renderVersion
+  }
+  return null
+}
+
+export const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION = Object.fromEntries(
+  creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
+    .filter(template => template.renderVersion)
+    .map(template => [template.family, template.renderVersion]),
+)
 
 export function frameForTemplateVariant(template, variantId) {
   const variant = template?.variants?.find(item => item.id === variantId) ||

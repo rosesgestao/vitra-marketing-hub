@@ -1,6 +1,21 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
-## Sessao 2026-06-06 — Fase 2 (cont.): auditoria de copy + correcoes tecnicas (frontend-only)
+## Sessao 2026-06-06 — Fase 2/3 (fechar a fabrica): ganhos sem deploy
+
+Mapeamento multi-agente das 3 frentes para fechar a fabrica de criativos (Premium full-res,
+render-version, validacao por formato) com risco + plano. Comecando pelos ganhos de baixo risco
+e SEM deploy de Edge. As frentes que exigem deploy (Premium full-res, atuacao de auto-fit, fase
+Edge do render-version) ficam para depois, com autorizacao.
+
+### #1 — render-version com fonte unica no catalogo (frontend-only, sem mudanca de comportamento)
+- O mapa `VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION` estava num literal solto em `premiumData.js`
+  (duplicado tambem na Edge). Movido para o **catalogo canonico**: campo `renderVersion` por
+  template + helper `renderVersionForFamily(family)` e mapa derivado, exportados de
+  `creativeTemplateCatalog.js`. `premiumData.js` passa a importar o helper.
+- **Comportamento identico**: so `financiamento-orla` tem versao (as outras 3 families seguem sem
+  versao, sem disparar re-render retroativo). A Edge mantem seu espelho proprio (Deno nao importa
+  modulos do dashboard) — a unificacao cross-process fica para a fase Edge (com deploy).
+- Teste de guarda anti-divergencia: o mapa derivado == espelho hardcoded da Edge; +2 testes (63 no total).
 
 Auditoria multi-agente (5 agentes, file:line) da geracao de copy dos 4 templates Imobiliaria.
 Achou 4 bugs cross-cutting; aplicadas as correcoes TECNICAS (sem inventar copy de marketing nova).

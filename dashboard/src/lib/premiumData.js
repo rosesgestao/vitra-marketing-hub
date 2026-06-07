@@ -10,6 +10,7 @@ import {
   isApprovedTemplateKeyForBrand,
   normalizeCreativeTemplateSelection,
   referencesForTemplateVariant,
+  renderVersionForFamily,
   templateFamilyFromTemplateKey,
   variationContractForTemplate,
   variationRecipesForTemplate,
@@ -120,9 +121,6 @@ const META_CREATIVE_CONCEPTS = [
 ]
 
 export const VITRA_IMOBILIARIA_TEMPLATE_BASE = 'vitra-imobiliaria-dual-photo-offer'
-const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION = {
-  'vitra-imobiliaria-financiamento-orla': 'financiamento-orla-approved-v7',
-}
 
 const VITRA_IMOBILIARIA_META_CREATIVE_CONCEPTS = [
   { key: 'meta-awareness-mercado', label: 'Awareness - Mercado', phase: '1', templateBase: VITRA_IMOBILIARIA_TEMPLATE_BASE, angle: 'editorial' },
@@ -530,7 +528,7 @@ export function needsVitraImobiliariaApprovedTemplateRender(asset) {
   if (!isVitraImobiliariaApprovedTemplateAsset(asset)) return false
   const templateKey = String(asset?.template_key || asset?.metadata?.visual_template?.key || '')
   const family = asset.metadata?.visual_template?.family || templateFamilyFromTemplateKey(templateKey)
-  const expectedVersion = VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[family]
+  const expectedVersion = renderVersionForFamily(family)
   return asset.status === 'queued' ||
     !asset.public_url ||
     asset.metadata?.rendered_template_family !== family ||
