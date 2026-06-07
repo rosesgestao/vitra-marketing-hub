@@ -442,3 +442,15 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Fix: `autoComplete="off"` nos modais (elimina o popup do navegador "Salvar documento de identidade?").
 - Validacao: 51 testes, build, deno check. Edge re-deployada; frontend pendente de host (sem Vercel/config).
 - Nota: [[../Atualizacao_2026-06-06_Fase2_P1_P2_Autocomplete]].
+
+## 2026-06-06 - Fase 2 (cont.): Aprovar todos + Ampliacao de Angulos
+
+- "Aprovar todos" por campanha: botao no cabecalho de Trafego Pago que aprova todos os cortes ja
+  gerados de uma vez (reusa onApproveGroup). Reduz a aprovacao peca-a-peca (P4).
+- Ampliacao do leque de angulos: financiamento-orla de 5 -> 9 angulos distintos. Com o cap da
+  Fase 2, pedir 8/9 variacoes agora gera ate 9 anuncios sem copy repetida. DECISAO: copy nova entra
+  como rascunho para revisao do marketing; os outros 3 templates serao ampliados depois de validada
+  a voz nesta primeira leva. Operador segue aprovando cada criativo antes de exportar (gate humano).
+- Frontend-only (entra ao reiniciar o vite local). 53 testes + build OK.
+- Pendente da Fase 2 tecnica: fotos slot-aware, HEIC, resolucao Premium full-res (cada um com
+  verificacao visual propria).

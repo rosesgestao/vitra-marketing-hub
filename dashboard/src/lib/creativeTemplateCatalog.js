@@ -160,6 +160,10 @@ const templateVariationContracts = {
       { id: 'bairro', label: 'Bairro e localizacao', phase: '1', angle: 'localizacao', headline: '{product} em {neighborhood}', copy: 'Localizacao, fotos e condicoes em uma peca objetiva para comparar antes de decidir.', cta: 'Conhecer o bairro' },
       { id: 'primeira-compra', label: 'Primeira compra', phase: '2', angle: 'lifestyle', headline: 'Um caminho mais claro para comprar', copy: 'A Vitra organiza as informacoes do imovel para voce entender preco, fotos e proximos passos.', cta: 'Entender condicoes' },
       { id: 'urgencia', label: 'Avaliacao rapida', phase: '3', angle: 'escassez', headline: 'Avalie disponibilidade e condicoes', copy: 'Campanhas com preco de entrada pedem confirmacao rapida. Fale com a Vitra para seguir com seguranca.', cta: 'Confirmar disponibilidade' },
+      { id: 'entrada-facilitada', label: 'Entrada facilitada', phase: '2', angle: 'investimento', headline: 'Condicoes de entrada facilitadas', copy: '{financing_claim}. Veja condicoes, bairro e fotos do empreendimento antes de decidir, com apoio da Vitra.', cta: 'Ver condicoes' },
+      { id: 'localizacao-valoriza', label: 'Localizacao que valoriza', phase: '1', angle: 'localizacao', headline: 'Morar em {neighborhood} com bom acesso', copy: 'Localizacao, mobilidade e potencial de valorizacao reunidos. A Vitra ajuda a comparar antes da decisao.', cta: 'Conhecer a regiao' },
+      { id: 'pronto-pra-morar', label: 'Pronto para morar', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar, perto de tudo', copy: 'Imovel para entrar e morar: veja fotos, planta e condicoes em uma leitura objetiva e sem pressa.', cta: 'Receber detalhes' },
+      { id: 'simulacao', label: 'Simulacao de condicoes', phase: '3', angle: 'curadoria', headline: 'Simule as condicoes deste imovel', copy: 'Receba uma simulacao clara de valor e condicoes para avaliar com seguranca. Fale com a Vitra.', cta: 'Simular agora' },
     ],
   },
   meninoDeus: {

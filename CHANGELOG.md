@@ -1,5 +1,21 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Fase 2 (cont.): Aprovar todos + ampliacao de angulos
+
+### "Aprovar todos" por campanha (P4)
+- PremiumDashboard.jsx (TrafegoPagoSection): botao "Aprovar todos (N)" no cabecalho que aprova de
+  uma vez todos os cortes ja gerados e prontos da campanha (reusa o `onApproveGroup` existente).
+  Reduz a aprovacao peca-a-peca; gold solido, desabilitado quando nao ha cortes prontos.
+
+### Ampliacao do leque de angulos (conteudo — financiamento-orla, draft p/ marketing)
+- creativeTemplateCatalog.js: template `vitra-imobiliaria-financiamento-orla` ampliado de 5 para
+  9 angulos distintos (novos: entrada-facilitada, localizacao-valoriza, pronto-pra-morar,
+  simulacao). Com o cap da Fase 2, pedir 8/9 variacoes agora gera ate 9 anuncios SEM repetir copy.
+  Copy em rascunho para revisao do marketing (o operador ja aprova cada criativo antes de exportar).
+- Os outros 3 templates (dual-photo, patios, menino-deus) seguem com 5 angulos — ampliacao
+  replicavel apos validacao da voz nesta primeira leva.
+- Testes: capacidade do financiamento = 9; recipes por template >= 5. 53 testes no total.
+
 ## Sessao 2026-06-06 — Fase 2 (P1 duplicacao + P2 headline) + fix de autocomplete
 
 Comprovado em producao no teste real: 8 variacoes com 5 receitas geravam 3 anuncios de copy

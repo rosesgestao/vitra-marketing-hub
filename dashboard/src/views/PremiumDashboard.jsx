@@ -1755,6 +1755,8 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
   const generated = placements.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const approved = placements.filter(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok).length
+  // Fase 2 (P4): cortes prontos (gerados, sem pendencia de render) ainda nao aprovados.
+  const approvableAssets = placements.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a))
 
   return (
     <div className="space-y-6">
@@ -1773,6 +1775,17 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
           >
             {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
             {rendering ? 'Gerando…' : `Gerar cortes${pendingRender ? ` (${pendingRender})` : ''}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => onApproveGroup(approvableAssets)}
+            disabled={Boolean(busyId) || !approvableAssets.length}
+            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45"
+            style={{ background: approvableAssets.length ? '#C4942A' : 'rgba(196,148,42,0.18)', color: approvableAssets.length ? '#0A0A0A' : '#F0C95C' }}
+            title="Aprova de uma vez todos os cortes ja gerados desta campanha"
+          >
+            <CheckCircle2 size={16} />
+            Aprovar todos{approvableAssets.length ? ` (${approvableAssets.length})` : ''}
           </button>
           <button
             type="button"

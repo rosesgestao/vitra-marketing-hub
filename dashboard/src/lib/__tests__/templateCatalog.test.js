@@ -28,10 +28,14 @@ describe('catalogo de templates por marca', () => {
 })
 
 describe('contratos de variacao (recipes)', () => {
-  it('cada template aprovado da Imobiliaria tem 5 recipes', () => {
+  it('cada template aprovado da Imobiliaria tem pelo menos 5 recipes', () => {
     for (const template of creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)) {
-      expect(variationRecipesForTemplate(template)).toHaveLength(5)
+      expect(variationRecipesForTemplate(template).length).toBeGreaterThanOrEqual(5)
     }
+  })
+  it('financiamento-orla foi ampliado para 9 angulos (Fase 2)', () => {
+    const fin = getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-financiamento-orla')
+    expect(variationRecipesForTemplate(fin)).toHaveLength(9)
   })
   it('BASELINE: o template Premium nao tem recipes (contrato vazio)', () => {
     const premiumTemplate = defaultCreativeTemplateForBrand(BRAND_SCOPES.premium)

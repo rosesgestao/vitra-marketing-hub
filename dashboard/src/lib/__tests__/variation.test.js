@@ -97,6 +97,9 @@ describe('distinctConceptCapacity (Fase 2 P1)', () => {
   it('Premium expoe os 12 conceitos genericos', () => {
     expect(distinctConceptCapacity({}, premium)).toBe(12)
   })
+  it('financiamento-orla expoe 9 angulos apos a ampliacao (Fase 2)', () => {
+    expect(distinctConceptCapacity({ creative_template_id: 'vitra-imobiliaria-financiamento-orla' }, imobiliaria)).toBe(9)
+  })
 })
 
 describe('buildMetaAssetBlueprints (N variacoes x 3 formatos)', () => {
