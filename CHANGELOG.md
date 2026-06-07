@@ -1,5 +1,32 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — render-worker: prep do 9:16 full-res (DORMENTE, pronto pra ligar)
+
+Preparacao do render-worker (Puppeteer/Chrome) para gerar o **Premium 9:16 em full-res real
+(1080x1920)** — que o satori da Edge nao aguenta (OOM) — sem hospedar ainda. Tudo DORMENTE por
+padrao: so entra em producao quando o worker for deployado + a flag ligada + a migration aplicada.
+
+### Deploy-readiness + robustez (render-worker/)
+- `fly.toml` (novo) a partir do Dockerfile existente: regiao gru, VM 2gb, `BATCH_SIZE=1` (Puppeteer
+  full-res e pesado), healthcheck `/healthz`. Comentarios cobrem o modo always-on (poll) vs cron `once`.
+- `template.js`: a foto passa pelo endpoint de transform do Storage (WebP dimensionado, decodificado
+  nativamente pelo Chrome) em vez da URL crua — mais nitida no full-res, mais leve, com fallback.
+
+### Roteamento por flag (DORMENTE — disjunto da Edge)
+- `premiumData.js`: novo `isWorkerOwnedAsset` + flag `WORKER_RENDER_9X16` (env `VITE_WORKER_RENDER_9X16`,
+  default **off**). Quando ligada, o Premium 9:16 ganha `metadata.render_engine='worker'` na criacao.
+  `isRenderablePendingAsset` exclui o conjunto-worker do dispatch da Edge/dashboard.
+- `render-worker/src/worker.js`: o `claim` passa a reivindicar SOMENTE `render_engine='worker'`
+  (antes: `.neq meta_ads`); `finalizeJobs` conta o pendente de `meta_ads` (alinha com a Edge para
+  campanha mista nao pendurar o job).
+- `supabase/migration-render-queue-worker-route.sql` (novo, **NAO aplicado**): recria
+  `claim_render_assets`/`reap_stale_render_assets`/`drain_render_queue` excluindo o conjunto-worker
+  (`coalesce(metadata->>'render_engine','edge') <> 'worker'`) — Edge e worker em conjuntos disjuntos,
+  sem corrida. Inclui backfill opcional. `render-asset/index.ts`: fallback legado tambem exclui o
+  worker-set (null-safe, sintaxe `or` validada).
+- +2 testes (85 no total). Imobiliaria 9:16 NAO usa o worker (ja e full-res na Edge).
+- **Bloqueado p/ ativar (decisao do usuario):** hospedar o worker (Fly/Railway/Render) e ligar a flag.
+
 ## Sessao 2026-06-07 — Estabilidade: Premium full-res renderiza 1-por-vez (evita OOM em lote)
 
 Descoberto ao re-renderizar os Premium antigos: renderizar VARIOS criativos Premium full-res

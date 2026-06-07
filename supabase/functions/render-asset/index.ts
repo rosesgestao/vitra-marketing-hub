@@ -1056,7 +1056,9 @@ Deno.serve(async (req) => {
     // Fallback transicional (migration do claim ainda nao aplicada): sem garantia
     // atomica, mas restrito a meta_ads e a estados renderizaveis, para nao re-renderizar
     // 'approved'/'rendering' nem assets de outros canais.
-    let q = svc.from("premium_campaign_assets").select("*").eq("channel","meta_ads");
+    // Particao: o fallback tambem ignora o conjunto-worker (render_engine='worker'), null-safe.
+    let q = svc.from("premium_campaign_assets").select("*").eq("channel","meta_ads")
+      .or("metadata->>render_engine.is.null,metadata->>render_engine.neq.worker");
     if (assetIds) q = q.in("id", assetIds).in("status",["queued","generated","error"]); else q = q.eq("campaign_id", campaignId).eq("status","queued");
     const legacy = await q.limit(limit);
     assets = legacy.data; aErr = legacy.error;

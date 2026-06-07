@@ -26,16 +26,16 @@ async function getCampaign(id) {
   return data
 }
 
-// Reivindica um lote de assets 'queued' marcando-os como 'rendering' (evita conflito com o cron edge).
+// Reivindica um lote de assets 'queued' marcando-os como 'rendering' (evita conflito com a Edge).
 async function claim(n) {
-  // Fase 1: a Edge Function render-asset (satori/resvg) e o renderizador CANONICO de
-  // meta_ads. O worker NUNCA reivindica meta_ads, para nao competir com a Edge nem
-  // gerar a peca com o motor/identidade errados (corrida + divergencia de marca).
+  // Particao explicita por flag: o worker reivindica SOMENTE assets com metadata.render_engine
+  // ='worker' (hoje: Premium 9:16, que estoura o satori da Edge em full-res). Todo o resto fica
+  // com a Edge (canonica). A migration migration-render-queue-worker-route.sql espelha essa
+  // exclusao no claim/reaper/drain da Edge, garantindo conjuntos disjuntos sem corrida.
   const { data: queued, error } = await sb
     .from('premium_campaign_assets')
     .select('*')
-    .not('channel', 'in', '(whatsapp,email)')
-    .neq('channel', 'meta_ads')
+    .eq('metadata->>render_engine', 'worker')
     .eq('status', 'queued')
     .order('created_at', { ascending: true })
     .limit(n)
@@ -68,11 +68,13 @@ async function processOne(asset) {
 
 async function finalizeJobs(campaignIds) {
   for (const cid of campaignIds) {
+    // Conta o pendente de meta_ads da campanha (mesmo criterio da Edge), independente do motor,
+    // para o job so finalizar quando Edge E worker terminarem suas partes (campanha mista).
     const { count } = await sb
       .from('premium_campaign_assets')
       .select('id', { count: 'exact', head: true })
       .eq('campaign_id', cid)
-      .not('channel', 'in', '(whatsapp,email)')
+      .eq('channel', 'meta_ads')
       .in('status', ['queued', 'rendering'])
     const pending = count || 0
     if (pending === 0) {

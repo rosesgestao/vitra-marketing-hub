@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   isRenderablePendingAsset,
+  isWorkerOwnedAsset,
   renderAttemptsFor,
   MAX_RENDER_ATTEMPTS,
 } from '../premiumData.js'
@@ -70,5 +71,23 @@ describe('isRenderablePendingAsset', () => {
         rendered_template_version: 'versao-antiga',
       },
     }, NOW)).toBe(true)
+  })
+})
+
+describe('isWorkerOwnedAsset + exclusao do dispatch da Edge (roteamento Premium 9:16 -> worker)', () => {
+  it('detecta render_engine=worker', () => {
+    expect(isWorkerOwnedAsset({ metadata: { render_engine: 'worker' } })).toBe(true)
+    expect(isWorkerOwnedAsset({ metadata: { render_engine: 'edge' } })).toBe(false)
+    expect(isWorkerOwnedAsset({ metadata: {} })).toBe(false)
+    expect(isWorkerOwnedAsset(null)).toBe(false)
+  })
+
+  it('asset do worker NUNCA e pendente para a Edge — nem queued nem error', () => {
+    // A Edge/dashboard nao reivindica o que pertence ao worker (conjuntos disjuntos).
+    expect(isRenderablePendingAsset({ status: 'queued', metadata: { render_engine: 'worker' } }, NOW)).toBe(false)
+    expect(isRenderablePendingAsset({
+      status: 'error',
+      metadata: { render_engine: 'worker', render_attempts: 0 },
+    }, NOW)).toBe(false)
   })
 })

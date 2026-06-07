@@ -542,12 +542,29 @@ export function renderAttemptsFor(asset) {
   return Number(asset?.render_attempts ?? asset?.metadata?.render_attempts ?? 0) || 0
 }
 
+// Roteamento do Premium 9:16 para o render-worker (Puppeteer, full-res 1080x1920 real, fora do
+// limite da Edge). DESLIGADO por padrao: so ative (VITE_WORKER_RENDER_9X16=true) DEPOIS de hospedar
+// o worker e aplicar a migration de particao — senao os 9:16 Premium ficariam 'queued' esperando
+// um worker que nao existe. Quando ligado, esses assets ganham metadata.render_engine='worker' e
+// saem do dispatch da Edge (o worker os reivindica).
+const WORKER_RENDER_9X16 = (() => {
+  try { return import.meta.env?.VITE_WORKER_RENDER_9X16 === 'true' } catch { return false }
+})()
+
+// Asset cuja renderizacao pertence ao render-worker (nao a Edge). Usado para excluir do dispatch
+// da Edge/dashboard. Enquanto WORKER_RENDER_9X16 esta off, nenhum asset recebe a flag (no-op).
+export function isWorkerOwnedAsset(asset) {
+  return asset?.metadata?.render_engine === 'worker'
+}
+
 // Predicado UNICO de pendencia de render (Fase 1). Forward-compatible com a maquina
 // de estados da Edge: alem de 'queued' e templates aprovados desatualizados, reconhece
 // 'error' com orcamento de retry e 'rendering' orfao (travado alem do timeout), para
 // que assets nesses estados voltem a ser renderizados em vez de sumirem para sempre.
 export function isRenderablePendingAsset(asset, nowMs = Date.now()) {
   if (!asset) return false
+  // Worker-owned (Premium 9:16 roteado): a Edge nao reivindica; quem renderiza e o render-worker.
+  if (isWorkerOwnedAsset(asset)) return false
   if (asset.status === 'error') return renderAttemptsFor(asset) < MAX_RENDER_ATTEMPTS
   if (asset.status === 'rendering') {
     const startedAt = Date.parse(asset.metadata?.last_render_attempt_at || asset.updated_at || '') || 0
@@ -1736,6 +1753,11 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
         texto_principal: copy,
         descricao: cleanText(form.tagline) || null,
         url_params: buildDefaultUrlParams(campaign, blueprintKey),
+      }
+      // Roteamento dormente: so o Premium 9:16 (que estoura o satori da Edge) vai para o
+      // render-worker, e somente com a flag ligada. Imobiliaria 9:16 ja e full-res na Edge.
+      if (WORKER_RENDER_9X16 && aspectRatio === '9:16' && brandProfile.scope === BRAND_SCOPES.premium) {
+        metadata.render_engine = 'worker'
       }
     }
 
