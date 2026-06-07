@@ -1,5 +1,22 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-06 — Fase 2: fotos slot-aware (DEPLOY PENDENTE) + descoberta HEIC
+
+### Fotos slot-aware (render-asset)
+- `imageUrlsForApprovedTemplate`: monta a lista de fotos em ORDEM DE SLOT (fachada->0,
+  living->1, varanda->2 ...) a partir de `metadata.source_images`/`brief.images`, em vez de
+  prepor a foto rotacionada (`source_image_url`) na posicao 0. Novos helpers `slotOrderedUrls`/
+  `urlsFromImageGroup`. Fallback para o fluxo antigo em campanhas legadas sem slots.
+- financiamento-orla: usa a ordem de slot direta (localizacao->esquerda, empreendimento->direita)
+  em vez de `rotateFinancingImages`, que puxava fotos aleatorias do pool (incluindo extras).
+- Corrige fachada/lazer/localizacao caindo na posicao errada nos templates aprovados.
+- Validado por `deno check`. **DEPLOY EM PRODUCAO PENDENTE DE AUTORIZACAO.**
+
+### Descoberta: fotos do teste sao HEIC
+- As fotos do "Teste de Criativo" (slots fachada/living) estao no Storage como `.heic` (iPhone).
+  A Edge nao decodifica HEIC (so WebP/PNG/JPEG via toDataUri), entao essas fotos nao renderizam.
+  Para o fluxo real do usuario, slot-aware depende de adicionar suporte a HEIC (conversao no upload).
+
 ## Sessao 2026-06-06 — Fase 2 (cont.): Aprovar todos + ampliacao de angulos
 
 ### "Aprovar todos" por campanha (P4)

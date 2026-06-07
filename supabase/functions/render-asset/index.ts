@@ -302,12 +302,49 @@ function metadataImageUrls(asset: any): string[] {
   return urls;
 }
 
+const APPROVED_SLOT_ORDER = ["fachada", "living", "varanda", "infraestrutura", "extras"];
+
+function urlsFromImageGroup(group: any): string[] {
+  if (Array.isArray(group)) return group.map((g) => (g as any)?.public_url).filter(Boolean).map(String);
+  if (group && (group as any).public_url) return [String((group as any).public_url)];
+  return [];
+}
+
+// Fase 2 (slot-aware): monta a lista de imagens em ORDEM DE SLOT (fachada -> pos 0,
+// living -> 1, varanda -> 2 ...), pegando 1 foto por slot primeiro e depois o restante.
+// Assim a fachada/localizacao cai sempre na posicao certa do template aprovado.
+function slotOrderedUrls(groups: any): string[] {
+  if (!groups || typeof groups !== "object") return [];
+  const firstPerSlot: string[] = [];
+  const rest: string[] = [];
+  const done = new Set<string>();
+  const take = (slot: string, group: any) => {
+    const urls = urlsFromImageGroup(group);
+    if (!urls.length) return;
+    firstPerSlot.push(urls[0]);
+    rest.push(...urls.slice(1));
+    done.add(slot);
+  };
+  for (const slot of APPROVED_SLOT_ORDER) if (groups[slot] !== undefined) take(slot, groups[slot]);
+  for (const [slot, group] of Object.entries(groups)) if (!done.has(slot)) take(slot, group);
+  return [...firstPerSlot, ...rest];
+}
+
 function imageUrlsForApprovedTemplate(asset: any, campaign: any) {
-  return [...new Set([
+  const dedupe = (arr: any[]) => [...new Set(arr.filter(Boolean).map((u) => String(u)))];
+  // Posicionamento por slot a partir do mapa slot-keyed do asset (metadata.source_images),
+  // com a campanha (brief.images) como complemento. Fallback para o fluxo antigo se nao
+  // houver slots reconheciveis (campanhas legadas).
+  const slotted = dedupe([
+    ...slotOrderedUrls(asset?.metadata?.source_images),
+    ...slotOrderedUrls(campaign?.brief?.images),
+  ]);
+  const legacy = dedupe([
     asset?.source_image_url,
     ...metadataImageUrls(asset),
     ...briefImageUrls(campaign),
-  ].filter(Boolean).map((url) => String(url)))];
+  ]);
+  return slotted.length ? dedupe([...slotted, ...legacy]) : legacy;
 }
 
 function productDifferentials(pd: any, campaign: any) {
@@ -696,7 +733,9 @@ function buildVitraFinancingSvg(asset: any, campaign: any, images: Array<string 
   const neighborhood = pd.neighborhood || campaign?.neighborhood || "BAIRRO";
   const financingClaim = (pd.financing_claim || pd.tagline || "ATE 100% FINANCIADO").toString().replace(/\s+/g, " ").trim().toUpperCase();
   const strokeWidth = isWide ? 5 : 7;
-  const orderedImages = rotateFinancingImages(images, asset, isStory, isWide);
+  // Fase 2 (slot-aware): ordem por slot (localizacao -> esquerda, empreendimento -> direita).
+  // Sem rotacao, para nao trocar as fotos de slot entre variacoes nem puxar fotos extras.
+  const orderedImages = images;
   const photoA = orderedImages[0] || orderedImages[1] || null;
   const photoB = orderedImages[1] || orderedImages[0] || null;
 
