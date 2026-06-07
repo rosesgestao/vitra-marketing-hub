@@ -36,8 +36,8 @@ describe('clampNumber', () => {
 })
 
 describe('metaCreativeVariationCount', () => {
-  it('default e 8 quando nao informado', () => {
-    expect(metaCreativeVariationCount({})).toBe(8)
+  it('default e 3 (minimo) quando nao informado', () => {
+    expect(metaCreativeVariationCount({})).toBe(3)
   })
   it('respeita o intervalo 3..12 (logica de teste da Meta)', () => {
     expect(metaCreativeVariationCount({ creative_variations: 12 })).toBe(12)

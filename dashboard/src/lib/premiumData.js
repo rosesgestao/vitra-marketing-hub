@@ -100,7 +100,7 @@ const AD_GROUP_LABEL = {
 }
 
 const META_CREATIVE_VARIATION_MIN = 3
-const META_CREATIVE_VARIATION_DEFAULT = 8
+const META_CREATIVE_VARIATION_DEFAULT = 3 // default de menor arrependimento: minimo por padrao (alinhado a UI)
 const META_CREATIVE_VARIATION_MAX = 12
 
 const META_FORMAT_BLUEPRINTS = [
