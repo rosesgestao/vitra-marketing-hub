@@ -18,6 +18,8 @@ import {
   renderVersionForFamily,
   VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION,
 } from '../creativeTemplateCatalog.js'
+// Fonte real do lado da Edge (Deno) — o teste falha se divergir do mapa derivado do catalogo.
+import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION as EDGE_RENDER_VERSION } from '../../../../supabase/functions/_shared/renderVersions.ts'
 
 describe('catalogo de templates por marca', () => {
   it('Imobiliaria tem 4 templates aprovados e Premium tem 1', () => {
@@ -92,14 +94,10 @@ describe('references por variante (moldura)', () => {
 })
 
 describe('render-version (fonte unica no catalogo — Fase 3)', () => {
-  // ESPELHO DA EDGE: o mesmo mapa esta hardcoded em
-  // supabase/functions/render-asset/index.ts (VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION).
-  // Se mudar aqui, atualize a Edge no MESMO release (anti-loop de pendencia de render).
-  const EDGE_MIRROR = {
-    'vitra-imobiliaria-financiamento-orla': 'financiamento-orla-approved-v7',
-  }
-  it('mapa derivado do catalogo == espelho da Edge (anti-divergencia)', () => {
-    expect(VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION).toEqual(EDGE_MIRROR)
+  it('mapa derivado do catalogo == fonte da Edge (_shared/renderVersions.ts) — anti-divergencia', () => {
+    // Importa a fonte REAL da Edge; se um lado mudar sem o outro, este teste quebra e o CI barra
+    // o deploy dessincronizado (que geraria loop de pendencia de render).
+    expect(VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION).toEqual(EDGE_RENDER_VERSION)
   })
   it('renderVersionForFamily retorna a versao do financiamento e null para as demais', () => {
     expect(renderVersionForFamily('vitra-imobiliaria-financiamento-orla')).toBe('financiamento-orla-approved-v7')

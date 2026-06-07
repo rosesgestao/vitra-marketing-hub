@@ -1,5 +1,24 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Fase 2/3 (cont.): render-version Edge (#3) + auto-fit (#4)
+
+Dois itens da fabrica que exigiam deploy de Edge, num release so. Protegidos pelo harness do #2.
+
+### #3 — render-version: fonte unica tambem do lado da Edge
+- O literal `VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION` que estava inline no `render-asset/index.ts`
+  foi movido para `supabase/functions/_shared/renderVersions.ts` (fonte unica do lado Deno). O
+  dashboard ja deriva o mapa do catalogo (#1); agora o teste de guarda importa o arquivo REAL da
+  Edge (`_shared/renderVersions.ts`) e falha no CI se os dois lados divergirem — sem espelho manual.
+- Valores inalterados (so `financiamento-orla` versionado) -> sem re-render retroativo, sem desync.
+
+### #4 — auto-fit da headline por LARGURA, nao por contagem de caracteres
+- A headline do template aprovado encolhia por `length > headlineChars`, mas no 1.91:1 o cap de
+  quebra (18) era menor que `headlineChars` (24), entao o shrink NUNCA disparava e headlines de
+  glifos largos transbordavam atras das fotos. Agora usa `fitFontSize` (largura estimada por glifo
+  via `estimateTextWidthPx`, piso 38px) com orcamento por formato — a MESMA logica do harness #2.
+- `validateApprovedHeadline` passou a modelar o `fitFontSize` (harness reflete a arte). +3 testes (83 no total).
+- So encolhe headlines que de fato estouram; headlines normais ficam no tamanho-base (sem regressao).
+
 ## Sessao 2026-06-06 — Fase 2/3 (fechar a fabrica): ganhos sem deploy
 
 Mapeamento multi-agente das 3 frentes para fechar a fabrica de criativos (Premium full-res,

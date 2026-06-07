@@ -132,6 +132,20 @@ const HEADLINE_BUDGET_PX: Record<string, number> = {
   "1.91:1": 630,
 };
 
+export function approvedHeadlineBudgetPx(format: string) {
+  return HEADLINE_BUDGET_PX[format] ?? DIMS[format]?.[0] ?? 1080;
+}
+
+// Maior tamanho de fonte <= baseSize cuja LARGURA estimada do texto cabe em budgetPx, com piso
+// minSize. Substitui o encolhimento por contagem de caracteres (que ignora a largura real do glifo:
+// um "W" ocupa ~3x um "I"). Usado tanto pela arte (render-asset) quanto pela validacao do harness,
+// garantindo que detecte e renderize com a MESMA logica.
+export function fitFontSize(text: string, baseSize: number, minSize: number, budgetPx: number) {
+  const estimated = estimateTextWidthPx(text, baseSize);
+  if (estimated <= budgetPx) return baseSize;
+  return Math.max(minSize, Math.floor(baseSize * (budgetPx / estimated)));
+}
+
 // Cap de caracteres por linha REALMENTE usado pela Edge na headline aprovada (index.ts:814:
 // wrapText(headline, ar === "1.91:1" ? 18 : 24, 2)). Note que diverge do headlineChars do layout
 // (24/25) — inconsistencia conhecida que o harness documenta.
@@ -148,15 +162,12 @@ export function classifyFit(estimatedPx: number, availablePx: number): FitStatus
   return "overflow";
 }
 
-// Tamanho de fonte REAL que a Edge usa por linha da headline aprovada: encolhe so quando a linha
-// passa de headlineChars, com piso 38px (espelha index.ts:764). Como o cap de quebra (18/24) e <=
-// headlineChars (24/25), linhas normais NAO encolhem — so palavras unicas mais longas que o cap.
+// Tamanho de fonte REAL que a Edge usa por linha da headline aprovada (espelha render-asset): agora
+// por LARGURA estimada via fitFontSize (piso 38px), nao mais por contagem de caracteres. Assim o
+// harness valida com a mesma logica que a arte renderiza.
 export function approvedHeadlineRenderSize(format: string, line: string) {
-  const headline = approvedTemplateLayout(format).headline as number[];
-  const baseSize = headline[2];
-  const headlineChars = headline[4];
-  if (line.length <= headlineChars) return baseSize;
-  return Math.max(38, Math.round((baseSize * headlineChars) / line.length));
+  const baseSize = (approvedTemplateLayout(format).headline as number[])[2];
+  return fitFontSize(line, baseSize, 38, approvedHeadlineBudgetPx(format));
 }
 
 // Valida (apenas SINALIZA) se a headline aprovada cabe na largura util do formato. Quebra o texto

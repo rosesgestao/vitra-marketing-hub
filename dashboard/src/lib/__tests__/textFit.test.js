@@ -10,6 +10,7 @@ import {
   validateApprovedHeadline,
   approvedHeadlineWrapChars,
   classifyFit,
+  fitFontSize,
 } from '../../../../supabase/functions/_shared/textFit.ts'
 
 describe('compactText (truncamento duro com ...)', () => {
@@ -66,6 +67,20 @@ describe('estimateTextWidthEm / Px (largura por glifo, caixa alta)', () => {
   })
 })
 
+describe('fitFontSize (encolhe por largura, nao por contagem — Fase 2/3 #4)', () => {
+  it('mantem o tamanho base quando o texto cabe no budget', () => {
+    expect(fitFontSize('CASA', 60, 30, 1000)).toBe(60)
+  })
+  it('encolhe quando a largura estimada estoura o budget', () => {
+    const s = fitFontSize('W'.repeat(20), 60, 20, 300)
+    expect(s).toBeLessThan(60)
+    expect(s).toBeGreaterThanOrEqual(20)
+  })
+  it('respeita o piso minSize mesmo com texto enorme', () => {
+    expect(fitFontSize('W'.repeat(80), 60, 38, 200)).toBe(38)
+  })
+})
+
 describe('classifyFit', () => {
   it('classifica ok/tight/overflow por razao', () => {
     expect(classifyFit(90, 100)).toBe('ok')
@@ -81,10 +96,11 @@ describe('validateApprovedHeadline (so SINALIZA overflow por formato)', () => {
     }
   })
 
-  it('DEMONSTRA o ponto cego da contagem de caracteres: 18 chars largos estouram, 18 estreitos cabem', () => {
-    // Mesmo numero de caracteres (18 = cap do 1.91:1), resultado oposto por causa da largura do glifo.
-    const wide = validateApprovedHeadline('1.91:1', 'W'.repeat(18))
-    const narrow = validateApprovedHeadline('1.91:1', 'I'.repeat(18))
+  it('DEMONSTRA o ponto cego da contagem de caracteres: N chars largos estouram (mesmo apos shrink), N estreitos cabem', () => {
+    // Mesmo numero de caracteres, resultado oposto por causa da largura do glifo: o caminho largo
+    // estoura mesmo apos o fitFontSize encolher ate o piso; o estreito nem precisa encolher.
+    const wide = validateApprovedHeadline('1.91:1', 'W'.repeat(24))
+    const narrow = validateApprovedHeadline('1.91:1', 'I'.repeat(24))
     expect(wide.estimatedPx).toBeGreaterThan(narrow.estimatedPx)
     expect(wide.status).toBe('overflow')
     expect(narrow.status).toBe('ok')

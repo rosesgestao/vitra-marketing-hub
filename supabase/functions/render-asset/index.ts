@@ -12,7 +12,10 @@ import {
   wrapText,
   textSizeForWidth,
   approvedTemplateLayout,
+  fitFontSize,
+  approvedHeadlineBudgetPx,
 } from "../_shared/textFit.ts";
+import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVersions.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -43,9 +46,6 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-financiamento-orla",
   "vitra-imobiliaria-menino-deus-offer",
 ];
-const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION: Record<string, string> = {
-  "vitra-imobiliaria-financiamento-orla": "financiamento-orla-approved-v7",
-};
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
   "premium-editorial-panel": "Painel editorial + imagem",
@@ -761,7 +761,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   while (features.length < 2) features.push(features[0] || "Atendimento consultivo Vitra");
   const cta = asset.cta || "Fale com a Vitra";
   const [logoX, logoY, logoW, logoH] = layout.logo as number[];
-  const [headlineX, headlineY, headlineSize, headlineGap, headlineChars] = layout.headline as number[];
+  const [headlineX, headlineY, headlineSize, headlineGap] = layout.headline as number[];
   const [descX, descY, descSize, descChars] = layout.description as number[];
   const [priceX, priceY, priceW, priceH] = layout.price as number[];
   const [ctaX, ctaY, ctaW, ctaH, ctaTextY, ctaSize] = layout.cta as number[];
@@ -775,8 +775,13 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
 
   const h1 = lines[0] || "VITRA IMOBILIARIA";
   const h2 = lines[1] || "";
-  const h1Size = h1.length > headlineChars ? Math.max(38, Math.round(headlineSize * headlineChars / h1.length)) : headlineSize;
-  const h2Size = h2.length > headlineChars ? Math.max(38, Math.round((headlineSize - 2) * headlineChars / h2.length)) : headlineSize - 2;
+  // Fase 2/3 (#4): encolhimento da headline por LARGURA estimada (estimateTextWidthPx), nao por
+  // contagem de caracteres. Corrige o caso do 1.91:1, onde o cap de quebra (18) era menor que o
+  // antigo limiar headlineChars (24), entao o shrink nunca disparava e headlines de glifos largos
+  // transbordavam.
+  const headlineBudget = approvedHeadlineBudgetPx(ar);
+  const h1Size = fitFontSize(h1, headlineSize, 38, headlineBudget);
+  const h2Size = fitFontSize(h2, headlineSize - 2, 38, headlineBudget);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
