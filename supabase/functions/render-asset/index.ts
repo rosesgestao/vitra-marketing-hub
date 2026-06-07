@@ -5,6 +5,14 @@ import { Resvg, initWasm } from "npm:@resvg/resvg-wasm@2.6.2";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 import { decode as decodeWebp } from "npm:@jsquash/webp@1.5.0";
 import { encode as encodePng } from "npm:@jsquash/png@3.1.1";
+// Funcoes puras de ajuste/medida de texto (Fase 2/3): fonte unica testavel via Vitest.
+import {
+  DIMS,
+  compactText,
+  wrapText,
+  textSizeForWidth,
+  approvedTemplateLayout,
+} from "../_shared/textFit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -115,8 +123,6 @@ async function loadResvgFont() {
   resvgFontCache = new Uint8Array(await r.arrayBuffer());
   return resvgFontCache;
 }
-const DIMS: Record<string, [number, number]> = { "1:1": [1080,1080], "9:16": [1080,1920], "4:5": [1080,1350], "16:9": [1280,720], "1.91:1": [1200,628], "desktop": [1200,630] };
-
 function storageTransformUrl(url: string): string | null {
   try {
     const parsed = new URL(url);
@@ -213,40 +219,6 @@ function esc(value: unknown) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function compactText(value: unknown, max = 120) {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
-  if (text.length <= max) return text;
-  return `${text.slice(0, Math.max(0, max - 3)).trim()}...`;
-}
-
-function wrapText(value: unknown, maxChars: number, maxLines: number) {
-  // Fase 2 (P2): preenche cada linha ate maxChars e, se o texto exceder maxLines,
-  // trunca a ultima linha com reticencias (em vez de cortar palavras no meio e
-  // descartar o resto silenciosamente).
-  const words = String(value ?? "").replace(/\s+/g, " ").trim().split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let line = "";
-  let idx = 0;
-  for (; idx < words.length; idx++) {
-    const word = words[idx];
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > maxChars && line) {
-      lines.push(line);
-      line = word;
-      if (lines.length === maxLines) { line = ""; break; }
-    } else {
-      line = next;
-    }
-  }
-  if (line && lines.length < maxLines) { lines.push(line); idx = words.length; }
-  if (idx < words.length && lines.length) {
-    let tail = lines[lines.length - 1];
-    while (tail.length > 0 && tail.length + 1 > maxChars) tail = tail.slice(0, -1);
-    lines[lines.length - 1] = `${tail.replace(/[\s….,;:!?-]+$/, "")}…`;
-  }
-  return lines.slice(0, maxLines);
 }
 
 function formatMoneyLike(value: unknown) {
@@ -460,43 +432,6 @@ function priceChip(x: number, y: number, w: number, h: number, rawPrice: unknown
   </g>`;
 }
 
-function approvedTemplateLayout(ar: string) {
-  if (ar === "9:16") {
-    return {
-      logo: [285, 110, 510, 170],
-      headline: [540, 345, 72, 72, 24, 2],
-      description: [540, 490, 28, 86],
-      price: [260, 515, 560, 58],
-      photos: [[135, 650, 810, 420, 54], [135, 1096, 810, 420, 54]],
-      features: [[540, 1580, "middle"], [540, 1635, "middle"]],
-      cta: [235, 1708, 610, 72, 1760, 28],
-      slogan: [540, 1830, 16, 8],
-    };
-  }
-  if (ar === "1.91:1") {
-    return {
-      logo: [70, 50, 330, 110],
-      headline: [335, 205, 54, 55, 24, 2],
-      description: [335, 320, 22, 70],
-      price: [95, 344, 500, 50],
-      photos: [[735, 70, 370, 236, 34], [735, 332, 370, 236, 34]],
-      features: [[95, 455, "start"], [95, 498, "start"]],
-      cta: [120, 535, 430, 48, 566, 18],
-      slogan: null,
-    };
-  }
-  return {
-    logo: [360, 78, 360, 120],
-    headline: [540, 272, 65, 64, 25, 2],
-    description: [540, 374, 24, 82],
-    price: [285, 398, 510, 58],
-    photos: [[135, 428, 385, 310, 46], [560, 428, 385, 310, 46]],
-    features: [[135, 810, "start"], [560, 810, "start"]],
-    cta: [300, 852, 480, 64, 895, 21],
-    slogan: [540, 948, 13, 7],
-  };
-}
-
 function templateFrame(asset: any) {
   return asset?.metadata?.visual_template?.frame === "gold" || asset?.metadata?.frame === "gold";
 }
@@ -610,12 +545,6 @@ function financingFrame(W: number, H: number, frame: boolean, isStory: boolean, 
   const inset = isWide ? 6 : 22;
   const radius = isStory ? 34 : isWide ? 20 : 28;
   return `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${H - inset * 2}" rx="${radius}" fill="none" stroke="${GOLD}" stroke-width="1.3" opacity="0.78"/>`;
-}
-
-function textSizeForWidth(text: unknown, base: number, min: number, idealChars: number) {
-  const length = String(text ?? "").replace(/\s+/g, " ").trim().length;
-  if (!length || length <= idealChars) return base;
-  return Math.max(min, Math.round(base * (idealChars / length)));
 }
 
 function financingTitleBlock(x: number, y: number, lineA: string, lineB: string, claim: string, opts: Record<string, any>) {

@@ -17,6 +17,21 @@ Edge do render-version) ficam para depois, com autorizacao.
   modulos do dashboard) — a unificacao cross-process fica para a fase Edge (com deploy).
 - Teste de guarda anti-divergencia: o mapa derivado == espelho hardcoded da Edge; +2 testes (63 no total).
 
+### #2 — harness de overflow de texto (rede de seguranca para o render, sem deploy)
+- O `render-asset` (Edge) nao tinha NENHUM teste. Extraidas as funcoes puras de texto
+  (`DIMS`, `compactText`, `wrapText`, `textSizeForWidth`, `approvedTemplateLayout`) para
+  `supabase/functions/_shared/textFit.ts` (sem imports Deno) e re-importadas no `index.ts` —
+  comportamento identico (mesmas funcoes), confirmado por `deno check`. Vale a partir do proximo
+  deploy da Edge; nada muda em producao ate la.
+- Novo no modulo: estimador de largura por glifo (`estimateTextWidthPx`, tabela de avanco para
+  Inter caixa-alta) + `validateApprovedHeadline(format, text)` que QUEBRA com o cap real da Edge,
+  modela o encolhimento de fonte e SINALIZA ok/tight/overflow por formato (so detecta, nao muda
+  pixel). Orcamentos derivados da geometria real (headline centralizada; 1.91:1 e o mais apertado).
+- Testes Vitest (`textFit.test.js`, importando o modulo compartilhado da Edge): caracterizam
+  wrap/compact/shrink e DEMONSTRAM o ponto cego da contagem de caracteres (18 chars largos "WWW…"
+  estouram, 18 estreitos "III…" cabem). +17 testes (80 no total).
+- Documenta a inconsistencia conhecida: cap de quebra do 1.91:1 = 18 vs `headlineChars` do layout = 24.
+
 Auditoria multi-agente (5 agentes, file:line) da geracao de copy dos 4 templates Imobiliaria.
 Achou 4 bugs cross-cutting; aplicadas as correcoes TECNICAS (sem inventar copy de marketing nova).
 As reescritas de copy + 20 angulos novos ficaram propostos para revisao do marketing.
