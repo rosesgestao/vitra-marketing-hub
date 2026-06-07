@@ -55,8 +55,23 @@ import {
   formKeyForTemplateField,
   imageSlotsForTemplate,
   normalizeCreativeTemplateSelection,
+  referencesForTemplateVariant,
   variationContractForTemplate,
 } from '../lib/creativeTemplateCatalog.js'
+
+// Nomes humanos (pt-BR) dos slots do contrato de variacao — em vez do id tecnico cru
+// (ex.: safe_zone, format_grid, benefit_arrows). Fase 4 (UX).
+const SLOT_LABELS = {
+  layout: 'Layout', logo: 'Logo', typography: 'Tipografia', palette: 'Paleta',
+  safe_zone: 'Margem de seguranca', format_grid: 'Grade de formatos',
+  headline: 'Headline', subtitle: 'Subtitulo', price: 'Preco', differentials: 'Diferenciais',
+  cta: 'CTA (botao)', photos: 'Fotos', benefit_arrows: 'Setas de beneficio', photo_grid: 'Galeria de fotos',
+  features: 'Caracteristicas', location: 'Localizacao', price_box: 'Caixa de preco',
+  rounded_photo_frames: 'Molduras das fotos', financing_claim: 'Chamada de financiamento',
+  neighborhood: 'Bairro', official_blue_bands: 'Tarjas azuis oficiais', address_lockup: 'Bloco de endereco',
+  hero_photo: 'Foto protagonista', condo_argument: 'Argumento do condominio', address: 'Endereco',
+}
+const humanizeSlot = (slot) => SLOT_LABELS[slot] || String(slot).replace(/_/g, ' ')
 
 const INITIAL_FORM = {
   name: '',
@@ -2575,11 +2590,23 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
                     Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
                   </span>
-                  {form.creative_variations > distinctConceptCapacity(form, brandProfile) && (
-                    <span className="mt-1 block text-[11px] leading-4 text-gold-300/80">
-                      Este template tem {distinctConceptCapacity(form, brandProfile)} angulos distintos — serao gerados {distinctConceptCapacity(form, brandProfile)} anuncios sem repeticao ({distinctConceptCapacity(form, brandProfile) * 3} cortes). Acima disso a copy se repetiria.
-                    </span>
-                  )}
+                  {(() => {
+                    const cap = distinctConceptCapacity(form, brandProfile)
+                    const ads = Math.min(Number(form.creative_variations) || 0, cap)
+                    const overflow = Number(form.creative_variations) > cap
+                    return (
+                      <>
+                        <span className="mt-1.5 block text-[11px] font-semibold leading-4 text-gold-300/90">
+                          Serao gerados {ads} anuncios &times; 3 formatos = {ads * 3} cortes (1:1, 9:16 e 1.91:1).
+                        </span>
+                        {overflow && (
+                          <span className="mt-1 block text-[11px] leading-4 text-amber-300/80">
+                            Este template tem {cap} angulos distintos — acima disso a copy se repetiria, entao o total foi limitado a {cap}.
+                          </span>
+                        )}
+                      </>
+                    )
+                  })()}
                 </Field>
 
                 <Field label="Observacoes para automacao" labelClass={labelClass} className="md:col-span-2">
@@ -2681,6 +2708,34 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                 </div>
               )}
 
+              {(() => {
+                const refs = selectedTemplate ? referencesForTemplateVariant(selectedTemplate, selectedTemplateVariant?.id) : []
+                if (!refs.length) return null
+                const formatLabels = ['1:1 Feed', '9:16 Story', '1.91:1 Wide']
+                return (
+                  <div className="rounded-lg border border-white/10 bg-black/24 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-400/85">
+                        Preview do template{selectedTemplateVariant?.label ? ` · ${selectedTemplateVariant.label}` : ''}
+                      </p>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/30">referencia aprovada</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {refs.slice(0, 3).map((src, index) => (
+                        <div key={src} className="overflow-hidden rounded border border-white/10 bg-[#07111F]">
+                          <div className="flex aspect-square items-center justify-center">
+                            <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+                          </div>
+                          <span className="block bg-black/45 py-1 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                            {formatLabels[index] || ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {selectedVariationContract && (
                 <div className="rounded-lg border border-white/10 bg-black/24 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-400/85">
@@ -2692,7 +2747,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                       <div className="flex flex-wrap gap-1.5">
                         {(selectedVariationContract.mutableSlots || []).map(slot => (
                           <span key={slot} className="rounded border border-gold-500/25 bg-gold-500/10 px-2 py-1 text-[10px] font-semibold text-gold-100/80">
-                            {slot.replace(/_/g, ' ')}
+                            {humanizeSlot(slot)}
                           </span>
                         ))}
                       </div>
@@ -2702,7 +2757,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                       <div className="flex flex-wrap gap-1.5">
                         {(selectedVariationContract.lockedSlots || []).map(slot => (
                           <span key={slot} className="rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-white/45">
-                            {slot.replace(/_/g, ' ')}
+                            {humanizeSlot(slot)}
                           </span>
                         ))}
                       </div>

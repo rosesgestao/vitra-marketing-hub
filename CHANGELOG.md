@@ -1,5 +1,20 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Fase 4 (UX da Nova Campanha): preview, previsao numerica, nomes humanos
+
+Tres melhorias de UX do modal Nova Campanha (frontend-only, entra por HMR; sem deploy).
+
+- **Previsao numerica de pecas (sempre visivel):** abaixo de "Variacoes por template" agora mostra
+  "Serao gerados N anuncios x 3 formatos = 3N cortes" para QUALQUER contagem (antes so aparecia o
+  aviso quando estourava os angulos). O aviso de overflow (copy se repetiria) virou complementar.
+- **Preview que reflete a variante:** novo bloco com as 3 referencias aprovadas (1:1/9:16/1.91:1) do
+  template selecionado que ATUALIZA ao alternar sem-moldura/com-moldura (`referencesForTemplateVariant`).
+  Antes o toggle de moldura nao mudava nada visivel.
+- **Nomes de slot humanizados:** os chips de "Pode variar / Permanece fixo" do contrato de variacao
+  deixaram de mostrar id tecnico cru (`safe_zone`, `format_grid`, `benefit_arrows`) e passam por um
+  mapa pt-BR (`SLOT_LABELS`/`humanizeSlot`): "Margem de seguranca", "Grade de formatos", etc.
+- Build ok; 85 testes (sem mudanca de logica testada).
+
 ## Sessao 2026-06-07 — render-worker: prep do 9:16 full-res (DORMENTE, pronto pra ligar)
 
 Preparacao do render-worker (Puppeteer/Chrome) para gerar o **Premium 9:16 em full-res real
