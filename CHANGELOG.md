@@ -1,5 +1,24 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto de IA, degrau A: motor de copy por IA (DORMENTE)
+
+Primeiro degrau do copiloto de marketing imobiliario: a IA escreve N angulos de copy na VOZ DA
+MARCA a partir dos FATOS do imovel; o operador vira de autor -> editor (rascunha IA, aprova humano).
+Motor construido e testado; DORMENTE ate (a) definir o secret `ANTHROPIC_API_KEY` e (b) ligar o
+botao no modal (proximo passo). Nada muda no fluxo atual ate ativar.
+
+- **Edge `generate-copy`** (novo, Deno): recebe fatos + template + brand_scope + N, monta o system
+  prompt da marca (Imobiliaria institucional-comercial vs Premium editorial, com o vocabulario
+  PROIBIDO da auditoria), chama a Claude API (`claude-sonnet-4-6`, escolhido por custo/qualidade pt-BR)
+  com **structured output** (`output_config.format`), valida no codigo e devolve `angles[]` anotados.
+  Chave server-side (`ANTHROPIC_API_KEY` secret; nunca no browser). Sem chave -> 503 acionavel. verify_jwt=false.
+- **`_shared/copyValidation.ts`** (novo): validacao pura (a prova do schema, que nao trava `maxLength`):
+  tamanho de headline, nome do produto repetido na headline+texto, e vocabulario fora da marca
+  (cross-contaminacao Premium<->Imobiliaria). Importada pela Edge E pelos testes Vitset. +8 testes (93 no total).
+- Modelo/custo (referencia atual): Sonnet 4.6 ~R$0,09/campanha; Haiku 4.5 ~R$0,03 (flag `COPILOT_COPY_MODEL`).
+  Custo e ruido no orcamento; a escolha foi por qualidade de voz.
+- **Para ATIVAR:** `npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...` + deploy + ligar o botao do modal.
+
 ## Sessao 2026-06-07 — Fase 4 (UX da Nova Campanha): preview, previsao numerica, nomes humanos
 
 Tres melhorias de UX do modal Nova Campanha (frontend-only, entra por HMR; sem deploy).
