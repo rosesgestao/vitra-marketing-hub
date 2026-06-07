@@ -22,6 +22,24 @@ const MODEL_CLASS = {
 
 const esc = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+// Usa o endpoint de transform do Storage (igual a Edge) para servir a foto ja dimensionada e em
+// WebP (decodificado nativamente pelo Chrome) em vez da URL/original crua: mais nitida no full-res,
+// mais leve de baixar e evita estourar memoria com originais gigantes. Fallback para a URL crua.
+function workerImageUrl(url, targetWidth = 1200) {
+  try {
+    if (!url) return ''
+    const u = new URL(url)
+    if (!u.pathname.includes('/storage/v1/object/public/')) return url
+    u.pathname = u.pathname.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+    u.searchParams.set('width', String(Math.max(800, Math.round(targetWidth))))
+    u.searchParams.set('quality', '82')
+    u.searchParams.set('resize', 'contain')
+    return u.toString()
+  } catch {
+    return url
+  }
+}
+
 function premiumLogoSvg() {
   return `<svg class="brand-logo" viewBox="0 0 300 100" aria-hidden="true">
     <g transform="translate(3,2) scale(0.87)">
@@ -83,7 +101,7 @@ export function buildCreative(asset, campaign) {
   const copy = asset.copy || pd.suggested_copy || ''
   const cta = asset.cta || 'Solicitar curadoria'
   const phase = PHASE_TAG[String(asset?.metadata?.campaign_phase)] || ''
-  const bg = asset.source_image_url || campaign?.brief?.images?.fachada?.[0]?.public_url || ''
+  const bg = workerImageUrl(asset.source_image_url || campaign?.brief?.images?.fachada?.[0]?.public_url || '', W)
   const pad = Math.round(W * 0.07)
   const featureMax = modelKey === 'premium-dark-spec' ? 5 : 3
   const features = productFeatures(pd, campaign, featureMax)

@@ -1,0 +1,45 @@
+# Deploy do render-worker (Puppeteer/Chrome) no Fly.io — usado para o full-res REAL do Premium 9:16
+# (1080x1920), que o satori da Edge nao aguenta (OOM). Imobiliaria NAO usa o worker (ja e full-res
+# na Edge). So entra em producao quando o roteamento (flag metadata.render_engine='worker' + migration
+# de particao) for ativado; ate la o worker fica ocioso/inofensivo.
+#
+# Pre-requisitos antes do deploy:
+#   fly launch --no-deploy           (cria o app, reusa este fly.toml)
+#   fly secrets set SUPABASE_SERVICE_ROLE_KEY=...  RENDER_TOKEN=...   (NUNCA versionar)
+#   fly deploy
+#
+# Alternativa mais barata (sem instancia always-on): rodar `npm run once` por um Cloud Run Job /
+# GitHub Action agendada, em vez do poll. Neste caso, min_machines_running=0 e dispare via cron externo.
+
+app = "vitra-render-worker"
+primary_region = "gru"   # Sao Paulo — mais perto do Storage/usuarios BR
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+  STORAGE_BUCKET = "cards"
+  POLL_INTERVAL_MS = "15000"
+  BATCH_SIZE = "1"        # Puppeteer full-res e pesado: 1 render por lote (o loop drena ate esvaziar)
+  SUPABASE_URL = "https://birxcfkyuzqnhyvetbjv.supabase.co"
+
+# Always-on para o poll de 15s pegar os jobs assim que entram. Para escalar-a-zero, troque por
+# min_machines_running = 0 + dispare via POST /render (x-render-token) ou `npm run once` por cron.
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"          # Chromium renderizando 1080x1920 confortavel
