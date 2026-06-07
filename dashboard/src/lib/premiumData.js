@@ -339,17 +339,101 @@ export function selectedTemplateVariationConcepts(form, brandProfile = getBrandP
   })
 }
 
+// Copiloto de IA (degrau A): se a campanha tem `ai_copy_angles` (rascunhos aprovados pelo operador),
+// usa-os como copy das variacoes EM VEZ das receitas do template. A copy da IA e LITERAL (sem
+// {tokens}), entao renderVariationText a devolve como-esta e ela flui pelo pipeline existente.
+// MVP escopado a Imobiliaria (fluxo principal); Premium fica para um follow-up.
+export function aiCopyConcepts(form, brandProfile = getBrandProfile()) {
+  if (brandProfile.scope !== BRAND_SCOPES.imobiliaria) return []
+  const angles = Array.isArray(form?.ai_copy_angles)
+    ? form.ai_copy_angles.filter(a => a && (cleanText(a.headline) || cleanText(a.body)))
+    : []
+  if (!angles.length) return []
+  const { template } = selectedCreativeTemplate(form, brandProfile)
+  if (!template?.family) return []
+
+  const count = Math.min(metaCreativeVariationCount(form), angles.length)
+  return Array.from({ length: count }, (_, index) => {
+    const a = angles[index]
+    const recipeKey = slugify(a.key || a.angle || `ia-${index + 1}`)
+    return {
+      key: `meta-ai-${slugify(template.family)}-${String(index + 1).padStart(2, '0')}-${recipeKey}`,
+      label: a.angle || a.key || `Angulo IA ${index + 1}`,
+      phase: String((index % 3) + 1),
+      templateBase: template.family,
+      angle: a.angle || 'ia',
+      slot_focus: [],
+      template_recipe: {
+        id: a.key || `ia-${index + 1}`,
+        label: a.angle || a.key || `Angulo IA ${index + 1}`,
+        angle: a.angle || 'ia',
+        headline: cleanText(a.headline),
+        copy: cleanText(a.body),
+        cta: cleanText(a.cta),
+        source: 'ai',
+        index: index + 1,
+        total: count,
+      },
+      variation_index: index,
+    }
+  })
+}
+
 export function selectedMetaCreativeConcepts(form, brandProfile = getBrandProfile()) {
+  const aiConcepts = aiCopyConcepts(form, brandProfile)
+  if (aiConcepts.length) return aiConcepts
+
   const templateConcepts = selectedTemplateVariationConcepts(form, brandProfile)
   if (templateConcepts.length) return templateConcepts
 
   return metaCreativeConceptsForBrand(brandProfile).slice(0, metaCreativeVariationCount(form))
 }
 
+// Chama a Edge generate-copy (Claude) e devolve os angulos gerados+validados. A chave da IA fica
+// server-side (secret ANTHROPIC_API_KEY); aqui so passamos os fatos do imovel. Lanca erro acionavel.
+export async function generateCopyWithAI(form, brandProfile = getBrandProfile()) {
+  const { template } = selectedCreativeTemplate(form, brandProfile)
+  const headlineField = fieldsForTemplate(template).find(f => f.key === 'suggested_headline')
+  const facts = {
+    product_name: cleanText(form.product_name),
+    price: cleanText(form.price),
+    price_from: cleanText(form.price_from),
+    neighborhood: cleanText(form.neighborhood),
+    location: cleanText(form.location),
+    area: cleanText(form.area),
+    suites: cleanText(form.suites),
+    towers: cleanText(form.towers),
+    differentials: splitContentItems(form.differentials),
+    financing_claim: cleanText(form.financing_claim) || cleanText(form.tagline),
+    condo_argument: cleanText(form.condo_argument) || cleanText(form.offer),
+  }
+  const { data, error } = await supabase.functions.invoke('generate-copy', {
+    body: {
+      brand_scope: brandProfile.scope,
+      template: template?.id || null,
+      headline_max: headlineField?.maxLength || 40,
+      count: metaCreativeVariationCount(form),
+      facts,
+      angle_hints: variationRecipesForTemplate(template).map(r => r.label).filter(Boolean),
+    },
+  })
+  if (error) {
+    let message = error.message || 'Falha ao gerar copy com IA.'
+    try { const detail = await error.context?.json?.(); if (detail?.message) message = detail.message } catch (_) { /* sem corpo */ }
+    throw new Error(message)
+  }
+  return Array.isArray(data?.angles) ? data.angles : []
+}
+
 // Fase 2 (P1): quantos ANGULOS distintos o template oferece (limite util de variacoes
 // sem repetir copy). Usado para informar a escolha no modal e evitar duplicatas.
 export function distinctConceptCapacity(form, brandProfile = getBrandProfile()) {
   if (brandProfile.scope === BRAND_SCOPES.imobiliaria) {
+    // Com copy de IA aprovada, a capacidade de angulos distintos e a dos rascunhos da IA.
+    const aiAngles = Array.isArray(form?.ai_copy_angles)
+      ? form.ai_copy_angles.filter(a => a && (cleanText(a.headline) || cleanText(a.body)))
+      : []
+    if (aiAngles.length) return aiAngles.length
     const { template } = selectedCreativeTemplate(form, brandProfile)
     const recipes = variationRecipesForTemplate(template)
     if (template?.family && recipes.length) return recipes.length

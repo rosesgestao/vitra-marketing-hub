@@ -1,5 +1,25 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto de IA, degrau A: pipeline + UI no modal (ALCANCAVEL)
+
+Liga o motor de copy por IA ao fluxo real: o operador agora gera, REVISA/EDITA e aprova os angulos
+direto no modal Nova Campanha, e as variacoes passam a usar essa copy como texto literal. Escopo MVP:
+Vitra Imobiliaria (o Premium segue na trilha de receitas ate validacao do Brand System). Continua
+gated na ATIVACAO do backend (secret + deploy da Edge); sem isso o botao devolve um erro acionavel.
+
+- **Pipeline (`premiumData.js`):** `aiCopyConcepts(form, brand)` transforma `form.ai_copy_angles` em
+  conceitos de variacao com `template_recipe` LITERAL (`source: 'ai'`, sem `{tokens}`), com cap em
+  `min(N pedido, n angulos)` e base no `template.family`. `selectedMetaCreativeConcepts` passa a
+  PRIORIZAR a copy de IA (IA -> receitas -> generico). `distinctConceptCapacity` reflete os angulos da
+  IA quando presentes. `generateCopyWithAI(form, brand)` mapeia os fatos do imovel e chama a Edge
+  `generate-copy` (chave server-side), com erro acionavel via `error.context.json()`.
+- **UI (modal Nova Campanha, so Imobiliaria):** painel "Copiloto de copy · IA" apos os campos de fatos:
+  botao "Gerar copy com IA", rascunhos EDITAVEIS (headline/texto/CTA) com selo de "ajuste(s) sugerido(s)"
+  por angulo (issues da validacao de marca), "Usar estes angulos" (grava `form.ai_copy_angles`) e
+  "Limpar". Nada vai pro ar sem o OK do humano — o operador vira aprovador, nao autor.
+- +5 testes de pipeline (`aiCopyConcepts`/prioridade/capacidade); 98 testes no total; build ok.
+- **Para ATIVAR de fato:** `npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...` + `deploy generate-copy`.
+
 ## Sessao 2026-06-07 — Copiloto de IA, degrau A: motor de copy por IA (DORMENTE)
 
 Primeiro degrau do copiloto de marketing imobiliario: a IA escreve N angulos de copy na VOZ DA

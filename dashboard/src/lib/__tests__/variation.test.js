@@ -10,6 +10,7 @@ import {
   distinctConceptCapacity,
   variationTokens,
   renderVariationText,
+  aiCopyConcepts,
 } from '../premiumData.js'
 
 // Testes de CARACTERIZACAO da Fase 0: documentam o comportamento ATUAL como
@@ -89,6 +90,44 @@ describe('selectedMetaCreativeConcepts (selecao efetiva)', () => {
     const concepts = selectedMetaCreativeConcepts({ creative_variations: 5 }, imobiliaria)
     expect(concepts).toHaveLength(5)
     expect(concepts[0].template_recipe).toBeTruthy()
+  })
+})
+
+describe('aiCopyConcepts (copiloto de IA — degrau A)', () => {
+  const aiForm = {
+    creative_variations: 8,
+    creative_template_id: 'vitra-imobiliaria-dual-photo-offer',
+    ai_copy_angles: [
+      { key: 'preco', angle: 'preco', headline: 'De R$ 450 por R$ 399 mil', body: 'Valor reduzido.', cta: 'Fale com a Vitra' },
+      { key: 'local', angle: 'localizacao', headline: 'Perto de tudo', body: 'Mobilidade e comercio.', cta: 'Conhecer a regiao' },
+    ],
+  }
+
+  it('sem ai_copy_angles, nao gera conceitos de IA', () => {
+    expect(aiCopyConcepts({ creative_variations: 5 }, imobiliaria)).toEqual([])
+  })
+
+  it('usa os angulos da IA como copy LITERAL das variacoes (cap no numero de angulos)', () => {
+    const concepts = aiCopyConcepts(aiForm, imobiliaria)
+    expect(concepts).toHaveLength(2) // min(8, 2 angulos da IA)
+    expect(concepts[0].template_recipe.headline).toBe('De R$ 450 por R$ 399 mil')
+    expect(concepts[0].template_recipe.copy).toBe('Valor reduzido.')
+    expect(concepts[0].template_recipe.source).toBe('ai')
+    expect(concepts[0].templateBase).toBe('vitra-imobiliaria-dual-photo-offer')
+  })
+
+  it('Premium ainda NAO usa copy de IA (MVP escopado a Imobiliaria)', () => {
+    expect(aiCopyConcepts({ ai_copy_angles: [{ headline: 'x', body: 'y' }] }, premium)).toEqual([])
+  })
+
+  it('selectedMetaCreativeConcepts prioriza a copy de IA sobre as receitas', () => {
+    const concepts = selectedMetaCreativeConcepts(aiForm, imobiliaria)
+    expect(concepts).toHaveLength(2)
+    expect(concepts.every(c => c.template_recipe.source === 'ai')).toBe(true)
+  })
+
+  it('distinctConceptCapacity reflete os angulos da IA quando presentes', () => {
+    expect(distinctConceptCapacity(aiForm, imobiliaria)).toBe(2)
   })
 })
 

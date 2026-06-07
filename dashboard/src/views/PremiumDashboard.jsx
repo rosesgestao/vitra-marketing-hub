@@ -41,6 +41,7 @@ import {
   loadPremiumWorkspace,
   needsVitraImobiliariaApprovedTemplateRender,
   distinctConceptCapacity,
+  generateCopyWithAI,
   isRenderablePendingAsset,
   renderCampaignAssets,
   saveAd,
@@ -2433,6 +2434,39 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     setForm(current => ({ ...current, [field]: value }))
   }
 
+  // Copiloto de IA (degrau A): gera, revisa/edita e aplica os angulos de copy. So Imobiliaria (MVP).
+  const aiCopyEnabled = brandProfile.scope === BRAND_SCOPES.imobiliaria
+  const [aiCopy, setAiCopy] = useState({ loading: false, error: null, drafts: null })
+  const aiApplied = Array.isArray(form.ai_copy_angles) && form.ai_copy_angles.length > 0
+
+  async function handleGenerateCopy() {
+    setAiCopy(state => ({ ...state, loading: true, error: null }))
+    try {
+      const angles = await generateCopyWithAI(form, brandProfile)
+      if (!angles.length) throw new Error('A IA nao retornou angulos. Tente novamente.')
+      setAiCopy({ loading: false, error: null, drafts: angles })
+    } catch (err) {
+      setAiCopy(state => ({ ...state, loading: false, error: errorMessage(err) }))
+    }
+  }
+
+  function editDraft(index, field, value) {
+    setAiCopy(state => ({
+      ...state,
+      drafts: (state.drafts || []).map((d, i) => (i === index ? { ...d, [field]: value, issues: [] } : d)),
+    }))
+  }
+
+  function applyAiDrafts() {
+    const angles = (aiCopy.drafts || []).map(({ key, angle, headline, body, cta }) => ({ key, angle, headline, body, cta }))
+    update('ai_copy_angles', angles)
+  }
+
+  function clearAiCopy() {
+    setAiCopy({ loading: false, error: null, drafts: null })
+    update('ai_copy_angles', undefined)
+  }
+
   function selectTemplate(template) {
     const variant = template.variants?.find(item => item.id === template.defaultVariant) ||
       template.variants?.[0] ||
@@ -2914,6 +2948,101 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
               </Field>
             </section>
               </>
+            )}
+
+            {aiCopyEnabled && (
+              <section className="space-y-4 rounded-2xl border border-gold-400/25 bg-gold-400/[0.04] p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Copiloto de copy · IA</p>
+                    <p className="mt-2 text-xs leading-5 text-white/50">
+                      Gera ângulos de copy na voz da Vitra Imobiliária a partir dos dados acima. Você revisa, edita e aprova — nada vai pro ar sem o seu OK.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerateCopy}
+                    disabled={aiCopy.loading}
+                    className="shrink-0 rounded-full border border-gold-400/40 bg-gold-400/10 px-4 py-2 text-xs font-semibold text-gold-200 transition hover:bg-gold-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {aiCopy.loading ? 'Gerando…' : aiCopy.drafts ? 'Gerar de novo' : 'Gerar copy com IA'}
+                  </button>
+                </div>
+
+                {aiCopy.error && (
+                  <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">{aiCopy.error}</p>
+                )}
+
+                {aiApplied && (
+                  <p className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                    {form.ai_copy_angles.length} ângulo(s) de IA aplicados — as variações usarão estes textos. Edite e clique em “Usar estes ângulos” de novo para atualizar.
+                  </p>
+                )}
+
+                {Array.isArray(aiCopy.drafts) && aiCopy.drafts.length > 0 && (
+                  <div className="space-y-4">
+                    {aiCopy.drafts.map((draft, index) => (
+                      <div key={draft.key || index} className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/40">
+                            {draft.angle || `Ângulo ${index + 1}`}
+                          </span>
+                          {Array.isArray(draft.issues) && draft.issues.length > 0 && (
+                            <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                              {draft.issues.length} ajuste(s) sugerido(s)
+                            </span>
+                          )}
+                        </div>
+                        <Field label="Headline" labelClass={labelClass}>
+                          <input
+                            value={draft.headline || ''}
+                            onChange={event => editDraft(index, 'headline', event.target.value)}
+                            className={inputClass}
+                          />
+                        </Field>
+                        <Field label="Texto" labelClass={labelClass}>
+                          <textarea
+                            value={draft.body || ''}
+                            onChange={event => editDraft(index, 'body', event.target.value)}
+                            className={`${inputClass} min-h-16 resize-y`}
+                          />
+                        </Field>
+                        <Field label="CTA" labelClass={labelClass}>
+                          <input
+                            value={draft.cta || ''}
+                            onChange={event => editDraft(index, 'cta', event.target.value)}
+                            className={inputClass}
+                          />
+                        </Field>
+                        {Array.isArray(draft.issues) && draft.issues.length > 0 && (
+                          <ul className="list-disc space-y-1 pl-4 text-[11px] leading-4 text-amber-300/80">
+                            {draft.issues.map((issue, i) => (
+                              <li key={i}>{issue}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={applyAiDrafts}
+                        className="rounded-full bg-gold-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-gold-300"
+                      >
+                        Usar estes ângulos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearAiCopy}
+                        className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/55 transition hover:text-white"
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
             )}
 
             <section className="space-y-4">
