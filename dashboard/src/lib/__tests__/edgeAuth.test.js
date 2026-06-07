@@ -34,14 +34,16 @@ describe('decideAiEdgeAuth', () => {
     expect(r.status).toBe(403)
   })
 
-  it('anon + gate setado + header CORRETO -> ok', () => {
+  it('anon + gate setado + header CORRETO -> ok (sem openMode)', () => {
     const r = decideAiEdgeAuth({ presented: ANON, gateHeader: GATE, serviceKey: SERVICE, anonKey: ANON, gate: GATE })
     expect(r.ok).toBe(true)
+    expect(r.openMode).toBeFalsy()
   })
 
-  it('anon + gate NAO setado -> ok (graceful, aberto antes da ativacao)', () => {
+  it('anon + gate NAO setado -> ok mas openMode=true (graceful aberto, sinalizado p/ alerta)', () => {
     const r = decideAiEdgeAuth({ presented: ANON, gateHeader: null, serviceKey: SERVICE, anonKey: ANON, gate: '' })
     expect(r.ok).toBe(true)
+    expect(r.openMode).toBe(true)
   })
 
   it('chave invalida -> 401', () => {
