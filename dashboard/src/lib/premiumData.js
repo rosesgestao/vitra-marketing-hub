@@ -695,6 +695,26 @@ function imageGroupsFromForm(form) {
   )
 }
 
+// Fase 2 (HEIC): converte fotos HEIC/HEIF (iPhone) para JPEG no navegador antes do upload,
+// pois o renderer (satori/resvg) so decodifica WebP/PNG/JPEG. Import dinamico para nao inchar
+// o bundle; se a conversao falhar, sobe o arquivo original (melhor que perder a foto).
+async function convertHeicIfNeeded(file) {
+  const name = (file?.name || '').toLowerCase()
+  const isHeic = file?.type === 'image/heic' || file?.type === 'image/heif' ||
+    name.endsWith('.heic') || name.endsWith('.heif')
+  if (!isHeic) return file
+  try {
+    const heic2any = (await import('heic2any')).default
+    const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+    const blob = Array.isArray(converted) ? converted[0] : converted
+    const newName = (file.name || 'foto').replace(/\.(heic|heif)$/i, '') + '.jpg'
+    return new File([blob], newName, { type: 'image/jpeg' })
+  } catch (error) {
+    console.warn('Falha ao converter HEIC, enviando o arquivo original:', error)
+    return file
+  }
+}
+
 async function uploadCampaignImages(campaign, slug, form) {
   const groups = imageGroupsFromForm(form)
   const uploaded = {}
@@ -702,8 +722,9 @@ async function uploadCampaignImages(campaign, slug, form) {
   for (const [slot, files] of Object.entries(groups)) {
     uploaded[slot] = []
 
-    for (const [index, file] of files.entries()) {
-      if (!file) continue
+    for (const [index, originalFile] of files.entries()) {
+      if (!originalFile) continue
+      const file = await convertHeicIfNeeded(originalFile)
 
       const ext = file.name?.split('.').pop()?.toLowerCase() || 'jpg'
       const fileSlug = slugify(file.name?.replace(/\.[^.]+$/, '') || `${slot}-${index + 1}`)

@@ -454,3 +454,18 @@ O cofre passa a tratar o repositorio exclusivo `vitra-premium-ferramenta-operaci
 - Frontend-only (entra ao reiniciar o vite local). 53 testes + build OK.
 - Pendente da Fase 2 tecnica: fotos slot-aware, HEIC, resolucao Premium full-res (cada um com
   verificacao visual propria).
+
+## 2026-06-06 - Fase 2 tecnica: fotos slot-aware + HEIC
+
+- Fotos slot-aware (Edge): `imageUrlsForApprovedTemplate` passa a montar a lista em ORDEM DE SLOT
+  (fachada->0, living->1, varanda->2) a partir de `metadata.source_images`/`brief.images`, em vez
+  de prepor a foto rotacionada na posicao 0; financiamento-orla deixa de rotacionar (localizacao
+  esquerda, empreendimento direita). Corrige fachada/lazer no lugar errado e a mesma foto repetida.
+  Edge re-deployada (autorizada pelo dono) e VERIFICADA visualmente num dual-photo real.
+- Descoberta: as fotos do teste sao HEIC (iPhone) — a Edge nao decodifica. Adicionada conversao
+  HEIC->JPEG no upload do browser (`convertHeicIfNeeded` via `heic2any`, import dinamico, fallback
+  seguro). Slot-aware + HEIC sao acoplados para o fluxo real (fotos de iPhone).
+- Validacao: 53 testes, build, deno check, render real conferido. HEIC entra ao reiniciar o vite;
+  fotos antigas HEIC precisam ser re-enviadas para converter.
+- Pendente da Fase 2 tecnica: resolucao Premium full-res; e replicar a ampliacao de angulos nos
+  outros 3 templates apos validacao da voz.

@@ -1,21 +1,23 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
-## Sessao 2026-06-06 — Fase 2: fotos slot-aware (DEPLOY PENDENTE) + descoberta HEIC
+## Sessao 2026-06-06 — Fase 2: fotos slot-aware (deployada+verificada) + HEIC
 
-### Fotos slot-aware (render-asset)
+### Fotos slot-aware (render-asset) — DEPLOYADA e VERIFICADA
 - `imageUrlsForApprovedTemplate`: monta a lista de fotos em ORDEM DE SLOT (fachada->0,
   living->1, varanda->2 ...) a partir de `metadata.source_images`/`brief.images`, em vez de
   prepor a foto rotacionada (`source_image_url`) na posicao 0. Novos helpers `slotOrderedUrls`/
   `urlsFromImageGroup`. Fallback para o fluxo antigo em campanhas legadas sem slots.
 - financiamento-orla: usa a ordem de slot direta (localizacao->esquerda, empreendimento->direita)
   em vez de `rotateFinancingImages`, que puxava fotos aleatorias do pool (incluindo extras).
-- Corrige fachada/lazer/localizacao caindo na posicao errada nos templates aprovados.
-- Validado por `deno check`. **DEPLOY EM PRODUCAO PENDENTE DE AUTORIZACAO.**
+- Corrige fachada/lazer/localizacao caindo na posicao errada (e a mesma foto repetida) nos
+  templates aprovados. Edge re-deployada; verificado visualmente num dual-photo real (Isla Zona
+  Sul): 2 fotos distintas nos slots corretos.
 
-### Descoberta: fotos do teste sao HEIC
-- As fotos do "Teste de Criativo" (slots fachada/living) estao no Storage como `.heic` (iPhone).
-  A Edge nao decodifica HEIC (so WebP/PNG/JPEG via toDataUri), entao essas fotos nao renderizam.
-  Para o fluxo real do usuario, slot-aware depende de adicionar suporte a HEIC (conversao no upload).
+### Suporte a HEIC (upload no browser)
+- Descoberto que as fotos do teste sao `.heic` (iPhone), que a Edge nao decodifica. Adicionada
+  conversao HEIC/HEIF -> JPEG no `uploadCampaignImages` (`convertHeicIfNeeded`, via `heic2any`
+  com import dinamico; fallback para o original se a conversao falhar). Novas fotos de iPhone
+  sobem como JPEG e renderizam. Dep nova: `heic2any`. Frontend-only (entra ao reiniciar o vite).
 
 ## Sessao 2026-06-06 — Fase 2 (cont.): Aprovar todos + ampliacao de angulos
 
