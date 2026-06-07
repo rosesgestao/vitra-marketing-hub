@@ -692,14 +692,22 @@ function buildVitraPatiosGallerySvg(asset: any, campaign: any, images: Array<str
   const loc = pd.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(", ");
   const locationY = isStory ? 1825 : isWide ? 548 : 957;
   const neighborhoodY = isStory ? 1864 : isWide ? 572 : 1008;
+  // Fase 2 (P2): auto-ajuste da fonte da headline para nao estourar a largura disponivel
+  // (a esquerda das fotos). Antes a fonte era fixa e o texto transbordava atras das fotos.
+  const hBaseA = isWide ? 58 : isStory ? 78 : 74;
+  const hBaseB = isWide ? 61 : isStory ? 82 : 77;
+  const hIdeal = isWide ? 11 : isStory ? 14 : 9;
+  const hLongest = "a".repeat(Math.max((headline[0] || "OPORTUNIDADE").length, (headline[1] || "").length, 1));
+  const hSizeA = textSizeForWidth(hLongest, hBaseA, Math.round(hBaseA * 0.45), hIdeal);
+  const hSizeB = textSizeForWidth(hLongest, hBaseB, Math.round(hBaseB * 0.45), hIdeal);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
   <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
   ${outerFrame(W, H, frame, isWide ? 10 : 22, isStory ? 34 : 20)}
   <svg x="${logo[0]}" y="${logo[1]}" width="${logo[2]}" height="${logo[3]}" viewBox="0 0 300 100">${brandProfile.logo}</svg>
-  ${textLine(headX, titleY, headline[0] || "OPORTUNIDADE", { anchor, fill: "#FFFFFF", size: isWide ? 58 : isStory ? 78 : 74, weight: 900 })}
-  ${textLine(headX, titleY + (isWide ? 70 : 100), headline[1] || "", { anchor, fill: GOLD_LIGHT, size: isWide ? 61 : isStory ? 82 : 77, weight: 900 })}
+  ${textLine(headX, titleY, headline[0] || "OPORTUNIDADE", { anchor, fill: "#FFFFFF", size: hSizeA, weight: 900 })}
+  ${textLine(headX, titleY + (isWide ? 70 : 100), headline[1] || "", { anchor, fill: GOLD_LIGHT, size: hSizeB, weight: 900 })}
   ${textLine(priceX, isStory ? 535 : isWide ? 350 : 464, "OPORTUNIDADE POR:", { anchor, fill: OFF_WHITE, size: isWide ? 22 : 30, weight: 500 })}
   ${textLine(priceX, priceY, price || "CONSULTE", { anchor, fill: GOLD_LIGHT, size: isWide ? 50 : isStory ? 70 : 66, weight: 900 })}
   ${photos.map((p, i) => imageLayer(images[i] || images[0], `${idBase}-p${i}`, p[0], p[1], p[2], p[3], p[4])).join("")}

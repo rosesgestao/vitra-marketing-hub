@@ -19,6 +19,11 @@
   com import dinamico; fallback para o original se a conversao falhar). Novas fotos de iPhone
   sobem como JPEG e renderizam. Dep nova: `heic2any`. Frontend-only (entra ao reiniciar o vite).
 
+### Headline do patios: auto-ajuste de fonte (render-asset) — DEPLOYADA
+- O template patios usava fonte fixa e grande; headlines transbordavam para tras das fotos.
+  Agora a fonte auto-ajusta (`textSizeForWidth`, base no maior dos dois trechos) para caber na
+  largura a esquerda das fotos. Verificado visualmente (1:1). `maxLength` do patios 40 -> 36.
+
 ## Sessao 2026-06-06 — Fase 2 (cont.): Aprovar todos + ampliacao de angulos
 
 ### "Aprovar todos" por campanha (P4)

@@ -68,7 +68,7 @@ const patiosGalleryFieldGroups = [
     title: 'Campos do Template',
     fields: [
       { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Casa com patio' },
-      { key: 'suggested_headline', label: 'Headline principal', type: 'text', required: true, maxLength: 40, helper: 'Headline curta — ate 40 caracteres para caber na arte.', placeholder: 'Ex: 2 dorm. c/ suite com 2 patios', colSpan: 'full' },
+      { key: 'suggested_headline', label: 'Headline principal', type: 'text', required: true, maxLength: 36, helper: 'Headline curta — ate 36 caracteres para caber na arte.', placeholder: 'Ex: 2 dorm. c/ suite com 2 patios', colSpan: 'full' },
       { key: 'price', label: 'Valor de oportunidade', type: 'money', required: true, placeholder: 'Ex: R$ 419.000,00' },
       { key: 'differentials', label: 'Caracteristicas do imovel', type: 'list', required: true, placeholder: '106m2 privativos\nSuite e churrasqueira\nBaixo custo condominio\nVaga escritura coberta', colSpan: 'full' },
       { key: 'location', label: 'Texto de localizacao', type: 'text', placeholder: 'Ex: A 10 min. do Praia de Belas', colSpan: 'full' },
