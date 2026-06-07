@@ -20,7 +20,17 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const GOLD = "#C4942A";        // brandbook --gold
 const GOLD_LIGHT = "#F0C95C";  // brandbook --gold-light (kicker)
 const OFF_WHITE = "#F5F5F0";   // brandbook --off-white (copy)
-const SCALE = 0.55;
+// Densidade de pixels da peca Premium (caminho satori legado). 1.0 = full-res (DIMS reais, ex.:
+// 1080x1080 / 1080x1920). Historicamente fixo em 0.55 (~594px, ABAIXO do minimo Meta de 1080) como
+// margem de seguranca de memoria da Edge. Agora configuravel por secret PREMIUM_RENDER_SCALE para
+// subir gradual ate full-res com rollback instantaneo (sem redeploy) caso ocorra OOM. Default 0.55
+// preserva o comportamento atual no deploy; o caminho Vitra Imobiliaria ja roda full-res e nao usa
+// SCALE. Fonte/letterSpacing/padding sao proporcionais a W (=base*SCALE), entao o layout escala junto.
+const SCALE = (() => {
+  const raw = Number(Deno.env.get("PREMIUM_RENDER_SCALE") ?? "0.55");
+  if (!Number.isFinite(raw) || raw <= 0) return 0.55;
+  return Math.min(1, Math.max(0.4, raw));
+})();
 const PHASE_TAG: Record<string, string> = { "1": "FASE 1 - TEASER", "2": "FASE 2 - REVELACAO", "3": "FASE 3 - URGENCIA" };
 const VITRA_IMOBILIARIA_TEMPLATE_BASE = "vitra-imobiliaria-dual-photo-offer";
 const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
