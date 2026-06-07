@@ -32,6 +32,18 @@ Edge do render-version) ficam para depois, com autorizacao.
   estouram, 18 estreitos "III…" cabem). +17 testes (80 no total).
 - Documenta a inconsistencia conhecida: cap de quebra do 1.91:1 = 18 vs `headlineChars` do layout = 24.
 
+### #5 — Premium full-res por formato (deploy + secret)
+- O caminho Premium (satori) renderizava a `SCALE=0.55` (~594px, abaixo do minimo Meta de 1080).
+  Tornado configuravel por secret e POR FORMATO: `PREMIUM_RENDER_SCALE` (default 0.55) para 1:1 e
+  1.91:1; `PREMIUM_RENDER_SCALE_TALL` (default 0.75) para o 9:16.
+- **Teste em producao** (Edge re-deployada via CLI ja com o `_shared`): full-res `1.0` renderiza
+  **1:1 (verificado 1080x1080)** e 1.91:1 (mais leve), mas o **9:16 (1080x1920) ESTOURA o compute
+  da Edge** no satori (`WORKER_RESOURCE_LIMIT`). Por isso o 9:16 tem teto proprio (0.75 = 810x1440 =
+  mesma contagem de px do 1:1 a 1.0, que renderiza ok). O caminho Imobiliaria ja e full-res (SVG direto).
+- Secret `PREMIUM_RENDER_SCALE=1.0` (full-res onde cabe). Rollback instantaneo por secret, sem
+  redeploy. **Follow-up:** full-res REAL do 9:16 (1080x1920) exige rotear ao render-worker (Puppeteer),
+  fora do limite de compute da Edge.
+
 Auditoria multi-agente (5 agentes, file:line) da geracao de copy dos 4 templates Imobiliaria.
 Achou 4 bugs cross-cutting; aplicadas as correcoes TECNICAS (sem inventar copy de marketing nova).
 As reescritas de copy + 20 angulos novos ficaram propostos para revisao do marketing.

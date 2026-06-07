@@ -20,17 +20,21 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const GOLD = "#C4942A";        // brandbook --gold
 const GOLD_LIGHT = "#F0C95C";  // brandbook --gold-light (kicker)
 const OFF_WHITE = "#F5F5F0";   // brandbook --off-white (copy)
-// Densidade de pixels da peca Premium (caminho satori legado). 1.0 = full-res (DIMS reais, ex.:
-// 1080x1080 / 1080x1920). Historicamente fixo em 0.55 (~594px, ABAIXO do minimo Meta de 1080) como
-// margem de seguranca de memoria da Edge. Agora configuravel por secret PREMIUM_RENDER_SCALE para
-// subir gradual ate full-res com rollback instantaneo (sem redeploy) caso ocorra OOM. Default 0.55
-// preserva o comportamento atual no deploy; o caminho Vitra Imobiliaria ja roda full-res e nao usa
-// SCALE. Fonte/letterSpacing/padding sao proporcionais a W (=base*SCALE), entao o layout escala junto.
-const SCALE = (() => {
-  const raw = Number(Deno.env.get("PREMIUM_RENDER_SCALE") ?? "0.55");
-  if (!Number.isFinite(raw) || raw <= 0) return 0.55;
-  return Math.min(1, Math.max(0.4, raw));
-})();
+// Densidade de pixels da peca Premium (caminho satori legado) POR FORMATO. 1.0 = full-res (DIMS
+// reais, ex.: 1080x1080 / 1200x628). Historicamente fixo em 0.55 (~594px, ABAIXO do minimo Meta de
+// 1080). O caminho satori estoura o limite de compute da Edge (WORKER_RESOURCE_LIMIT) no 9:16
+// (1080x1920) em full-res — comprovado em teste — mas roda bem no 1:1/1.91:1 (mais leves). Por isso
+// o 9:16 (formato "tall") tem um teto proprio (SCALE_TALL). Ambos configuraveis por secret para
+// ajuste/rollback sem redeploy. Default 0.55 preserva o comportamento atual no deploy. O caminho
+// Vitra Imobiliaria ja roda full-res por outro motor (SVG direto) e NAO usa isto.
+function clampScale(value: number, fallback: number) {
+  if (!Number.isFinite(value) || value <= 0) return fallback;
+  return Math.min(1, Math.max(0.4, value));
+}
+const SCALE = clampScale(Number(Deno.env.get("PREMIUM_RENDER_SCALE") ?? "0.55"), 0.55);
+// Teto do 9:16: 0.75 = 810x1440 (~1.16M px = a MESMA contagem do 1:1 a 1.0, que renderiza ok).
+const SCALE_TALL = clampScale(Number(Deno.env.get("PREMIUM_RENDER_SCALE_TALL") ?? "0.75"), 0.75);
+function premiumScale(isTall: boolean) { return isTall ? Math.min(SCALE, SCALE_TALL) : SCALE; }
 const PHASE_TAG: Record<string, string> = { "1": "FASE 1 - TEASER", "2": "FASE 2 - REVELACAO", "3": "FASE 3 - URGENCIA" };
 const VITRA_IMOBILIARIA_TEMPLATE_BASE = "vitra-imobiliaria-dual-photo-offer";
 const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
@@ -878,7 +882,7 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
       borderLeftColor:usePanel ? GOLD : "transparent",
       padding:usePanel ? Math.round(W*0.038) : 0,
     }, [
-      h("div", { display:"flex", letterSpacing:4*SCALE, fontSize:Math.round(W*0.020), fontWeight:600, color:GOLD_LIGHT, marginBottom:Math.round(H*0.02) }, kicker),
+      h("div", { display:"flex", letterSpacing:4*premiumScale(isVertical), fontSize:Math.round(W*0.020), fontWeight:600, color:GOLD_LIGHT, marginBottom:Math.round(H*0.02) }, kicker),
       h("div", { display:"flex", fontFamily:"Playfair Display", fontWeight:700, fontSize:headlineSize, lineHeight:1.06, color:"#FFFFFF", marginBottom:Math.round(H*0.020) }, headline),
       copy ? h("div", { display:"flex", fontSize:Math.round(W*0.022), fontWeight:400, lineHeight:1.42, color:OFF_WHITE, maxWidth:Math.round(W*0.82) }, copy) : h("div", { display:"flex" }, ""),
       (model === "premium-dark-spec" || model === "premium-gallery-proof") ? featureNodes(features, W) : h("div", { display:"flex" }, ""),
@@ -899,8 +903,9 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
   const ar = (asset.aspect_ratio || "1:1").toString();
   const base = DIMS[ar] || DIMS["1:1"];
   const useApprovedVitraTemplate = isVitraImobiliariaTemplate(model, brandProfile);
-  const W = useApprovedVitraTemplate ? base[0] : Math.round(base[0] * SCALE);
-  const H = useApprovedVitraTemplate ? base[1] : Math.round(base[1] * SCALE);
+  const premiumS = premiumScale(base[1] > base[0] * 1.25); // 9:16 (tall) usa o teto SCALE_TALL
+  const W = useApprovedVitraTemplate ? base[0] : Math.round(base[0] * premiumS);
+  const H = useApprovedVitraTemplate ? base[1] : Math.round(base[1] * premiumS);
   const pad = Math.round(W * 0.075);
   const logoW = Math.round(W * 0.40);
   const logoH = Math.round(logoW / 3);
