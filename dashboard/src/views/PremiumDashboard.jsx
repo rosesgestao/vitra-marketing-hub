@@ -84,7 +84,7 @@ const INITIAL_FORM = {
   landing_url: '',
   whatsapp_url: '',
   automation_notes: '',
-  creative_variations: 8,
+  creative_variations: 3,
   creative_template_id: '',
   creative_template_variant: '',
   product_name: '',
