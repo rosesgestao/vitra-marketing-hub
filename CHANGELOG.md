@@ -1,5 +1,20 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto de IA: revalidacao AO VIVO da copy na edicao (fonte unica)
+
+Fecha o loop da edicao de copy: ao editar um rascunho da IA, os badges de issue passam a RECALCULAR
+ao vivo (tamanho da headline, nome do produto duplicado, vocabulario fora da marca) em vez de so
+limpar. Usa a MESMA validacao pura da Edge (`_shared/copyValidation.ts`) — fonte unica, sem duplicar
+regra no cliente (evita drift). Frontend-only (HMR).
+
+- **`vite.config.js`:** `server.fs.allow: ['..']` libera o dashboard a importar os modulos puros de
+  `supabase/functions/_shared` em dev. Verificado: dev serve o modulo (HTTP 200) E o build bundla.
+- **`premiumData.js`:** importa `validateCopyAngle` de `_shared/copyValidation.ts` e expoe
+  `revalidateCopyAngle(angle, {scope, headlineMax, productName})`.
+- **`PremiumDashboard.jsx`:** `editDraft` revalida o angulo editado (headlineMax vem do campo
+  suggested_headline do template) e atualiza `issues` ao vivo.
+- +3 testes (revalidateCopyAngle); 131 no total; build + dev verdes.
+
 ## Sessao 2026-06-07 — Copiloto de IA, degrau B: a IA sugere o template ideal (operador confirma)
 
 A IA le o anuncio colado e RECOMENDA o template de arte que melhor encaixa, com justificativa + nivel

@@ -11,6 +11,7 @@ import {
   variationTokens,
   renderVariationText,
   aiCopyConcepts,
+  revalidateCopyAngle,
 } from '../premiumData.js'
 
 // Testes de CARACTERIZACAO da Fase 0: documentam o comportamento ATUAL como
@@ -90,6 +91,24 @@ describe('selectedMetaCreativeConcepts (selecao efetiva)', () => {
     const concepts = selectedMetaCreativeConcepts({ creative_variations: 5 }, imobiliaria)
     expect(concepts).toHaveLength(5)
     expect(concepts[0].template_recipe).toBeTruthy()
+  })
+})
+
+describe('revalidateCopyAngle (revalidacao ao vivo na edicao da copy)', () => {
+  const ok = { headline: 'More na Zona Norte', body: 'Imovel com otima localizacao. Fale com a Vitra.', cta: 'Receber condicoes' }
+
+  it('angulo bem-formado nao retorna issues', () => {
+    expect(revalidateCopyAngle(ok, { scope: 'vitra_imobiliaria', headlineMax: 36 })).toEqual([])
+  })
+
+  it('headline acima do maxLength e sinalizada (mesma regra da Edge)', () => {
+    const issues = revalidateCopyAngle({ ...ok, headline: 'A'.repeat(50) }, { scope: 'vitra_imobiliaria', headlineMax: 36 })
+    expect(issues.join(' ')).toMatch(/headline com 50/)
+  })
+
+  it('vocabulario Premium editado na Imobiliaria e sinalizado', () => {
+    const issues = revalidateCopyAngle({ ...ok, body: 'Uma curadoria de alto padrao.' }, { scope: 'vitra_imobiliaria', headlineMax: 36 })
+    expect(issues.join(' ')).toMatch(/vocabulario fora da marca/)
   })
 })
 

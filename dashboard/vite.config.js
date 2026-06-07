@@ -525,5 +525,7 @@ function sourceImageIngestionPlugin() {
 
 export default defineConfig({
   plugins: [react(), sourceImageIngestionPlugin()],
-  server: { port: 5173 },
+  // fs.allow: '..' (raiz do repo) libera o dashboard a importar os modulos puros de validacao da Edge
+  // em supabase/functions/_shared (ex.: copyValidation.ts) — fonte unica, sem duplicar regras no cliente.
+  server: { port: 5173, fs: { allow: ['..'] } },
 })

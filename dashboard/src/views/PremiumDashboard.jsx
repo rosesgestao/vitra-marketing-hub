@@ -45,6 +45,7 @@ import {
   extractFactsWithAI,
   buildFactsApplyPatch,
   suggestTemplateWithAI,
+  revalidateCopyAngle,
   isRenderablePendingAsset,
   renderCampaignAssets,
   saveAd,
@@ -2490,9 +2491,17 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   }
 
   function editDraft(index, field, value) {
+    // Revalida AO VIVO com as MESMAS regras da Edge (tamanho da headline, nome duplicado, vocabulario
+    // fora da marca), em vez de so limpar os badges — guia o operador a manter a edicao dentro da marca.
+    const headlineMax = fieldsForTemplate(selectedTemplate).find(f => f.key === 'suggested_headline')?.maxLength || 40
     setAiCopy(state => ({
       ...state,
-      drafts: (state.drafts || []).map((d, i) => (i === index ? { ...d, [field]: value, issues: [] } : d)),
+      drafts: (state.drafts || []).map((d, i) => {
+        if (i !== index) return d
+        const next = { ...d, [field]: value }
+        next.issues = revalidateCopyAngle(next, { scope: brandProfile.scope, headlineMax, productName: form.product_name })
+        return next
+      }),
     }))
   }
 

@@ -1,5 +1,8 @@
 import { supabase } from './supabase.js'
 import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandProfiles.js'
+// Mesma validacao pura que a Edge generate-copy roda no servidor (fonte unica em _shared), reusada no
+// cliente para REVALIDAR a copy ao vivo quando o operador edita um rascunho (badges de issue corretos).
+import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValidation.ts'
 import {
   creativeTemplateForTemplateKey,
   creativeTemplatesForBrand,
@@ -424,6 +427,17 @@ export async function generateCopyWithAI(form, brandProfile = getBrandProfile())
     throw new Error(message)
   }
   return Array.isArray(data?.angles) ? data.angles : []
+}
+
+// Revalida UM angulo de copy no cliente (mesmas regras da Edge): usada ao editar um rascunho para
+// atualizar os badges de issue ao vivo (tamanho da headline, nome do produto duplicado, vocabulario
+// fora da marca). Devolve o array de issues (vazio = ok).
+export function revalidateCopyAngle(angle, { scope, headlineMax, productName } = {}) {
+  return validateCopyAngle(angle, {
+    scope: scope || BRAND_SCOPES.imobiliaria,
+    headlineMax: Number(headlineMax) || 40,
+    productName: productName || '',
+  }).issues
 }
 
 // Degrau B' do copiloto: la a Edge extract-facts (Claude) com o TEXTO colado do anuncio + os field
