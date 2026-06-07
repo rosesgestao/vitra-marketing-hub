@@ -2474,8 +2474,9 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     setAiFilledKeys(current => (current.includes(field) ? current.filter(k => k !== field) : current))
   }
 
-  // Copiloto de IA (degrau A): gera, revisa/edita e aplica os angulos de copy. So Imobiliaria (MVP).
-  const aiCopyEnabled = brandProfile.scope === BRAND_SCOPES.imobiliaria
+  // Copiloto de IA (degrau A): gera, revisa/edita e aplica os angulos de copy na voz da marca.
+  // Vale Imobiliaria E Premium (a Edge generate-copy tem a voz de cada marca, alinhada ao brandbook).
+  const aiCopyEnabled = true
   const [aiCopy, setAiCopy] = useState({ loading: false, error: null, drafts: null })
   const aiApplied = Array.isArray(form.ai_copy_angles) && form.ai_copy_angles.length > 0
 
@@ -2620,8 +2621,8 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   }
 
   // Fluxo unico (degrau B' -> A): extrai os fatos do anuncio, aplica (fill-empty) e JA gera a copy a
-  // partir do form preenchido — tudo num clique. So Imobiliaria (a geracao de copy e MVP Imobiliaria).
-  // Usa o nextForm computado localmente (o state setForm e assincrono) para a copy ver os fatos novos.
+  // partir do form preenchido — tudo num clique. Vale Imobiliaria E Premium (a Edge tem a voz de cada
+  // marca). Usa o nextForm computado localmente (o state setForm e assincrono) para a copy ver os fatos.
   async function handleExtractAndGenerate() {
     if (!extract.sourceText.trim()) {
       setExtract(state => ({ ...state, error: 'Cole o texto do anuncio antes de extrair.' }))
@@ -3355,7 +3356,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Copiloto de copy · IA</p>
                     <p className="mt-2 text-xs leading-5 text-white/50">
-                      Gera ângulos de copy na voz da Vitra Imobiliária a partir dos dados acima. Você revisa, edita e aprova — nada vai pro ar sem o seu OK.
+                      Gera ângulos de copy na voz da {brandProfile.name} a partir dos dados acima. Você revisa, edita e aprova — nada vai pro ar sem o seu OK.
                     </p>
                   </div>
                   <button

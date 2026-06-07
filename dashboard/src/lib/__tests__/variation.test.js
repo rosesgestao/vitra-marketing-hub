@@ -135,8 +135,19 @@ describe('aiCopyConcepts (copiloto de IA — degrau A)', () => {
     expect(concepts[0].templateBase).toBe('vitra-imobiliaria-dual-photo-offer')
   })
 
-  it('Premium ainda NAO usa copy de IA (MVP escopado a Imobiliaria)', () => {
-    expect(aiCopyConcepts({ ai_copy_angles: [{ headline: 'x', body: 'y' }] }, premium)).toEqual([])
+  it('Premium AGORA usa copy de IA: reusa o conceito generico Premium e sobrescreve o texto', () => {
+    const concepts = aiCopyConcepts({
+      creative_variations: 8,
+      ai_copy_angles: [
+        { key: 'editorial', angle: 'editorial', headline: 'Uma categoria acima', body: 'Curadoria reservada.', cta: 'Receba a curadoria' },
+        { key: 'local', angle: 'localizacao', headline: 'Endereco singular', body: 'Localizacao rara.', cta: 'Agende uma visita' },
+      ],
+    }, premium)
+    expect(concepts).toHaveLength(2)
+    expect(concepts[0].template_recipe.headline).toBe('Uma categoria acima')
+    expect(concepts[0].template_recipe.source).toBe('ai')
+    // Premium nao tem family: reusa o templateBase do conceito generico (premium-editorial/lead/retarget)
+    expect(String(concepts[0].templateBase)).toMatch(/^premium-/)
   })
 
   it('selectedMetaCreativeConcepts prioriza a copy de IA sobre as receitas', () => {
@@ -145,8 +156,9 @@ describe('aiCopyConcepts (copiloto de IA — degrau A)', () => {
     expect(concepts.every(c => c.template_recipe.source === 'ai')).toBe(true)
   })
 
-  it('distinctConceptCapacity reflete os angulos da IA quando presentes', () => {
+  it('distinctConceptCapacity reflete os angulos da IA quando presentes (Imobiliaria E Premium)', () => {
     expect(distinctConceptCapacity(aiForm, imobiliaria)).toBe(2)
+    expect(distinctConceptCapacity({ ai_copy_angles: [{ headline: 'a', body: 'b' }, { headline: 'c', body: 'd' }] }, premium)).toBe(2)
   })
 })
 

@@ -1,5 +1,24 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto de IA estendido ao PREMIUM (copy na voz do brandbook)
+
+A geracao de copy por IA (degrau A) + o fluxo unico (extrair+gerar) agora valem tambem para a Vitra
+Premium, com a voz editorial do brandbook ("o luxo nao grita, sussurra"). A extracao de fatos (B') ja
+funcionava no Premium. Sugestao de template (B) nao se aplica (Premium tem 1 template). Frontend-only;
+a Edge generate-copy (voz Premium) ja estava deployada.
+
+- **`aiCopyConcepts` scope-aware:** Imobiliaria usa a family do template aprovado; Premium (sem family,
+  render editorial automatico) REUSA o conceito generico Premium (templateBase premium-editorial/lead/
+  retarget, visual intacto) e so sobrescreve o TEXTO via `template_recipe`. buildHeadline/buildAssetCopy
+  ja checavam o recipe ANTES de tudo (scope-agnostico), entao a copy da IA flui pelo render existente.
+- **`distinctConceptCapacity`:** check de copy de IA movido pro topo (vale ambas as marcas).
+- **UI:** `aiCopyEnabled` agora vale para os dois escopos; painel "Copiloto de copy" usa `{brandProfile.name}`.
+- **Revisao adversarial:** "extensao Premium solida" — fluxo ate o render verificado, ZERO regressao na
+  Imobiliaria (saida byte-for-byte), fallback de angle seguro, sem acoplamento com o cap de render (OOM).
+- **Smoke-test em producao (200):** copy Premium impecavel — headlines curtas ("Seu rooftop. Sua vista."),
+  lexico do brandbook (presenca, patrimonio, seletivas, curadoria), CTAs Premium, sem emojis, flagged:0.
+- 132 testes; build verde.
+
 ## Sessao 2026-06-07 — Fidelidade de marca: auditoria vs brandbooks oficiais + BRAND.md
 
 O usuario forneceu os brandbooks oficiais (Imobiliaria e Premium) + diretorios de logos. Auditei o

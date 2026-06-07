@@ -345,39 +345,54 @@ export function selectedTemplateVariationConcepts(form, brandProfile = getBrandP
 
 // Copiloto de IA (degrau A): se a campanha tem `ai_copy_angles` (rascunhos aprovados pelo operador),
 // usa-os como copy das variacoes EM VEZ das receitas do template. A copy da IA e LITERAL (sem
-// {tokens}), entao renderVariationText a devolve como-esta e ela flui pelo pipeline existente.
-// MVP escopado a Imobiliaria (fluxo principal); Premium fica para um follow-up.
+// {tokens}), entao renderVariationText a devolve como-esta e ela flui pelo pipeline existente
+// (buildHeadline/buildAssetCopy checam template_recipe ANTES de tudo — scope-agnostico).
+// Imobiliaria: templateBase = family do template aprovado. Premium (sem family, render editorial
+// automatico): reusa o conceito generico Premium (templateBase/angle/visual) e so sobrescreve o TEXTO.
 export function aiCopyConcepts(form, brandProfile = getBrandProfile()) {
-  if (brandProfile.scope !== BRAND_SCOPES.imobiliaria) return []
   const angles = Array.isArray(form?.ai_copy_angles)
     ? form.ai_copy_angles.filter(a => a && (cleanText(a.headline) || cleanText(a.body)))
     : []
   if (!angles.length) return []
+
+  const isImob = brandProfile.scope === BRAND_SCOPES.imobiliaria
   const { template } = selectedCreativeTemplate(form, brandProfile)
-  if (!template?.family) return []
+  if (isImob && !template?.family) return []
+  const generic = isImob ? null : metaCreativeConceptsForBrand(brandProfile)
 
   const count = Math.min(metaCreativeVariationCount(form), angles.length)
   return Array.from({ length: count }, (_, index) => {
     const a = angles[index]
     const recipeKey = slugify(a.key || a.angle || `ia-${index + 1}`)
-    return {
-      key: `meta-ai-${slugify(template.family)}-${String(index + 1).padStart(2, '0')}-${recipeKey}`,
+    const recipe = {
+      id: a.key || `ia-${index + 1}`,
       label: a.angle || a.key || `Angulo IA ${index + 1}`,
-      phase: String((index % 3) + 1),
-      templateBase: template.family,
       angle: a.angle || 'ia',
-      slot_focus: [],
-      template_recipe: {
-        id: a.key || `ia-${index + 1}`,
+      headline: cleanText(a.headline),
+      copy: cleanText(a.body),
+      cta: cleanText(a.cta),
+      source: 'ai',
+      index: index + 1,
+      total: count,
+    }
+    if (isImob) {
+      return {
+        key: `meta-ai-${slugify(template.family)}-${String(index + 1).padStart(2, '0')}-${recipeKey}`,
         label: a.angle || a.key || `Angulo IA ${index + 1}`,
+        phase: String((index % 3) + 1),
+        templateBase: template.family,
         angle: a.angle || 'ia',
-        headline: cleanText(a.headline),
-        copy: cleanText(a.body),
-        cta: cleanText(a.cta),
-        source: 'ai',
-        index: index + 1,
-        total: count,
-      },
+        slot_focus: [],
+        template_recipe: recipe,
+        variation_index: index,
+      }
+    }
+    // Premium: mantem o conceito generico (visual editorial intacto), so troca o texto pela copy da IA.
+    const g = generic[index % generic.length]
+    return {
+      ...g,
+      key: `${g.key}-ai-${String(index + 1).padStart(2, '0')}-${recipeKey}`,
+      template_recipe: recipe,
       variation_index: index,
     }
   })
@@ -541,12 +556,12 @@ export async function suggestTemplateWithAI(sourceText, brandProfile = getBrandP
 // Fase 2 (P1): quantos ANGULOS distintos o template oferece (limite util de variacoes
 // sem repetir copy). Usado para informar a escolha no modal e evitar duplicatas.
 export function distinctConceptCapacity(form, brandProfile = getBrandProfile()) {
+  // Com copy de IA aprovada, a capacidade de angulos distintos e a dos rascunhos da IA (qualquer marca).
+  const aiAngles = Array.isArray(form?.ai_copy_angles)
+    ? form.ai_copy_angles.filter(a => a && (cleanText(a.headline) || cleanText(a.body)))
+    : []
+  if (aiAngles.length) return aiAngles.length
   if (brandProfile.scope === BRAND_SCOPES.imobiliaria) {
-    // Com copy de IA aprovada, a capacidade de angulos distintos e a dos rascunhos da IA.
-    const aiAngles = Array.isArray(form?.ai_copy_angles)
-      ? form.ai_copy_angles.filter(a => a && (cleanText(a.headline) || cleanText(a.body)))
-      : []
-    if (aiAngles.length) return aiAngles.length
     const { template } = selectedCreativeTemplate(form, brandProfile)
     const recipes = variationRecipesForTemplate(template)
     if (template?.family && recipes.length) return recipes.length
