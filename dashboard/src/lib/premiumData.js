@@ -425,6 +425,73 @@ export async function generateCopyWithAI(form, brandProfile = getBrandProfile())
   return Array.isArray(data?.angles) ? data.angles : []
 }
 
+// Degrau B' do copiloto: la a Edge extract-facts (Claude) com o TEXTO colado do anuncio + os field
+// specs do template (key=formKey ja resolvido, label, type, maxLength, descricao). A IA so PROPOE
+// (valor + evidencia + confianca); a chave fica server-side. Devolve os campos validados (ancorados
+// no texto). O operador revisa e aplica no modal (humano no loop). Lanca erro acionavel.
+export async function extractFactsWithAI(sourceText, selectedTemplate, brandProfile = getBrandProfile()) {
+  const text = cleanText(sourceText)
+  if (!text) throw new Error('Cole o texto do anuncio antes de extrair.')
+
+  const seen = new Set()
+  const fieldSpecs = []
+  for (const field of fieldsForTemplate(selectedTemplate)) {
+    const key = formKeyForTemplateField(field)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    fieldSpecs.push({
+      key,
+      label: field.label,
+      type: field.type || 'text',
+      maxLength: field.maxLength,
+      description: field.helper || field.placeholder,
+      required: Boolean(field.required),
+    })
+  }
+  if (!fieldSpecs.length) throw new Error('Escolha um template com campos para a IA preencher.')
+
+  const { data, error } = await supabase.functions.invoke('extract-facts', {
+    body: {
+      brand_scope: brandProfile.scope,
+      source_text: text,
+      field_specs: fieldSpecs,
+    },
+  })
+  if (error) {
+    let message = error.message || 'Falha ao extrair os dados do anuncio.'
+    try { const detail = await error.context?.json?.(); if (detail?.message) message = detail.message } catch (_) { /* sem corpo */ }
+    throw new Error(message)
+  }
+  return {
+    fields: data?.fields && typeof data.fields === 'object' ? data.fields : {},
+    extracted: Number(data?.extracted || 0),
+    flagged: Number(data?.flagged || 0),
+    model: data?.model || '',
+  }
+}
+
+// PURO (testavel sem rede): decide o que aplicar ao form a partir dos campos extraidos. So aplica
+// campos present:true e nao-vazios. Modo 'fill-empty' (padrao, anti-regressao): so preenche campos
+// que estao VAZIOS no form atual — nunca sobrescreve o que o operador ja digitou. Modo 'overwrite':
+// substitui tudo. Listas viram texto separado por '\n' (formato que o textarea + splitContentItems
+// esperam). Nunca inclui campo ausente nem apaga valor existente.
+export function buildFactsApplyPatch(form, extractedFields, { mode = 'fill-empty' } = {}) {
+  const patch = {}
+  const appliedKeys = []
+  const skippedKeys = []
+  for (const [key, field] of Object.entries(extractedFields || {})) {
+    if (!field || field.present !== true) { if (field) skippedKeys.push(key); continue }
+    const raw = field.value
+    const value = Array.isArray(raw) ? raw.filter(Boolean).join('\n') : cleanText(raw)
+    if (!value) { skippedKeys.push(key); continue }
+    const currentEmpty = cleanText(form?.[key]) === ''
+    if (mode === 'fill-empty' && !currentEmpty) { skippedKeys.push(key); continue }
+    patch[key] = value
+    appliedKeys.push(key)
+  }
+  return { patch, appliedKeys, skippedKeys }
+}
+
 // Fase 2 (P1): quantos ANGULOS distintos o template oferece (limite util de variacoes
 // sem repetir copy). Usado para informar a escolha no modal e evitar duplicatas.
 export function distinctConceptCapacity(form, brandProfile = getBrandProfile()) {

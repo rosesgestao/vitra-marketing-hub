@@ -1,5 +1,32 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto de IA, degrau B': IA extrai os fatos de um anuncio colado (ALCANCAVEL)
+
+Segundo degrau do copiloto: o operador COLA um anuncio/briefing em texto livre e a IA preenche os
+campos do imovel sozinha — tira mais um trabalho braçal, mantendo o humano como aprovador (a IA so
+PROPOE; nada entra no form sem clique). Vale Imobiliaria E Premium (extracao de fatos e NEUTRA de
+voz — nao gera linguagem/CTA, so transcreve). Gated na mesma chave do degrau A.
+
+- **Edge `extract-facts`** (novo, Deno; espelha generate-copy): recebe o texto + os field specs do
+  template (o dashboard e a fonte de verdade) e monta a json_schema dinamicamente; a IA devolve, por
+  campo, `{value, evidence, confidence, present}`. Auth + 503 not_configured + output_config.format
+  iguais ao degrau A. verify_jwt=false. Reusa o secret `ANTHROPIC_API_KEY`.
+- **`_shared/factsExtraction.ts`** (novo, puro, cross-importado por Vitest): a defesa ANTI-ALUCINACAO.
+  O invariante e duro — a IA NUNCA preenche dado que nao esteja no texto. `validateExtractedFacts`
+  exige o PROPRIO valor ANCORADO no texto-fonte (substring contigua normalizada, com FRONTEIRA de
+  palavra; numero puro com fronteira de digito). Listas sao validadas ITEM A ITEM (itens inventados
+  sao removidos). Sem ancoragem -> campo descartado. Evidence e so contexto, nunca passe-livre.
+- **Pipeline + UI:** `extractFactsWithAI` (chama a Edge) e `buildFactsApplyPatch` (puro: aplica so
+  campos ancorados; modo `fill-empty` padrao nao sobrescreve o que o operador digitou). No modal,
+  secao "Importar de um anuncio · IA" antes dos campos: paste box -> preview por campo (valor +
+  badge de confianca + evidencia + issues) -> "Aplicar". Campos preenchidos ganham marca "IA ✕"
+  (limpa no clique/edicao); banner com "Desfazer" em lote. Reset ao trocar template/marca.
+- **Revisao adversarial** (workflow ultracode): 12 achados confirmados e CORRIGIDOS, incluindo 2 high
+  que furavam o invariante (evidence validada separada do valor; recombinacao de tokens espalhados) e
+  o casamento de numero curto por coincidencia. +24 testes de extracao trancam cada furo. 122 testes
+  no total; build + deno check verdes.
+- **Para ATIVAR:** mesma chave do degrau A (`ANTHROPIC_API_KEY`) + deploy de `extract-facts`.
+
 ## Sessao 2026-06-07 — Copiloto de IA, degrau A: pipeline + UI no modal (ALCANCAVEL)
 
 Liga o motor de copy por IA ao fluxo real: o operador agora gera, REVISA/EDITA e aprova os angulos

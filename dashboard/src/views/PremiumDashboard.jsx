@@ -42,6 +42,8 @@ import {
   needsVitraImobiliariaApprovedTemplateRender,
   distinctConceptCapacity,
   generateCopyWithAI,
+  extractFactsWithAI,
+  buildFactsApplyPatch,
   isRenderablePendingAsset,
   renderCampaignAssets,
   saveAd,
@@ -2425,13 +2427,31 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     [selectedTemplate],
   )
 
+  // Degrau B' (importar de anuncio): estado da extracao + keys preenchidas pela IA. aiFilledKeys fica
+  // FORA do form (state local) para nao vazar no payload de submit.
+  const [extract, setExtract] = useState({ loading: false, error: null, result: null, sourceText: '', applied: null })
+  const [extractMode, setExtractMode] = useState('fill-empty')
+  const [aiFilledKeys, setAiFilledKeys] = useState([])
+
   useEffect(() => {
     setForm(initialFormForBrand(brandProfile))
     setLocalError(null)
+    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null })
+    setExtractMode('fill-empty')
+    setAiFilledKeys([])
   }, [brandProfile.scope])
+
+  // Trocar de TEMPLATE muda o conjunto de campos: a extracao anterior (keyed por outras formKeys) e as
+  // marcas IA ficam obsoletas. Limpa o resultado/marcas (preserva o texto colado p/ re-extrair).
+  useEffect(() => {
+    setExtract(state => ({ ...state, result: null, error: null, applied: null }))
+    setAiFilledKeys([])
+  }, [form.creative_template_id])
 
   function update(field, value) {
     setForm(current => ({ ...current, [field]: value }))
+    // Editar um campo preenchido pela IA tira a marca "IA" (sinaliza edicao/aprovacao humana).
+    setAiFilledKeys(current => (current.includes(field) ? current.filter(k => k !== field) : current))
   }
 
   // Copiloto de IA (degrau A): gera, revisa/edita e aplica os angulos de copy. So Imobiliaria (MVP).
@@ -2465,6 +2485,72 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   function clearAiCopy() {
     setAiCopy({ loading: false, error: null, drafts: null })
     update('ai_copy_angles', undefined)
+  }
+
+  // Degrau B' do copiloto: a IA le o anuncio colado e PROPOE os campos; o operador revisa e aplica.
+  const extractEnabled = selectedFieldGroups.length > 0
+
+  async function handleExtractFacts() {
+    if (!extract.sourceText.trim()) {
+      setExtract(state => ({ ...state, error: 'Cole o texto do anuncio antes de extrair.' }))
+      return
+    }
+    setExtract(state => ({ ...state, loading: true, error: null }))
+    try {
+      const result = await extractFactsWithAI(extract.sourceText, selectedTemplate, brandProfile)
+      setExtract(state => ({ ...state, loading: false, result }))
+    } catch (err) {
+      setExtract(state => ({ ...state, loading: false, error: errorMessage(err) }))
+    }
+  }
+
+  function applyExtracted() {
+    const fields = extract.result?.fields || {}
+    // Defesa: so aplica campos do template ATUAL (evita keys orfas de um template que foi trocado).
+    const allowed = new Set(fieldsForTemplate(selectedTemplate).map(formKeyForTemplateField))
+    const scoped = Object.fromEntries(Object.entries(fields).filter(([key]) => allowed.has(key)))
+    const { patch, appliedKeys } = buildFactsApplyPatch(form, scoped, { mode: extractMode })
+    if (!appliedKeys.length) {
+      setExtract(state => ({
+        ...state,
+        error: extractMode === 'fill-empty'
+          ? 'Nada a preencher: os campos encontrados ja estao preenchidos (use "Sobrescrever" para substituir).'
+          : 'Nenhum campo com dado ancorado no texto para aplicar.',
+      }))
+      return
+    }
+    const prevValues = {}
+    appliedKeys.forEach(key => { prevValues[key] = form[key] ?? '' })
+    setForm(current => ({ ...current, ...patch }))
+    setAiFilledKeys(current => Array.from(new Set([...current, ...appliedKeys])))
+    // Acumula o historico de undo: uniao das keys + prevValues com PRIMEIRA captura por key (a
+    // captura original vence, mesmo apos applies sucessivos), para o "Desfazer" voltar ao original.
+    setExtract(state => ({
+      ...state,
+      error: null,
+      applied: {
+        keys: Array.from(new Set([...(state.applied?.keys || []), ...appliedKeys])),
+        prevValues: { ...prevValues, ...(state.applied?.prevValues || {}) },
+      },
+    }))
+  }
+
+  function undoExtracted() {
+    const applied = extract.applied
+    if (!applied) return
+    setForm(current => {
+      const restore = {}
+      // So restaura as keys ainda marcadas como IA (nao mexe no que o operador editou depois).
+      applied.keys.forEach(key => { if (aiFilledKeys.includes(key)) restore[key] = applied.prevValues[key] ?? '' })
+      return { ...current, ...restore }
+    })
+    setAiFilledKeys(current => current.filter(key => !applied.keys.includes(key)))
+    setExtract(state => ({ ...state, applied: null }))
+  }
+
+  function clearExtract() {
+    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null })
+    setAiFilledKeys([])
   }
 
   function selectTemplate(template) {
@@ -2811,6 +2897,117 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
               )}
             </section>
 
+            {extractEnabled && (
+              <section className="space-y-4 rounded-2xl border border-gold-400/25 bg-gold-400/[0.04] p-5">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Importar de um anúncio · IA</p>
+                  <p className="mt-2 text-xs leading-5 text-white/50">
+                    Cole um anúncio, briefing ou descrição do imóvel. A IA lê e <strong className="text-white/70">propõe</strong> os campos abaixo — só o que estiver no texto, com a evidência. Você revisa e aplica; nada é preenchido sem o seu clique.
+                  </p>
+                </div>
+
+                <textarea
+                  value={extract.sourceText}
+                  onChange={event => setExtract(state => ({ ...state, sourceText: event.target.value }))}
+                  className={`${inputClass} min-h-28 resize-y`}
+                  placeholder="Ex: Apartamento no Menino Deus, 2 dormitórios com suíte, 61m², churrasqueira e sacada. R$ 539 mil. Próximo ao Parque da Redenção..."
+                />
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleExtractFacts}
+                    disabled={extract.loading || !extract.sourceText.trim()}
+                    className="rounded-full border border-gold-400/40 bg-gold-400/10 px-4 py-2 text-xs font-semibold text-gold-200 transition hover:bg-gold-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {extract.loading ? 'Extraindo…' : 'Extrair fatos com IA'}
+                  </button>
+                  {(extract.result || extract.sourceText) && (
+                    <button
+                      type="button"
+                      onClick={clearExtract}
+                      className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/55 transition hover:text-white"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+
+                {extract.error && (
+                  <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">{extract.error}</p>
+                )}
+
+                {extract.applied && (
+                  <p className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                    <span>{extract.applied.keys.length} campo(s) preenchidos pela IA — revise abaixo antes de gerar.</span>
+                    <button type="button" onClick={undoExtracted} className="font-semibold underline underline-offset-2 hover:text-emerald-200">Desfazer</button>
+                  </p>
+                )}
+
+                {extract.result && (() => {
+                  const entries = Object.entries(extract.result.fields).filter(([, f]) => f.present)
+                  if (!entries.length) {
+                    return <p className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/45">A IA não encontrou dados ancorados no texto. Cole um anúncio mais completo e tente de novo.</p>
+                  }
+                  const labelByKey = {}
+                  selectedFieldGroups.flatMap(g => g.fields || []).forEach(f => { labelByKey[formKeyForTemplateField(f)] = f.label })
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/40">{entries.length} campo(s) encontrados</span>
+                        <div className="flex items-center gap-1 rounded-full border border-white/10 p-0.5">
+                          {[['fill-empty', 'Preencher vazios'], ['overwrite', 'Sobrescrever']].map(([mode, label]) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setExtractMode(mode)}
+                              className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${extractMode === mode ? 'bg-gold-400 text-black' : 'text-white/50 hover:text-white'}`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {entries.map(([key, f]) => {
+                          const confClass = f.confidence === 'high'
+                            ? 'border-emerald-400/40 text-emerald-300'
+                            : f.confidence === 'medium'
+                              ? 'border-amber-400/40 text-amber-300'
+                              : 'border-red-400/40 text-red-300'
+                          const value = Array.isArray(f.value) ? f.value.join(' · ') : f.value
+                          return (
+                            <div key={key} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">{labelByKey[key] || key}</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${confClass}`}>{f.confidence}</span>
+                              </div>
+                              <p className="mt-1.5 text-sm text-white/85">{value}</p>
+                              {f.evidence && <p className="mt-1 text-[11px] italic leading-4 text-white/35">“{f.evidence}”</p>}
+                              {Array.isArray(f.issues) && f.issues.length > 0 && (
+                                <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-[11px] leading-4 text-amber-300/80">
+                                  {f.issues.map((iss, i) => <li key={i}>{iss}</li>)}
+                                </ul>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={applyExtracted}
+                        className="rounded-full bg-gold-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-gold-300"
+                      >
+                        Aplicar ao formulário
+                      </button>
+                    </div>
+                  )
+                })()}
+              </section>
+            )}
+
             {selectedFieldGroups.map(group => (
               <section key={group.id} className="space-y-4">
                 <div className="border-b border-white/10 pb-3">
@@ -2821,6 +3018,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   {(group.fields || []).map(field => {
                     const key = formKeyForTemplateField(field)
                     const full = field.colSpan === 'full' || field.type === 'textarea' || field.type === 'list'
+                    const aiFilled = aiFilledKeys.includes(key)
                     return (
                       <Field
                         key={`${group.id}-${field.key}`}
@@ -2828,7 +3026,20 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                         labelClass={labelClass}
                         className={full ? 'md:col-span-2' : ''}
                       >
-                        <div aria-invalid={key === 'product_name' && Boolean(localError && !form.product_name.trim())}>
+                        <div
+                          className={`relative rounded-lg ${aiFilled ? 'ring-1 ring-gold-400/45' : ''}`}
+                          aria-invalid={key === 'product_name' && Boolean(localError && !form.product_name.trim())}
+                        >
+                          {aiFilled && (
+                            <button
+                              type="button"
+                              onClick={() => update(key, '')}
+                              title="Preenchido pela IA — clique para limpar este campo"
+                              className="absolute -top-2 right-2 z-10 rounded-full border border-gold-400/45 bg-[#101010] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gold-300 transition hover:text-gold-200"
+                            >
+                              IA ✕
+                            </button>
+                          )}
                           {renderTemplateField(field)}
                         </div>
                       </Field>
