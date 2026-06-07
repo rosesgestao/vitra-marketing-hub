@@ -13,11 +13,18 @@
   templates aprovados. Edge re-deployada; verificado visualmente num dual-photo real (Isla Zona
   Sul): 2 fotos distintas nos slots corretos.
 
-### Suporte a HEIC (upload no browser)
-- Descoberto que as fotos do teste sao `.heic` (iPhone), que a Edge nao decodifica. Adicionada
-  conversao HEIC/HEIF -> JPEG no `uploadCampaignImages` (`convertHeicIfNeeded`, via `heic2any`
-  com import dinamico; fallback para o original se a conversao falhar). Novas fotos de iPhone
-  sobem como JPEG e renderizam. Dep nova: `heic2any`. Frontend-only (entra ao reiniciar o vite).
+### Suporte a HEIC (conversao server-side) — VERIFICADA
+- Descoberto que as fotos do teste sao `.heic` (iPhone), que a Edge nao decodifica. A 1a tentativa
+  (conversao no navegador via `heic2any`/WASM) FALHOU nas fotos reais de iPhone (`IMG_7509.HEIC`):
+  o decodificador WASM recusava o HEVC do iPhone, gerando erro acionavel no modal.
+- Solucao em duas camadas no `convertHeicIfNeeded`:
+  1. Servidor: novo endpoint `/api/convert-heic` no middleware do Vite (`vite.config.js`) que
+     converte os bytes crus com `heic-convert` (Node) + `optimizeJpegBuffer` (auto-rotacao/resize/
+     mozjpeg) — o mesmo motor que ja convertia HEIC de pasta local. Caminho a prova de navegador.
+  2. Navegador: `heic2any` (import dinamico) vira fallback para builds estaticos sem o middleware.
+  Se ambas falharem, lanca erro acionavel (em vez de subir HEIC que a Edge nao decodifica).
+- Verificado em producao: campanha "Teste HEIC" gerou 9/9 cortes com a foto de iPhone renderizada
+  nos 3 criativos. `[HEIC] Convertido no servidor` confirmado. Requer restart do vite (middleware).
 
 ### Headline do patios: auto-ajuste de fonte (render-asset) — DEPLOYADA
 - O template patios usava fonte fixa e grande; headlines transbordavam para tras das fotos.

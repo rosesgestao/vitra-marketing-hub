@@ -695,27 +695,61 @@ function imageGroupsFromForm(form) {
   )
 }
 
-// Fase 2 (HEIC): converte fotos HEIC/HEIF (iPhone) para JPEG no navegador antes do upload,
-// pois o renderer (satori/resvg) so decodifica WebP/PNG/JPEG. Import dinamico para nao inchar
-// o bundle; se a conversao falhar, sobe o arquivo original (melhor que perder a foto).
+// Fase 2 (HEIC): converte fotos HEIC/HEIF (iPhone) para JPEG antes do upload, pois o renderer
+// (satori/resvg) so decodifica WebP/PNG/JPEG. Estrategia em duas camadas:
+//   1) Servidor (middleware do Vite, /api/convert-heic, via heic-convert do Node) — robusto
+//      para HEIC de iPhone, que o decodificador WASM do navegador (heic2any) costuma recusar.
+//   2) Navegador (heic2any, import dinamico) — fallback para quando o middleware nao existe
+//      (ex.: build estatico sem o servidor de dev).
+// Se ambas falharem, lanca um erro acionavel em vez de subir o HEIC silenciosamente (a Edge nao
+// o decodifica, geraria criativo quebrado).
+async function convertHeicViaServer(file) {
+  const response = await fetch('/api/convert-heic', {
+    method: 'POST',
+    headers: { 'Content-Type': file?.type || 'application/octet-stream' },
+    body: file,
+  })
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '')
+    throw new Error(`HTTP ${response.status} ${detail}`.trim())
+  }
+  const contentType = response.headers.get('content-type') || ''
+  if (!contentType.startsWith('image/')) {
+    // Sem middleware (build estatico): a rota cai no index.html. Trata como indisponivel.
+    throw new Error('middleware /api/convert-heic indisponivel')
+  }
+  const blob = await response.blob()
+  if (!blob.size) throw new Error('imagem convertida vazia')
+  return blob
+}
+
 async function convertHeicIfNeeded(file) {
   const name = (file?.name || '').toLowerCase()
   const isHeic = file?.type === 'image/heic' || file?.type === 'image/heif' ||
     name.endsWith('.heic') || name.endsWith('.heif')
   if (!isHeic) return file
+  const newName = (file?.name || 'foto').replace(/\.(heic|heif)$/i, '') + '.jpg'
   console.info('[HEIC] Convertendo para JPEG:', file?.name)
+
+  // 1) Servidor (heic-convert do Node) — caminho a prova de navegador.
+  try {
+    const blob = await convertHeicViaServer(file)
+    console.info('[HEIC] Convertido no servidor:', newName)
+    return new File([blob], newName, { type: 'image/jpeg' })
+  } catch (serverError) {
+    console.warn('[HEIC] Servidor indisponivel/falhou, tentando navegador:', serverError?.message || serverError)
+  }
+
+  // 2) Navegador (heic2any) — fallback.
   try {
     const heic2any = (await import('heic2any')).default
     const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
     const blob = Array.isArray(converted) ? converted[0] : converted
-    const newName = (file.name || 'foto').replace(/\.(heic|heif)$/i, '') + '.jpg'
-    console.info('[HEIC] Convertido com sucesso:', newName)
+    console.info('[HEIC] Convertido no navegador:', newName)
     return new File([blob], newName, { type: 'image/jpeg' })
-  } catch (error) {
-    // Visivel em vez de silencioso: subir HEIC que a Edge nao decodifica geraria
-    // criativo quebrado. Melhor avisar o operador com uma acao clara.
-    console.error('[HEIC] Falha na conversao:', file?.name, error)
-    throw new Error(`Nao foi possivel converter a foto HEIC "${file?.name || 'sem nome'}". Reinicie o servidor (Ctrl+C, npm install, npm run dev) ou envie essa foto em JPG/PNG.`)
+  } catch (browserError) {
+    console.error('[HEIC] Falha na conversao (servidor e navegador):', file?.name, browserError)
+    throw new Error(`Nao foi possivel converter a foto HEIC "${file?.name || 'sem nome'}". Reinicie o servidor (Ctrl+C, npm run dev) ou envie essa foto em JPG/PNG.`)
   }
 }
 

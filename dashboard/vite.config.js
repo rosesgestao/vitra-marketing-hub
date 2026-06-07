@@ -487,6 +487,38 @@ function sourceImageIngestionPlugin() {
           res.end(JSON.stringify({ images: [], warnings: [error.message || 'Falha ao processar ingestao de imagens.'] }))
         }
       })
+
+      // Conversao HEIC/HEIF -> JPEG no servidor (heic-convert do Node), usada pelo upload do
+      // navegador quando o heic2any (decodificador WASM) recusa fotos de iPhone. Recebe os bytes
+      // crus no corpo e devolve o JPEG ja otimizado (auto-rotacao + resize + mozjpeg).
+      server.middlewares.use('/api/convert-heic', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Metodo nao permitido.' }))
+          return
+        }
+        try {
+          const chunks = []
+          for await (const chunk of req) chunks.push(chunk)
+          const input = Buffer.concat(chunks)
+          if (!input.length) throw new Error('Corpo vazio (nenhum byte recebido).')
+
+          const heicConvert = await import('heic-convert')
+          const convert = heicConvert.default || heicConvert
+          const jpeg = await convert({ buffer: input, format: 'JPEG', quality: 0.92 })
+          const bytes = await optimizeJpegBuffer(Buffer.from(jpeg))
+
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'image/jpeg')
+          res.setHeader('Cache-Control', 'no-store')
+          res.end(bytes)
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: error?.message || 'Falha ao converter HEIC.' }))
+        }
+      })
     },
   }
 }
