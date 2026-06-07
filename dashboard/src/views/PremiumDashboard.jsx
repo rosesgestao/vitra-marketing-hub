@@ -2517,18 +2517,28 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
       return
     }
 
-    const requiredField = selectedFieldGroups
+    // Fase 4 (UX): valida TODOS os obrigatorios de uma vez (antes era um por vez, .find), para o
+    // operador corrigir tudo num passo so em vez de re-submeter campo a campo.
+    const missingFields = selectedFieldGroups
       .flatMap(group => group.fields || [])
-      .find(field => field.required && !String(form[formKeyForTemplateField(field)] || '').trim())
-    if (requiredField) {
-      setLocalError(`Preencha o campo obrigatorio: ${requiredField.label}.`)
-      return
-    }
+      .filter(field => field.required && !String(form[formKeyForTemplateField(field)] || '').trim())
+      .map(field => field.label)
 
     const hasExternalImageSource = Boolean(form.source_url?.trim())
-    const requiredImageSlot = selectedImageSlots.find(slot => slot.required && imageSlotCount(slot) === 0)
-    if (requiredImageSlot && !hasExternalImageSource) {
-      setLocalError(`Envie a imagem obrigatoria "${requiredImageSlot.label}" ou informe uma fonte externa com fotos do imovel.`)
+    const missingImageSlots = hasExternalImageSource
+      ? []
+      : selectedImageSlots
+        .filter(slot => slot.required && imageSlotCount(slot) === 0)
+        .map(slot => slot.label)
+
+    const allMissing = [...missingFields, ...missingImageSlots]
+    if (allMissing.length) {
+      const base = allMissing.length === 1
+        ? `Preencha o campo obrigatorio: ${allMissing[0]}.`
+        : `Preencha os ${allMissing.length} campos obrigatorios: ${allMissing.join(', ')}.`
+      setLocalError(missingImageSlots.length
+        ? `${base} As imagens podem vir de uma fonte externa com fotos do imovel.`
+        : base)
       return
     }
 

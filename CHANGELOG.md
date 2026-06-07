@@ -13,6 +13,9 @@ Tres melhorias de UX do modal Nova Campanha (frontend-only, entra por HMR; sem d
 - **Nomes de slot humanizados:** os chips de "Pode variar / Permanece fixo" do contrato de variacao
   deixaram de mostrar id tecnico cru (`safe_zone`, `format_grid`, `benefit_arrows`) e passam por um
   mapa pt-BR (`SLOT_LABELS`/`humanizeSlot`): "Margem de seguranca", "Grade de formatos", etc.
+- **Validacao de todos os obrigatorios de uma vez:** o submit do modal listava UM campo faltante por
+  vez (`.find`); agora junta todos (campos + slots de imagem) numa mensagem unica ("Preencha os N
+  campos obrigatorios: ..."), preservando a dica de fonte externa para imagens. Menos re-submits.
 - Build ok; 85 testes (sem mudanca de logica testada).
 
 ## Sessao 2026-06-07 — render-worker: prep do 9:16 full-res (DORMENTE, pronto pra ligar)
