@@ -58,6 +58,7 @@ import {
   creativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
   fieldGroupsForTemplate,
+  fieldsForTemplate,
   formKeyForTemplateField,
   imageSlotsForTemplate,
   normalizeCreativeTemplateSelection,
