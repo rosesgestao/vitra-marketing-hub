@@ -7,7 +7,7 @@ on:
 
 jobs:
   dashboard:
-    name: Dashboard (test + build)
+    name: Dashboard (lint + test + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,6 +20,7 @@ jobs:
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm run test:run
       - run: npm run build
 
@@ -33,3 +34,6 @@ jobs:
           deno-version: v2.x
       - run: deno check supabase/functions/render-asset/index.ts
       - run: deno check supabase/functions/ingest-source-images/index.ts
+      - run: deno check supabase/functions/generate-copy/index.ts
+      - run: deno check supabase/functions/extract-facts/index.ts
+      - run: deno check supabase/functions/suggest-template/index.ts

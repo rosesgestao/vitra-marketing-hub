@@ -1,5 +1,20 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Guardrail: ESLint no-undef no CI (pega use-without-import)
+
+Fecha a classe de bug que o build NAO acusa e que mordeu no `fieldsForTemplate is not defined`: um
+identificador usado sem import vira ref global no bundle e so estoura em runtime. ESLint com a regra
+`no-undef` pega isso antes — no CI.
+
+- **`eslint.config.js`** (flat, ESLint 9): FOCADO so em `no-undef` (sem regras de estilo -> zero ruido),
+  globals browser+node, parsing JSX. Edges (supabase/functions) ficam de fora (ja cobertas por deno check).
+- **`package.json`**: script `lint` (eslint .) + devDeps eslint/globals. **`.github/workflows/ci.yml`**:
+  passo `npm run lint` no job do dashboard.
+- **Provado**: rodado em TODO o dashboard -> 0 violacoes (sem outros use-without-import latentes); probe
+  com chamada indefinida -> `no-undef` dispara; `window.x` (global) -> nao dispara (sem falso-positivo).
+- **Bonus (gap de CI fechado)**: o `deno check` do CI so cobria render-asset + ingest-source-images — as
+  3 Edges de IA (generate-copy/extract-facts/suggest-template) NAO eram checadas. Adicionadas ao CI.
+
 ## Sessao 2026-06-07 — Copiloto: importar do LINK do imovel (degrau B' por URL, v1)
 
 O operador cola o LINK do imovel no site da construtora; um middleware server-side busca a pagina, limpa
