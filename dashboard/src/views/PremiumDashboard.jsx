@@ -83,7 +83,6 @@ const INITIAL_FORM = {
   source_type: 'manual',
   landing_url: '',
   whatsapp_url: '',
-  automation_notes: '',
   creative_variations: 3,
   creative_template_id: '',
   creative_template_variant: '',
@@ -2813,7 +2812,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
         <form onSubmit={submit} noValidate autoComplete="off" className="flex max-h-[calc(92vh-76px)] flex-col">
           <div className="space-y-7 overflow-y-auto px-6 py-6">
             <section className="space-y-4">
-              <p className={sectionTitleClass}>Variacoes e Automacao</p>
+              <p className={sectionTitleClass}>Variacoes do criativo</p>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Variacoes por template aprovado" labelClass={labelClass}>
                   <BrandedSelect
@@ -2841,15 +2840,6 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                       </>
                     )
                   })()}
-                </Field>
-
-                <Field label="Observacoes para automacao" labelClass={labelClass} className="md:col-span-2">
-                  <textarea
-                    value={form.automation_notes}
-                    onChange={event => update('automation_notes', event.target.value)}
-                    className={`${inputClass} min-h-20 resize-y`}
-                    placeholder="Ex: priorizar vista, evitar imagens de obra, destacar privacidade e liquidez"
-                  />
                 </Field>
               </div>
               <p className="text-xs leading-5 text-white/42">
