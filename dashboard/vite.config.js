@@ -267,6 +267,9 @@ async function readDashboardEnv() {
   cachedDashboardEnv = {
     url: env.VITE_SUPABASE_URL,
     key: env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_KEY,
+    // v2 do importar do link: render-worker headless (so usado se ambos definidos).
+    workerUrl: env.WORKER_RENDER_URL || '',
+    workerToken: env.WORKER_RENDER_TOKEN || '',
   }
   return cachedDashboardEnv
 }
@@ -553,10 +556,32 @@ function sourceImageIngestionPlugin() {
           const { html, directImage } = await fetchHtml(url)
           if (directImage) return json(200, { text: '', warnings: ['O link aponta para uma imagem, nao uma pagina de imovel.'] })
 
-          const text = htmlToReadableText(html)
+          let text = htmlToReadableText(html)
           const warnings = []
+          // v2: se o fetch simples voltou POUCO texto (provavel site SPA em JavaScript), tenta o
+          // render-worker headless (Chrome real, roda o JS) — so se WORKER_RENDER_URL/TOKEN estiverem
+          // no .env. Sem isso, comportamento identico ao v1. O worker devolve o HTML renderizado; a
+          // limpeza/pipeline continuam aqui.
           if (text.length < 200) {
-            warnings.push('A pagina retornou pouco texto (pode exigir JavaScript ou login). Revise ou cole o texto do anuncio.')
+            const env = await readDashboardEnv()
+            if (env.workerUrl && env.workerToken) {
+              try {
+                const wr = await fetch(`${env.workerUrl.replace(/\/$/, '')}/fetch-text`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'x-render-token': env.workerToken },
+                  body: JSON.stringify({ url }),
+                  signal: AbortSignal.timeout(30000),
+                })
+                if (wr.ok) {
+                  const wdata = await wr.json().catch(() => ({}))
+                  const wtext = htmlToReadableText(wdata?.html || '')
+                  if (wtext.length > text.length) text = wtext
+                }
+              } catch { /* worker indisponivel/erro: segue com o texto do fetch simples */ }
+            }
+            if (text.length < 200) {
+              warnings.push('A pagina retornou pouco texto (pode exigir JavaScript ou login). Revise ou cole o texto do anuncio.')
+            }
           }
           // Ruido: pagina com varios valores costuma listar OUTROS imoveis (a ancoragem da IA pegaria o
           // dado errado, nao alucinacao). Avisa para o operador conferir o texto antes de extrair.

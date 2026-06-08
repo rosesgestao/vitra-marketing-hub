@@ -19,6 +19,20 @@ if (!URL || !KEY) {
 const sb = createClient(URL, KEY, { auth: { persistSession: false } })
 const campaignCache = new Map()
 
+// SSRF: so renderiza URLs publicas http(s). Bloqueia local/privado/metadata (o atacante seria quem
+// tivesse o RENDER_TOKEN, mas defesa em profundidade). Espelha o isSafeSourceUrl do dashboard.
+function isSafeListingUrl(raw) {
+  try {
+    const u = new URL(raw)
+    const host = u.hostname.toLowerCase().replace(/\.$/, '')
+    if (!['http:', 'https:'].includes(u.protocol)) return false
+    if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) return false
+    if (/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|169\.254\.)/.test(host)) return false
+    if (host === '::1' || host.startsWith('[')) return false
+    return true
+  } catch { return false }
+}
+
 async function getCampaign(id) {
   if (campaignCache.has(id)) return campaignCache.get(id)
   const { data } = await sb.from('premium_campaigns').select('*').eq('id', id).single()
@@ -150,6 +164,38 @@ if (process.argv.includes('--once')) {
       return res.status(401).json({ error: 'unauthorized' })
     }
     try { res.json(await drain()) } catch (e) { res.status(500).json({ error: e.message }) }
+  })
+
+  // v2 do "importar do link": renderiza a pagina num Chrome de verdade (roda JS) e devolve o HTML
+  // RENDERIZADO. O dashboard so chama isto quando o fetch simples (v1) volta pouco texto (site SPA).
+  // O dashboard limpa o HTML (htmlToReadableText) e segue o mesmo pipeline de extracao de fatos.
+  app.post('/fetch-text', async (req, res) => {
+    if (RENDER_TOKEN && req.get('x-render-token') !== RENDER_TOKEN) {
+      return res.status(401).json({ error: 'unauthorized' })
+    }
+    const target = String(req.body?.url || '').trim()
+    if (!target || !isSafeListingUrl(target)) {
+      return res.json({ html: '', warnings: ['URL invalida ou bloqueada por seguranca.'] })
+    }
+    let page
+    try {
+      const b = await getBrowser()
+      page = await b.newPage()
+      await page.setUserAgent('Mozilla/5.0 (compatible; VitraListingBot/1.0; +https://vitraimobiliaria.com.br)')
+      await page.setViewport({ width: 1280, height: 2200, deviceScaleFactor: 1 })
+      const resp = await page.goto(target, { waitUntil: 'networkidle2', timeout: 25000 })
+      // SSRF pos-redirect: revalida o destino final.
+      if (resp && !isSafeListingUrl(resp.url())) {
+        return res.json({ html: '', warnings: ['Redirecionamento para destino nao permitido.'] })
+      }
+      await new Promise(r => setTimeout(r, 900)) // folga para conteudo dinamico tardio
+      const html = await page.content()
+      return res.json({ html, finalUrl: resp ? resp.url() : target })
+    } catch (e) {
+      return res.json({ html: '', warnings: [e?.message || 'Falha ao renderizar a pagina.'] })
+    } finally {
+      if (page) await page.close().catch(() => {})
+    }
   })
   app.listen(PORT, () => console.log(`render-worker on :${PORT} (poll ${INTERVAL}ms, batch ${BATCH})`))
   getBrowser().then(() => loop()).catch(e => { console.error(e); process.exit(1) })

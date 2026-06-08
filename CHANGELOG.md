@@ -1,5 +1,22 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — render-worker: v2 do link (SPA via headless) + runbook de ativacao
+
+Prep da ativacao do render-worker, que entrega 3 coisas de uma vez: worker rodando, 9:16 Premium
+full-res (1080x1920) e o **v2 do "importar do link"** (sites em JavaScript/SPA lidos por Chrome real).
+A unica etapa que e do usuario e HOSPEDAR o worker (conta Fly/Railway) — o codigo esta pronto.
+
+- **Worker (`render-worker/src/worker.js`)**: novo endpoint `POST /fetch-text` (protegido pelo
+  RENDER_TOKEN) que renderiza uma URL no Chrome headless ja rodando (executa o JS) e devolve o HTML
+  renderizado. Guard de SSRF proprio (local/privado/metadata + revalidacao pos-redirect). Sintaxe ok.
+- **Dashboard (`vite.config.js`)**: o middleware `/api/fetch-listing-text` agora FAZ FALLBACK pro worker
+  quando o fetch simples (v1) volta pouco texto E `WORKER_RENDER_URL`/`WORKER_RENDER_TOKEN` estao no
+  `.env`. Gracioso: sem essas vars, comportamento identico ao v1 (verificado ao vivo, sem regressao).
+- **`render-worker/ACTIVATION.md`** (novo): runbook preciso — hospedar (fly launch+secrets+deploy),
+  ligar o v2 do link (.env do dashboard), ligar o 9:16 (flag + migration de particao), verificar,
+  rollback, seguranca. `.env.example` (dashboard + worker) documentam as novas vars.
+- Lint + 148 testes + build verdes. (O worker em si depende de hospedagem para teste ao vivo.)
+
 ## Sessao 2026-06-07 — Guardrail: ESLint no-undef no CI (pega use-without-import)
 
 Fecha a classe de bug que o build NAO acusa e que mordeu no `fieldsForTemplate is not defined`: um
