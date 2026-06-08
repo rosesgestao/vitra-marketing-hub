@@ -43,6 +43,7 @@ import {
   distinctConceptCapacity,
   generateCopyWithAI,
   extractFactsWithAI,
+  fetchListingText,
   buildFactsApplyPatch,
   suggestTemplateWithAI,
   revalidateCopyAngle,
@@ -2429,7 +2430,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
 
   // Degrau B' (importar de anuncio): estado da extracao + keys preenchidas pela IA. aiFilledKeys fica
   // FORA do form (state local) para nao vazar no payload de submit.
-  const [extract, setExtract] = useState({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
+  const [extract, setExtract] = useState({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null, url: '', fetching: false })
   const [extractMode, setExtractMode] = useState('fill-empty')
   const [aiFilledKeys, setAiFilledKeys] = useState([])
   // Degrau B: sugestao de template por IA (a IA recomenda; o operador confirma).
@@ -2449,7 +2450,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   useEffect(() => {
     setForm(initialFormForBrand(brandProfile))
     setLocalError(null)
-    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
+    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null, url: '', fetching: false })
     setExtractMode('fill-empty')
     setAiFilledKeys([])
     setSuggest({ loading: false, error: null, result: null })
@@ -2517,6 +2518,26 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   // Degrau B' do copiloto: a IA le o anuncio colado e PROPOE os campos; o operador revisa e aplica.
   const extractEnabled = selectedFieldGroups.length > 0
 
+  // Degrau B' por LINK: busca o texto da pagina do imovel e PREENCHE a caixa de texto. O operador
+  // revisa o que foi lido antes de extrair (rede de seguranca contra fetch fino/ruido).
+  async function handleFetchListing() {
+    if (!extract.url.trim()) {
+      setExtract(state => ({ ...state, error: 'Cole o link do imovel antes de buscar.' }))
+      return
+    }
+    setExtract(state => ({ ...state, fetching: true, error: null }))
+    try {
+      const { text, warnings } = await fetchListingText(extract.url)
+      if (!text) {
+        setExtract(state => ({ ...state, fetching: false, error: warnings[0] || 'Nao consegui ler a pagina. Cole o texto do anuncio.' }))
+        return
+      }
+      setExtract(state => ({ ...state, fetching: false, sourceText: text, error: warnings.length ? warnings[0] : null }))
+    } catch (err) {
+      setExtract(state => ({ ...state, fetching: false, error: errorMessage(err) }))
+    }
+  }
+
   async function handleExtractFacts() {
     if (!extract.sourceText.trim()) {
       setExtract(state => ({ ...state, error: 'Cole o texto do anuncio antes de extrair.' }))
@@ -2578,7 +2599,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   }
 
   function clearExtract() {
-    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null })
+    setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null, url: '', fetching: false })
     setAiFilledKeys([])
     setSuggest({ loading: false, error: null, result: null })
   }
@@ -2996,9 +3017,31 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Importar de um anúncio · IA</p>
                   <p className="mt-2 text-xs leading-5 text-white/50">
-                    Cole um anúncio, briefing ou descrição do imóvel. {aiCopyEnabled
+                    Cole um anúncio/briefing, <strong className="text-white/70">ou o link do imóvel</strong> no site da construtora. {aiCopyEnabled
                       ? <>A IA pode <strong className="text-white/70">só extrair os fatos</strong> — ou <strong className="text-white/70">extrair e já escrever a copy</strong> num passo só.</>
                       : <>A IA lê e <strong className="text-white/70">propõe</strong> os campos abaixo — só o que estiver no texto.</>} Você revisa tudo antes; nada é preenchido sem o seu clique.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      value={extract.url}
+                      onChange={event => setExtract(state => ({ ...state, url: event.target.value }))}
+                      className={`${inputClass} flex-1 min-w-[55%]`}
+                      placeholder="Cole o link do imóvel no site da construtora (opcional)"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleFetchListing}
+                      disabled={extract.fetching || !extract.url.trim()}
+                      className="shrink-0 rounded-full border border-gold-400/40 bg-gold-400/10 px-4 py-2 text-xs font-semibold text-gold-200 transition hover:bg-gold-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {extract.fetching ? 'Lendo a página…' : 'Buscar do link'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] leading-4 text-white/35">
+                    A IA lê a página oficial e preenche a caixa abaixo — você revisa antes de extrair. Sites em JavaScript podem não funcionar; nesse caso, cole o texto.
                   </p>
                 </div>
 
@@ -3006,7 +3049,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                   value={extract.sourceText}
                   onChange={event => setExtract(state => ({ ...state, sourceText: event.target.value }))}
                   className={`${inputClass} min-h-28 resize-y`}
-                  placeholder="Ex: Apartamento no Menino Deus, 2 dormitórios com suíte, 61m², churrasqueira e sacada. R$ 539 mil. Próximo ao Parque da Redenção..."
+                  placeholder="Ex: Apartamento no Menino Deus, 2 dormitórios com suíte, 61m², churrasqueira e sacada. R$ 539 mil. Próximo ao Parque da Redenção... (ou use o link acima)"
                 />
 
                 {templateOptions.length > 1 && (

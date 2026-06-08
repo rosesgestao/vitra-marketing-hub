@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { htmlToReadableText } from './src/lib/listingText.js'
 
 function decodeHtml(value) {
   return String(value || '')
@@ -175,9 +176,11 @@ function dedupeAndRank(candidates, limit) {
 function isSafeSourceUrl(raw) {
   try {
     const url = new URL(raw)
-    const host = url.hostname.toLowerCase()
+    // Tira o ponto final do host (FQDN absoluto): `localhost.` resolve para loopback mas escaparia a
+    // checagem exata. O URL do Node ja normaliza IP decimal/hex/octal para dotted-decimal.
+    const host = url.hostname.toLowerCase().replace(/\.$/, '')
     if (!['http:', 'https:'].includes(url.protocol)) return false
-    if (host === 'localhost' || host.endsWith('.local')) return false
+    if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) return false
     if (/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|169\.254\.)/.test(host)) return false
     if (host === '::1' || host.startsWith('[')) return false
     return true
@@ -412,18 +415,26 @@ function readJsonBody(req) {
 async function fetchHtml(url) {
   const response = await fetch(url, {
     redirect: 'follow',
+    signal: AbortSignal.timeout(8000),
     headers: {
       'User-Agent': 'VitraPremiumImageIngestion/1.0 (+https://vitraimobiliaria.com.br)',
       Accept: 'text/html,application/xhtml+xml,image/avif,image/webp,image/apng,*/*;q=0.8',
     },
   })
 
+  // SSRF: revalida o destino FINAL apos redirects (um host publico pode redirecionar para IP interno).
+  if (!isSafeSourceUrl(response.url || url)) throw new Error('Redirecionamento para destino nao permitido.')
   if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`)
 
   const contentType = response.headers.get('content-type') || ''
   if (contentType.startsWith('image/')) {
     return { html: '', directImage: response.url || url }
   }
+
+  // Cap de tamanho: evita estourar a RAM do dev server com uma pagina enorme. O timeout limita o
+  // download; este teto limita o pico de memoria (quando o Content-Length e honesto).
+  const declaredLen = Number(response.headers.get('content-length') || 0)
+  if (declaredLen > 5_000_000) throw new Error('Pagina muito grande para ler.')
 
   return { html: await response.text(), directImage: null }
 }
@@ -517,6 +528,44 @@ function sourceImageIngestionPlugin() {
           res.statusCode = 500
           res.setHeader('Content-Type', 'application/json')
           res.end(JSON.stringify({ error: error?.message || 'Falha ao converter HEIC.' }))
+        }
+      })
+
+      // Degrau B' por LINK: busca o TEXTO de uma pagina de imovel (site da construtora) para a IA extrair
+      // os fatos. Server-side (Node) para evitar CORS e SSRF a partir do browser. Reusa isSafeSourceUrl
+      // (bloqueia local/privado/metadata) + fetchHtml (com revalidacao pos-redirect e timeout) e a
+      // limpeza pura htmlToReadableText. Falha graciosa -> warnings (o fluxo cai no "colar texto").
+      server.middlewares.use('/api/fetch-listing-text', async (req, res) => {
+        const json = (status, payload) => {
+          res.statusCode = status
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(payload))
+        }
+        if (req.method !== 'POST') return json(405, { text: '', warnings: ['Metodo nao permitido.'] })
+        try {
+          const body = await readJsonBody(req)
+          const url = String(body.url || '').trim()
+          if (!url) return json(400, { text: '', warnings: ['Cole o link do imovel.'] })
+          if (isLocalSourcePath(url) || !isSafeSourceUrl(url)) {
+            return json(200, { text: '', warnings: ['Link bloqueado por seguranca (enderecos locais/privados nao sao permitidos).'] })
+          }
+
+          const { html, directImage } = await fetchHtml(url)
+          if (directImage) return json(200, { text: '', warnings: ['O link aponta para uma imagem, nao uma pagina de imovel.'] })
+
+          const text = htmlToReadableText(html)
+          const warnings = []
+          if (text.length < 200) {
+            warnings.push('A pagina retornou pouco texto (pode exigir JavaScript ou login). Revise ou cole o texto do anuncio.')
+          }
+          // Ruido: pagina com varios valores costuma listar OUTROS imoveis (a ancoragem da IA pegaria o
+          // dado errado, nao alucinacao). Avisa para o operador conferir o texto antes de extrair.
+          if ((text.match(/R\$\s*\d/g) || []).length >= 4) {
+            warnings.push('A pagina parece ter varios valores/imoveis — confira que o texto e do imovel certo antes de extrair.')
+          }
+          return json(200, { text, warnings })
+        } catch (error) {
+          return json(200, { text: '', warnings: [error?.message || 'Falha ao ler a pagina. Cole o texto do anuncio.'] })
         }
       })
     },

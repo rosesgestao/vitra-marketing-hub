@@ -464,6 +464,28 @@ export function revalidateCopyAngle(angle, { scope, headlineMax, productName } =
   }).issues
 }
 
+// Degrau B' por LINK: busca o texto da pagina do imovel (site da construtora) via middleware server-side
+// (Node) — evita CORS/SSRF do browser, reusa o guard de URL e a limpeza HTML->texto. Devolve o texto +
+// avisos (ex.: pagina em JS retornou pouco texto). O operador revisa o texto antes de extrair.
+export async function fetchListingText(url) {
+  const link = cleanText(url)
+  if (!link) throw new Error('Cole o link do imovel antes de buscar.')
+  if (typeof window === 'undefined') throw new Error('Busca por link disponivel apenas no app (npm run dev).')
+  const response = await fetch('/api/fetch-listing-text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: link }),
+  })
+  if (!response.ok && response.status !== 200) {
+    throw new Error(`Falha ao ler a pagina: HTTP ${response.status}.`)
+  }
+  const data = await response.json().catch(() => ({}))
+  return {
+    text: cleanText(data?.text),
+    warnings: Array.isArray(data?.warnings) ? data.warnings : [],
+  }
+}
+
 // Degrau B' do copiloto: la a Edge extract-facts (Claude) com o TEXTO colado do anuncio + os field
 // specs do template (key=formKey ja resolvido, label, type, maxLength, descricao). A IA so PROPOE
 // (valor + evidencia + confianca); a chave fica server-side. Devolve os campos validados (ancorados

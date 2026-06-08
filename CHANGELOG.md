@@ -1,5 +1,23 @@
 # Changelog — Ferramenta Operacional Vitra Premium
 
+## Sessao 2026-06-07 — Copiloto: importar do LINK do imovel (degrau B' por URL, v1)
+
+O operador cola o LINK do imovel no site da construtora; um middleware server-side busca a pagina, limpa
+HTML->texto e PREENCHE a caixa de texto — o operador revisa e roda a extracao/copy como sempre. Aditivo
+(URL OU texto colado); reusa 100% do pipeline extract-facts -> generate-copy. So sites server-rendered
+(SPA em JS volta pouco texto -> fallback explicito pro paste). Frontend-only (HMR).
+
+- **`listingText.js`** (novo, puro): `htmlToReadableText` (title+meta description + corpo, sem nav/script/
+  footer, decode de entidades, cap de input contra ReDoS). +9 testes.
+- **`vite.config.js`**: novo middleware `/api/fetch-listing-text` (server-side). Reusa `isSafeSourceUrl`
+  (SSRF) + `fetchHtml`. Avisos graciosos: pouco texto (SPA/login) e "varios imoveis" (ruido).
+- **SEGURANCA (revisao adversarial):** SSRF endurecido — `fetchHtml` ganhou timeout (8s) + revalidacao
+  pos-redirect; `isSafeSourceUrl` fechou o bypass `localhost.` (ponto final) e `*.internal`; cap de body
+  (5MB) + cap de input do regex (300KB) contra DoS do dev server; tail-sweep de `<script>` sem fechamento.
+  Verificado ao vivo: localhost./IP-metadata/privados bloqueados, pagina publica 200.
+- **`premiumData.js`**: `fetchListingText(url)`. **UI**: input de link + "Buscar do link" na secao de import.
+- 148 testes; build verde. (O SSRF do guard ja normaliza IP decimal/hex/octal/IPv6 — Node URL.)
+
 ## Sessao 2026-06-07 — Modal Nova Campanha: so upload manual (remove "Fonte das fotos e informacoes")
 
 Decisao de produto: o dropdown "Fonte das fotos e informacoes" (`source_type`) era DECORATIVO — nenhuma
