@@ -38,6 +38,9 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 - [[../Atualizacao_2026-06-06_Fase1_Fluxo_Automatico]]
 - [[../Atualizacao_2026-06-06_Deploy_Fase1_Producao]]
 - [[../Atualizacao_2026-06-06_Fase2_P1_P2_Autocomplete]]
+- [[../Atualizacao_2026-06-07_Autonomo_Estabilidade_Worker_UX]]
+- [[../Atualizacao_2026-06-07_Copiloto_IA_Marketing]]
+- [[../Atualizacao_2026-06-09_Capas_Sociais_e_Estudio_de_Pecas]]
 
 ## Estado Atual
 
@@ -52,6 +55,7 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 - Fase 0 (rede de seguranca: Vitest + 41 testes + CI) e Fase 1 (fluxo automatico: claim atomico, reaper, maquina de estados) implementadas nas branches `fase0/rede-de-seguranca` e `fase1/fluxo-automatico`.
 - Fase 0 e Fase 1 na `main`. **Fase 1 DEPLOYADA em producao em 2026-06-06**: claim atomico + reaper + cron (jobid 1, a cada minuto) + Edge `render-asset` v36; geracao de cortes meta_ads agora roda sozinha no servidor. Frontend retrocompativel ainda nao publicado. Ver [[../Atualizacao_2026-06-06_Deploy_Fase1_Producao]].
 - Em andamento: Fase 7 (Estabilizacao, Seguranca e Qualidade) — proximo passo e a Fase 2 do plano da pipeline (qualidade de variacao, fotos slot-aware, HEIC, resolucao Premium), ou o endurecimento de RLS/bucket (nota 08, Passo C).
+- **Estudio de Pecas** (novo, 2026-06-09): menu no dashboard que organiza as capas/banners sociais por plataforma (Facebook, LinkedIn, YouTube; Instagram/WhatsApp/E-mail no roadmap), data-driven (`src/lib/pecasCatalog.js` + `src/views/EstudioPecas.jsx`), com geradores HTML->PNG espelhados em `dashboard/public/pecas` (`npm run sync:pecas`). Commit 8104eb7 na `main`. Ver [[../Atualizacao_2026-06-09_Capas_Sociais_e_Estudio_de_Pecas]].
 
 ## Arquivos de Referencia
 
