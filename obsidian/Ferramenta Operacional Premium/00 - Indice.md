@@ -1,6 +1,11 @@
 # Ferramenta Operacional Premium
 
-Central de documentacao do desenvolvimento da ferramenta operacional para criacao, aprovacao, publicacao e acompanhamento de conteudos da Vitra Premium.
+> **Projeto renomeado para Vitra Marketing Hub** (antes "Ferramenta Operacional Premium" / repo
+> `vitra-premium-ferramenta-operacional`). Reposicionado para plataforma de marketing MULTI-MARCA com a
+> marca-mae **Vitra Imobiliaria** como identidade principal. A pasta deste cofre mantem o nome historico
+> para nao quebrar os links internos. Ver [[../Atualizacao_2026-06-09_Rebrand_Imobiliaria_e_Rename_Vitra_Marketing_Hub]].
+
+Central de documentacao da plataforma de marketing da Vitra (Imobiliaria + Premium): criacao, aprovacao, publicacao e acompanhamento de campanhas, criativos, conteudos e metricas.
 
 ## Objetivo
 
@@ -41,11 +46,13 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 - [[../Atualizacao_2026-06-07_Autonomo_Estabilidade_Worker_UX]]
 - [[../Atualizacao_2026-06-07_Copiloto_IA_Marketing]]
 - [[../Atualizacao_2026-06-09_Capas_Sociais_e_Estudio_de_Pecas]]
+- [[../Atualizacao_2026-06-09_Rebrand_Imobiliaria_e_Rename_Vitra_Marketing_Hub]]
 
 ## Estado Atual
 
-- Plataforma operacional multi-marca em evolucao, com ambientes separados para Vitra Premium e Vitra Imobiliaria.
-- Projeto Supabase confirmado: `Marketing Vitra Imobiliaria` (`birxcfkyuzqnhyvetbjv`).
+- **Identidade principal = Vitra Imobiliaria** (marca-mae): chrome navy + dourado por padrao; Premium (preto, SEM azul) quando ativo — tema dinamico por marca (`data-brand` no `<html>`). Projeto renomeado para **Vitra Marketing Hub** (repo `vitra-marketing-hub`). Ver [[../Atualizacao_2026-06-09_Rebrand_Imobiliaria_e_Rename_Vitra_Marketing_Hub]].
+- Plataforma operacional multi-marca em evolucao, com ambientes separados para Vitra Imobiliaria (principal) e Vitra Premium.
+- Projeto Supabase: `birxcfkyuzqnhyvetbjv` (`.supabase.co`). Label a renomear para `Vitra Marketing Hub - Producao` no painel do Supabase — o ref/URL NAO mudam.
 - Migracao multi-marca aplicada no Supabase.
 - Assets aprovados das duas marcas centralizados em `dashboard/public/brand/`.
 - Templates aprovados da Vitra Imobiliaria registrados para trafego pago e disponiveis como catalogo operacional no modal `Nova Campanha`, com campos e slots de imagem dinamicos por template.
