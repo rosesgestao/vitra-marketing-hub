@@ -134,9 +134,9 @@ export default function Calendario() {
 
       {!loading && Object.keys(porDia).length === 0 && (
         <div className="card flex flex-col items-center justify-center h-52 text-center">
-          <CalendarOff size={22} className="text-navy-600 mb-3" />
+          <CalendarOff size={22} className="text-white/45 mb-3" />
           <p className="text-gray-400 text-sm font-medium">Nenhum post planejado para esta quinzena</p>
-          <p className="text-navy-600 text-xs mt-1.5">Aguardando o Ag.3 Planejamento gerar o calendário</p>
+          <p className="text-white/45 text-xs mt-1.5">Aguardando o Ag.3 Planejamento gerar o calendário</p>
         </div>
       )}
 
@@ -185,7 +185,7 @@ export default function Calendario() {
                   return (
                     <div
                       key={post.id}
-                      className="rounded-lg border border-gold-500/15 bg-[#101010] p-4 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
+                      className="rounded-lg border border-gold-500/15 bg-[color:var(--surface-1)] p-4 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -193,8 +193,8 @@ export default function Calendario() {
                           <span className="text-xs text-gray-400 capitalize">{post.plataforma}</span>
                           {post.formato && (
                             <>
-                              <FormatoIcon size={11} className="text-navy-600" />
-                              <span className="text-[10px] text-navy-600 capitalize">{post.formato}</span>
+                              <FormatoIcon size={11} className="text-white/45" />
+                              <span className="text-[10px] text-white/45 capitalize">{post.formato}</span>
                             </>
                           )}
                         </div>
@@ -211,11 +211,11 @@ export default function Calendario() {
 
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         {post.pilar && (
-                          <span className={`badge border ${PILAR_COR[post.pilar] || 'bg-navy-800 text-gray-400 border-navy-700'} capitalize`}>
+                          <span className={`badge border ${PILAR_COR[post.pilar] || 'bg-white/5 text-gray-400 border-white/10'} capitalize`}>
                             {post.pilar}
                           </span>
                         )}
-                        <span className={`badge border ml-auto capitalize ${STATUS_COR[status] || 'bg-navy-800 text-gray-400 border-navy-700'}`}>
+                        <span className={`badge border ml-auto capitalize ${STATUS_COR[status] || 'bg-white/5 text-gray-400 border-white/10'}`}>
                           {status?.replace(/_/g, ' ')}
                         </span>
                       </div>

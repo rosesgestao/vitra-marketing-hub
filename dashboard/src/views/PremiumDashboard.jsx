@@ -199,7 +199,7 @@ const PLATFORM_COLOR = {
   whatsapp: '#25D366',
   email: '#D4A84A',
   site: '#C4942A',
-  meta_ads: '#8EC4F0',
+  meta_ads: '#F0C95C',
 }
 
 function StatusPill({ value }) {
@@ -214,7 +214,7 @@ function StatusPill({ value }) {
 
 function StatTile({ label, value, sub, icon: Icon, tone = '#C4942A' }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-[#0B0B0C] p-4">
+    <div className="rounded-lg border border-white/10 bg-[color:var(--surface-1)] p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</p>
         <Icon size={15} style={{ color: tone }} />
@@ -700,7 +700,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
 
   return (
     <div className="min-h-screen text-white">
-      <div className="relative overflow-hidden border-b border-gold-500/15 bg-[#050505]">
+      <div className="relative overflow-hidden border-b border-gold-500/15 bg-[color:var(--surface-0)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_76%_0%,rgba(196,148,42,0.12),transparent_24rem)]" />
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-7 lg:px-8">
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -1026,7 +1026,7 @@ function PaidTrafficWorkspace({
 
 function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaignId, assets, onSelect, onCreate }) {
   return (
-    <div className="rounded-lg border border-gold-500/18 bg-[#0B0B0C] p-4">
+    <div className="rounded-lg border border-gold-500/18 bg-[color:var(--surface-1)] p-4">
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2">
@@ -1532,13 +1532,13 @@ function AssetCard({ brandProfile = getBrandProfile(), asset, campaign, busy, on
   const phase = asset.metadata?.campaign_phase
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0B0B0C] transition hover:border-gold-500/30">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-[color:var(--surface-1)] transition hover:border-gold-500/30">
       <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: aspect }}>
         {hasImage ? (
           <img src={asset.public_url} alt={asset.title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="absolute inset-0 flex flex-col justify-between p-5"
-            style={{ background: 'linear-gradient(160deg,#0B0B0C 0%,#050505 55%,#000 100%)' }}>
+            style={{ background: 'linear-gradient(160deg,var(--surface-1) 0%,var(--surface-0) 55%,var(--bg-base) 100%)' }}>
             <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">{brandProfile.name}</span>
             <div>
               <p className="mb-2 text-[8px] font-semibold uppercase tracking-[0.28em] text-gold-300">{kicker}</p>
@@ -1625,12 +1625,12 @@ function CarouselCard({ brandProfile = getBrandProfile(), slides, campaign, busy
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gold-500/25 bg-[#0B0B0C] transition hover:border-gold-500/40">
+    <div className="overflow-hidden rounded-xl border border-gold-500/25 bg-[color:var(--surface-1)] transition hover:border-gold-500/40">
       <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: '4 / 5' }}>
         {current?.public_url ? (
           <img src={current.public_url} alt={current.title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
         ) : (
-          <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(160deg,#0B0B0C 0%,#050505 55%,#000 100%)' }}>
+          <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(160deg,var(--surface-1) 0%,var(--surface-0) 55%,var(--bg-base) 100%)' }}>
             <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70">{brandProfile.name}</span>
             <div>
               <p className="mb-2 text-[8px] font-semibold uppercase tracking-[0.28em] text-gold-300">{kicker}</p>
@@ -1867,7 +1867,7 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
   const fileName = `${ad.key}-${(current?.aspect_ratio || '').replace(':', 'x')}.png`
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gold-500/20 bg-[#0B0B0C]">
+    <div className="overflow-hidden rounded-xl border border-gold-500/20 bg-[color:var(--surface-1)]">
       <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
           <Megaphone size={14} className="text-gold-400" />
@@ -2022,7 +2022,7 @@ function AdEditModal({ ad, saving, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[#101010] shadow-2xl shadow-black/70">
+      <div className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[color:var(--surface-1)] shadow-2xl shadow-black/70">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-white">Editar anúncio · {ad.label}</h2>
@@ -2085,7 +2085,7 @@ function AssetEditModal({ asset, saving, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[#101010] shadow-2xl shadow-black/70">
+      <div className="w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[color:var(--surface-1)] shadow-2xl shadow-black/70">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-white">Editar criativo</h2>
@@ -2161,7 +2161,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
 
   return (
     <div className="grid gap-6 xl:grid-cols-[360px,1fr]">
-      <form onSubmit={submit} autoComplete="off" className="rounded-lg border border-gold-500/20 bg-[#101010] p-4">
+      <form onSubmit={submit} autoComplete="off" className="rounded-lg border border-gold-500/20 bg-[color:var(--surface-1)] p-4">
         <div className="mb-4 border-b border-white/10 pb-3">
           <p className="text-sm font-semibold text-white">Mapear publicação real</p>
           <p className="mt-1 text-xs leading-5 text-white/42">Vincule o conteúdo planejado ao post publicado para destravar métricas por peça.</p>
@@ -2311,7 +2311,7 @@ function MetricsSection({ campaign, publications, metrics, totals, snapshots }) 
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-4">
         <StatTile label="Alcance" value={formatNumber(totals.reach)} sub="snapshots por publicação" icon={Target} />
-        <StatTile label="Impressões" value={formatNumber(totals.impressions)} sub={`${metrics.length} coletas`} icon={Activity} tone="#8EC4F0" />
+        <StatTile label="Impressões" value={formatNumber(totals.impressions)} sub={`${metrics.length} coletas`} icon={Activity} tone="#E4C06E" />
         <StatTile label="Leads" value={formatNumber(totals.leads)} sub="entrada manual" icon={Sparkles} tone="#D4A84A" />
         <StatTile label="Posts vinculados" value={publications.length} sub={`${organic.length} orgânico · ${paid.length} pago`} icon={Radio} tone="#E4C06E" />
       </div>
@@ -2818,7 +2818,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-lg border border-white/15 bg-[#101010] shadow-2xl shadow-black/70">
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-lg border border-white/15 bg-[color:var(--surface-1)] shadow-2xl shadow-black/70">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
           <h2 className="text-lg font-semibold text-white">Nova Campanha</h2>
           <button
@@ -2890,7 +2890,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                       }`}
                     >
                       <div className="grid grid-cols-[118px_1fr] gap-0">
-                        <div className="flex h-full min-h-[118px] items-center justify-center border-r border-white/10 bg-[#07111F]">
+                        <div className="flex h-full min-h-[118px] items-center justify-center border-r border-white/10 bg-[color:var(--surface-0)]">
                           {template.preview ? (
                             <img
                               src={template.preview}
@@ -2968,7 +2968,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       {refs.slice(0, 3).map((src, index) => (
-                        <div key={src} className="overflow-hidden rounded border border-white/10 bg-[#07111F]">
+                        <div key={src} className="overflow-hidden rounded border border-white/10 bg-[color:var(--surface-0)]">
                           <div className="flex aspect-square items-center justify-center">
                             <img src={src} alt="" className="max-h-full max-w-full object-contain" />
                           </div>
@@ -3238,7 +3238,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
                               type="button"
                               onClick={() => update(key, '')}
                               title="Preenchido pela IA — clique para limpar este campo"
-                              className="absolute -top-2 right-2 z-10 rounded-full border border-gold-400/45 bg-[#101010] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gold-300 transition hover:text-gold-200"
+                              className="absolute -top-2 right-2 z-10 rounded-full border border-gold-400/45 bg-[color:var(--surface-1)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gold-300 transition hover:text-gold-200"
                             >
                               IA ✕
                             </button>
@@ -3488,7 +3488,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
             </section>
           </div>
 
-          <div className="border-t border-white/10 bg-[#181818] px-6 py-5">
+          <div className="border-t border-white/10 bg-[color:var(--surface-2)] px-6 py-5">
             {(localError || submitError) && (
               <div className="mb-4 rounded-lg border border-red-400/25 bg-red-950/30 px-4 py-3 text-xs leading-5 text-red-100/82">
                 <div className="flex items-start gap-2">
@@ -3558,8 +3558,8 @@ function BrandedSelect({ value, options = [], onChange, placeholder = 'Seleciona
         }}
         className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:cursor-not-allowed disabled:opacity-55 ${
           open
-            ? 'border-gold-500/65 bg-[#07111F] text-gold-50 shadow-[0_0_0_1px_rgba(196,148,42,0.18)]'
-            : 'border-white/10 bg-black/35 text-white hover:border-gold-500/38 hover:bg-[#07111F]/70'
+            ? 'border-gold-500/65 bg-[color:var(--surface-0)] text-gold-50 shadow-[0_0_0_1px_rgba(196,148,42,0.18)]'
+            : 'border-white/10 bg-black/35 text-white hover:border-gold-500/38 hover:bg-[color:var(--surface-0)]'
         }`}
       >
         <span className={selectedOption ? 'truncate text-white' : 'truncate text-white/30'}>
@@ -3574,7 +3574,7 @@ function BrandedSelect({ value, options = [], onChange, placeholder = 'Seleciona
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 right-0 top-full z-[80] mt-1 max-h-64 overflow-y-auto rounded-lg border border-gold-500/35 bg-[#07111F] py-1 shadow-2xl shadow-black/80"
+          className="absolute left-0 right-0 top-full z-[80] mt-1 max-h-64 overflow-y-auto rounded-lg border border-gold-500/35 bg-[color:var(--surface-0)] py-1 shadow-2xl shadow-black/80"
         >
           {normalizedOptions.map(option => {
             const selected = String(option.value) === String(value)

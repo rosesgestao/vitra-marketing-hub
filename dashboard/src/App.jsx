@@ -11,21 +11,23 @@ import { BRAND_SCOPES, getBrandProfile } from './lib/brandProfiles.js'
 import EstudioPecas from './views/EstudioPecas.jsx'
 import { PECAS_PLATFORMS } from './lib/pecasCatalog.js'
 
+// Marca-mae (Vitra Imobiliaria) PRIMEIRO: e a marca principal do sistema. Vitra Premium
+// segue disponivel como sub-marca, logo abaixo.
 const BRAND_SECTIONS = [
-  {
-    title: 'Vitra Premium',
-    scope: BRAND_SCOPES.premium,
-    items: [
-      { id: 'premium', label: 'Painel Premium', icon: Gem, brandScope: BRAND_SCOPES.premium },
-      { id: 'premium-trafego', label: 'Tráfego Pago', icon: Megaphone, brandScope: BRAND_SCOPES.premium, focusMode: 'trafego' },
-    ],
-  },
   {
     title: 'Vitra Imobiliária',
     scope: BRAND_SCOPES.imobiliaria,
     items: [
       { id: 'imobiliaria', label: 'Painel Imobiliária', icon: Building2, brandScope: BRAND_SCOPES.imobiliaria },
       { id: 'imobiliaria-trafego', label: 'Tráfego Pago', icon: Megaphone, brandScope: BRAND_SCOPES.imobiliaria, focusMode: 'trafego' },
+    ],
+  },
+  {
+    title: 'Vitra Premium',
+    scope: BRAND_SCOPES.premium,
+    items: [
+      { id: 'premium', label: 'Painel Premium', icon: Gem, brandScope: BRAND_SCOPES.premium },
+      { id: 'premium-trafego', label: 'Tráfego Pago', icon: Megaphone, brandScope: BRAND_SCOPES.premium, focusMode: 'trafego' },
     ],
   },
 ]
@@ -46,7 +48,7 @@ const PECAS_NAV = [
 ]
 
 const ALL_VIEWS = [...BRAND_SECTIONS.flatMap(section => section.items), ...PECAS_NAV, ...OPERATIONS]
-const DEFAULT_VIEW_ID = 'premium'
+const DEFAULT_VIEW_ID = 'imobiliaria'
 const NAV_STORAGE_KEY = 'vitra-operational-dashboard.active-view'
 
 function normalizeViewId(viewId) {
@@ -66,7 +68,9 @@ function readInitialView() {
 export default function App() {
   const [view, setView] = useState(readInitialView)
   const currentView = ALL_VIEWS.find(item => item.id === view) || ALL_VIEWS[0]
-  const activeBrandScope = currentView.brandScope || BRAND_SCOPES.premium
+  // Views compartilhadas (operacao, estudio de pecas) caem na MARCA-MAE por padrao;
+  // so paineis Premium re-tingem o chrome para preto (sem azul).
+  const activeBrandScope = currentView.brandScope || BRAND_SCOPES.imobiliaria
   const activeBrand = getBrandProfile(activeBrandScope)
 
   useEffect(() => {
@@ -77,9 +81,14 @@ export default function App() {
     }
   }, [view])
 
+  // Re-tinge todo o chrome conforme a marca ativa (variaveis de tema no <html>).
+  useEffect(() => {
+    document.documentElement.dataset.brand = activeBrandScope
+  }, [activeBrandScope])
+
   return (
-    <div className="flex h-screen overflow-hidden bg-black text-white">
-      <aside className="relative flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[#050505]">
+    <div className="flex h-screen overflow-hidden text-white">
+      <aside className="relative flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[color:var(--surface-0)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(196,148,42,0.10),transparent_18rem)]" />
 
         <div className="relative px-6 pb-6 pt-7">
@@ -132,7 +141,7 @@ export default function App() {
 
         <div className="relative px-6 py-5">
           <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--surface-0)]">
               <BrandV brandScope={activeBrandScope} size={28} />
             </div>
             <div>
@@ -144,7 +153,7 @@ export default function App() {
             <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" />
             <span className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Sistema ativo</span>
           </div>
-          <p className="text-[10px] text-gray-600">Brand system aplicado · Junho/2026</p>
+          <p className="text-[10px] text-gray-500">Brand system aplicado · Junho/2026</p>
         </div>
       </aside>
 

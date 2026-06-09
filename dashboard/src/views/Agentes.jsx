@@ -48,7 +48,7 @@ function StatusBadge({ status }) {
     </span>
   )
   return (
-    <span className="badge border border-white/10 bg-white/5 text-gray-600">
+    <span className="badge border border-white/10 bg-white/5 text-gray-500">
       <Minus size={9} /> standby
     </span>
   )
@@ -110,7 +110,7 @@ export default function Agentes() {
           <div className="text-right">
             <p className="stat-number text-2xl">{ativos}<span className="text-gold-700 text-lg">/{AGENTES_V2.length}</span></p>
             <p className="label-section mt-1">ativos hoje</p>
-            <p className="mt-1 text-[10px] capitalize text-gray-600">{dataHoje}</p>
+            <p className="mt-1 text-[10px] capitalize text-gray-500">{dataHoje}</p>
           </div>
         }
       />
@@ -132,10 +132,10 @@ export default function Agentes() {
           return (
             <div
               key={ag.id}
-              className="flex items-start gap-4 rounded-lg border border-gold-500/15 bg-[#101010] p-4 transition-all duration-200 hover:border-gold-500/35"
+              className="flex items-start gap-4 rounded-lg border border-gold-500/15 bg-[color:var(--surface-1)] p-4 transition-all duration-200 hover:border-gold-500/35"
               style={{ borderLeft: `2px solid ${leftColor}` }}
             >
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gold-500/20 bg-black">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gold-500/20 bg-[color:var(--surface-0)]">
                 <span className={`font-display text-base font-semibold ${textCor}`}>{ag.id}</span>
               </div>
 
@@ -153,7 +153,7 @@ export default function Agentes() {
                     <span className="text-[10px] text-gray-500">{count} reg. · {ultima}</span>
                   )}
                   {count === 0 && (
-                    <span className="text-[10px] text-navy-600">sem atividade recente</span>
+                    <span className="text-[10px] text-white/45">sem atividade recente</span>
                   )}
                 </div>
               </div>

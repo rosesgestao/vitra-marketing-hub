@@ -25,7 +25,7 @@ function StatusIcon({ status }) {
   if (status === 'ok')      return <CheckCircle2 size={14} className="text-gold-300" />
   if (status === 'running') return <Clock size={14} className="text-gold-400 animate-pulse" />
   if (status === 'error')   return <AlertCircle size={14} className="text-red-400" />
-  return <Circle size={14} className="text-navy-600" />
+  return <Circle size={14} className="text-white/45" />
 }
 
 export default function Pipeline() {
@@ -100,7 +100,7 @@ export default function Pipeline() {
 
           return (
             <div key={fase.id} className="flex items-stretch gap-2 flex-1 min-w-0">
-              <div className={`relative flex min-w-44 flex-1 flex-col overflow-hidden rounded-lg border ${c.border} bg-[#101010] p-4 transition-all duration-200 hover:border-gold-500/35`}>
+              <div className={`relative flex min-w-44 flex-1 flex-col overflow-hidden rounded-lg border ${c.border} bg-[color:var(--surface-1)] p-4 transition-all duration-200 hover:border-gold-500/35`}>
                 <span
                   className="absolute top-3 right-3 font-display text-2xl font-semibold select-none pointer-events-none"
                   style={{ color: 'rgba(196,148,42,0.10)' }}
@@ -129,8 +129,8 @@ export default function Pipeline() {
                   ))}
                 </div>
 
-                <div className="h-px bg-navy-800 mb-3" />
-                <p className={`text-[10px] ${count > 0 ? c.text : 'text-navy-600'}`}>
+                <div className="h-px bg-gold-500/10 mb-3" />
+                <p className={`text-[10px] ${count > 0 ? c.text : 'text-white/45'}`}>
                   {count > 0 ? `${count} registro${count > 1 ? 's' : ''} nas últimas 24h` : 'Sem atividade recente'}
                 </p>
               </div>
@@ -158,7 +158,7 @@ export default function Pipeline() {
               </div>
             </div>
             <p className="text-xs text-gray-500 ml-5">A cada 15 min · 24h/7</p>
-            <p className="text-[10px] text-navy-600 ml-5 mt-1">Comentários · DMs · Novos seguidores</p>
+            <p className="text-[10px] text-white/45 ml-5 mt-1">Comentários · DMs · Novos seguidores</p>
           </div>
 
           <div className="card-sm">
@@ -170,7 +170,7 @@ export default function Pipeline() {
               </div>
             </div>
             <p className="text-xs text-gray-500 ml-5">Verificação a cada 1h</p>
-            <p className="text-[10px] text-navy-600 ml-5 mt-1">KlingAI · HeyGen · Tours Hollywood</p>
+            <p className="text-[10px] text-white/45 ml-5 mt-1">KlingAI · HeyGen · Tours Hollywood</p>
           </div>
         </div>
       </div>

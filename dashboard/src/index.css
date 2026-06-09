@@ -4,13 +4,32 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* ===== Tema por marca (atributo data-brand no <html>, setado pelo App) =====
+     PADRAO = Vitra Imobiliaria (marca-mae): navy + dourado, com a familia azul.
+     Premium herda o MESMO dourado, mas troca as superficies para PRETO e nao usa
+     nenhum azul (regra dura: Premium = preto + dourado, SEM azul). Trocar a marca
+     ativa re-tinge todo o chrome via estas variaveis — sem editar componente a componente. */
+  :root,
+  html[data-brand='vitra_imobiliaria'] {
     color-scheme: dark;
-    --premium-black: #000000;
-    --premium-ink: #050505;
-    --premium-charcoal: #101010;
-    --premium-panel: #161616;
-    --premium-panel-soft: #1d1a14;
+    --bg-base: #0a1628;        /* fundo base do app (navy dominante) */
+    --surface-0: #07111f;      /* sidebar / superficie mais profunda (deep navy) */
+    --surface-1: #0f1b2e;      /* cards / paineis */
+    --surface-1-hover: #142a47;/* hover de card */
+    --surface-2: #122139;      /* inputs / rodapes / cabecalhos de modal */
+    --line: rgba(196, 148, 42, 0.18);  /* hairline dourado (comum as duas marcas) */
+    --ring-offset: #0a1628;
+    --app-gradient:
+      radial-gradient(circle at 18% 8%, rgba(196, 148, 42, 0.10), transparent 28rem),
+      radial-gradient(circle at 84% 4%, rgba(46, 107, 181, 0.10), transparent 24rem),
+      linear-gradient(180deg, #0a1628 0%, #07111f 60%, #0a1628 100%);
+
+    /* compat: vars legadas --premium-* repontadas para o tema ativo */
+    --premium-black: #0a1628;
+    --premium-ink: #07111f;
+    --premium-charcoal: #0f1b2e;
+    --premium-panel: #122139;
+    --premium-panel-soft: #16203a;
     --premium-gold: #c4942a;
     --premium-gold-soft: #d4a84a;
     --premium-gold-light: #e4c06e;
@@ -19,24 +38,41 @@
     --premium-line: rgba(196, 148, 42, 0.18);
   }
 
-  html {
-    @apply bg-black;
-  }
-
-  body {
-    @apply bg-black text-white font-sans antialiased;
-    min-width: 320px;
-    background:
+  html[data-brand='vitra_premium'] {
+    --bg-base: #000000;
+    --surface-0: #050505;
+    --surface-1: #101010;
+    --surface-1-hover: #151515;
+    --surface-2: #161616;
+    --line: rgba(196, 148, 42, 0.18);
+    --ring-offset: #000000;
+    --app-gradient:
       radial-gradient(circle at 18% 8%, rgba(196, 148, 42, 0.09), transparent 28rem),
       radial-gradient(circle at 86% 2%, rgba(212, 168, 74, 0.05), transparent 22rem),
       linear-gradient(180deg, #050505 0%, #000 58%, #050505 100%);
+
+    --premium-black: #000000;
+    --premium-ink: #050505;
+    --premium-charcoal: #101010;
+    --premium-panel: #161616;
+    --premium-panel-soft: #1d1a14;
+  }
+
+  html {
+    background: var(--bg-base);
+  }
+
+  body {
+    @apply text-white font-sans antialiased;
+    min-width: 320px;
+    background: var(--app-gradient);
   }
 
   ::-webkit-scrollbar {
     @apply h-1.5 w-1.5;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-black;
+    background: var(--bg-base);
   }
   ::-webkit-scrollbar-thumb {
     @apply rounded-full bg-gold-800/60;
@@ -50,22 +86,44 @@
   }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-gold-500/50 ring-offset-1 ring-offset-navy-950;
+    @apply outline-none ring-2 ring-gold-500/50 ring-offset-1;
+    --tw-ring-offset-color: var(--ring-offset);
   }
 }
 
 @layer components {
   .card {
-    @apply rounded-lg border border-gold-500/15 bg-[#101010] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200;
+    @apply rounded-lg border p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200;
+    background: var(--surface-1);
+    border-color: var(--line);
   }
 
   .card-sm {
-    @apply rounded-lg border border-gold-500/15 bg-[#101010] p-4 shadow-[0_14px_36px_rgba(0,0,0,0.22)] transition-all duration-200;
+    @apply rounded-lg border p-4 shadow-[0_14px_36px_rgba(0,0,0,0.22)] transition-all duration-200;
+    background: var(--surface-1);
+    border-color: var(--line);
   }
 
   .card-hover {
-    @apply rounded-lg border border-gold-500/15 bg-[#101010] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200
-           hover:border-gold-500/35 hover:bg-[#151515] hover:shadow-xl hover:shadow-black/40;
+    @apply rounded-lg border p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200;
+    background: var(--surface-1);
+    border-color: var(--line);
+  }
+  .card-hover:hover {
+    @apply shadow-xl shadow-black/40;
+    background: var(--surface-1-hover);
+    border-color: rgba(196, 148, 42, 0.35);
+  }
+
+  /* Utilitarios de superficie tematizada (para uso direto nas views) */
+  .surface-0 {
+    background: var(--surface-0);
+  }
+  .surface-1 {
+    background: var(--surface-1);
+  }
+  .surface-2 {
+    background: var(--surface-2);
   }
 
   .badge {
@@ -132,9 +190,9 @@
   .skeleton {
     background: linear-gradient(
       90deg,
-      theme('colors.navy.800') 25%,
-      theme('colors.navy.700') 50%,
-      theme('colors.navy.800') 75%
+      var(--surface-1) 25%,
+      var(--surface-1-hover) 50%,
+      var(--surface-1) 75%
     );
     background-size: 200% 100%;
     @apply animate-shimmer rounded;

@@ -187,7 +187,7 @@ export default function Metricas() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[420px,1fr]">
-        <form onSubmit={submit} className="rounded-lg border border-gold-500/20 bg-[#101010] p-5">
+        <form onSubmit={submit} className="rounded-lg border border-gold-500/20 bg-[color:var(--surface-1)] p-5">
           <div className="mb-5 border-b border-white/10 pb-4">
             <p className="text-sm font-semibold text-white">Entrada manual</p>
             <p className="mt-1 text-xs leading-5 text-white/42">

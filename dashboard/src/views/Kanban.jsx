@@ -80,7 +80,7 @@ export default function Kanban() {
           return (
             <div key={col.id} className="flex-shrink-0 w-60">
               <div
-                className="mb-3 flex items-center justify-between rounded-lg bg-[#101010] px-3 py-2.5"
+                className="mb-3 flex items-center justify-between rounded-lg bg-[color:var(--surface-1)] px-3 py-2.5"
                 style={{
                   border: col.headerGold
                     ? '1px solid rgba(196,148,42,0.35)'
@@ -97,7 +97,7 @@ export default function Kanban() {
                   {col.label}
                 </span>
                 <span
-                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold bg-navy-800 border border-navy-700"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold bg-white/5 border border-white/10"
                   style={{ color: col.headerGold ? '#C4942A' : '#ADB5BD' }}
                 >
                   {items.length}
@@ -106,9 +106,9 @@ export default function Kanban() {
 
               <div className="space-y-2">
                 {items.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-10 text-navy-600">
+                  <div className="flex flex-col items-center justify-center py-10 text-white/45">
                     <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5">
-                      <FileText size={14} className="text-navy-600" />
+                      <FileText size={14} className="text-white/45" />
                     </div>
                     <p className="text-[10px]">vazio</p>
                   </div>
@@ -129,7 +129,7 @@ export default function Kanban() {
                   return (
                     <div
                       key={item.id}
-                      className="rounded-lg border border-gold-500/15 bg-[#101010] p-3 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
+                      className="rounded-lg border border-gold-500/15 bg-[color:var(--surface-1)] p-3 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
                       style={{ borderLeft: `1px solid ${leftCol}` }}
                     >
                       <div className="flex items-center gap-1.5 mb-2">
@@ -137,8 +137,8 @@ export default function Kanban() {
                         <span className="text-[10px] text-gray-400 capitalize">{plataforma || '—'}</span>
                         {formato && (
                           <>
-                            <FormatoIcon size={11} className="text-navy-600 ml-1" />
-                            <span className="text-[10px] text-navy-600 capitalize">{formato}</span>
+                            <FormatoIcon size={11} className="text-white/45 ml-1" />
+                            <span className="text-[10px] text-white/45 capitalize">{formato}</span>
                           </>
                         )}
                       </div>
@@ -154,11 +154,11 @@ export default function Kanban() {
                       )}
 
                       <div className="flex gap-1 flex-wrap">
-                        {temCopy   && <span className="badge bg-navy-800 border border-navy-700 text-gray-400">copy</span>}
-                        {temImagem && <span className="badge bg-navy-800 border border-navy-700 text-gray-400">img</span>}
-                        {temVideo  && <span className="badge bg-navy-800 border border-navy-700 text-gray-400">vídeo</span>}
+                        {temCopy   && <span className="badge bg-white/5 border border-white/10 text-gray-400">copy</span>}
+                        {temImagem && <span className="badge bg-white/5 border border-white/10 text-gray-400">img</span>}
+                        {temVideo  && <span className="badge bg-white/5 border border-white/10 text-gray-400">vídeo</span>}
                         {!temCopy && !temImagem && !temVideo && (
-                          <span className="badge bg-navy-800 border border-navy-700 text-navy-600">aguardando</span>
+                          <span className="badge bg-white/5 border border-white/10 text-white/45">aguardando</span>
                         )}
                       </div>
                     </div>
