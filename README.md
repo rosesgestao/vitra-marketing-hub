@@ -1,47 +1,46 @@
-# Vitra Premium - Ferramenta Operacional
+# Vitra Marketing Hub
 
-Ferramenta operacional para campanhas, conteudos e metricas da Vitra Premium.
+Plataforma operacional de marketing da Vitra — campanhas, geracao de criativos, identidade visual,
+trafego pago, automacao, IA e metricas. **Multi-marca**: atende a **Vitra Imobiliaria** (marca-mae,
+identidade principal do sistema) e a **Vitra Premium** (sub-marca de luxo), sem misturar as marcas.
 
-## Objetivo
+> Renomeado de `vitra-premium-ferramenta-operacional` para `vitra-marketing-hub` (2026-06). O foco
+> evoluiu de Premium-only para a marca-mae Vitra Imobiliaria como identidade principal, mantendo a
+> Vitra Premium disponivel quando necessario.
 
-Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.html` em um sistema real para criacao, organizacao, aprovacao, renderizacao, publicacao/importacao e medicao de conteudos e campanhas da Vitra Premium.
+## O que faz
 
-O ponto central do projeto e sair de um HTML local baseado em `localStorage` para um sistema conectado com banco, storage, geracao server-side e metricas por publicacao real.
+- **Paineis por marca** (Imobiliaria / Premium): campanhas, assets, publicacoes e metricas reais (Supabase).
+- **Trafego pago**: fila para gerar, revisar, aprovar e exportar criativos Meta Ads, por marca.
+- **Estudio de Pecas**: capas/banners sociais (Facebook, LinkedIn, YouTube; Instagram/WhatsApp/E-mail no roadmap).
+- **Copiloto de IA**: copy na voz da marca, extracao de fatos de anuncios e sugestao de template,
+  com ancoragem anti-alucinacao (Supabase Edge Functions).
+- **Geracao/renderizacao server-side** (Edge + Storage) e metricas por publicacao.
 
-## Escopo
+## Stack
 
-1. Migrar o dashboard Premium para React + Supabase.
-2. Criar tabelas de campanha, assets, publicacoes e metricas.
-3. Mover geracao e renderizacao de assets para backend com Supabase Storage.
-4. Implementar integracao Meta para importar publicacoes e metricas por post.
+- **Front:** React + Vite + Tailwind — em `dashboard/`.
+- **Back:** Supabase (Postgres + Edge Functions + Storage).
+- **Render headless (opcional):** `render-worker/` — dormente; ativacao em `render-worker/ACTIVATION.md`.
 
-## Componentes Planejados
+## Identidade visual (tema dinamico por marca)
 
-- `premium_campaigns`
-- `premium_campaign_assets`
-- `premium_content_posts`
-- `premium_publications`
-- `premium_metrics`
-- `premium_generation_jobs`
-- `social_accounts`
-- `social_metric_snapshots`
+O chrome do dashboard usa **Vitra Imobiliaria (navy + dourado) como tema principal** e re-tinge para
+**Vitra Premium (preto + dourado, SEM azul)** quando um painel Premium esta ativo (variaveis de tema
+por `data-brand` no `<html>`). Spec da marca em `BRAND.md`.
 
-## Fluxo Operacional Esperado
+## Regra de Marca (dura)
 
-1. Criar campanha pelo modal `Nova Campanha`.
-2. Gerar assets de campanha com regras Vitra Premium.
-3. Revisar e aprovar copy/visual.
-4. Renderizar criativos finais no backend.
-5. Salvar arquivos no Supabase Storage.
-6. Publicar pelo sistema ou importar publicacao manual.
-7. Vincular publicacao real ao asset de origem.
-8. Coletar metricas organicas e pagas.
-9. Exibir desempenho por campanha, asset, canal e publicacao.
+Vitra Imobiliaria (marca-mae) e Vitra Premium (sub-marca de luxo) **nao misturam** assets, linguagem,
+CTAs, templates, cores nem estrategia. Cada peca declara seu `brand_scope` e nunca cruza o de outra
+marca. Imobiliaria = navy + dourado (com azul); Premium = preto + dourado (sem azul).
 
 ## Documentacao
 
-- [Escopo oficial](docs/escopo-oficial.md)
+- Cofre Obsidian: `obsidian/` (notas de atualizacao + "Ferramenta Operacional Premium").
+- Brand System: `BRAND.md` (raiz) + brandbooks oficiais.
+- Changelog tecnico: `CHANGELOG.md`.
 
-## Regra de Marca
+## Repositorio
 
-Este projeto pertence ao universo Vitra Premium. Nao deve misturar assets, linguagem, CTAs ou estrategia da marca-mae Vitra Imobiliaria sem validacao explicita do Brand System Vitra.
+`https://github.com/leoferrazbrasil/vitra-marketing-hub`

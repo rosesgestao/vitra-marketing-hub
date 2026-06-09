@@ -1,4 +1,7 @@
-# Changelog — Ferramenta Operacional Vitra Premium
+# Changelog — Vitra Marketing Hub
+
+> Antes `Ferramenta Operacional Vitra Premium`; renomeado para **Vitra Marketing Hub** em 2026-06
+> (reposicionamento para a marca-mae Vitra Imobiliaria como identidade principal, multi-marca).
 
 ## Sessao 2026-06-07 — render-worker: v2 do link (SPA via headless) + runbook de ativacao
 

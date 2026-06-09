@@ -59,7 +59,7 @@ Transformar o prototipo local `planejamento_vitra_premium/dashboard-conteudo.htm
 
 ## Arquivos de Referencia
 
-- Repositorio GitHub dedicado: `https://github.com/leoferrazbrasil/vitra-premium-ferramenta-operacional`
+- Repositorio GitHub dedicado: `https://github.com/leoferrazbrasil/vitra-marketing-hub` (renomeado em 2026-06; antes `vitra-premium-ferramenta-operacional`)
 - `planejamento_vitra_premium/dashboard-conteudo.html`
 - `planejamento_vitra_premium/README.md`
 - `planejamento_vitra_premium/estrategia-conteudo-vitra-premium.md`
