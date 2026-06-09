@@ -47,12 +47,22 @@ Feito:
   apontam para o novo nome/URL. Notas historicas do cofre preservadas (sao snapshots).
 
 ## Pendente (manual; bloqueado por lock enquanto a pasta/sessao estao abertas)
-- **Diretorio local** -> `vitra-marketing-hub`: o VS Code + o Claude Code seguram a pasta (Windows recusa o
-  rename). Script pronto FORA da pasta: `D:\LEONARDO\Vitra\renomear-projeto-vitra-marketing-hub.ps1` — rodar
-  com os apps FECHADOS (renomeia a pasta + mescla a pasta de memoria do Claude). E **cosmetico**: nada quebra
-  se ficar pra depois (caminhos sao relativos; o repo/remote ja estao certos).
-- **Supabase**: trocar o label do projeto para `Vitra Marketing Hub - Producao` (Settings > General). O
-  `ref`/URL `birxcfkyuzqnhyvetbjv` **NAO mudam** — `.env` e codigo intactos.
+- **Diretorio local** -> `vitra-marketing-hub` (cosmetico; nada quebra se ficar pra depois). O VS Code + o
+  Claude Code seguram a pasta (Windows recusa o rename). Script pronto FORA da pasta:
+  `D:\LEONARDO\Vitra\renomear-projeto-vitra-marketing-hub.ps1`. **ORDEM IMPORTA** — o transcript desta
+  conversa so e finalizado quando a sessao FECHA, e o Claude Code acha o historico pelo CAMINHO da pasta:
+    1. Fechar VS Code + esta sessao do Claude Code (+ terminais/dev server). So entao o `.jsonl` da sessao
+       e finalizado na pasta antiga de historico.
+    2. Rodar o script com tudo FECHADO. Ele (a) renomeia a pasta do projeto e (b) **copia a pasta INTEIRA de
+       historico do Claude** (`~/.claude/projects/D--LEONARDO-Vitra-vitra-premium-ferramenta-operacional` ->
+       `...-vitra-marketing-hub`): transcripts `.jsonl` + sessoes + `memory`. A pasta antiga fica como backup
+       (nada e apagado).
+    3. Abrir o Claude Code em `D:\LEONARDO\Vitra\vitra-marketing-hub` e usar `claude --resume` -> esta conversa
+       e todo o historico aparecem no caminho novo.
+  - Sem o passo 2, renomear NAO apaga nada, mas o historico ficaria "no disco, fora da lista" (o `--resume` no
+    caminho novo nao listaria conversas antigas). O `.jsonl` e texto puro: sempre legivel direto da pasta.
+- **Supabase**: FEITO em 2026-06-09 — label do projeto renomeado para `Vitra Marketing Hub - Producao`
+  (confirmado via API). O `ref`/URL `birxcfkyuzqnhyvetbjv` **NAO mudaram** — `.env` e codigo intactos.
 
 ## Estado
 A plataforma agora se apresenta como **Vitra Imobiliaria (marca-mae) por padrao**, com Premium disponivel
