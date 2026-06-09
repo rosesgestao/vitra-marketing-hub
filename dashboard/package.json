@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "sync:pecas": "node scripts/sync-pecas.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

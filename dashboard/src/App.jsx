@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, Gem, Layers, Megaphone, Zap } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, Gem, Layers, LayoutGrid, Megaphone, Zap } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -8,6 +8,8 @@ import Agentes from './views/Agentes.jsx'
 import Metricas from './views/Metricas.jsx'
 import { BrandHorizontalLogo, BrandV } from './components/PremiumBrand.jsx'
 import { BRAND_SCOPES, getBrandProfile } from './lib/brandProfiles.js'
+import EstudioPecas from './views/EstudioPecas.jsx'
+import { PECAS_PLATFORMS } from './lib/pecasCatalog.js'
 
 const BRAND_SECTIONS = [
   {
@@ -36,7 +38,14 @@ const OPERATIONS = [
   { id: 'metricas', label: 'Métricas', icon: BarChart3 },
 ]
 
-const ALL_VIEWS = [...BRAND_SECTIONS.flatMap(section => section.items), ...OPERATIONS]
+// Navegação do Estúdio de Peças derivada do catálogo (escalável: nova plataforma no
+// catálogo aparece aqui automaticamente). "Visão geral" é o hub das seções.
+const PECAS_NAV = [
+  { id: 'pecas:overview', label: 'Visão geral', icon: LayoutGrid },
+  ...PECAS_PLATFORMS.map(platform => ({ id: `pecas:${platform.id}`, label: platform.label, icon: platform.icon })),
+]
+
+const ALL_VIEWS = [...BRAND_SECTIONS.flatMap(section => section.items), ...PECAS_NAV, ...OPERATIONS]
 const DEFAULT_VIEW_ID = 'premium'
 const NAV_STORAGE_KEY = 'vitra-operational-dashboard.active-view'
 
@@ -98,6 +107,17 @@ export default function App() {
 
           <div>
             <p className="mb-2 px-2 text-[9px] font-semibold uppercase tracking-[0.24em] text-gold-500/50">
+              Estúdio de Peças
+            </p>
+            <div className="space-y-1">
+              {PECAS_NAV.map(item => (
+                <NavButton key={item.id} item={item} active={view === item.id} onClick={() => setView(item.id)} />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 px-2 text-[9px] font-semibold uppercase tracking-[0.24em] text-gold-500/50">
               Operação compartilhada
             </p>
             <div className="space-y-1">
@@ -133,6 +153,7 @@ export default function App() {
         {view === 'premium-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} focusMode="trafego" />}
         {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
         {view === 'imobiliaria-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} focusMode="trafego" />}
+        {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={setView} />}
         {view === 'pipeline' && <Pipeline />}
         {view === 'calendario' && <Calendario />}
         {view === 'kanban' && <Kanban />}

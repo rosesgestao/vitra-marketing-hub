@@ -1,0 +1,149 @@
+import { Facebook, Linkedin, Youtube, Instagram, MessageCircle, Mail } from 'lucide-react'
+import { BRAND_SCOPES } from './brandProfiles.js'
+
+// Catálogo único e data-driven das peças (capas/banners) por plataforma.
+// Estrutura escalável: adicionar uma plataforma = novo objeto aqui; adicionar um
+// formato = novo item em `formats`; nova marca = nova chave em `variants`.
+// Os geradores ficam espelhados em /public/pecas (npm run sync:pecas).
+
+export const PECA_STATUS = { available: 'available', soon: 'soon' }
+
+// Base servida pelo Vite (public/pecas). Respeita import.meta.env.BASE_URL no consumidor.
+export const PECAS_ASSET_BASE = 'pecas/'
+
+export const PECAS_PLATFORMS = [
+  {
+    id: 'facebook',
+    label: 'Facebook',
+    icon: Facebook,
+    status: PECA_STATUS.available,
+    summary: 'Capa do perfil e da página da Vitra no Facebook.',
+    formats: [
+      {
+        id: 'capa',
+        label: 'Capa',
+        status: PECA_STATUS.available,
+        w: 820,
+        h: 360,
+        ratio: '2,28 : 1',
+        safeArea: '640 × 312 px (centro)',
+        note: 'No celular a imagem estica e esconde as laterais; o canto inferior esquerdo fica sob a foto do perfil.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'capa-facebook-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'capa-facebook-vitra-premium.html',
+        },
+      },
+    ],
+  },
+  {
+    id: 'linkedin',
+    label: 'LinkedIn',
+    icon: Linkedin,
+    status: PECA_STATUS.available,
+    summary: 'Capas de perfil pessoal e de página/empresa no LinkedIn.',
+    formats: [
+      {
+        id: 'perfil',
+        label: 'Capa de perfil',
+        status: PECA_STATUS.available,
+        w: 1584,
+        h: 396,
+        ratio: '4 : 1',
+        safeArea: 'centro · foto no canto inferior esquerdo',
+        note: 'Perfil pessoal — nome e cargo editáveis ao vivo dentro do gerador.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'linkedin-perfil-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'linkedin-perfil-vitra-premium.html',
+        },
+      },
+      {
+        id: 'pagina',
+        label: 'Capa de página',
+        status: PECA_STATUS.available,
+        w: 1128,
+        h: 191,
+        ratio: '5,9 : 1',
+        safeArea: 'centro · logo da página no canto inferior esquerdo',
+        note: 'Página/empresa — marca + assinatura, sem dados pessoais.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'linkedin-pagina-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'linkedin-pagina-vitra-premium.html',
+        },
+      },
+    ],
+  },
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    icon: Youtube,
+    status: PECA_STATUS.available,
+    summary: 'Banner do canal com fundo full-bleed (a TV mostra a tela inteira).',
+    formats: [
+      {
+        id: 'banner',
+        label: 'Banner do canal',
+        status: PECA_STATUS.available,
+        w: 2560,
+        h: 1440,
+        ratio: '16 : 9',
+        safeArea: '1546 × 423 px (centro)',
+        note: 'Celular mostra só o centro; desktop um pouco mais; TV mostra tudo — por isso o fundo preenche a tela.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'capa-youtube-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'capa-youtube-vitra-premium.html',
+        },
+      },
+    ],
+  },
+
+  // ===== Áreas de geração futura (roadmap) =====
+  {
+    id: 'instagram',
+    label: 'Instagram',
+    icon: Instagram,
+    status: PECA_STATUS.soon,
+    summary: 'Feed, retrato e Stories/Reels nas duas marcas.',
+    formats: [
+      { id: 'feed', label: 'Post de feed', status: PECA_STATUS.soon, w: 1080, h: 1080, ratio: '1 : 1' },
+      { id: 'retrato', label: 'Feed retrato', status: PECA_STATUS.soon, w: 1080, h: 1350, ratio: '4 : 5' },
+      { id: 'story', label: 'Story / Reels', status: PECA_STATUS.soon, w: 1080, h: 1920, ratio: '9 : 16' },
+    ],
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    icon: MessageCircle,
+    status: PECA_STATUS.soon,
+    summary: 'Foto de perfil comercial e imagens de status.',
+    formats: [
+      { id: 'perfil', label: 'Foto de perfil', status: PECA_STATUS.soon, w: 640, h: 640, ratio: '1 : 1' },
+      { id: 'status', label: 'Status', status: PECA_STATUS.soon, w: 1080, h: 1920, ratio: '9 : 16' },
+    ],
+  },
+  {
+    id: 'email',
+    label: 'E-mail',
+    icon: Mail,
+    status: PECA_STATUS.soon,
+    summary: 'Assinatura e cabeçalho de e-mail marketing.',
+    formats: [
+      { id: 'assinatura', label: 'Assinatura', status: PECA_STATUS.soon, w: 600, h: 200, ratio: '3 : 1' },
+      { id: 'header', label: 'Cabeçalho (newsletter)', status: PECA_STATUS.soon, w: 600, h: 200, ratio: '3 : 1' },
+    ],
+  },
+]
+
+export function getPlatform(id) {
+  return PECAS_PLATFORMS.find(platform => platform.id === id) || null
+}
+
+export function countFormats(platform) {
+  return platform?.formats?.length || 0
+}
+
+// URL pública do gerador de um formato para uma marca (ou null se indisponível).
+export function generatorUrl(format, brandScope, baseUrl = '/') {
+  const file = format?.variants?.[brandScope]
+  if (!file) return null
+  return `${baseUrl}${PECAS_ASSET_BASE}${file}`
+}
