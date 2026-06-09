@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, Gem, Layers, LayoutGrid, Megaphone, Zap } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Zap } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -47,12 +47,26 @@ const PECAS_NAV = [
   ...PECAS_PLATFORMS.map(platform => ({ id: `pecas:${platform.id}`, label: platform.label, icon: platform.icon })),
 ]
 
-const ALL_VIEWS = [...BRAND_SECTIONS.flatMap(section => section.items), ...PECAS_NAV, ...OPERATIONS]
+// Modelo unico de seções da sidebar (acordeão): cada seção tem id, título e itens.
+// Ordem preservada: marcas primeiro, depois Estúdio de Peças e Operação compartilhada.
+const NAV_SECTIONS = [
+  ...BRAND_SECTIONS.map(section => ({ id: section.scope, title: section.title, items: section.items })),
+  { id: 'pecas', title: 'Estúdio de Peças', items: PECAS_NAV },
+  { id: 'operacao', title: 'Operação compartilhada', items: OPERATIONS },
+]
+
+const ALL_VIEWS = NAV_SECTIONS.flatMap(section => section.items)
 const DEFAULT_VIEW_ID = 'imobiliaria'
 const NAV_STORAGE_KEY = 'vitra-operational-dashboard.active-view'
 
 function normalizeViewId(viewId) {
   return ALL_VIEWS.some(item => item.id === viewId) ? viewId : DEFAULT_VIEW_ID
+}
+
+// Qual seção contém uma view — usado para manter aberta a seção da view ativa.
+function sectionIdForView(viewId) {
+  const section = NAV_SECTIONS.find(item => item.items.some(navItem => navItem.id === viewId))
+  return section ? section.id : NAV_SECTIONS[0].id
 }
 
 function readInitialView() {
@@ -67,6 +81,8 @@ function readInitialView() {
 
 export default function App() {
   const [view, setView] = useState(readInitialView)
+  // Acordeão da sidebar: só uma seção aberta por vez (a da view ativa, por padrão).
+  const [openSection, setOpenSection] = useState(() => sectionIdForView(readInitialView()))
   const currentView = ALL_VIEWS.find(item => item.id === view) || ALL_VIEWS[0]
   // Views compartilhadas (operacao, estudio de pecas) caem na MARCA-MAE por padrao;
   // so paineis Premium re-tingem o chrome para preto (sem azul).
@@ -86,6 +102,12 @@ export default function App() {
     document.documentElement.dataset.brand = activeBrandScope
   }, [activeBrandScope])
 
+  // Sempre que a view muda (clique, navegação programática ou estado restaurado),
+  // garante que a seção dona dela esteja aberta — recolhendo as demais.
+  useEffect(() => {
+    setOpenSection(sectionIdForView(view))
+  }, [view])
+
   return (
     <div className="flex h-screen overflow-hidden text-white">
       <aside className="relative flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[color:var(--surface-0)]">
@@ -100,41 +122,18 @@ export default function App() {
 
         <div className="gold-line mx-0" />
 
-        <nav className="relative flex-1 space-y-5 overflow-y-auto px-4 py-5" aria-label="Navegação principal">
-          {BRAND_SECTIONS.map(section => (
-            <div key={section.scope}>
-              <p className="mb-2 px-2 text-[9px] font-semibold uppercase tracking-[0.24em] text-gold-500/50">
-                {section.title}
-              </p>
-              <div className="space-y-1">
-                {section.items.map(item => (
-                  <NavButton key={item.id} item={item} active={view === item.id} onClick={() => setView(item.id)} />
-                ))}
-              </div>
-            </div>
+        <nav className="relative flex-1 space-y-2 overflow-y-auto px-4 py-5" aria-label="Navegação principal">
+          {NAV_SECTIONS.map(section => (
+            <NavSection
+              key={section.id}
+              section={section}
+              open={openSection === section.id}
+              hasActive={section.items.some(item => item.id === view)}
+              onToggle={() => setOpenSection(current => (current === section.id ? null : section.id))}
+              view={view}
+              onSelect={setView}
+            />
           ))}
-
-          <div>
-            <p className="mb-2 px-2 text-[9px] font-semibold uppercase tracking-[0.24em] text-gold-500/50">
-              Estúdio de Peças
-            </p>
-            <div className="space-y-1">
-              {PECAS_NAV.map(item => (
-                <NavButton key={item.id} item={item} active={view === item.id} onClick={() => setView(item.id)} />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-2 px-2 text-[9px] font-semibold uppercase tracking-[0.24em] text-gold-500/50">
-              Operação compartilhada
-            </p>
-            <div className="space-y-1">
-              {OPERATIONS.map(item => (
-                <NavButton key={item.id} item={item} active={view === item.id} onClick={() => setView(item.id)} />
-              ))}
-            </div>
-          </div>
         </nav>
 
         <div className="gold-line mx-0" />
@@ -203,5 +202,43 @@ function NavButton({ item, active, onClick }) {
       <Icon size={16} />
       {item.label}
     </button>
+  )
+}
+
+// Seção do acordeão: cabeçalho clicável (expande/recolhe) + itens visíveis só quando aberta.
+// `hasActive` destaca a seção dona da view atual mesmo quando recolhida.
+function NavSection({ section, open, hasActive, onToggle, view, onSelect }) {
+  const highlight = open || hasActive
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left transition-colors duration-200 hover:bg-white/[0.04]"
+      >
+        <span
+          className="text-[9px] font-semibold uppercase tracking-[0.24em] transition-colors duration-200"
+          style={{ color: highlight ? 'rgba(228,192,110,0.85)' : 'rgba(196,148,42,0.5)' }}
+        >
+          {section.title}
+        </span>
+        <ChevronDown
+          size={14}
+          className="flex-shrink-0 transition-transform duration-200"
+          style={{
+            color: highlight ? 'rgba(228,192,110,0.7)' : 'rgba(196,148,42,0.4)',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        />
+      </button>
+      {open && (
+        <div className="mt-1 space-y-1">
+          {section.items.map(item => (
+            <NavButton key={item.id} item={item} active={view === item.id} onClick={() => onSelect(item.id)} />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
