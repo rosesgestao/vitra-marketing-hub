@@ -30,3 +30,10 @@ planejamento_vitra_premium/*
 
 # Cloned repos inside vault
 obsidian/.claude/.git/
+
+# Claude Code local configuration
+.claude/
+
+# Generated and reference files
+criativos-gerados/
+exemplos-referencias-criativos/
