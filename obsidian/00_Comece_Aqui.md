@@ -42,16 +42,55 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 12. **[[Atualizacao_2026-05-29_Ferramenta_Operacional_Premium_Fase_1]]**
     Registro da Fase 1 da ferramenta operacional Premium: dashboard React, Supabase, migracao aplicada, commits publicados e proximos passos.
 
-13. **[[Atualizacao_2026-06-04_Templates_Vitra_Imobiliaria_Trafego_Pago]]**
+13. **[[Atualizacao_2026-06-01_Automacao_Trafego_Pago_Premium]]**
+    Registro da automacao inicial do fluxo de trafego pago Premium (geracao, revisao e exportacao de criativos Meta Ads).
+
+14. **[[Atualizacao_2026-06-04_Templates_Vitra_Imobiliaria_Trafego_Pago]]**
     Registro da aprovacao dos templates reutilizaveis de trafego pago da Vitra Imobiliaria dentro da plataforma operacional multi-marca.
 
-14. **[[Atualizacao_2026-06-05_Variacoes_Por_Template_Aprovado]]**
+15. **[[Atualizacao_2026-06-05_Variacoes_Por_Template_Aprovado]]**
     Registro da transformacao da antiga logica de variacoes criativas em variacoes por template aprovado, com contratos de campos variaveis, deploy da funcao `render-asset` e commit publicado.
 
-15. **[[Atualizacao_2026-06-06_Geracao_Automatica_Render_Asset]]**
+16. **[[Atualizacao_2026-06-06_Fase0_Rede_de_Seguranca]]**
+    Registro da Fase 0: rede de seguranca testavel (funcoes puras de texto/medida extraidas para `_shared`, harness de overflow) antes de mexer nas heuristicas de render.
+
+17. **[[Atualizacao_2026-06-06_Fase1_Fluxo_Automatico]]**
+    Registro da Fase 1: estabilizacao do fluxo automatico de render (claim atomico, maquina de estados com retry, reaper de orfaos travados).
+
+18. **[[Atualizacao_2026-06-06_Geracao_Automatica_Render_Asset]]**
     Registro da correcao do CORS da funcao `render-asset`, tratamento do erro transitorio `546`, validacoes remotas e commit publicado.
 
-16. **[[Atualizacao_2026-06-11_Template_05_Estudio_Criativos_Excluir_Campanhas]]**
+19. **[[Atualizacao_2026-06-06_Fase2_P1_P2_Autocomplete]]**
+    Registro da Fase 2 (P1/P2): auto-ajuste da fonte por largura/formato nos templates e correcao do autocomplete do brief.
+
+20. **[[Atualizacao_2026-06-06_Fase2-3_Fechar_Fabrica]]**
+    Registro do mapeamento multi-agente e execucao das 3 frentes para fechar a fabrica de criativos (render-version, validacao por formato, Premium full-res).
+
+21. **[[Atualizacao_2026-06-06_Auditoria_Copy_e_Correcoes_Tecnicas]]**
+    Registro da auditoria multi-agente da geracao de copy dos 4 templates aprovados + correcoes tecnicas (commit `a23fc7f`); reescritas de copy propostas para revisao do marketing.
+
+22. **[[Atualizacao_2026-06-06_Deploy_Fase1_Producao]]**
+    Registro do deploy da Fase 1 em producao.
+
+23. **[[Atualizacao_2026-06-06_Limpeza_Honestidade_UI]]**
+    Registro da limpeza de honestidade da UI (remocao de rotulos e dados que nao refletiam o estado real do sistema).
+
+24. **[[Atualizacao_2026-06-07_Autonomo_Estabilidade_Worker_UX]]**
+    Registro da sessao autonoma: fechamento da Fase 2/3 com deploy, preparo do render-worker e ajustes de UX (Fase 4). Detalhe tecnico no `CHANGELOG.md`.
+
+25. **[[Atualizacao_2026-06-07_Copiloto_IA_Marketing]]**
+    Registro da virada para COPILOTO de marketing imobiliario por IA: a ferramenta passa a conhecer a Vitra e tira do operador o trabalho de pensar a peca, mantendo-o como aprovador.
+
+26. **[[Atualizacao_2026-06-09_Capas_Sociais_e_Estudio_de_Pecas]]**
+    Registro da suite de capas/banners sociais (Facebook, LinkedIn, YouTube) como geradores HTML->PNG e da integracao no dashboard via o menu Estudio de Pecas.
+
+27. **[[Atualizacao_2026-06-09_Rebrand_Imobiliaria_e_Rename_Vitra_Marketing_Hub]]**
+    Registro do rebrand do dashboard para a marca-mae Vitra Imobiliaria (navy + dourado, tema dinamico por marca) e do rename do projeto para Vitra Marketing Hub.
+
+28. **[[Atualizacao_2026-06-09_Sidebar_Acordeao]]**
+    Registro do ajuste de UX da sidebar em acordeao: apenas a secao da view ativa fica expandida por vez.
+
+29. **[[Atualizacao_2026-06-11_Template_05_Estudio_Criativos_Excluir_Campanhas]]**
     Registro do 5o template da Imobiliaria (foto + checklist, paleta alinhada ao brandbook), da nova secao Estudio de Criativos, da exclusao de campanhas pela UI e do contexto de copywriting. Commits 529ebc6, aee7749, 1ce33b3, c36831a.
 
 ---
