@@ -51,6 +51,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 15. **[[Atualizacao_2026-06-06_Geracao_Automatica_Render_Asset]]**
     Registro da correcao do CORS da funcao `render-asset`, tratamento do erro transitorio `546`, validacoes remotas e commit publicado.
 
+16. **[[Atualizacao_2026-06-11_Template_05_Estudio_Criativos_Excluir_Campanhas]]**
+    Registro do 5o template da Imobiliaria (foto + checklist, paleta alinhada ao brandbook), da nova secao Estudio de Criativos, da exclusao de campanhas pela UI e do contexto de copywriting. Commits 529ebc6, aee7749, 1ce33b3, c36831a.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
