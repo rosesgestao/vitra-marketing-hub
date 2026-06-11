@@ -125,6 +125,27 @@ const heroChecklistFieldGroups = [
   },
 ]
 
+// Template 06 (Zona Norte / Isla): composicao centralizada fiel a peca aprovada original —
+// wordmark VITRA, headline 2 linhas (2a dourada), subtitulo, pill branco De/Por, duas fotos
+// grandes lado a lado sem moldura, dois selos badge-check e CTA pill dourado. Safe zone do Meta
+// aplicada desde o nascimento (skill margem-seguranca-criativos).
+// Referencia aprovada: criativos-aprovados-vitra-imobiliaria/2fe17ff8 (feed) e f38e4f2b (story).
+const duoSelosFieldGroups = [
+  {
+    id: 'duo-offer',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Isla Zona Sul' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Quebra em 2 linhas na arte — a segunda linha sai em dourado.', placeholder: 'Ex: More ou invista no coracao da Zona Norte', colSpan: 'full' },
+      { key: 'area', label: 'Subtitulo / caracteristica', type: 'text', placeholder: 'Ex: 2 dormitorios com suite, churrasqueira e ate 2 vagas', colSpan: 'full' },
+      { key: 'price_from', label: 'Valor de (riscado)', type: 'money', placeholder: 'Ex: R$ 450 mil' },
+      { key: 'price', label: 'Valor por', type: 'money', required: true, placeholder: 'Ex: R$ 399 mil' },
+      { key: 'differentials', label: 'Selos de beneficio', type: 'list', required: true, placeholder: 'Proximo ao Lindoia Tenis Clube\nInfraestrutura completa de lazer', helper: 'Ate 2 itens — viram selos dourados na arte.', colSpan: 'full' },
+      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Clique para receber mais informacoes', colSpan: 'full' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -196,6 +217,20 @@ const templateVariationContracts = {
       { id: 'preco-oportunidade', label: 'Preco de oportunidade', phase: '2', angle: 'investimento', headline: 'Valor de oportunidade para avaliar', copy: 'Compare o preco De/Por com imoveis semelhantes e confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
       { id: 'pronto-para-morar', label: 'Pronto para morar', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar, perto de tudo', copy: 'Imovel para entrar e morar: atributos verificados e proximo passo simples com a Vitra.', cta: 'Receber detalhes' },
       { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Oportunidades com preco reduzido pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
+    ],
+  },
+  duoSelos: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem composicao centralizada, pill De/Por, selos e CTA pill aprovados (com safe zone); varia headline, subtitulo, preco, selos e fotos.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'price_pill', 'badge_seals', 'cta_pill'],
+    mutableSlots: ['headline', 'subtitle', 'price', 'differentials', 'cta', 'photos'],
+    recipes: [
+      { id: 'oferta-de-por', label: 'Oferta De/Por', phase: '1', angle: 'investimento', headline: '{headline_only}', copy: 'Preco de tabela e preco de oportunidade no mesmo quadro, com os beneficios que sustentam o valor.', cta: '{cta}' },
+      { id: 'selos-beneficio', label: 'Selos de beneficio', phase: '2', angle: 'diferenciais', headline: '{headline_only}', copy: '{details}. Dois argumentos diretos para validar a oferta em segundos.', cta: 'Receber mais informacoes' },
+      { id: 'bairro-coracao', label: 'Bairro em destaque', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Localizacao como argumento central: fotos, preco e beneficios reunidos para comparar antes de decidir.', cta: 'Conhecer a regiao' },
+      { id: 'preco-comparativo', label: 'Preco comparativo', phase: '2', angle: 'investimento', headline: 'Compare o antes e o depois do preco', copy: 'O comparativo De/Por deixa a oportunidade explicita. Confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
+      { id: 'lazer-completo', label: 'Lazer e infraestrutura', phase: '2', angle: 'lifestyle', headline: 'Lazer completo para o dia a dia', copy: 'Infraestrutura e conveniencia no mesmo endereco. Veja fotos e condicoes com a Vitra.', cta: 'Ver o lazer' },
+      { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Precos de oportunidade pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
     ],
   },
   meninoDeus: {
@@ -359,6 +394,32 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026), versionada desde o inicio: referencia aprovada e a peca
       // "New Life - Av. Ipiranga" (criativos-aprovados-vitra-imobiliaria/new life.jpeg).
       renderVersion: 'hero-checklist-approved-v1',
+    },
+    {
+      id: 'vitra-imobiliaria-duo-selos-offer',
+      family: 'vitra-imobiliaria-duo-selos-offer',
+      mode: 'single_family',
+      name: 'Oferta duo com selos',
+      shortName: 'Zona Norte (duo + selos)',
+      bestFor: 'Oferta centralizada com preco De/Por em pill, duas fotos grandes lado a lado e selos de beneficio — fiel a peca aprovada da Zona Norte, com safe zone do Meta.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-06-duo-selos-1x1-sem-moldura.png',
+      fieldGroups: duoSelosFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto esquerda / empreendimento', multiple: false, required: true },
+        { id: 'living', label: 'Foto direita / lazer', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.duoSelos,
+      references: vitraImobiliariaReference('template-06-duo-selos'),
+      variableFields: ['photos', 'headline', 'subtitle', 'price_from', 'price', 'differentials', 'cta'],
+      fixedBrandRules: ['navy_gold', 'approved_white_wordmark', 'price_pill', 'gold_badge_seals', 'meta_safe_zone'],
+      // Arte nova (junho/2026), versionada desde o inicio: referencia aprovada e a peca da
+      // campanha Zona Norte (criativos-aprovados-vitra-imobiliaria/2fe17ff8 e f38e4f2b), adaptada
+      // ao brandbook (navy+dourado) e as safe zones do Meta (skill margem-seguranca-criativos).
+      renderVersion: 'duo-selos-approved-v1',
     },
   ],
 }

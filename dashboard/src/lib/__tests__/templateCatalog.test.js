@@ -22,8 +22,8 @@ import {
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION as EDGE_RENDER_VERSION } from '../../../../supabase/functions/_shared/renderVersions.ts'
 
 describe('catalogo de templates por marca', () => {
-  it('Imobiliaria tem 5 templates aprovados e Premium tem 1', () => {
-    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(5)
+  it('Imobiliaria tem 6 templates aprovados e Premium tem 1', () => {
+    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(6)
     expect(creativeTemplatesForBrand(BRAND_SCOPES.premium)).toHaveLength(1)
   })
   it('marca desconhecida cai no catalogo Premium', () => {
@@ -102,6 +102,7 @@ describe('render-version (fonte unica no catalogo — Fase 3)', () => {
   it('renderVersionForFamily retorna a versao das families versionadas e null para as demais', () => {
     expect(renderVersionForFamily('vitra-imobiliaria-financiamento-orla')).toBe('financiamento-orla-approved-v7')
     expect(renderVersionForFamily('vitra-imobiliaria-hero-checklist')).toBe('hero-checklist-approved-v1')
+    expect(renderVersionForFamily('vitra-imobiliaria-duo-selos-offer')).toBe('duo-selos-approved-v1')
     expect(renderVersionForFamily('vitra-imobiliaria-dual-photo-offer')).toBeNull()
     expect(renderVersionForFamily('vitra-imobiliaria-patios-gallery')).toBeNull()
     expect(renderVersionForFamily('vitra-imobiliaria-menino-deus-offer')).toBeNull()
