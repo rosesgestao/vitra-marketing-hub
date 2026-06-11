@@ -107,6 +107,24 @@ const meninoDeusFieldGroups = [
   },
 ]
 
+// Template 05 (New Life / Av. Ipiranga): foto unica de fundo + headline condensada,
+// preco De/Por, checklist com selo dourado e CTA amarelo de alto contraste.
+// Referencia aprovada: criativos-aprovados-vitra-imobiliaria/new life.jpeg
+const heroChecklistFieldGroups = [
+  {
+    id: 'hero-offer',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: New Life' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Headline curta — quebra em ate 3 linhas na arte (ate 40 caracteres).', placeholder: 'Ex: 3 dorms com suite junto a Av. Ipiranga', colSpan: 'full' },
+      { key: 'price_from', label: 'Valor de (riscado)', type: 'money', placeholder: 'Ex: R$ 560.000,00' },
+      { key: 'price', label: 'Valor por', type: 'money', required: true, placeholder: 'Ex: R$ 439.000,00' },
+      { key: 'differentials', label: 'Atributos do checklist', type: 'list', required: true, placeholder: '75m2 privativos\nVaga de garagem coberta\nInfraestrutura completa\nPronto para morar\n2 minutos da PUCRS', helper: 'Um atributo por linha — ate 5 viram linhas com selo dourado.', colSpan: 'full' },
+      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Clique abaixo e receba mais informacoes', colSpan: 'full' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -164,6 +182,20 @@ const templateVariationContracts = {
       { id: 'localizacao-valoriza', label: 'Localizacao que valoriza', phase: '1', angle: 'localizacao', headline: 'Morar em {neighborhood} com bom acesso', copy: 'Localizacao, mobilidade e potencial de valorizacao reunidos. A Vitra ajuda a comparar antes da decisao.', cta: 'Conhecer a regiao' },
       { id: 'pronto-pra-morar', label: 'Pronto para morar', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar, perto de tudo', copy: 'Imovel para entrar e morar: veja fotos, planta e condicoes em uma leitura objetiva e sem pressa.', cta: 'Receber detalhes' },
       { id: 'simulacao', label: 'Simulacao de condicoes', phase: '3', angle: 'curadoria', headline: 'Simule as condicoes deste imovel', copy: 'Receba uma simulacao clara de valor e condicoes para avaliar com seguranca. Fale com a Vitra.', cta: 'Simular agora' },
+    ],
+  },
+  heroChecklist: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem foto de fundo, selos dourados e CTA amarelo aprovados; varia headline, preco De/Por, atributos e foto.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'badge_list', 'cta_button'],
+    mutableSlots: ['headline', 'price', 'differentials', 'cta', 'photos'],
+    recipes: [
+      { id: 'oferta-de-por', label: 'Oferta De/Por', phase: '1', angle: 'investimento', headline: '{headline_only}', copy: 'Preco de tabela e preco de oportunidade lado a lado, com os atributos que sustentam o valor.', cta: '{cta}' },
+      { id: 'checklist-atributos', label: 'Checklist de atributos', phase: '2', angle: 'diferenciais', headline: '{headline_only}', copy: '{details}. Lista objetiva para avaliar o imovel em poucos segundos.', cta: 'Receber mais informacoes' },
+      { id: 'localizacao-referencia', label: 'Localizacao de referencia', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Endereco de referencia, fotos e condicoes reunidos para comparar antes de decidir.', cta: 'Conhecer a localizacao' },
+      { id: 'preco-oportunidade', label: 'Preco de oportunidade', phase: '2', angle: 'investimento', headline: 'Valor de oportunidade para avaliar', copy: 'Compare o preco De/Por com imoveis semelhantes e confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
+      { id: 'pronto-para-morar', label: 'Pronto para morar', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar, perto de tudo', copy: 'Imovel para entrar e morar: atributos verificados e proximo passo simples com a Vitra.', cta: 'Receber detalhes' },
+      { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Oportunidades com preco reduzido pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
     ],
   },
   meninoDeus: {
@@ -303,6 +335,30 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       references: vitraImobiliariaReference('template-04-menino-deus'),
       variableFields: ['hero_photo', 'neighborhood', 'headline', 'price', 'condo_argument', 'features', 'address'],
       fixedBrandRules: ['navy_offwhite', 'official_blue_bands', 'approved_logo', 'address_lockup'],
+    },
+    {
+      id: 'vitra-imobiliaria-hero-checklist',
+      family: 'vitra-imobiliaria-hero-checklist',
+      mode: 'single_family',
+      name: 'Foto de fundo com checklist',
+      shortName: 'New Life (foto + checklist)',
+      bestFor: 'Oferta direta com preco De/Por, checklist de atributos com selo dourado e CTA amarelo sobre foto unica do imovel.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-05-hero-checklist-1x1-sem-moldura.png',
+      fieldGroups: heroChecklistFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto de fundo (unica)', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.heroChecklist,
+      references: vitraImobiliariaReference('template-05-hero-checklist'),
+      variableFields: ['photos', 'headline', 'price_from', 'price', 'differentials', 'cta'],
+      fixedBrandRules: ['navy_overlay_photo', 'approved_white_wordmark', 'gold_badge_checklist', 'yellow_cta'],
+      // Arte nova (junho/2026), versionada desde o inicio: referencia aprovada e a peca
+      // "New Life - Av. Ipiranga" (criativos-aprovados-vitra-imobiliaria/new life.jpeg).
+      renderVersion: 'hero-checklist-approved-v1',
     },
   ],
 }

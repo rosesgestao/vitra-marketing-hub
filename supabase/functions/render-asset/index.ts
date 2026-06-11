@@ -45,6 +45,7 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-patios-gallery",
   "vitra-imobiliaria-financiamento-orla",
   "vitra-imobiliaria-menino-deus-offer",
+  "vitra-imobiliaria-hero-checklist",
 ];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
@@ -64,6 +65,9 @@ const MODEL_LABEL: Record<string, string> = {
   "vitra-imobiliaria-menino-deus-offer-feed": "Vitra Imobiliaria - Menino Deus 1:1",
   "vitra-imobiliaria-menino-deus-offer-story": "Vitra Imobiliaria - Menino Deus 9:16",
   "vitra-imobiliaria-menino-deus-offer-wide": "Vitra Imobiliaria - Menino Deus 1.91:1",
+  "vitra-imobiliaria-hero-checklist-feed": "Vitra Imobiliaria - foto + checklist 1:1",
+  "vitra-imobiliaria-hero-checklist-story": "Vitra Imobiliaria - foto + checklist 9:16",
+  "vitra-imobiliaria-hero-checklist-wide": "Vitra Imobiliaria - foto + checklist 1.91:1",
 };
 
 const LOGO_INNER = `<g transform="translate(3,2) scale(0.87)"><polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/><polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/><polygon points="25,37 39,37 32,54" fill="#FFE08A"/><polygon points="25,37 32,54 55,76" fill="#8B6914"/><polygon points="39,37 32,54 55,76" fill="#C4942A"/><polygon points="85,37 71,37 78,54" fill="#F0C95C"/><polygon points="85,37 78,54 55,76" fill="#7A5C10"/><polygon points="71,37 78,54 55,76" fill="#D4A84A"/></g><line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/><text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/><text x="122.50" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6108" fill="#C4942A">PREMIUM</text>`;
@@ -130,12 +134,23 @@ async function loadFonts() {
   ];
   return fontsCache;
 }
-let resvgFontCache: Uint8Array | null = null;
-async function loadResvgFont() {
-  if (resvgFontCache) return resvgFontCache;
-  const r = await fetch("https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter@0.4.2/700Bold/Inter_700Bold.ttf");
-  resvgFontCache = new Uint8Array(await r.arrayBuffer());
-  return resvgFontCache;
+// Fontes do caminho SVG direto (resvg): Inter 700 e a base historica de TODOS os templates
+// aprovados (default). Anton (headline condensada) e Poppins 500/600/700 (corpo/preco/CTA)
+// entraram com o template hero-checklist (New Life) e so afetam SVGs que as referenciam por
+// font-family — os templates antigos seguem resolvendo Inter como antes.
+let resvgFontsCache: Uint8Array[] | null = null;
+async function loadResvgFonts() {
+  if (resvgFontsCache) return resvgFontsCache;
+  const f = async (url: string) => new Uint8Array(await (await fetch(url)).arrayBuffer());
+  const [inter700, anton400, poppins500, poppins600, poppins700] = await Promise.all([
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter@0.4.2/700Bold/Inter_700Bold.ttf"),
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/anton@0.4.2/400Regular/Anton_400Regular.ttf"),
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/poppins@0.4.1/500Medium/Poppins_500Medium.ttf"),
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/poppins@0.4.1/600SemiBold/Poppins_600SemiBold.ttf"),
+    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/poppins@0.4.1/700Bold/Poppins_700Bold.ttf"),
+  ]);
+  resvgFontsCache = [inter700, anton400, poppins500, poppins600, poppins700];
+  return resvgFontsCache;
 }
 function storageTransformUrl(url: string): string | null {
   try {
@@ -749,6 +764,156 @@ function buildVitraMeninoDeusSvg(asset: any, campaign: any, images: Array<string
 </svg>`;
 }
 
+// ===== Template 05: hero-checklist (New Life / Av. Ipiranga) =====
+// Referencia aprovada: criativos-aprovados-vitra-imobiliaria/new life.jpeg
+// Foto unica full-bleed + gradiente navy a esquerda, wordmark VITRA branco no topo direito,
+// headline condensada (Anton), preco "De" riscado + "Por" em dourado (brandbook), checklist com
+// selo (badge-check) dourado e botao CTA dourado #C4942A com texto navy.
+// Paleta 100% brandbook Vitra Imobiliaria (alinhado em 2026-06-11): a peca de referencia usava um
+// amarelo vivo #FBC52D, fora do brandbook - trocado pelo dourado oficial. GOLD (#C4942A) e GOLD_LIGHT
+// (#F0C95C, familia dourada) ja sao do brandbook (topo do arquivo). Convencao dos outros 4 templates:
+// dourado-claro para TEXTO sobre navy (legivel) e GOLD solido para PREENCHIMENTO de botao.
+const HC_GOLD_TEXT = GOLD_LIGHT;  // preco "Por" + selos: dourado claro do brandbook sobre fundo navy
+const HC_GOLD_BTN = GOLD;         // botao CTA preenchido com o dourado oficial #C4942A
+const HC_INK = "#07111F";         // texto navy sobre o botao dourado (== template duas fotos)
+
+// Selo "badge-check" (mesmo desenho do icone lucide), escalado a partir do grid 24x24.
+function heroChecklistBadge(x: number, y: number, size: number) {
+  const s = (size / 24).toFixed(3);
+  return `<g transform="translate(${x},${y}) scale(${s})" fill="none" stroke="${HC_GOLD_TEXT}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/>
+    <path d="m9 12 2 2 4-4"/>
+  </g>`;
+}
+
+// O estimador de largura (textFit) e calibrado para Inter em CAIXA ALTA; Anton (condensada)
+// e Poppins (minusculas) avancam menos. O fator corrige o orcamento para o fitFontSize nao
+// encolher a fonte alem do necessario. Anton ~0.79x, Poppins ~0.84x do estimado.
+function fitDisplaySize(text: string, base: number, min: number, budgetPx: number, factor: number) {
+  return fitFontSize(String(text ?? ""), base, min, Math.round(budgetPx / factor));
+}
+
+function heroChecklistBullets(pd: any, campaign: any, max: number) {
+  const values = String(pd?.differentials || "")
+    .split(/[\n;,]+/)
+    .map((item) => item.replace(/^[-•\s]+/, "").trim())
+    .filter(Boolean);
+  if (values.length) return values.slice(0, max);
+  const location = pd?.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(", ");
+  return [pd?.area, pd?.suites, pd?.towers, location]
+    .filter(Boolean).map((value) => String(value).trim()).slice(0, max);
+}
+
+function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+  const hero = images[0] || null;
+
+  const headlineRaw = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
+  const lines = wrapText(headlineRaw, isWide ? 16 : 14, 3);
+
+  const parts = priceParts(pd.price || campaign?.offer || "");
+  const priceFrom = String(pd.price_from || parts.from || "").replace(/^de\s*:?\s*/i, "").trim();
+  const priceTo = formatMoneyLike(parts.to || pd.price || "") || "Consulte";
+  const bullets = heroChecklistBullets(pd, campaign, isWide ? 3 : 5);
+  const cta = compactText(asset.cta || "Clique abaixo e receba mais informações", 46);
+
+  // Layout por formato: [feed 1080x1080] espelha a peca aprovada; story/wide sao adaptacoes
+  // proporcionais da mesma hierarquia (logo > headline > De/Por > checklist > CTA).
+  const L = isStory ? {
+    logo: [905, 120, 120], margin: 90,
+    headBase: 96, headGap: 110, headY: 400, headBudget: 740,
+    deY: 706, deSize: 38, porY: priceFrom ? 782 : 740, porSize: 60,
+    bulletsY: 900, bulletStep: 84, bulletSize: 36, badge: 38, bulletTextX: 152, bulletChars: 30,
+    cta: [90, 1540, 640, 104, 20], ctaSize: 31,
+  } : isWide ? {
+    logo: [1010, 48, 110], margin: 70,
+    headBase: 50, headGap: 54, headY: 150, headBudget: 540,
+    deY: 312, deSize: 24, porY: priceFrom ? 360 : 330, porSize: 38,
+    bulletsY: 410, bulletStep: 44, bulletSize: 20, badge: 22, bulletTextX: 106, bulletChars: 26,
+    cta: [70, 524, 470, 64, 14], ctaSize: 22,
+  } : {
+    logo: [905, 72, 120], margin: 90,
+    headBase: 84, headGap: 96, headY: 222, headBudget: 620,
+    deY: 470, deSize: 32, porY: priceFrom ? 536 : 500, porSize: 50,
+    bulletsY: 604, bulletStep: 70, bulletSize: 30, badge: 32, bulletTextX: 140, bulletChars: 30,
+    cta: [90, 920, 552, 92, 18], ctaSize: 27,
+  };
+
+  const x = L.margin;
+  const photoLayer = hero
+    ? `<image href="${esc(hero)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+
+  const headLines = lines.map((line, index) => {
+    const size = fitDisplaySize(line, L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79);
+    return textLine(x, L.headY + index * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size, weight: 400 });
+  }).join("");
+
+  const deLine = priceFrom
+    ? textLine(x, L.deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: "#F2F2F2", family: "Poppins", size: L.deSize, weight: 600, decoration: "line-through" })
+    : "";
+  const porSize = fitDisplaySize(`Por ${priceTo}`, L.porSize, Math.round(L.porSize * 0.6), L.cta[2], 0.84);
+  const porLine = `<text x="${x}" y="${L.porY}" text-anchor="start" font-family="Poppins" font-size="${porSize}" font-weight="700"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${HC_GOLD_TEXT}">${esc(priceTo)}</tspan></text>`;
+
+  const bulletRows = bullets.map((item, index) => {
+    const baseY = L.bulletsY + index * L.bulletStep;
+    const badgeTop = baseY - Math.round(L.bulletSize * 0.35 + L.badge / 2);
+    return `${heroChecklistBadge(x, badgeTop, L.badge)}
+    ${textLine(L.bulletTextX, baseY, compactText(item, L.bulletChars), { anchor: "start", fill: "#FAFAF8", family: "Poppins", size: L.bulletSize, weight: 500 })}`;
+  }).join("");
+
+  const [ctaX, ctaY, ctaW, ctaH, ctaRx] = L.cta;
+  // Padding proporcional a altura do botao + fator 0.90 (Poppins bold minuscula avanca ~90%
+  // do estimado pela tabela caps): sem isso o texto encostava nas bordas do botao no 1:1/9:16.
+  const ctaSize = fitDisplaySize(cta, L.ctaSize, 16, ctaW - Math.round(ctaH * 0.9), 0.90);
+  const ctaTextY = ctaY + Math.round(ctaH / 2) + Math.round(ctaSize * 0.36);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs>
+    <radialGradient id="${idBase}-bg" cx="50%" cy="44%" r="70%">
+      <stop offset="0%" stop-color="#0A1B32"/>
+      <stop offset="66%" stop-color="#07111F"/>
+      <stop offset="100%" stop-color="#050C16"/>
+    </radialGradient>
+    <linearGradient id="${idBase}-veilX" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#07111F" stop-opacity="0.95"/>
+      <stop offset="32%" stop-color="#07111F" stop-opacity="0.82"/>
+      <stop offset="58%" stop-color="#07111F" stop-opacity="0.40"/>
+      <stop offset="82%" stop-color="#07111F" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#07111F" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="${idBase}-veilY" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#07111F" stop-opacity="0.52"/>
+      <stop offset="45%" stop-color="#07111F" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#07111F" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  ${photoLayer}
+  <rect width="${W}" height="${H}" fill="#07111F" opacity="0.26"/>
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-veilX)"/>
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-veilY)"/>
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+  <svg x="${L.logo[0]}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  ${headLines}
+  ${deLine}
+  ${porLine}
+  ${bulletRows}
+  ${ctaBlockForHeroChecklist(ctaX, ctaY, ctaW, ctaH, ctaRx, ctaTextY, ctaSize, cta)}
+</svg>`;
+}
+
+function ctaBlockForHeroChecklist(x: number, y: number, w: number, h: number, rx: number, textY: number, size: number, label: string) {
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${HC_GOLD_BTN}"/>
+  ${textLine(x + w / 2, textY, label, { fill: HC_INK, family: "Poppins", size, weight: 700 })}`;
+}
+
+// Wordmark VITRA so com o texto branco (sem hexagono), para o topo direito do hero-checklist.
+// Usado lazy dentro de buildVitraHeroChecklistSvg (declaracao apos a funcao e segura em runtime).
+const VITRA_WORDMARK_WHITE = `<text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/>`;
+
 function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
@@ -773,6 +938,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-patios-gallery") return buildVitraPatiosGallerySvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-financiamento-orla") return buildVitraFinancingSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-menino-deus-offer") return buildVitraMeninoDeusSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-hero-checklist") return buildVitraHeroChecklistSvg(asset, campaign, images, W, H, brandProfile, idBase);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -903,7 +1069,7 @@ function buildTree(asset: any, campaign: any, bg: string | null, W: number, H: n
   return h("div", { display:"flex", width:W, height:H, position:"relative", backgroundColor:brandProfile.bg }, layers);
 }
 
-async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8Array) {
+async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint8Array[]) {
   let step = "init";
   const brandProfile = brandRenderProfile(campaign, asset);
   const model = modelKey(asset);
@@ -922,9 +1088,9 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
       step = "load_template_images";
       const imageUrls = imageUrlsForApprovedTemplate(asset, campaign);
       const imageData: Array<string | null> = [];
-      const maxTemplateImages = templateFamily === "vitra-imobiliaria-financiamento-orla"
-        ? 3
-        : templateFamily === "vitra-imobiliaria-patios-gallery"
+      const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist"
+        ? 1
+        : templateFamily === "vitra-imobiliaria-financiamento-orla" || templateFamily === "vitra-imobiliaria-patios-gallery"
           ? 3
           : 2;
       for (const url of imageUrls) {
@@ -938,7 +1104,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
       step = "init_wasm";
       await ensureWasm();
       step = "resvg";
-      const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: [resvgFont], loadSystemFonts: false, defaultFontFamily: "Inter" } });
+      const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: resvgFonts, loadSystemFonts: false, defaultFontFamily: "Inter" } });
       const img = resvg.render();
       const png = img.asPng();
       try { img.free?.(); } catch (_) {}
@@ -981,7 +1147,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFont: Uint8
     step = "init_wasm";
     await ensureWasm();
     step = "resvg";
-    const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: [resvgFont], loadSystemFonts: false, defaultFontFamily: "Inter" } });
+    const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: resvgFonts, loadSystemFonts: false, defaultFontFamily: "Inter" } });
     const img = resvg.render();
     const png = img.asPng();
     try { img.free?.(); } catch (_) {}
@@ -1067,11 +1233,11 @@ Deno.serve(async (req) => {
   if (!assets || assets.length === 0) return new Response(JSON.stringify({ rendered:0, failed:0, remaining:0, message:"nenhum asset queued" }), { headers:cors });
   const cId = campaignId || assets[0].campaign_id;
   const { data: campaign } = await svc.from("premium_campaigns").select("*").eq("id", cId).single();
-  const resvgFont = await loadResvgFont();
+  const resvgFonts = await loadResvgFonts();
   await svc.from("premium_generation_jobs").update({ status:"running", started_at:new Date().toISOString() }).eq("campaign_id", cId).eq("job_type","asset_render").in("status",["queued","running"]);
   const results: any[] = []; let rendered = 0, failed = 0;
   for (const asset of assets) {
-    try { const url = await renderAsset(svc, asset, campaign, resvgFont); rendered++; results.push({ id:asset.id, ok:true, url }); }
+    try { const url = await renderAsset(svc, asset, campaign, resvgFonts); rendered++; results.push({ id:asset.id, ok:true, url }); }
     catch (e) {
       const error = String((e as Error)?.message || e);
       failed++;

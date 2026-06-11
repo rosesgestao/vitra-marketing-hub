@@ -22,8 +22,8 @@ import {
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION as EDGE_RENDER_VERSION } from '../../../../supabase/functions/_shared/renderVersions.ts'
 
 describe('catalogo de templates por marca', () => {
-  it('Imobiliaria tem 4 templates aprovados e Premium tem 1', () => {
-    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(4)
+  it('Imobiliaria tem 5 templates aprovados e Premium tem 1', () => {
+    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(5)
     expect(creativeTemplatesForBrand(BRAND_SCOPES.premium)).toHaveLength(1)
   })
   it('marca desconhecida cai no catalogo Premium', () => {
@@ -99,8 +99,9 @@ describe('render-version (fonte unica no catalogo — Fase 3)', () => {
     // o deploy dessincronizado (que geraria loop de pendencia de render).
     expect(VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION).toEqual(EDGE_RENDER_VERSION)
   })
-  it('renderVersionForFamily retorna a versao do financiamento e null para as demais', () => {
+  it('renderVersionForFamily retorna a versao das families versionadas e null para as demais', () => {
     expect(renderVersionForFamily('vitra-imobiliaria-financiamento-orla')).toBe('financiamento-orla-approved-v7')
+    expect(renderVersionForFamily('vitra-imobiliaria-hero-checklist')).toBe('hero-checklist-approved-v1')
     expect(renderVersionForFamily('vitra-imobiliaria-dual-photo-offer')).toBeNull()
     expect(renderVersionForFamily('vitra-imobiliaria-patios-gallery')).toBeNull()
     expect(renderVersionForFamily('vitra-imobiliaria-menino-deus-offer')).toBeNull()

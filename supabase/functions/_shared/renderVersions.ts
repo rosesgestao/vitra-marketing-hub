@@ -9,6 +9,7 @@
 // nova a versionar e nao queremos re-render retroativo em massa de pecas que ja estao corretas).
 export const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION: Record<string, string> = {
   "vitra-imobiliaria-financiamento-orla": "financiamento-orla-approved-v7",
+  "vitra-imobiliaria-hero-checklist": "hero-checklist-approved-v1",
 };
 
 export function renderVersionForFamily(family: string | null | undefined): string | null {
