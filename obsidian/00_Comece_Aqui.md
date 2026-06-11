@@ -93,6 +93,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 29. **[[Atualizacao_2026-06-11_Template_05_Estudio_Criativos_Excluir_Campanhas]]**
     Registro do 5o template da Imobiliaria (foto + checklist, paleta alinhada ao brandbook), da nova secao Estudio de Criativos, da exclusao de campanhas pela UI e do contexto de copywriting. Commits 529ebc6, aee7749, 1ce33b3, c36831a.
 
+30. **[[Atualizacao_2026-06-11_Safe_Zone_Dual_e_Template_06_Duo_Selos]]**
+    Registro da skill margem-seguranca-criativos (safe zones do Meta), da correcao de safe zone no template Oferta com duas fotos e do 6o template (Oferta duo com selos, fiel a peca da Zona Norte). Commits 8bfc960, 4284748, e3112fa.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
