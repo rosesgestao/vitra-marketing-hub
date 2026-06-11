@@ -187,6 +187,15 @@
     @apply mt-2 max-w-3xl text-sm leading-6 text-gray-500;
   }
 
+  .form-label {
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50;
+  }
+
+  .form-input {
+    @apply w-full rounded-lg border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-white/25
+           transition-colors focus:border-gold-500/40 focus:bg-white/[0.06] focus:outline-none;
+  }
+
   .skeleton {
     background: linear-gradient(
       90deg,

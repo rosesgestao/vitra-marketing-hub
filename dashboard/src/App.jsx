@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Zap } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Wand2, Zap } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -9,6 +9,7 @@ import Metricas from './views/Metricas.jsx'
 import { BrandHorizontalLogo, BrandV } from './components/PremiumBrand.jsx'
 import { BRAND_SCOPES, getBrandProfile } from './lib/brandProfiles.js'
 import EstudioPecas from './views/EstudioPecas.jsx'
+import EstudioCriativos from './views/EstudioCriativos.jsx'
 import { PECAS_PLATFORMS } from './lib/pecasCatalog.js'
 
 // Marca-mae (Vitra Imobiliaria) PRIMEIRO: e a marca principal do sistema. Vitra Premium
@@ -47,10 +48,15 @@ const PECAS_NAV = [
   ...PECAS_PLATFORMS.map(platform => ({ id: `pecas:${platform.id}`, label: platform.label, icon: platform.icon })),
 ]
 
+const CRIATIVOS_NAV = [
+  { id: 'criativos:novo', label: 'Novo criativo', icon: Wand2 },
+]
+
 // Modelo unico de seções da sidebar (acordeão): cada seção tem id, título e itens.
-// Ordem preservada: marcas primeiro, depois Estúdio de Peças e Operação compartilhada.
+// Ordem preservada: marcas primeiro, Estúdio de Criativos, Estúdio de Peças, Operação.
 const NAV_SECTIONS = [
   ...BRAND_SECTIONS.map(section => ({ id: section.scope, title: section.title, items: section.items })),
+  { id: 'criativos', title: 'Estúdio de Criativos', items: CRIATIVOS_NAV },
   { id: 'pecas', title: 'Estúdio de Peças', items: PECAS_NAV },
   { id: 'operacao', title: 'Operação compartilhada', items: OPERATIONS },
 ]
@@ -161,6 +167,7 @@ export default function App() {
         {view === 'premium-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} focusMode="trafego" />}
         {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
         {view === 'imobiliaria-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} focusMode="trafego" />}
+        {view.startsWith('criativos:') && <EstudioCriativos />}
         {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={setView} />}
         {view === 'pipeline' && <Pipeline />}
         {view === 'calendario' && <Calendario />}
