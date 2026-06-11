@@ -27,6 +27,7 @@ import {
   Send,
   Sparkles,
   Target,
+  Trash2,
   Wand2,
   X,
 } from 'lucide-react'
@@ -34,6 +35,7 @@ import { supabaseConfig } from '../lib/supabase.js'
 import {
   PREMIUM_TABLES,
   approveAsset,
+  deleteCampaign,
   approveAssets,
   carouselLimit,
   createPremiumCampaign,
@@ -602,6 +604,17 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     setNotice('Campanha criada. A geracao automatica dos cortes vai iniciar em segundo plano.')
   }
 
+  async function handleDeleteCampaign(campaign) {
+    if (!window.confirm(`Excluir "${campaign.name}"? Todos os assets, conteúdos e publicações da campanha serão removidos.`)) return
+    try {
+      await deleteCampaign(campaign.id)
+      if (selectedCampaignId === campaign.id) setSelectedCampaignId(null)
+      await refresh(null)
+    } catch (err) {
+      setError(err)
+    }
+  }
+
   async function handleCreatePublication(form) {
     setSavingPublication(true)
     setError(null)
@@ -852,6 +865,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             selectedCampaignId={selectedCampaignId}
             onSelect={setSelectedCampaignId}
             onCreate={openCampaignModal}
+            onDelete={handleDeleteCampaign}
             assets={workspace.assets}
             publications={workspace.publications}
             scopedAssets={scoped.assets}
@@ -872,6 +886,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             selectedCampaignId={selectedCampaignId}
             onSelect={setSelectedCampaignId}
             onCreate={openCampaignModal}
+            onDelete={handleDeleteCampaign}
             assets={workspace.assets}
             posts={workspace.posts}
             publications={workspace.publications}
@@ -966,6 +981,7 @@ function PaidTrafficWorkspace({
   selectedCampaignId,
   onSelect,
   onCreate,
+  onDelete,
   assets,
   publications,
   scopedAssets,
@@ -999,6 +1015,7 @@ function PaidTrafficWorkspace({
         assets={assets}
         onSelect={onSelect}
         onCreate={onCreate}
+        onDelete={onDelete}
       />
 
       {selectedCampaign && (
@@ -1024,7 +1041,7 @@ function PaidTrafficWorkspace({
   )
 }
 
-function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaignId, assets, onSelect, onCreate }) {
+function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaignId, assets, onSelect, onCreate, onDelete }) {
   return (
     <div className="rounded-lg border border-gold-500/18 bg-[color:var(--surface-1)] p-4">
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1055,11 +1072,13 @@ function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaign
           const active = selectedCampaignId === campaign.id
 
           return (
-            <button
+            <div
               key={campaign.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => onSelect(campaign.id)}
-              className="rounded-md border p-3 text-left transition"
+              onKeyDown={e => e.key === 'Enter' && onSelect(campaign.id)}
+              className="group cursor-pointer rounded-md border p-3 text-left transition"
               style={{
                 borderColor: active ? 'rgba(196,148,42,0.55)' : 'rgba(255,255,255,0.09)',
                 background: active ? 'rgba(196,148,42,0.10)' : 'rgba(255,255,255,0.025)',
@@ -1067,7 +1086,19 @@ function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaign
             >
               <div className="mb-2 flex items-start justify-between gap-2">
                 <p className="line-clamp-2 text-sm font-semibold leading-5 text-white">{campaign.name}</p>
-                {active && <CheckCircle2 size={14} className="mt-0.5 flex-shrink-0 text-gold-300" />}
+                <div className="flex flex-shrink-0 items-center gap-1">
+                  {active && <CheckCircle2 size={14} className="text-gold-300" />}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); onDelete(campaign) }}
+                      className="flex h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400 text-white/30"
+                      title="Excluir campanha"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="truncate text-xs text-white/42">{campaign.product_name || campaign.property_type || brandProfile.campaignFallback}</p>
               <div className="mt-3 flex items-center gap-2 text-[10px] text-white/40">
@@ -1075,7 +1106,7 @@ function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaign
                 <span className="h-1 w-1 rounded-full bg-white/18" />
                 <span>{readyAds}/{adGroups.length || 0} anúncios prontos</span>
               </div>
-            </button>
+            </div>
           )
         })}
       </div>
@@ -1083,7 +1114,7 @@ function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaign
   )
 }
 
-function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedCampaignId, onSelect, onCreate, assets, posts, publications }) {
+function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedCampaignId, onSelect, onCreate, onDelete, assets, posts, publications }) {
   if (!campaigns.length) {
     return (
       <EmptyState
@@ -1102,21 +1133,36 @@ function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedC
           const campaignAssets = assets.filter(asset => asset.campaign_id === campaign.id).length
           const campaignPosts = posts.filter(post => post.campaign_id === campaign.id).length
           return (
-            <button
+            <div
               key={campaign.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelect(campaign.id)}
-              className="w-full rounded-lg border p-4 text-left transition"
+              onKeyDown={e => e.key === 'Enter' && onSelect(campaign.id)}
+              className="group w-full cursor-pointer rounded-lg border p-4 text-left transition"
               style={{
                 borderColor: active ? 'rgba(196,148,42,0.55)' : 'rgba(255,255,255,0.10)',
                 background: active ? 'rgba(196,148,42,0.08)' : 'rgba(255,255,255,0.025)',
               }}
             >
               <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="font-display text-xl font-semibold leading-tight text-white">{campaign.name}</p>
                   <p className="mt-1 text-xs text-white/42">{campaign.product_name || campaign.property_type || brandProfile.campaignFallback}</p>
                 </div>
-                <StatusPill value={campaign.status} />
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <StatusPill value={campaign.status} />
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); onDelete(campaign) }}
+                      className="flex h-6 w-6 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400 text-white/30"
+                      title="Excluir campanha"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3 text-[11px] text-white/45">
                 <span>{campaignAssets} assets</span>
@@ -1125,7 +1171,7 @@ function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedC
                 <span className="h-1 w-1 rounded-full bg-white/20" />
                 <span>{formatDate(campaign.start_date)}</span>
               </div>
-            </button>
+            </div>
           )
         })}
       </div>

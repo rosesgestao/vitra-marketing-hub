@@ -1473,6 +1473,14 @@ function withTimeout(promise, ms, message) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
 }
 
+export async function deleteCampaign(campaignId) {
+  const { error } = await supabase
+    .from(PREMIUM_TABLES.campaigns)
+    .delete()
+    .eq('id', campaignId)
+  if (error) throw error
+}
+
 export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.premium } = {}) {
   const brandProfile = getBrandProfile(brandScope)
   const product = form.product_name?.trim() || form.name.trim()
