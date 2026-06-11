@@ -55,33 +55,41 @@ export function textSizeForWidth(text: unknown, base: number, min: number, ideal
   return Math.max(min, Math.round(base * (idealChars / length)));
 }
 
+// Coordenadas do template "oferta com duas fotos" (dual-photo-offer base) POR FORMATO.
+// Todos os elementos de conteudo (logo, headline, preco, features, CTA, slogan) ficam dentro da
+// MARGEM DE SEGURANCA do Meta — ver skill margem-seguranca-criativos (references/safe-zones.json).
+// Safe zones aplicadas: 1:1 -> [108..972]; 9:16 -> REELS-safe [35..1045]x / [250..1470]y (topo 250,
+// base 450, laterais 35, + canto inferior direito da coluna de acoes livre); 1.91:1 (1200x628) ->
+// [89..1111]x / [63..564]y. So fundo/foto pode sangrar ate a borda; conteudo critico, nunca.
 export function approvedTemplateLayout(ar: string) {
   if (ar === "9:16") {
+    // Reels-safe: conteudo de 250 a 1470. Fotos menores que antes (era ate 1516) para abrir espaco
+    // a features+CTA dentro da safe zone; CTA centralizado (x<=845) longe da coluna de acoes (x>=925).
     return {
-      logo: [285, 110, 510, 170],
-      headline: [540, 345, 72, 72, 24, 2],
-      description: [540, 490, 28, 86],
-      price: [260, 515, 560, 58],
-      photos: [[135, 650, 810, 420, 54], [135, 1096, 810, 420, 54]],
-      features: [[540, 1580, "middle"], [540, 1635, "middle"]],
-      cta: [235, 1708, 610, 72, 1760, 28],
-      slogan: [540, 1830, 16, 8],
+      logo: [285, 270, 510, 140],
+      headline: [540, 470, 66, 70, 24, 2],
+      description: [540, 600, 26, 86],
+      price: [260, 628, 560, 56],
+      photos: [[135, 712, 810, 232, 40], [135, 956, 810, 232, 40]],
+      features: [[540, 1252, "middle"], [540, 1302, "middle"]],
+      cta: [235, 1342, 610, 72, 1392, 28],
+      slogan: [540, 1452, 14, 7],
     };
   }
   if (ar === "1.91:1") {
     return {
-      logo: [70, 50, 330, 110],
+      logo: [89, 63, 330, 110],
       headline: [335, 205, 54, 55, 24, 2],
       description: [335, 320, 22, 70],
       price: [95, 344, 500, 50],
-      photos: [[735, 70, 370, 236, 34], [735, 332, 370, 236, 34]],
+      photos: [[735, 70, 370, 236, 34], [735, 332, 370, 230, 34]],
       features: [[95, 455, "start"], [95, 498, "start"]],
-      cta: [120, 535, 430, 48, 566, 18],
+      cta: [120, 508, 430, 48, 539, 18],
       slogan: null,
     };
   }
   return {
-    logo: [360, 78, 360, 120],
+    logo: [360, 110, 360, 120],
     headline: [540, 272, 65, 64, 25, 2],
     description: [540, 374, 24, 82],
     price: [285, 398, 510, 58],
