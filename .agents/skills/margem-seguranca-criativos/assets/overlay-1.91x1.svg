@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627">
+  <!-- Overlay de safe zone — Feed Paisagem 1.91:1 (1200x627, formato Vitra).
+       Topo/base 63px (10%), laterais 89px (7.4%). Laterais mais estreitas que o feed quadrado. -->
+  <g fill="#EF4444" fill-opacity="0.45">
+    <rect x="0" y="0" width="1200" height="63"/>
+    <rect x="0" y="564" width="1200" height="63"/>
+    <rect x="0" y="63" width="89" height="501"/>
+    <rect x="1111" y="63" width="89" height="501"/>
+  </g>
+  <rect x="89" y="63" width="1022" height="501" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="14 10"/>
+  <g fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="600" y="40" font-size="26">63px</text>
+    <text x="600" y="603" font-size="26">63px</text>
+    <text x="600" y="324" font-size="32" fill-opacity="0.92">SAFE ZONE 1022 x 501 (laterais 89px)</text>
+  </g>
+</svg>

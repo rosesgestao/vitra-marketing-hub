@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <!-- Overlay de safe zone — Stories 9:16 (1080x1920). Topo/base 250px (13%), laterais 35px (3.2%).
+       Topo = avatar/nome; base = barra de progresso + "Enviar mensagem". -->
+  <g fill="#EF4444" fill-opacity="0.45">
+    <rect x="0" y="0" width="1080" height="250"/>
+    <rect x="0" y="1670" width="1080" height="250"/>
+    <rect x="0" y="250" width="35" height="1420"/>
+    <rect x="1045" y="250" width="35" height="1420"/>
+  </g>
+  <rect x="35" y="250" width="1010" height="1420" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="14 10"/>
+  <g fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="540" y="135" font-size="40">TOPO 250px (UI do app)</text>
+    <text x="540" y="1810" font-size="40">BASE 250px (barra + enviar msg)</text>
+    <text x="540" y="970" font-size="44" fill-opacity="0.92">SAFE ZONE 1010 x 1420</text>
+  </g>
+</svg>
