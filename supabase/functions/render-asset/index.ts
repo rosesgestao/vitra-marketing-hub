@@ -828,26 +828,29 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   const bullets = heroChecklistBullets(pd, campaign, isWide ? 3 : 5);
   const cta = compactText(asset.cta || "Clique abaixo e receba mais informações", 46);
 
-  // Layout por formato: [feed 1080x1080] espelha a peca aprovada; story/wide sao adaptacoes
-  // proporcionais da mesma hierarquia (logo > headline > De/Por > checklist > CTA).
+  // Layout por formato com a SAFE ZONE do Meta aplicada (skill margem-seguranca-criativos): mesma
+  // hierarquia da peca aprovada (logo > headline > De/Por > checklist > CTA), mas com todo o
+  // conteudo critico DENTRO do retangulo seguro. 1:1 [108..972]; 9:16 reels-safe y[250..1470]
+  // (logo abaixo de 250, CTA acima de 1470); 1.91:1 (1200x628) x[89..1111] y[63..564]. So a foto
+  // de fundo sangra ate a borda.
   const L = isStory ? {
-    logo: [905, 120, 120], margin: 90,
-    headBase: 96, headGap: 110, headY: 400, headBudget: 740,
-    deY: 706, deSize: 38, porY: priceFrom ? 782 : 740, porSize: 60,
-    bulletsY: 900, bulletStep: 84, bulletSize: 36, badge: 38, bulletTextX: 152, bulletChars: 30,
-    cta: [90, 1540, 640, 104, 20], ctaSize: 31,
+    logo: [905, 276, 120], margin: 90,
+    headBase: 96, headGap: 104, headY: 440, headBudget: 740,
+    deY: 720, deSize: 38, porY: priceFrom ? 796 : 760, porSize: 58,
+    bulletsY: 900, bulletStep: 80, bulletSize: 34, badge: 38, bulletTextX: 152, bulletChars: 30,
+    cta: [90, 1300, 640, 100, 20], ctaSize: 30,
   } : isWide ? {
-    logo: [1010, 48, 110], margin: 70,
-    headBase: 50, headGap: 54, headY: 150, headBudget: 540,
-    deY: 312, deSize: 24, porY: priceFrom ? 360 : 330, porSize: 38,
-    bulletsY: 410, bulletStep: 44, bulletSize: 20, badge: 22, bulletTextX: 106, bulletChars: 26,
-    cta: [70, 524, 470, 64, 14], ctaSize: 22,
+    logo: [990, 72, 110], margin: 90,
+    headBase: 46, headGap: 50, headY: 120, headBudget: 500,
+    deY: 270, deSize: 22, porY: priceFrom ? 312 : 286, porSize: 34,
+    bulletsY: 356, bulletStep: 42, bulletSize: 18, badge: 22, bulletTextX: 124, bulletChars: 26,
+    cta: [90, 486, 460, 58, 14], ctaSize: 20,
   } : {
-    logo: [905, 72, 120], margin: 90,
-    headBase: 84, headGap: 96, headY: 222, headBudget: 620,
-    deY: 470, deSize: 32, porY: priceFrom ? 536 : 500, porSize: 50,
-    bulletsY: 604, bulletStep: 70, bulletSize: 30, badge: 32, bulletTextX: 140, bulletChars: 30,
-    cta: [90, 920, 552, 92, 18], ctaSize: 27,
+    logo: [852, 120, 120], margin: 108,
+    headBase: 84, headGap: 92, headY: 224, headBudget: 600,
+    deY: 462, deSize: 32, porY: priceFrom ? 524 : 488, porSize: 48,
+    bulletsY: 588, bulletStep: 62, bulletSize: 28, badge: 30, bulletTextX: 158, bulletChars: 30,
+    cta: [108, 880, 552, 84, 18], ctaSize: 26,
   };
 
   const x = L.margin;

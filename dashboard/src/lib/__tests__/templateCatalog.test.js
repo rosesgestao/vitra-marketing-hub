@@ -129,7 +129,7 @@ describe('render-version (fonte unica no catalogo — Fase 3)', () => {
   })
   it('renderVersionForFamily retorna a versao das families versionadas e null para as demais', () => {
     expect(renderVersionForFamily('vitra-imobiliaria-financiamento-orla')).toBe('financiamento-orla-approved-v7')
-    expect(renderVersionForFamily('vitra-imobiliaria-hero-checklist')).toBe('hero-checklist-approved-v1')
+    expect(renderVersionForFamily('vitra-imobiliaria-hero-checklist')).toBe('hero-checklist-safezone-v2')
     expect(renderVersionForFamily('vitra-imobiliaria-duo-selos-offer')).toBe('duo-selos-approved-v1')
     expect(renderVersionForFamily('vitra-imobiliaria-hero-panel-gallery')).toBe('hero-panel-approved-v1')
     expect(renderVersionForFamily('vitra-imobiliaria-dual-photo-offer')).toBeNull()
