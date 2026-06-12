@@ -120,6 +120,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 38. **[[Atualizacao_2026-06-12_Refino_UI_Fase5_Consistencia_Componentes]]**
     Fase 5: consistencia de cards/modais/filtros. Sistema de raio em 2 niveis (containers rounded-xl, controles rounded-lg); classes .modal-overlay/.modal-panel padronizam os 3 modais (hairline dourado); todos os selects/inputs soltos (bg-black/35) passam a usar .form-input. Build/lint/151 testes ok; validado por inspecao de DOM (screenshot do harness travou). Commit bcf0ea8.
 
+39. **[[Atualizacao_2026-06-12_Refino_UI_Fase6_Assinatura_Entrada]]**
+    Fase 6: eleva o padrao sem mudar identidade. Assinatura = entrada orquestrada das telas (keyframe vitra-rise, easeOutQuint, reduced-motion safe) + tabular-nums nos KPIs. Bug corrigido: fill-mode `both` criava containing-block (matrix identidade != none) e deslocava modais fixed; troca para `backwards`. Commit 3f3bb7f.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
