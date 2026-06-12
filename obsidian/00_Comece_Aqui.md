@@ -108,6 +108,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 34. **[[Atualizacao_2026-06-12_Refino_UI_Fase1_Central]]**
     Inicio do refino de layout com a skill frontend-design (referencia vitra.cria.digital, mantendo navy+dourado). Fase 1 na Central Imobiliaria: KPIs (numero off-white + dourado acento, icone em chip, hover), cards de campanha (barra-acento, hover, meta-row com icones) e abas. So apresentacao, zero logica. Commit 54f8890.
 
+35. **[[Atualizacao_2026-06-12_Refino_UI_Fase2_Header_Modal]]**
+    Fase 2 do refino: header/hero (CTA primario solido com tinta brand-aware via --surface-0, titulo Playfair) e modal Nova Campanha (eyebrow com a marca + Playfair, "Criar Campanha" solido). Validado nas duas marcas (sem azul na Premium). Define o vocabulario de CTA primario/secundario reaproveitavel. Commit d34dfcf.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
