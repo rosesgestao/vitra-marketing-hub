@@ -99,6 +99,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 31. **[[Atualizacao_2026-06-12_Template_07_Hero_Panel_San_Clemente]]**
     7o template aprovado da Vitra Imobiliaria (Hero com painel e galeria), fiel a peca San Clemente / Bairro Gloria: foto hero + painel azul do brandbook + setas douradas + preco + galeria lateral, nos 3 formatos com safe zone nativa. Aparece no modal Nova Campanha. Inclui nota de processo sobre o bug de separacao de marcas corrigido na v59. Commit d2d1734.
 
+32. **[[Atualizacao_2026-06-12_Oculta_Templates_Antigos_Modal]]**
+    O modal Nova Campanha da Imobiliaria passa a oferecer so os 3 templates aprovados mais recentes (Foto de fundo com checklist, Oferta duo com selos, Hero com painel e galeria); os 4 antigos ganham `hidden: true` e saem da selecao, mas seguem no catalogo resolvendo por id para campanhas/assets ja criados. Commit e9e20af.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
