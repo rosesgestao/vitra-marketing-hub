@@ -102,6 +102,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 32. **[[Atualizacao_2026-06-12_Oculta_Templates_Antigos_Modal]]**
     O modal Nova Campanha da Imobiliaria passa a oferecer so os 3 templates aprovados mais recentes (Foto de fundo com checklist, Oferta duo com selos, Hero com painel e galeria); os 4 antigos ganham `hidden: true` e saem da selecao, mas seguem no catalogo resolvendo por id para campanhas/assets ja criados. Commit e9e20af.
 
+33. **[[Atualizacao_2026-06-12_Hero_Checklist_Safe_Zone]]**
+    Auditoria de safe zone dos 3 templates selecionaveis: duo-selos e hero-panel passam; o hero-checklist (Template 05) reprovava nos 3 formatos e foi corrigido (logo fora dos cantos, CTA fora das faixas de reels/base, margens 108/89). Deploy do Edge agora via Supabase CLI (le do disco, fim da divergencia disco/deploy). 6 previews regenerados. Commit 45b229b.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
