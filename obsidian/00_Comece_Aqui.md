@@ -117,6 +117,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 37. **[[Atualizacao_2026-06-12_Refino_UI_Fase4_Responsividade_Grids]]**
     Fase 4: corrige o bug critico da sidebar no mobile (virou drawer off-canvas abaixo de 768px, com hamburguer/backdrop/X; estatica em md+) e melhora os grids de KPI (1->2->4 colunas). Dashboard agora usavel do celular ao desktop. Validado em 375/768/desktop. Commit 9f7b038.
 
+38. **[[Atualizacao_2026-06-12_Refino_UI_Fase5_Consistencia_Componentes]]**
+    Fase 5: consistencia de cards/modais/filtros. Sistema de raio em 2 niveis (containers rounded-xl, controles rounded-lg); classes .modal-overlay/.modal-panel padronizam os 3 modais (hairline dourado); todos os selects/inputs soltos (bg-black/35) passam a usar .form-input. Build/lint/151 testes ok; validado por inspecao de DOM (screenshot do harness travou). Commit bcf0ea8.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
