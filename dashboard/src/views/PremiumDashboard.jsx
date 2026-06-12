@@ -216,15 +216,21 @@ function StatusPill({ value }) {
 
 function StatTile({ label, value, sub, icon: Icon, tone = '#C4942A' }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-[color:var(--surface-1)] p-4">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</p>
-        <Icon size={15} style={{ color: tone }} />
+    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-4 transition duration-200 hover:border-gold-500/30 hover:bg-white/[0.045]">
+      <div className="mb-3.5 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">{label}</p>
+        <span className="grid h-7 w-7 place-items-center rounded-md border border-white/10 bg-white/[0.03]" style={{ color: tone }}>
+          <Icon size={14} />
+        </span>
       </div>
-      <p className="font-display text-3xl font-semibold leading-none" style={{ color: tone }}>
+      <p className="font-display text-[2rem] font-semibold leading-none tracking-tight text-[#F4EFE3]">
         {value}
       </p>
-      {sub && <p className="mt-2 text-xs text-white/42">{sub}</p>}
+      {sub && <p className="mt-2 text-xs leading-5 text-white/45">{sub}</p>}
+      <span
+        className="pointer-events-none absolute bottom-0 left-0 h-[3px] w-9 rounded-full transition-all duration-200 group-hover:w-16"
+        style={{ backgroundColor: tone }}
+      />
     </div>
   )
 }
@@ -755,7 +761,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           </div>
 
           {isPaidTrafficMode ? (
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-4">
               <StatTile label="Campanhas com Ads" value={paidTrafficOverview.campaigns} sub="com cortes Meta" icon={Briefcase} />
               <StatTile label="Cortes Meta" value={paidTrafficOverview.cuts} sub={`${paidTrafficOverview.queued} aguardando render`} icon={Megaphone} />
               <StatTile label="Anuncios prontos" value={`${paidTrafficOverview.readyAds}/${paidTrafficOverview.adGroups}`} sub="QA + aprovacao" icon={CheckCircle2} tone="#F0C95C" />
@@ -768,7 +774,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
               />
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-4">
               <StatTile label="Campanhas" value={totals.campaigns} sub={`no ambiente ${brandProfile.shortName}`} icon={Briefcase} />
               <StatTile label="Assets" value={totals.assets} sub={selectedCampaign ? 'campanha selecionada' : 'aguardando'} icon={Layers3} />
               <StatTile label="Publicacoes" value={totals.publications} sub={`${totals.posts} conteudos planejados`} icon={Send} tone="#E4C06E" />
@@ -833,12 +839,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className="inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition"
-                  style={{
-                    color: active ? '#D4A84A' : 'rgba(255,255,255,0.52)',
-                    borderColor: active ? '#C4942A' : 'transparent',
-                    background: active ? 'rgba(196,148,42,0.07)' : 'transparent',
-                  }}
+                  className={`inline-flex items-center gap-2 whitespace-nowrap rounded-t-md border-b-2 px-4 py-3 text-sm font-medium transition duration-200 ${active ? 'border-gold-500 bg-gold-500/[0.06] text-gold-300' : 'border-transparent text-white/52 hover:border-white/20 hover:text-white/90'}`}
                 >
                   <Icon size={15} />
                   {label}
@@ -1139,16 +1140,15 @@ function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedC
               tabIndex={0}
               onClick={() => onSelect(campaign.id)}
               onKeyDown={e => e.key === 'Enter' && onSelect(campaign.id)}
-              className="group w-full cursor-pointer rounded-lg border p-4 text-left transition"
-              style={{
-                borderColor: active ? 'rgba(196,148,42,0.55)' : 'rgba(255,255,255,0.10)',
-                background: active ? 'rgba(196,148,42,0.08)' : 'rgba(255,255,255,0.025)',
-              }}
+              className={`group relative w-full cursor-pointer overflow-hidden rounded-xl border p-4 pl-5 text-left transition duration-200 ${active ? 'border-gold-500/55 bg-gold-500/[0.08]' : 'border-white/10 bg-white/[0.025] hover:border-gold-500/25 hover:bg-white/[0.045]'}`}
             >
+              <span
+                className={`pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gold-500 transition-opacity duration-200 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}
+              />
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-display text-xl font-semibold leading-tight text-white">{campaign.name}</p>
-                  <p className="mt-1 text-xs text-white/42">{campaign.product_name || campaign.property_type || brandProfile.campaignFallback}</p>
+                  <p className="truncate font-display text-xl font-semibold leading-tight text-white">{campaign.name}</p>
+                  <p className="mt-1 truncate text-xs text-white/42">{campaign.product_name || campaign.property_type || brandProfile.campaignFallback}</p>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
                   <StatusPill value={campaign.status} />
@@ -1164,12 +1164,12 @@ function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedC
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-[11px] text-white/45">
-                <span>{campaignAssets} assets</span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/45">
+                <span className="inline-flex items-center gap-1.5"><Layers3 size={12} className="text-white/30" />{campaignAssets} assets</span>
                 <span className="h-1 w-1 rounded-full bg-white/20" />
-                <span>{campaignPosts} conteúdos</span>
+                <span className="inline-flex items-center gap-1.5"><Send size={12} className="text-white/30" />{campaignPosts} conteúdos</span>
                 <span className="h-1 w-1 rounded-full bg-white/20" />
-                <span>{formatDate(campaign.start_date)}</span>
+                <span className="inline-flex items-center gap-1.5"><Clock size={12} className="text-white/30" />{formatDate(campaign.start_date)}</span>
               </div>
             </div>
           )
