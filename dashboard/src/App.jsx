@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Wand2, Zap } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Menu, Wand2, X, Zap } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -89,6 +89,8 @@ export default function App() {
   const [view, setView] = useState(readInitialView)
   // Acordeão da sidebar: só uma seção aberta por vez (a da view ativa, por padrão).
   const [openSection, setOpenSection] = useState(() => sectionIdForView(readInitialView()))
+  // Drawer da navegação no mobile: abaixo de `lg` a sidebar vira off-canvas (oculta por padrão).
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const currentView = ALL_VIEWS.find(item => item.id === view) || ALL_VIEWS[0]
   // Views compartilhadas (operacao, estudio de pecas) caem na MARCA-MAE por padrao;
   // so paineis Premium re-tingem o chrome para preto (sem azul).
@@ -114,16 +116,40 @@ export default function App() {
     setOpenSection(sectionIdForView(view))
   }, [view])
 
+  const selectView = viewId => {
+    setView(viewId)
+    setMobileNavOpen(false)
+  }
+
   return (
     <div className="flex h-screen overflow-hidden text-white">
-      <aside className="relative flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[color:var(--surface-0)]">
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[color:var(--surface-0)] transition-transform duration-300 ease-out md:static md:z-auto md:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(196,148,42,0.10),transparent_18rem)]" />
 
-        <div className="relative px-6 pb-6 pt-7">
-          <BrandHorizontalLogo brandScope={activeBrandScope} className="scale-[0.82] origin-left" />
-          <p className="mt-5 border-t border-gold-500/20 pt-4 text-[10px] font-semibold uppercase tracking-[0.32em] text-gold-500/70">
-            {activeBrand.shellKicker}
-          </p>
+        <div className="relative flex items-start justify-between gap-2 px-6 pb-6 pt-7">
+          <div>
+            <BrandHorizontalLogo brandScope={activeBrandScope} className="scale-[0.82] origin-left" />
+            <p className="mt-5 border-t border-gold-500/20 pt-4 text-[10px] font-semibold uppercase tracking-[0.32em] text-gold-500/70">
+              {activeBrand.shellKicker}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Fechar menu"
+            className="-mr-1 rounded-lg p-1.5 text-white/55 transition hover:bg-white/5 hover:text-white md:hidden"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="gold-line mx-0" />
@@ -137,7 +163,7 @@ export default function App() {
               hasActive={section.items.some(item => item.id === view)}
               onToggle={() => setOpenSection(current => (current === section.id ? null : section.id))}
               view={view}
-              onSelect={setView}
+              onSelect={selectView}
             />
           ))}
         </nav>
@@ -162,19 +188,34 @@ export default function App() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-transparent">
-        {view === 'premium' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} />}
-        {view === 'premium-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} focusMode="trafego" />}
-        {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
-        {view === 'imobiliaria-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} focusMode="trafego" />}
-        {view.startsWith('criativos:') && <EstudioCriativos />}
-        {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={setView} />}
-        {view === 'pipeline' && <Pipeline />}
-        {view === 'calendario' && <Calendario />}
-        {view === 'kanban' && <Kanban />}
-        {view === 'agentes' && <Agentes />}
-        {view === 'metricas' && <Metricas />}
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center gap-3 border-b border-gold-500/15 bg-[color:var(--surface-0)] px-4 py-3 md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Abrir menu"
+            aria-expanded={mobileNavOpen}
+            className="rounded-lg border border-white/10 p-2 text-white/70 transition hover:border-gold-500/30 hover:text-white"
+          >
+            <Menu size={18} />
+          </button>
+          <BrandHorizontalLogo brandScope={activeBrandScope} className="scale-[0.62] origin-left" />
+        </header>
+
+        <main className="flex-1 overflow-y-auto bg-transparent">
+          {view === 'premium' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} />}
+          {view === 'premium-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} focusMode="trafego" />}
+          {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
+          {view === 'imobiliaria-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} focusMode="trafego" />}
+          {view.startsWith('criativos:') && <EstudioCriativos />}
+          {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={setView} />}
+          {view === 'pipeline' && <Pipeline />}
+          {view === 'calendario' && <Calendario />}
+          {view === 'kanban' && <Kanban />}
+          {view === 'agentes' && <Agentes />}
+          {view === 'metricas' && <Metricas />}
+        </main>
+      </div>
     </div>
   )
 }

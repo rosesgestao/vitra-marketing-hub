@@ -177,7 +177,7 @@ export default function Metricas() {
         </div>
       )}
 
-      <div className="mb-8 grid gap-4 md:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${workspace.metrics.length} coletas`} icon={Target} />
         <MetricTile label="Impressoes" value={formatNumber(totals.impressions)} sub={`${workspace.publications.length} publicacoes`} icon={Activity} />
         <MetricTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.clicks)} cliques`} icon={Repeat2} />

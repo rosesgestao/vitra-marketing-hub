@@ -761,7 +761,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           </div>
 
           {isPaidTrafficMode ? (
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatTile label="Campanhas com Ads" value={paidTrafficOverview.campaigns} sub="com cortes Meta" icon={Briefcase} />
               <StatTile label="Cortes Meta" value={paidTrafficOverview.cuts} sub={`${paidTrafficOverview.queued} aguardando render`} icon={Megaphone} />
               <StatTile label="Anuncios prontos" value={`${paidTrafficOverview.readyAds}/${paidTrafficOverview.adGroups}`} sub="QA + aprovacao" icon={CheckCircle2} tone="#F0C95C" />
@@ -774,7 +774,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
               />
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatTile label="Campanhas" value={totals.campaigns} sub={`no ambiente ${brandProfile.shortName}`} icon={Briefcase} />
               <StatTile label="Assets" value={totals.assets} sub={selectedCampaign ? 'campanha selecionada' : 'aguardando'} icon={Layers3} />
               <StatTile label="Publicacoes" value={totals.publications} sub={`${totals.posts} conteudos planejados`} icon={Send} tone="#E4C06E" />
