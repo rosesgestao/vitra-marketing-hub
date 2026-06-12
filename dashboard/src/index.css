@@ -221,3 +221,32 @@
     @apply animate-shimmer rounded;
   }
 }
+
+/* ===== Assinatura: entrada orquestrada das telas =====
+   Ao trocar de view (App re-monta o wrapper via key), o conteudo sobe suavemente com um easing
+   premium (easeOutQuint). Um unico momento, calmo e editorial — nao espalhado.
+   IMPORTANTE: fill-mode `backwards` (e NAO `both`). Com `both`, o transform final resolveria para
+   matrix(1,0,0,1,0,0) — que, mesmo sendo identidade, NAO e o keyword `none` e cria um containing-block,
+   quebrando os modais `position:fixed` (ficavam deslocados pela largura da sidebar). Com `backwards`,
+   apos a animacao o transform volta ao keyword `none` (sem containing-block); nenhum modal fica aberto
+   durante os 0.5s de navegacao, entao a janela com transform e inofensiva. */
+@keyframes vitra-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.view-enter {
+  animation: vitra-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-enter {
+    animation: none;
+  }
+}

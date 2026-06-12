@@ -223,7 +223,7 @@ function StatTile({ label, value, sub, icon: Icon, tone = '#C4942A' }) {
           <Icon size={14} />
         </span>
       </div>
-      <p className="font-display text-[2rem] font-semibold leading-none tracking-tight text-[#F4EFE3]">
+      <p className="font-display text-[2rem] font-semibold leading-none tracking-tight tabular-nums text-[#F4EFE3]">
         {value}
       </p>
       {sub && <p className="mt-2 text-xs leading-5 text-white/45">{sub}</p>}

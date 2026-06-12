@@ -203,17 +203,19 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-y-auto bg-transparent">
-          {view === 'premium' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} />}
-          {view === 'premium-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} focusMode="trafego" />}
-          {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
-          {view === 'imobiliaria-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} focusMode="trafego" />}
-          {view.startsWith('criativos:') && <EstudioCriativos />}
-          {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={setView} />}
-          {view === 'pipeline' && <Pipeline />}
-          {view === 'calendario' && <Calendario />}
-          {view === 'kanban' && <Kanban />}
-          {view === 'agentes' && <Agentes />}
-          {view === 'metricas' && <Metricas />}
+          <div key={view} className="view-enter">
+            {view === 'premium' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} />}
+            {view === 'premium-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} focusMode="trafego" />}
+            {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
+            {view === 'imobiliaria-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} focusMode="trafego" />}
+            {view.startsWith('criativos:') && <EstudioCriativos />}
+            {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={setView} />}
+            {view === 'pipeline' && <Pipeline />}
+            {view === 'calendario' && <Calendario />}
+            {view === 'kanban' && <Kanban />}
+            {view === 'agentes' && <Agentes />}
+            {view === 'metricas' && <Metricas />}
+          </div>
         </main>
       </div>
     </div>
