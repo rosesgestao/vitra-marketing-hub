@@ -96,6 +96,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 30. **[[Atualizacao_2026-06-11_Safe_Zone_Dual_e_Template_06_Duo_Selos]]**
     Registro da skill margem-seguranca-criativos (safe zones do Meta), da correcao de safe zone no template Oferta com duas fotos e do 6o template (Oferta duo com selos, fiel a peca da Zona Norte). Commits 8bfc960, 4284748, e3112fa.
 
+31. **[[Atualizacao_2026-06-12_Template_07_Hero_Panel_San_Clemente]]**
+    7o template aprovado da Vitra Imobiliaria (Hero com painel e galeria), fiel a peca San Clemente / Bairro Gloria: foto hero + painel azul do brandbook + setas douradas + preco + galeria lateral, nos 3 formatos com safe zone nativa. Aparece no modal Nova Campanha. Inclui nota de processo sobre o bug de separacao de marcas corrigido na v59. Commit d2d1734.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
