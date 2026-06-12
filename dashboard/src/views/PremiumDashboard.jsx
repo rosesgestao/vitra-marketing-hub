@@ -731,7 +731,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
                   {isPaidTrafficMode ? brandProfile.trafficKicker : brandProfile.areaKicker}
                 </p>
               </div>
-              <h1 className="font-display text-4xl font-semibold leading-tight text-white md:text-5xl">
+              <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white md:text-[3.25rem]">
                 {isPaidTrafficMode ? brandProfile.trafficTitle : brandProfile.dashboardTitle}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/52">
@@ -752,7 +752,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
               </button>
               <button
                 onClick={openCampaignModal}
-                className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/10 px-4 py-2 text-sm font-semibold text-gold-200 transition hover:bg-gold-500/20"
+                className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400"
               >
                 <Plus size={16} />
                 Nova campanha
@@ -2866,7 +2866,13 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
       <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-lg border border-white/15 bg-[color:var(--surface-1)] shadow-2xl shadow-black/70">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
-          <h2 className="text-lg font-semibold text-white">Nova Campanha</h2>
+          <div>
+            <div className="mb-1.5 flex items-center gap-2.5">
+              <span className="h-px w-7 bg-gold-500/70" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">{brandProfile.shortName}</span>
+            </div>
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-white">Nova campanha</h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -3554,7 +3560,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gold-500 px-4 py-2.5 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400 disabled:cursor-wait disabled:opacity-60"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                 {saving ? 'Criando campanha…' : 'Criar Campanha'}
