@@ -7,6 +7,7 @@ import {
 } from '../brandProfiles.js'
 import {
   creativeTemplatesForBrand,
+  selectableCreativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
   getCreativeTemplateById,
   variationRecipesForTemplate,
@@ -28,6 +29,33 @@ describe('catalogo de templates por marca', () => {
   })
   it('marca desconhecida cai no catalogo Premium', () => {
     expect(creativeTemplatesForBrand('marca-inexistente')).toHaveLength(1)
+  })
+})
+
+describe('templates selecionaveis no modal (aposentados ocultos)', () => {
+  it('Imobiliaria oferece apenas os 3 templates aprovados na selecao, nesta ordem', () => {
+    const selectable = selectableCreativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
+    expect(selectable.map(t => t.id)).toEqual([
+      'vitra-imobiliaria-hero-checklist',
+      'vitra-imobiliaria-duo-selos-offer',
+      'vitra-imobiliaria-hero-panel-gallery',
+    ])
+  })
+  it('os 4 templates antigos seguem no catalogo (resolvem) mas marcados como hidden', () => {
+    const all = creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
+    const hidden = all.filter(t => t.hidden).map(t => t.id)
+    expect(hidden).toEqual([
+      'vitra-imobiliaria-dual-photo-offer',
+      'vitra-imobiliaria-patios-gallery',
+      'vitra-imobiliaria-financiamento-orla',
+      'vitra-imobiliaria-menino-deus-offer',
+    ])
+    // ainda resolvem por id (campanhas/assets ja criados continuam funcionando)
+    expect(getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-patios-gallery').id)
+      .toBe('vitra-imobiliaria-patios-gallery')
+  })
+  it('o default da Imobiliaria passa a ser o primeiro selecionavel (hero-checklist)', () => {
+    expect(defaultCreativeTemplateForBrand(BRAND_SCOPES.imobiliaria).id).toBe('vitra-imobiliaria-hero-checklist')
   })
 })
 

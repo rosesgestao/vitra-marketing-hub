@@ -57,7 +57,7 @@ import {
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import {
-  creativeTemplatesForBrand,
+  selectableCreativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
   fieldGroupsForTemplate,
   fieldsForTemplate,
@@ -2463,7 +2463,7 @@ function PlatformLabel({ value }) {
 function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit }) {
   const [form, setForm] = useState(() => initialFormForBrand(brandProfile))
   const [localError, setLocalError] = useState(null)
-  const templateOptions = useMemo(() => creativeTemplatesForBrand(brandProfile.scope), [brandProfile.scope])
+  const templateOptions = useMemo(() => selectableCreativeTemplatesForBrand(brandProfile.scope), [brandProfile.scope])
   const { template: selectedTemplate, variant: selectedTemplateVariant } = useMemo(
     () => normalizeCreativeTemplateSelection(brandProfile.scope, form.creative_template_id, form.creative_template_variant),
     [brandProfile.scope, form.creative_template_id, form.creative_template_variant],

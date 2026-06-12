@@ -304,6 +304,9 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-dual-photo-offer',
       family: 'vitra-imobiliaria-dual-photo-offer',
       mode: 'single_family',
+      // Aposentado da selecao do modal Nova Campanha (junho/2026): a arte nao ficou boa o suficiente.
+      // Continua no catalogo para que campanhas/assets ja criados com esta family resolvam e renderizem.
+      hidden: true,
       name: 'Oferta com duas fotos',
       shortName: 'Duas fotos + oferta',
       bestFor: 'Promocoes, preco com comparativo, campanhas de bairro e chamadas diretas de conversao.',
@@ -337,6 +340,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-patios-gallery',
       family: 'vitra-imobiliaria-patios-gallery',
       mode: 'single_family',
+      hidden: true, // Aposentado da selecao do modal (junho/2026) — ver nota no dual-photo-offer.
       name: 'Galeria com beneficios',
       shortName: 'Patios + galeria',
       bestFor: 'Imoveis com varios ambientes, lista de beneficios e argumento de proximidade/localizacao.',
@@ -360,6 +364,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-financiamento-orla',
       family: 'vitra-imobiliaria-financiamento-orla',
       mode: 'single_family',
+      hidden: true, // Aposentado da selecao do modal (junho/2026) — ver nota no dual-photo-offer.
       name: 'Financiamento e oportunidade',
       shortName: 'Financiamento Orla',
       bestFor: 'Campanhas de entrada, Minha Casa Minha Vida removido, preco de oportunidade e bairro.',
@@ -386,6 +391,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-menino-deus-offer',
       family: 'vitra-imobiliaria-menino-deus-offer',
       mode: 'single_family',
+      hidden: true, // Aposentado da selecao do modal (junho/2026) — ver nota no dual-photo-offer.
       name: 'Oferta com foto protagonista',
       shortName: 'Menino Deus',
       bestFor: 'Imovel com foto forte, chamada por bairro, tarja de configuracao e bloco comercial claro.',
@@ -487,8 +493,16 @@ export function creativeTemplatesForBrand(brandScope) {
   return CREATIVE_TEMPLATE_CATALOG[brandScope] || CREATIVE_TEMPLATE_CATALOG[BRAND_SCOPES.premium]
 }
 
+// Templates oferecidos na selecao do modal Nova Campanha. Oculta os aposentados (`hidden: true`)
+// sem remove-los do catalogo — assim a UI mostra so os aprovados, mas campanhas/assets ja criados
+// com uma family oculta continuam resolvendo (getCreativeTemplateById, render, render-version).
+export function selectableCreativeTemplatesForBrand(brandScope) {
+  return creativeTemplatesForBrand(brandScope).filter(template => !template.hidden)
+}
+
 export function defaultCreativeTemplateForBrand(brandScope) {
-  return creativeTemplatesForBrand(brandScope)[0] || null
+  const selectable = selectableCreativeTemplatesForBrand(brandScope)
+  return selectable[0] || creativeTemplatesForBrand(brandScope)[0] || null
 }
 
 export function getCreativeTemplateById(brandScope, templateId) {

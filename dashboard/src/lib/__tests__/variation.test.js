@@ -73,9 +73,10 @@ describe('selectedTemplateVariationConcepts (contrato por template)', () => {
     expect(concepts[0].variation_index).toBe(0)
   })
 
-  it('Fase 2 (P1): pedir 8 com 5 receitas gera 5 SEM repetir recipe (era 8 com duplicatas)', () => {
+  it('Fase 2 (P1): pedir 8 com 6 receitas gera 6 SEM repetir recipe (era 8 com duplicatas)', () => {
+    // O template default passou a ser o hero-checklist (6 recipes) apos os 4 antigos serem ocultados.
     const concepts = selectedTemplateVariationConcepts({ creative_variations: 8 }, imobiliaria)
-    expect(concepts).toHaveLength(5)
+    expect(concepts).toHaveLength(6)
     const recipeIds = concepts.map(c => c.template_recipe.id)
     expect(new Set(recipeIds).size).toBe(recipeIds.length) // todos os angulos distintos
   })
@@ -163,8 +164,10 @@ describe('aiCopyConcepts (copiloto de IA — degrau A)', () => {
 })
 
 describe('distinctConceptCapacity (Fase 2 P1)', () => {
-  it('template aprovado da Imobiliaria expoe 5 angulos distintos', () => {
-    expect(distinctConceptCapacity({}, imobiliaria)).toBe(5)
+  it('o template default da Imobiliaria (hero-checklist) expoe 6 angulos distintos', () => {
+    // O default passou a ser o primeiro SELECIONAVEL (hero-checklist, 6 recipes) depois que os 4
+    // templates antigos foram ocultados da selecao do modal Nova Campanha.
+    expect(distinctConceptCapacity({}, imobiliaria)).toBe(6)
   })
   it('Premium expoe os 12 conceitos genericos', () => {
     expect(distinctConceptCapacity({}, premium)).toBe(12)

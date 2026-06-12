@@ -5,7 +5,7 @@ import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandP
 import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValidation.ts'
 import {
   creativeTemplateForTemplateKey,
-  creativeTemplatesForBrand,
+  selectableCreativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
   fieldsForTemplate,
   frameForTemplateVariant,
@@ -561,7 +561,7 @@ export async function suggestTemplateWithAI(sourceText, brandProfile = getBrandP
   const text = cleanText(sourceText)
   if (!text) throw new Error('Cole o texto do anuncio antes de sugerir o template.')
 
-  const templates = creativeTemplatesForBrand(brandProfile.scope)
+  const templates = selectableCreativeTemplatesForBrand(brandProfile.scope)
     .map(t => ({ id: t.id, name: t.name || t.shortName, bestFor: t.bestFor }))
     .filter(t => t.id)
   if (templates.length < 2) return null
