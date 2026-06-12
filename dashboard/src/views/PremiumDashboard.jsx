@@ -1177,7 +1177,7 @@ function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedC
       </div>
 
       {selectedCampaign ? (
-        <div className="rounded-lg border border-white/10 bg-white/[0.025] p-6">
+        <div className="rounded-xl border border-white/10 bg-white/[0.025] p-6">
           <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="mb-3 flex items-center gap-3">
@@ -2058,7 +2058,7 @@ function AdEditModal({ ad, saving, onClose, onSave }) {
     url_params: m.url_params || '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const inputClass = 'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-white/25 transition focus:border-gold-500/55'
+  const inputClass = 'form-input'
   const labelClass = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42'
 
   function submit(event) {
@@ -2067,8 +2067,8 @@ function AdEditModal({ ad, saving, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[color:var(--surface-1)] shadow-2xl shadow-black/70">
+    <div className="modal-overlay">
+      <div className="modal-panel max-h-[92vh] w-full max-w-lg">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-white">Editar anúncio · {ad.label}</h2>
@@ -2121,7 +2121,7 @@ function AssetEditModal({ asset, saving, onClose, onSave }) {
     copy: asset.copy || '',
     cta: asset.cta || '',
   })
-  const inputClass = 'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-white/25 transition focus:border-gold-500/55'
+  const inputClass = 'form-input'
   const labelClass = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42'
 
   function submit(event) {
@@ -2130,8 +2130,8 @@ function AssetEditModal({ asset, saving, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg overflow-hidden rounded-lg border border-white/15 bg-[color:var(--surface-1)] shadow-2xl shadow-black/70">
+    <div className="modal-overlay">
+      <div className="modal-panel w-full max-w-lg">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-white">Editar criativo</h2>
@@ -2207,7 +2207,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
 
   return (
     <div className="grid gap-6 xl:grid-cols-[360px,1fr]">
-      <form onSubmit={submit} autoComplete="off" className="rounded-lg border border-gold-500/20 bg-[color:var(--surface-1)] p-4">
+      <form onSubmit={submit} autoComplete="off" className="rounded-xl border border-gold-500/20 bg-[color:var(--surface-1)] p-4">
         <div className="mb-4 border-b border-white/10 pb-3">
           <p className="text-sm font-semibold text-white">Mapear publicação real</p>
           <p className="mt-1 text-xs leading-5 text-white/42">Vincule o conteúdo planejado ao post publicado para destravar métricas por peça.</p>
@@ -2223,7 +2223,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
                 if (post?.asset_id) update('asset_id', post.asset_id)
                 if (post?.platform) update('platform', post.platform)
               }}
-              className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+              className="form-input"
             >
               <option value="">Sem conteúdo vinculado</option>
               {posts.map(post => (
@@ -2236,7 +2236,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
             <select
               value={form.asset_id}
               onChange={event => update('asset_id', event.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+              className="form-input"
             >
               <option value="">Sem asset vinculado</option>
               {assets.map(asset => (
@@ -2247,7 +2247,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Plataforma" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-              <select value={form.platform} onChange={event => update('platform', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white">
+              <select value={form.platform} onChange={event => update('platform', event.target.value)} className="form-input">
                 <option value="instagram">Instagram</option>
                 <option value="facebook">Facebook</option>
                 <option value="youtube">YouTube</option>
@@ -2257,7 +2257,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
               </select>
             </Field>
             <Field label="Tipo" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-              <select value={form.publication_type} onChange={event => update('publication_type', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white">
+              <select value={form.publication_type} onChange={event => update('publication_type', event.target.value)} className="form-input">
                 <option value="organic">Orgânico</option>
                 <option value="paid">Pago</option>
                 <option value="manual">Manual</option>
@@ -2267,13 +2267,13 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
           </div>
 
           <Field label="ID externo" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            <input value={form.external_post_id} onChange={event => update('external_post_id', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white" />
+            <input value={form.external_post_id} onChange={event => update('external_post_id', event.target.value)} className="form-input" />
           </Field>
           <Field label="Permalink" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            <input value={form.permalink} onChange={event => update('permalink', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white" />
+            <input value={form.permalink} onChange={event => update('permalink', event.target.value)} className="form-input" />
           </Field>
           <Field label="Publicado em" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            <input type="datetime-local" value={form.published_at} onChange={event => update('published_at', event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white" />
+            <input type="datetime-local" value={form.published_at} onChange={event => update('published_at', event.target.value)} className="form-input" />
           </Field>
           <button type="submit" disabled={saving} className="btn-gold flex w-full items-center justify-center gap-2 disabled:cursor-wait disabled:opacity-60">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
@@ -2858,13 +2858,13 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
     }
   }
 
-  const inputClass = 'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-white/25 transition focus:border-gold-500/55'
+  const inputClass = 'form-input'
   const labelClass = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42'
   const sectionTitleClass = 'border-b border-white/10 pb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-lg border border-white/15 bg-[color:var(--surface-1)] shadow-2xl shadow-black/70">
+    <div className="modal-overlay">
+      <div className="modal-panel max-h-[92vh] w-full max-w-4xl">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
           <div>
             <div className="mb-1.5 flex items-center gap-2.5">

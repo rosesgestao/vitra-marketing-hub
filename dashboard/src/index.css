@@ -92,20 +92,22 @@
 }
 
 @layer components {
+  /* Sistema de raio (2 niveis intencionais): containers (cards/modais) = rounded-xl (12px);
+     controles (inputs/botoes/pills) = rounded-lg (8px). */
   .card {
-    @apply rounded-lg border p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200;
+    @apply rounded-xl border p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200;
     background: var(--surface-1);
     border-color: var(--line);
   }
 
   .card-sm {
-    @apply rounded-lg border p-4 shadow-[0_14px_36px_rgba(0,0,0,0.22)] transition-all duration-200;
+    @apply rounded-xl border p-4 shadow-[0_14px_36px_rgba(0,0,0,0.22)] transition-all duration-200;
     background: var(--surface-1);
     border-color: var(--line);
   }
 
   .card-hover {
-    @apply rounded-lg border p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200;
+    @apply rounded-xl border p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] transition-all duration-200;
     background: var(--surface-1);
     border-color: var(--line);
   }
@@ -113,6 +115,16 @@
     @apply shadow-xl shadow-black/40;
     background: var(--surface-1-hover);
     border-color: rgba(196, 148, 42, 0.35);
+  }
+
+  /* Modal: overlay + painel padronizados (mesma superficie e hairline dourado dos cards). */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm;
+  }
+  .modal-panel {
+    @apply overflow-hidden rounded-xl border shadow-2xl shadow-black/70;
+    background: var(--surface-1);
+    border-color: var(--line);
   }
 
   /* Utilitarios de superficie tematizada (para uso direto nas views) */

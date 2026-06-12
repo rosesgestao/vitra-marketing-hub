@@ -204,7 +204,7 @@ export default function Metricas() {
                 required
                 value={form.publication_id}
                 onChange={event => update('publication_id', event.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+                className="form-input"
               >
                 <option value="">Selecione</option>
                 {workspace.publications.map(publication => {
@@ -223,7 +223,7 @@ export default function Metricas() {
                 type="date"
                 value={form.metric_date}
                 onChange={event => update('metric_date', event.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+                className="form-input"
               />
             </Field>
 
@@ -250,7 +250,7 @@ export default function Metricas() {
                     step={field === 'spend' ? '0.01' : '1'}
                     value={form[field]}
                     onChange={event => update(field, event.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+                    className="form-input"
                   />
                 </Field>
               ))}
@@ -260,7 +260,7 @@ export default function Metricas() {
               <textarea
                 value={form.notes}
                 onChange={event => update('notes', event.target.value)}
-                className="min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white"
+                className="form-input min-h-20 resize-y"
               />
             </Field>
 
