@@ -105,6 +105,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 33. **[[Atualizacao_2026-06-12_Hero_Checklist_Safe_Zone]]**
     Auditoria de safe zone dos 3 templates selecionaveis: duo-selos e hero-panel passam; o hero-checklist (Template 05) reprovava nos 3 formatos e foi corrigido (logo fora dos cantos, CTA fora das faixas de reels/base, margens 108/89). Deploy do Edge agora via Supabase CLI (le do disco, fim da divergencia disco/deploy). 6 previews regenerados. Commit 45b229b.
 
+34. **[[Atualizacao_2026-06-12_Refino_UI_Fase1_Central]]**
+    Inicio do refino de layout com a skill frontend-design (referencia vitra.cria.digital, mantendo navy+dourado). Fase 1 na Central Imobiliaria: KPIs (numero off-white + dourado acento, icone em chip, hover), cards de campanha (barra-acento, hover, meta-row com icones) e abas. So apresentacao, zero logica. Commit 54f8890.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
