@@ -135,13 +135,15 @@
   }
 
   .btn-ghost {
-    @apply rounded-lg border border-white/10 bg-transparent px-4 py-2 text-sm font-medium text-gray-400 transition-all duration-200
+    @apply rounded-lg border border-white/10 bg-transparent px-4 py-2 text-sm font-medium text-white/65 transition-all duration-200
            hover:border-gold-500/35 hover:bg-gold-500/10 hover:text-white;
   }
 
+  /* CTA primario: dourado solido com tinta vinda de --surface-0 (navy na Imobiliaria, preto na
+     Premium) — mesmo padrao dos CTAs dos criativos. */
   .btn-gold {
-    @apply rounded-lg border border-gold-500/45 bg-gold-500/10 px-4 py-2 text-sm font-semibold text-gold-100 transition-all duration-200
-           hover:bg-gold-500/20;
+    @apply rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition-all duration-200
+           hover:bg-gold-400;
   }
 
   .label-section {
@@ -180,11 +182,11 @@
   }
 
   .premium-title {
-    @apply font-display text-3xl font-semibold leading-tight text-white md:text-4xl;
+    @apply font-display text-3xl font-semibold leading-[1.1] tracking-tight text-white md:text-[2.6rem];
   }
 
   .premium-subtitle {
-    @apply mt-2 max-w-3xl text-sm leading-6 text-gray-500;
+    @apply mt-2 max-w-3xl text-sm leading-6 text-white/50;
   }
 
   .form-label {

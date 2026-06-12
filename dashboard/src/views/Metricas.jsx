@@ -34,13 +34,16 @@ function formatDate(value) {
 
 function MetricTile({ label, value, sub, icon: Icon }) {
   return (
-    <div className="card-hover">
-      <div className="mb-4 flex items-start justify-between">
-        <p className="label-section">{label}</p>
-        <Icon size={15} className="text-gold-400" />
+    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-4 transition duration-200 hover:border-gold-500/30 hover:bg-white/[0.045]">
+      <div className="mb-3.5 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">{label}</p>
+        <span className="grid h-7 w-7 place-items-center rounded-md border border-white/10 bg-white/[0.03] text-gold-400">
+          <Icon size={14} />
+        </span>
       </div>
-      <p className="font-display text-3xl font-semibold text-gold-300">{value}</p>
-      {sub && <p className="mt-1.5 text-[11px] text-gray-500">{sub}</p>}
+      <p className="font-display text-[2rem] font-semibold leading-none tracking-tight text-[#F4EFE3]">{value}</p>
+      {sub && <p className="mt-2 text-xs leading-5 text-white/45">{sub}</p>}
+      <span className="pointer-events-none absolute bottom-0 left-0 h-[3px] w-9 rounded-full bg-gold-500 transition-all duration-200 group-hover:w-16" />
     </div>
   )
 }
