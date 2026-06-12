@@ -114,6 +114,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 36. **[[Atualizacao_2026-06-12_Refino_UI_Fase3_Vocabulario_Compartilhado]]**
     Fase 3: espalha o vocabulario para todas as views via componentes compartilhados (header PremiumPageHeader + classe .btn-gold no index.css) e alinha o MetricTile do Metricas ao StatTile. Consistencia de um ponto so. Registra a armadilha do text-white/52 no @apply. Commit 080c2ac.
 
+37. **[[Atualizacao_2026-06-12_Refino_UI_Fase4_Responsividade_Grids]]**
+    Fase 4: corrige o bug critico da sidebar no mobile (virou drawer off-canvas abaixo de 768px, com hamburguer/backdrop/X; estatica em md+) e melhora os grids de KPI (1->2->4 colunas). Dashboard agora usavel do celular ao desktop. Validado em 375/768/desktop. Commit 9f7b038.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
