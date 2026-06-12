@@ -91,35 +91,23 @@ export default function Calendario() {
     <div className="premium-page">
       <PremiumPageHeader
         kicker="Quinzena atual"
-        title="Calendario editorial"
+        title="Calendário editorial"
         subtitle={`${posts.length} posts planejados para a linha editorial Premium.`}
         actions={
-          <div className="flex items-end gap-0">
-          {PLATAFORMAS.map((p, i) => {
-            const active = filtro === p
-            return (
-              <button
-                key={p}
-                onClick={() => setFiltro(p)}
-                className="px-3.5 py-2 text-xs font-medium capitalize transition-all duration-150 relative"
-                style={{
-                  color: active ? '#D4A84A' : '#ADB5BD',
-                  borderBottom: active ? '2px solid #C4942A' : '2px solid transparent',
-                  borderRadius: i === 0 ? '8px 0 0 0' : i === PLATAFORMAS.length - 1 ? '0 8px 0 0' : '0',
-                  background: active ? 'rgba(196,148,42,0.10)' : 'transparent',
-                }}
-                onMouseEnter={e => {
-                  if (!active) e.currentTarget.style.color = '#FFFFFF'
-                }}
-                onMouseLeave={e => {
-                  if (!active) e.currentTarget.style.color = '#ADB5BD'
-                }}
-              >
-                {p === 'todos' ? 'Todos' : p}
-              </button>
-            )
-          })}
-        </div>
+          <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+            {PLATAFORMAS.map(p => {
+              const active = filtro === p
+              return (
+                <button
+                  key={p}
+                  onClick={() => setFiltro(p)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors duration-150 ${active ? 'bg-gold-500/15 text-gold-200' : 'text-white/55 hover:text-white'}`}
+                >
+                  {p === 'todos' ? 'Todos' : p}
+                </button>
+              )
+            })}
+          </div>
         }
       />
 
@@ -133,10 +121,12 @@ export default function Calendario() {
       )}
 
       {!loading && Object.keys(porDia).length === 0 && (
-        <div className="card flex flex-col items-center justify-center h-52 text-center">
-          <CalendarOff size={22} className="text-white/45 mb-3" />
-          <p className="text-gray-400 text-sm font-medium">Nenhum post planejado para esta quinzena</p>
-          <p className="text-white/45 text-xs mt-1.5">Aguardando o Ag.3 Planejamento gerar o calendário</p>
+        <div className="card flex flex-col items-center justify-center py-16 text-center">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/20 bg-gold-500/5">
+            <CalendarOff size={20} className="text-gold-500/70" />
+          </div>
+          <p className="text-sm font-medium text-white/85">Nenhum post planejado para esta quinzena</p>
+          <p className="mt-1.5 text-xs text-white/45">O agente de Planejamento gera o calendário assim que a quinzena é montada.</p>
         </div>
       )}
 
@@ -185,7 +175,7 @@ export default function Calendario() {
                   return (
                     <div
                       key={post.id}
-                      className="rounded-lg border border-gold-500/15 bg-[color:var(--surface-1)] p-4 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
+                      className="rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-4 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">

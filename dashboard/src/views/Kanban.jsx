@@ -54,9 +54,9 @@ export default function Kanban() {
   return (
     <div className="premium-page">
       <PremiumPageHeader
-        kicker="Gestao de conteudo"
-        title="Conteudos"
-        subtitle={`${conteudos.length} pecas em producao, revisao e publicacao.`}
+        kicker="Gestão de conteúdo"
+        title="Conteúdos"
+        subtitle={`${conteudos.length} peças em produção, revisão e publicação.`}
         actions={
           <button onClick={carregar} className="btn-ghost flex items-center gap-2">
             <RefreshCw size={13} />
@@ -74,43 +74,35 @@ export default function Kanban() {
         </div>
       )}
 
-      <div className="flex gap-3 overflow-x-auto pb-4" style={{ scrollbarWidth: 'thin' }}>
+      <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'thin' }}>
         {COLUNAS.map(col => {
           const items = porStatus[col.id] || []
           return (
-            <div key={col.id} className="flex-shrink-0 w-60">
-              <div
-                className="mb-3 flex items-center justify-between rounded-lg bg-[color:var(--surface-1)] px-3 py-2.5"
-                style={{
-                  border: col.headerGold
-                    ? '1px solid rgba(196,148,42,0.35)'
-                    : '1px solid rgba(255,255,255,0.08)',
-                  borderBottom: col.headerGold
-                    ? '2px solid rgba(196,148,42,0.6)'
-                    : undefined,
-                }}
-              >
-                <span
-                  className="text-xs font-semibold tracking-wide"
-                  style={{ color: col.headerGold ? '#D4A84A' : '#ADB5BD' }}
-                >
-                  {col.label}
-                </span>
-                <span
-                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold bg-white/5 border border-white/10"
-                  style={{ color: col.headerGold ? '#C4942A' : '#ADB5BD' }}
-                >
+            <div
+              key={col.id}
+              className="flex w-64 flex-shrink-0 flex-col rounded-xl border p-2.5"
+              style={{
+                borderColor: col.headerGold ? 'rgba(196,148,42,0.28)' : 'rgba(255,255,255,0.07)',
+                background: col.headerGold ? 'rgba(196,148,42,0.05)' : 'rgba(255,255,255,0.015)',
+              }}
+            >
+              <div className="mb-3 flex items-center justify-between px-1.5 pt-1">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: col.borderColor }} />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                    {col.label}
+                  </span>
+                </div>
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-white/10 bg-white/5 px-1.5 text-[10px] font-semibold tabular-nums text-white/55">
                   {items.length}
                 </span>
               </div>
 
               <div className="space-y-2">
                 {items.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-10 text-white/45">
-                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5">
-                      <FileText size={14} className="text-white/45" />
-                    </div>
-                    <p className="text-[10px]">vazio</p>
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 py-9 text-center">
+                    <FileText size={15} className="text-white/25" />
+                    <p className="text-[11px] text-white/35">Nenhuma peça aqui</p>
                   </div>
                 )}
                 {items.map(item => {
@@ -129,8 +121,8 @@ export default function Kanban() {
                   return (
                     <div
                       key={item.id}
-                      className="rounded-lg border border-gold-500/15 bg-[color:var(--surface-1)] p-3 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
-                      style={{ borderLeft: `1px solid ${leftCol}` }}
+                      className="rounded-lg border border-white/10 bg-[color:var(--surface-1)] p-3 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
+                      style={{ borderLeftWidth: '3px', borderLeftColor: leftCol }}
                     >
                       <div className="flex items-center gap-1.5 mb-2">
                         <PlataformaIcon size={12} style={{ color: plataformaCor }} />
