@@ -146,6 +146,25 @@ const duoSelosFieldGroups = [
   },
 ]
 
+// Template 07 (San Clemente / Bairro Gloria): foto hero no topo + painel azul (familia azul do
+// brandbook em degrade para navy) com headline 2 linhas brancas + destaque dourado, lista de setas
+// e preco "Oportunidade por"; galeria lateral de 2 fotos sobrepondo hero e painel. Sem CTA (fiel a
+// peca original). Safe zone do Meta aplicada desde o nascimento.
+// Referencia aprovada: criativos-aprovados-vitra-imobiliaria/1040ccb5 (feed) e 83b3c406 (story).
+const heroPanelFieldGroups = [
+  {
+    id: 'panel-offer',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: San Clemente' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Quebra em ate 2 linhas brancas no painel.', placeholder: 'Ex: Linda casa em condominio 4 suites + 2 vagas', colSpan: 'full' },
+      { key: 'location', label: 'Destaque dourado (3a linha)', type: 'text', required: true, maxLength: 28, helper: 'Linha de impacto em dourado — ate 28 caracteres.', placeholder: 'Ex: A 500m da 3a Perimetral', colSpan: 'full' },
+      { key: 'differentials', label: 'Lista com setas', type: 'list', required: true, placeholder: '220m2 privativos\n4 suites sendo 1 terrea\nInfra completa de lazer\nSemi mobiliado\nBairro Gloria', helper: 'Ate 5 itens — cada um vira uma linha com seta dourada.', colSpan: 'full' },
+      { key: 'price', label: 'Oportunidade por', type: 'money', required: true, placeholder: 'Ex: R$ 1.269.900,00' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -231,6 +250,19 @@ const templateVariationContracts = {
       { id: 'preco-comparativo', label: 'Preco comparativo', phase: '2', angle: 'investimento', headline: 'Compare o antes e o depois do preco', copy: 'O comparativo De/Por deixa a oportunidade explicita. Confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
       { id: 'lazer-completo', label: 'Lazer e infraestrutura', phase: '2', angle: 'lifestyle', headline: 'Lazer completo para o dia a dia', copy: 'Infraestrutura e conveniencia no mesmo endereco. Veja fotos e condicoes com a Vitra.', cta: 'Ver o lazer' },
       { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Precos de oportunidade pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
+    ],
+  },
+  heroPanel: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem hero no topo, painel azul, setas e preco aprovados (com safe zone); varia headline, destaque, lista, preco e fotos.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'panel_gradient', 'arrow_list'],
+    mutableSlots: ['headline', 'destaque', 'differentials', 'price', 'photos'],
+    recipes: [
+      { id: 'oportunidade-por', label: 'Oportunidade por', phase: '1', angle: 'investimento', headline: '{headline_only}', copy: 'Preco de oportunidade com os atributos que sustentam o valor, em uma leitura unica.', cta: 'Fale com a Vitra' },
+      { id: 'lista-setas', label: 'Lista de atributos', phase: '2', angle: 'diferenciais', headline: '{headline_only}', copy: '{details}. Atributos objetivos para validar o imovel em segundos.', cta: 'Receber mais informacoes' },
+      { id: 'destaque-localizacao', label: 'Destaque de localizacao', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'A linha dourada destaca o argumento de localizacao; fotos e preco completam a leitura.', cta: 'Conhecer a localizacao' },
+      { id: 'casa-condominio', label: 'Morar em condominio', phase: '2', angle: 'lifestyle', headline: 'Casa em condominio para a familia', copy: 'Espaco, seguranca e lazer no mesmo endereco. Veja fotos e condicoes com a Vitra.', cta: 'Ver a casa' },
+      { id: 'visita-decisao', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Agende sua visita com a Vitra', copy: 'Imoveis com preco de oportunidade pedem decisao informada e rapida.', cta: 'Agendar visita' },
     ],
   },
   meninoDeus: {
@@ -420,6 +452,33 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // campanha Zona Norte (criativos-aprovados-vitra-imobiliaria/2fe17ff8 e f38e4f2b), adaptada
       // ao brandbook (navy+dourado) e as safe zones do Meta (skill margem-seguranca-criativos).
       renderVersion: 'duo-selos-approved-v1',
+    },
+    {
+      id: 'vitra-imobiliaria-hero-panel-gallery',
+      family: 'vitra-imobiliaria-hero-panel-gallery',
+      mode: 'single_family',
+      name: 'Hero com painel e galeria',
+      shortName: 'San Clemente (hero + painel)',
+      bestFor: 'Imovel com foto forte no topo, painel azul com headline + destaque dourado, lista de setas, preco de oportunidade e galeria lateral — fiel a peca aprovada do San Clemente, com safe zone do Meta.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-07-hero-panel-1x1-sem-moldura.png',
+      fieldGroups: heroPanelFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto hero (topo)', multiple: false, required: true },
+        { id: 'living', label: 'Foto lateral 1 / interior', multiple: false, required: true },
+        { id: 'infraestrutura', label: 'Foto lateral 2 / lazer', multiple: false },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.heroPanel,
+      references: vitraImobiliariaReference('template-07-hero-panel'),
+      variableFields: ['photos', 'headline', 'destaque', 'differentials', 'price'],
+      fixedBrandRules: ['navy_blue_panel', 'approved_white_wordmark', 'gold_arrow_list', 'meta_safe_zone'],
+      // Arte nova (junho/2026), versionada desde o inicio: referencia aprovada e a peca da
+      // campanha San Clemente (criativos-aprovados-vitra-imobiliaria/1040ccb5 e 83b3c406), com o
+      // painel na familia azul do brandbook e amarelo -> dourado (skill margem-seguranca-criativos).
+      renderVersion: 'hero-panel-approved-v1',
     },
   ],
 }

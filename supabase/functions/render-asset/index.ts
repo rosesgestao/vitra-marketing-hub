@@ -47,6 +47,7 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-menino-deus-offer",
   "vitra-imobiliaria-hero-checklist",
   "vitra-imobiliaria-duo-selos-offer",
+  "vitra-imobiliaria-hero-panel-gallery",
 ];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
@@ -72,6 +73,9 @@ const MODEL_LABEL: Record<string, string> = {
   "vitra-imobiliaria-duo-selos-offer-feed": "Vitra Imobiliaria - duo + selos 1:1",
   "vitra-imobiliaria-duo-selos-offer-story": "Vitra Imobiliaria - duo + selos 9:16",
   "vitra-imobiliaria-duo-selos-offer-wide": "Vitra Imobiliaria - duo + selos 1.91:1",
+  "vitra-imobiliaria-hero-panel-gallery-feed": "Vitra Imobiliaria - hero + painel 1:1",
+  "vitra-imobiliaria-hero-panel-gallery-story": "Vitra Imobiliaria - hero + painel 9:16",
+  "vitra-imobiliaria-hero-panel-gallery-wide": "Vitra Imobiliaria - hero + painel 1.91:1",
 };
 
 const LOGO_INNER = `<g transform="translate(3,2) scale(0.87)"><polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/><polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/><polygon points="25,37 39,37 32,54" fill="#FFE08A"/><polygon points="25,37 32,54 55,76" fill="#8B6914"/><polygon points="39,37 32,54 55,76" fill="#C4942A"/><polygon points="85,37 71,37 78,54" fill="#F0C95C"/><polygon points="85,37 78,54 55,76" fill="#7A5C10"/><polygon points="71,37 78,54 55,76" fill="#D4A84A"/></g><line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/><text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/><text x="122.50" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6108" fill="#C4942A">PREMIUM</text>`;
@@ -1027,6 +1031,85 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
 </svg>`;
 }
 
+// ===== Template 07: hero-panel (San Clemente / Bairro Gloria) =====
+// Referencia aprovada: criativos-aprovados-vitra-imobiliaria/1040ccb5 (feed) e 83b3c406 (story).
+// Foto hero sangrando no topo + painel em degrade na FAMILIA AZUL do brandbook (#2E6BB5 -> #1B3A6B
+// -> navy) com headline 2 linhas brancas + linha de destaque dourada (Anton), lista de setas
+// douradas (featureArrow), "OPORTUNIDADE POR:" e preco dourado; galeria lateral de 2 fotos
+// sobrepondo hero e painel. Sem CTA (fiel a peca original). Amarelo da referencia -> dourado.
+// SAFE ZONE do Meta (skill margem-seguranca-criativos): 1:1 conteudo em [108..972]; 9:16
+// reels-safe y[250..1470]; 1.91:1 x[89..1111] y[63..564]. Fotos e painel sangram; texto, nunca.
+function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+  const headline = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
+  const lines = wrapText(headline, 24, 2);
+  const destaque = compactText((pd.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(", ") || "OPORTUNIDADE VITRA").toString().toUpperCase(), 30);
+  const bullets = heroChecklistBullets(pd, campaign, 5);
+  const price = formatMoneyLike(pd.price || campaign?.offer || "") || "CONSULTE";
+
+  // photos[0] = hero (topo/direita), photos[1..] = galeria lateral. No wide so ha 2 fotos.
+  const L = isStory ? {
+    photos: [[0, 0, 1080, 820, 0], [700, 640, 345, 330, 0], [700, 982, 345, 330, 0]],
+    panel: [0, 760, 690, 1160],
+    wordmark: [830, 270, 150],
+    headX: 110, headY: 850, headGap: 72, headSize: 60, headBudget: 550,
+    bulletsY: 1064, bulletStep: 52, bulletSize: 26,
+    labelY: 1340, labelSize: 24,
+    priceY: 1408, priceSize: 60,
+  } : isWide ? {
+    photos: [[652, 0, 548, 316, 0], [652, 328, 548, 300, 0]],
+    panel: [0, 0, 640, 628],
+    wordmark: [960, 68, 140],
+    headX: 100, headY: 130, headGap: 48, headSize: 38, headBudget: 510,
+    // Passo 42 (nao 36): a seta do featureArrow tem ~30px de altura fixa; com passo menor as
+    // setas se encostavam formando uma "corrente" visual.
+    bulletsY: 272, bulletStep: 42, bulletSize: 17,
+    labelY: 484, labelSize: 16,
+    priceY: 536, priceSize: 38,
+  } : {
+    photos: [[0, 0, 1080, 540, 0], [684, 360, 348, 300, 0], [684, 672, 348, 300, 0]],
+    panel: [0, 485, 668, 595],
+    wordmark: [820, 112, 150],
+    headX: 110, headY: 540, headGap: 60, headSize: 50, headBudget: 530,
+    bulletsY: 700, bulletStep: 44, bulletSize: 21,
+    labelY: 908, labelSize: 22,
+    priceY: 962, priceSize: 54,
+  };
+
+  const x = L.headX;
+  const [wmX, wmY, wmW] = L.wordmark;
+  const wmH = Math.round(wmW * 25 / 136);
+  const [panelX, panelY, panelW, panelH] = L.panel;
+  const photoDefs = L.photos.map((p, i) => `<clipPath id="${idBase}-p${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("") +
+    `<linearGradient id="${idBase}-panel" x1="0" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#2E6BB5"/><stop offset="45%" stop-color="#1B3A6B"/><stop offset="100%" stop-color="#0A1628"/></linearGradient>`;
+  const headLines = lines.map((line, index) =>
+    textLine(x, L.headY + index * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 28, L.headBudget, 0.79), weight: 400 })
+  ).join("");
+  const destaqueLine = textLine(x, L.headY + lines.length * L.headGap, destaque, { anchor: "start", fill: GOLD_LIGHT, family: "Anton", size: fitDisplaySize(destaque, L.headSize, 28, L.headBudget, 0.79), weight: 400 });
+  const arrowRows = bullets.map((item, index) => featureArrow(x, L.bulletsY + index * L.bulletStep, item, L.bulletSize)).join("");
+  const sidePhotos = L.photos.slice(1).map((p, i) =>
+    duoSelosPhoto(images[i + 1] || images[0], `${idBase}-p${i + 1}`, p[0], p[1], p[2], p[3], p[4])
+  ).join("");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${baseDefs(idBase, photoDefs)}
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
+  ${duoSelosPhoto(images[0], `${idBase}-p0`, L.photos[0][0], L.photos[0][1], L.photos[0][2], L.photos[0][3], L.photos[0][4])}
+  <rect x="${panelX}" y="${panelY}" width="${panelW}" height="${panelH}" fill="url(#${idBase}-panel)"/>
+  ${sidePhotos}
+  <svg x="${wmX}" y="${wmY}" width="${wmW}" height="${wmH}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  ${headLines}
+  ${destaqueLine}
+  ${arrowRows}
+  ${textLine(x, L.labelY, "OPORTUNIDADE POR:", { anchor: "start", fill: "#FFFFFF", size: L.labelSize, weight: 800, spacing: 6 })}
+  ${textLine(x, L.priceY, price, { anchor: "start", fill: GOLD_LIGHT, family: "Anton", size: fitDisplaySize(price, L.priceSize, 30, L.headBudget, 0.79), weight: 400 })}
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+</svg>`;
+}
+
 function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
@@ -1053,6 +1136,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-menino-deus-offer") return buildVitraMeninoDeusSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-hero-checklist") return buildVitraHeroChecklistSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-duo-selos-offer") return buildVitraDuoSelosSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -1204,7 +1288,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       const imageData: Array<string | null> = [];
       const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist"
         ? 1
-        : templateFamily === "vitra-imobiliaria-financiamento-orla" || templateFamily === "vitra-imobiliaria-patios-gallery"
+        : templateFamily === "vitra-imobiliaria-financiamento-orla" || templateFamily === "vitra-imobiliaria-patios-gallery" || templateFamily === "vitra-imobiliaria-hero-panel-gallery"
           ? 3
           : 2;
       for (const url of imageUrls) {
