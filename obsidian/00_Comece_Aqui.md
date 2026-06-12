@@ -123,6 +123,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 39. **[[Atualizacao_2026-06-12_Refino_UI_Fase6_Assinatura_Entrada]]**
     Fase 6: eleva o padrao sem mudar identidade. Assinatura = entrada orquestrada das telas (keyframe vitra-rise, easeOutQuint, reduced-motion safe) + tabular-nums nos KPIs. Bug corrigido: fill-mode `both` criava containing-block (matrix identidade != none) e deslocava modais fixed; troca para `backwards`. Commit 3f3bb7f.
 
+40. **[[Atualizacao_2026-06-12_Refino_UI_Fase7_Kanban_Calendario]]**
+    Fase 7: transforma as duas telas ainda "funcionais". Kanban (Conteudos): colunas viram lanes reais (rounded-xl, dot de status, contagem, empty state tracejado, card com barra-acento). Calendario: filtros viram segmented control (pill group), empty state com chip dourado e voz humana, cards do dia rounded-xl. Commit 3cec0d2.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
