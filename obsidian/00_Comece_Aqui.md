@@ -111,6 +111,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 35. **[[Atualizacao_2026-06-12_Refino_UI_Fase2_Header_Modal]]**
     Fase 2 do refino: header/hero (CTA primario solido com tinta brand-aware via --surface-0, titulo Playfair) e modal Nova Campanha (eyebrow com a marca + Playfair, "Criar Campanha" solido). Validado nas duas marcas (sem azul na Premium). Define o vocabulario de CTA primario/secundario reaproveitavel. Commit d34dfcf.
 
+36. **[[Atualizacao_2026-06-12_Refino_UI_Fase3_Vocabulario_Compartilhado]]**
+    Fase 3: espalha o vocabulario para todas as views via componentes compartilhados (header PremiumPageHeader + classe .btn-gold no index.css) e alinha o MetricTile do Metricas ao StatTile. Consistencia de um ponto so. Registra a armadilha do text-white/52 no @apply. Commit 080c2ac.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
