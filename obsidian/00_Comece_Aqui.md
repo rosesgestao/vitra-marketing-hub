@@ -126,6 +126,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 40. **[[Atualizacao_2026-06-12_Refino_UI_Fase7_Kanban_Calendario]]**
     Fase 7: transforma as duas telas ainda "funcionais". Kanban (Conteudos): colunas viram lanes reais (rounded-xl, dot de status, contagem, empty state tracejado, card com barra-acento). Calendario: filtros viram segmented control (pill group), empty state com chip dourado e voz humana, cards do dia rounded-xl. Commit 3cec0d2.
 
+41. **[[Atualizacao_2026-06-15_Publicacao_Meta_Fase1]]**
+    Agente de campanhas Meta no dashboard (fase 1): Edge publish-meta-ads cria campanha->conjunto->criativo->anuncio na conta real em status PAUSED via Graph API (mesma sequencia do spike via MCP), com painel "Revisar e publicar" no Trafego Pago, teto de orcamento do operador, gate de QA e botao separado de ativar (confirm). Ativar de verdade exige o secret META_ACCESS_TOKEN. Commit b9a76d9.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
