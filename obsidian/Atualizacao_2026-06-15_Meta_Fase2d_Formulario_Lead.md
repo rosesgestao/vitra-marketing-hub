@@ -28,10 +28,25 @@ deno check (2 edges) OK, lint, 151 testes, build OK; edges deployadas. Guard tes
 antes da campanha). Caminho positivo (cria form real + objetos pausados) fica para o operador disparar
 numa campanha escolhida.
 
+## E2E fechado (build real)
+Ao rodar o 1o build real apareceram 2 pre-requisitos externos, resolvidos:
+1. **App em Modo de Desenvolvimento** -> criar criativo falhava. Resolvido publicando o app `Vitra
+   Agentes` (Modo Publico): Basico (Politica de Privacidade + categoria "Negocio e Paginas") -> Publicar.
+2. **Idempotencia do lead form**: listar `leadgen_forms` exige `leads_retrieval` (token nao tem), entao
+   reusar por nome falhava e a Meta barrava nome duplicado. Fix: gravar `meta_lead_form_id` em
+   `premium_campaigns` e reusar de la (sem listar); criar com nome + timestamp (unico por Pagina).
+   Migration `migration-lead-form-id.sql`. Commit e87b7a8.
+
+**Resultado validado:** campanha `120252587445910221` + conjunto LEAD_GENERATION + anuncio + form
+`1507814484158610` criados **PAUSED** na conta PoA (Louvre Gallerie 5); `status`/`effective_status`
+= PAUSED confirmado pela Meta. Nada ativado/gasto. (Resíduo da 1a tentativa: campanha orfa
+`120252579208790221` + form "Louvre Gallerie 5 | Lead" sem timestamp — apagar no Gerenciador.)
+
 ## Resta
 - **leads_retrieval** no token (regerar marcando o escopo) para BAIXAR os leads + Acesso Avancado do app
   para producao.
 - **Outras marcas**: atribuir a Pagina ao system user `Vitra Agentes Bot` (so a Imobiliaria esta hoje).
 - **Vendas/Conversoes**: ainda 🔒 (precisa de pixel).
+- **build_draft nao e transacional**: ao falhar deixa orfaos — falta rollback/cleanup.
 
 Continuacao de [[Atualizacao_2026-06-15_Meta_Fase2e_Objetivos_Flexiveis]]. Ver [[meta-ads-publicacao]].
