@@ -160,10 +160,13 @@ Deno.serve(async (req) => {
         const t: any = { ...geo };
         if (spec.age_min) t.age_min = Math.max(18, Math.min(65, Number(spec.age_min)));
         if (spec.age_max) t.age_max = Math.max(18, Math.min(65, Number(spec.age_max)));
+        // 2c: conjunto de retargeting usa um publico custom (site/lookalike) escolhido pelo operador.
+        // Com publico custom, NAO sobrepoe interesses (o publico ja define quem ve).
+        if (spec.custom_audience_id) t.custom_audiences = [{ id: String(spec.custom_audience_id) }];
         const kws: string[] = Array.isArray(spec.interest_keywords) ? spec.interest_keywords.slice(0, 6) : [];
         const interests: any[] = [];
         for (const kw of kws) { const it = await searchGraph("adinterest", String(kw)); if (it?.id) interests.push({ id: it.id, name: it.name }); }
-        if (interests.length && !spec.retargeting) t.flexible_spec = [{ interests }];
+        if (interests.length && !spec.retargeting && !spec.custom_audience_id) t.flexible_spec = [{ interests }];
         const pl = String(spec.placements || "automatic").toLowerCase();
         if (pl !== "automatic" && pl.trim()) {
           const platforms = new Set<string>(); const fb: string[] = []; const ig: string[] = [];

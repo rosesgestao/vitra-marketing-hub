@@ -56,6 +56,9 @@ import {
   buildMetaDraft,
   activateMetaCampaign,
   suggestMetaAudiences,
+  listMetaAudiences,
+  createWebsiteAudience,
+  createLookalikeAudience,
   META_AD_ACCOUNTS,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
@@ -1825,6 +1828,11 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   const [error, setError] = useState(null)
   const [proposal, setProposal] = useState([])
   const [suggesting, setSuggesting] = useState(false)
+  const [audiences, setAudiences] = useState([])
+  const [audBusy, setAudBusy] = useState(false)
+  const [audMsg, setAudMsg] = useState(null)
+  const [pixelId, setPixelId] = useState('')
+  const [lkOrigin, setLkOrigin] = useState('')
 
   const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
   const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && !loading
@@ -1840,6 +1848,24 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
     setSuggesting(true); setError(null)
     try { setProposal(await suggestMetaAudiences(campaign.id)) }
     catch (e) { setError(e) } finally { setSuggesting(false) }
+  }
+  async function handleListAudiences() {
+    setAudBusy(true); setError(null); setAudMsg(null)
+    try { const a = await listMetaAudiences(adAccountId); setAudiences(a); setAudMsg(`${a.length} público(s) na conta.`) }
+    catch (e) { setError(e) } finally { setAudBusy(false) }
+  }
+  async function handleCreateWebsite() {
+    setAudBusy(true); setError(null); setAudMsg(null)
+    try { const r = await createWebsiteAudience(adAccountId, { name: `Visitantes do site — ${campaign.name}`.slice(0, 90), pixelId }); setAudMsg(`Público de site criado (${r.audience_id}).`); await handleListAudiences() }
+    catch (e) { setError(e) } finally { setAudBusy(false) }
+  }
+  async function handleCreateLookalike() {
+    setAudBusy(true); setError(null); setAudMsg(null)
+    try { const r = await createLookalikeAudience(adAccountId, { name: `Semelhante — ${campaign.name}`.slice(0, 90), originAudienceId: lkOrigin }); setAudMsg(`Lookalike criado (${r.audience_id}).`); await handleListAudiences() }
+    catch (e) { setError(e) } finally { setAudBusy(false) }
+  }
+  function assignAudience(i, id) {
+    setProposal(prev => prev.map((x, idx) => (idx === i ? { ...x, custom_audience_id: id || undefined } : x)))
   }
   async function handleActivate() {
     if (!result?.meta_campaign_id) return
@@ -1896,10 +1922,50 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
                   </div>
                 )}
                 {s.rationale && <p className="mt-1.5 text-[11px] leading-4 text-white/40">{s.rationale}</p>}
+                {s.retargeting && (
+                  <select
+                    className="form-input mt-2 !py-1.5 text-xs"
+                    value={s.custom_audience_id || ''}
+                    onChange={e => assignAudience(i, e.target.value)}
+                  >
+                    <option value="">Retarget: público amplo (ou escolha um custom)</option>
+                    {audiences.map(a => <option key={a.id} value={a.id}>{a.name} · {a.subtype}{a.size != null ? ` · ${a.size}` : ''}</option>)}
+                  </select>
+                )}
               </div>
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-white/[0.08] bg-white/[0.015] p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Públicos da Meta</span>
+          <button type="button" onClick={handleListAudiences} disabled={audBusy} className="btn-ghost inline-flex items-center gap-1.5 !px-2.5 !py-1 text-xs disabled:opacity-50">
+            {audBusy ? <Loader2 size={12} className="animate-spin" /> : null} Listar
+          </button>
+          {audMsg && <span className="text-[11px] text-white/50">{audMsg}</span>}
+        </div>
+        {audiences.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {audiences.map(a => <span key={a.id} className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/55">{a.name} · {a.subtype}</span>)}
+          </div>
+        )}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="flex items-end gap-2">
+            <label className="flex-1 block"><span className="form-label">Pixel (público de site)</span><input className="form-input !py-1.5 text-xs" value={pixelId} onChange={e => setPixelId(e.target.value)} placeholder="ID do pixel" /></label>
+            <button type="button" onClick={handleCreateWebsite} disabled={audBusy || !pixelId} className="btn-ghost !px-2.5 !py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">Criar site</button>
+          </div>
+          <div className="flex items-end gap-2">
+            <label className="flex-1 block"><span className="form-label">Lookalike (fonte)</span>
+              <select className="form-input !py-1.5 text-xs" value={lkOrigin} onChange={e => setLkOrigin(e.target.value)}>
+                <option value="">Selecione a fonte</option>
+                {audiences.filter(a => a.subtype !== 'LOOKALIKE').map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </label>
+            <button type="button" onClick={handleCreateLookalike} disabled={audBusy || !lkOrigin} className="btn-ghost !px-2.5 !py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">Criar LAL</button>
+          </div>
+        </div>
       </div>
 
       {error && (

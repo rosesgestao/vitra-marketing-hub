@@ -524,6 +524,37 @@ export async function suggestMetaAudiences(campaignId) {
   return Array.isArray(data?.ad_sets) ? data.ad_sets : []
 }
 
+// ===== Fase 2c: publicos custom/lookalike (Edge manage-audiences, via Graph) =====
+// Lista os publicos da conta (para escolher no retargeting).
+export async function listMetaAudiences(adAccountId) {
+  const { data, error } = await supabase.functions.invoke('manage-audiences', {
+    headers: copilotGateHeaders(),
+    body: { action: 'list', ad_account_id: adAccountId },
+  })
+  if (error) throw await edgeError(error)
+  return Array.isArray(data?.audiences) ? data.audiences : []
+}
+
+// Cria um publico de RETARGETING de visitantes do site (precisa do pixel_id).
+export async function createWebsiteAudience(adAccountId, { name, pixelId } = {}) {
+  const { data, error } = await supabase.functions.invoke('manage-audiences', {
+    headers: copilotGateHeaders(),
+    body: { action: 'create_website', ad_account_id: adAccountId, name, pixel_id: pixelId },
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
+// Cria um publico SEMELHANTE (lookalike) a partir de uma audiencia-fonte.
+export async function createLookalikeAudience(adAccountId, { name, originAudienceId, country, ratio } = {}) {
+  const { data, error } = await supabase.functions.invoke('manage-audiences', {
+    headers: copilotGateHeaders(),
+    body: { action: 'create_lookalike', ad_account_id: adAccountId, name, origin_audience_id: originAudienceId, country: country || 'BR', ratio: ratio || 0.01 },
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
 // GATE: ativa a campanha na Meta (passa a gastar). Acao explicita do operador — exige confirm:true.
 export async function activateMetaCampaign(campaignId) {
   const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
