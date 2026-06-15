@@ -55,16 +55,14 @@ async function graphGet(id: string, fields: string) {
   return data;
 }
 
-// 2d: garante um formulario instantaneo de Lead na Pagina (idempotente — reusa por nome). Form basico:
-// nome completo, e-mail e telefone, em pt-BR, com link de Politica de Privacidade obrigatorio (a Meta
-// exige). follow_up_action_url leva o lead ao site/WhatsApp depois de enviar.
-async function ensureLeadForm(pageId: string, formName: string, privacyUrl: string, followUrl: string) {
-  const name = formName.slice(0, 100);
-  const existing = await graphGet(`${pageId}/leadgen_forms`, "id,name,status").catch(() => null);
-  const match = (existing?.data || []).find((f: any) => f.name === name && f.status !== "DELETED" && f.status !== "ARCHIVED");
-  if (match?.id) return match.id as string;
+// 2d: cria um formulario instantaneo de Lead na Pagina (nome completo, e-mail, telefone, pt-BR, com
+// Politica de Privacidade obrigatoria; follow_up leva ao site/WhatsApp apos enviar). O nome leva um
+// timestamp para nunca colidir com formularios pre-existentes (a Meta exige nome unico por Pagina). A
+// IDEMPOTENCIA vem do banco (premium_campaigns.meta_lead_form_id), nao de listar leadgen_forms — listar
+// exige leads_retrieval, que o token pode nao ter; criar funciona.
+async function createLeadForm(pageId: string, formName: string, privacyUrl: string, followUrl: string) {
   const res = await graphPost(`${pageId}/leadgen_forms`, {
-    name, locale: "PT_BR",
+    name: formName.slice(0, 100), locale: "PT_BR",
     privacy_policy: { url: privacyUrl, link_text: "Politica de Privacidade" },
     questions: [{ type: "FULL_NAME" }, { type: "EMAIL" }, { type: "PHONE" }],
     ...(followUrl ? { follow_up_action_url: followUrl } : {}),
@@ -160,8 +158,13 @@ Deno.serve(async (req) => {
         if (!page?.leadgen_tos_accepted) {
           return json({ error: "leadgen_tos_pending", message: `A Pagina ${page?.name || pageId} ainda nao aceitou o ToS de Lead (ou o token nao a enxerga). Um admin precisa aceitar em facebook.com/legal/leadgen/tos e a Pagina deve estar atribuida ao system user.`, needs: ["leadgen_tos"] }, 422);
         }
-        const privacyUrl = String(body.privacy_policy_url || destinationUrl);
-        leadFormId = await ensureLeadForm(pageId, `${campaign.name} | Lead`, privacyUrl, destinationUrl);
+        // Reusa o formulario ja gravado para esta campanha (idempotente, sem listar); senao cria 1x e grava.
+        leadFormId = String(campaign.meta_lead_form_id || "");
+        if (!leadFormId) {
+          const privacyUrl = String(body.privacy_policy_url || destinationUrl);
+          leadFormId = await createLeadForm(pageId, `${campaign.name} | Lead ${new Date().toISOString()}`, privacyUrl, destinationUrl);
+          await svc.from("premium_campaigns").update({ meta_lead_form_id: leadFormId }).eq("id", campaignId);
+        }
       }
 
       // ---- Conjuntos a construir ----
