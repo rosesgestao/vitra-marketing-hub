@@ -70,6 +70,27 @@ async function createLeadForm(pageId: string, formName: string, privacyUrl: stri
   return res.id as string;
 }
 
+async function graphDelete(id: string) {
+  const res = await fetch(`${GRAPH}/${id}?access_token=${encodeURIComponent(META_TOKEN)}`, { method: "DELETE" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || (data && data.error)) throw new Error(`Graph DELETE ${id}: ${data?.error?.message || res.status}`);
+  return data;
+}
+
+// Guard de marca: cada conta/Pagina pertence a uma marca. Publicar uma campanha numa conta/Pagina de
+// OUTRA marca seria cross-contamination. Mapa do que conhecemos (deve acompanhar os ativos do Business
+// Manager atribuidos ao system user). Conta/Pagina desconhecida -> nao bloqueia (so bloqueia conflito
+// conhecido), para nao travar build legitimo.
+const META_ACCOUNT_BRAND: Record<string, string> = {
+  "122035585232240": "vitra_imobiliaria", // PoA
+  "438407633940884": "vitra_imobiliaria", // Zona Sul
+  "548694582827733": "vitra_imobiliaria", // Classificados
+  "1057868298461356": "vitra_premium",
+};
+const META_PAGE_BRAND: Record<string, string> = {
+  "1509497485962089": "vitra_imobiliaria", // Vitra Imobiliaria
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "metodo nao permitido" }, 405);
@@ -126,6 +147,22 @@ Deno.serve(async (req) => {
       return json({ activated: true, meta_campaign_id: metaCampaignId, ad_sets: (pubs || []).length });
     }
 
+    if (action === "delete_draft") {
+      // Apaga um rascunho na Meta (campanha DELETE -> cascateia conjuntos/anuncios) e limpa o estado no
+      // banco. Destrutivo -> exige confirm:true. Aceita meta_campaign_id explicito (para remover orfaos
+      // que nao estao mais ligados a campanha no banco).
+      if (body.confirm !== true) return json({ error: "confirm_required", message: "Apagar rascunho e irreversivel. Reenvie com confirm:true." }, 400);
+      const { data: campRow } = await svc.from("premium_campaigns").select("meta_campaign_id").eq("id", campaignId).maybeSingle();
+      const metaCampaignId = String(body.meta_campaign_id || campRow?.meta_campaign_id || "");
+      if (!metaCampaignId) return json({ error: "no_draft", message: "Nenhum rascunho Meta para apagar." }, 404);
+      await graphDelete(metaCampaignId);
+      await svc.from("premium_publications").delete().eq("campaign_id", campaignId).eq("publication_type", "paid").eq("meta_campaign_id", metaCampaignId);
+      if (campRow?.meta_campaign_id === metaCampaignId) {
+        await svc.from("premium_campaigns").update({ meta_campaign_id: null, status: "planning" }).eq("id", campaignId);
+      }
+      return json({ deleted: true, meta_campaign_id: metaCampaignId });
+    }
+
     if (action === "build_draft") {
       const adAccountId = String(body.ad_account_id || "").replace(/^act_/, "");
       const pageId = String(body.page_id || "");
@@ -139,6 +176,16 @@ Deno.serve(async (req) => {
       const { data: campaign, error: cErr } = await svc.from("premium_campaigns").select("*").eq("id", campaignId).single();
       if (cErr || !campaign) return json({ error: "campaign_not_found" }, 404);
       const scope = campaign.brief?.brand_scope || campaign.brief?.qa_policy?.brand_scope || "vitra_imobiliaria";
+
+      // Guard de marca: a conta/Pagina nao pode ser de outra marca que a da campanha (anti-contaminacao).
+      const acctBrand = META_ACCOUNT_BRAND[adAccountId];
+      if (acctBrand && acctBrand !== scope) {
+        return json({ error: "brand_mismatch", message: `A conta de anuncio pertence a marca "${acctBrand}", mas a campanha e "${scope}". Use a conta da marca correta.` }, 422);
+      }
+      const pgBrand = META_PAGE_BRAND[pageId];
+      if (pgBrand && pgBrand !== scope) {
+        return json({ error: "brand_mismatch", message: `A Pagina pertence a marca "${pgBrand}", mas a campanha e "${scope}". Use a Pagina da marca correta.` }, 422);
+      }
 
       // Objetivo (fase 2e): do body (teste de objetivo) ou da campanha; deriva campanha/conjunto/CTA do
       // playbook. Objetivos com pre-requisito (Vendas->pixel, Leads-formulario->ToS) ficam bloqueados
@@ -172,15 +219,17 @@ Deno.serve(async (req) => {
       // conjunto + criativo (corte 1:1 do grupo) + anuncio, sob a MESMA campanha CBO. A proposta de
       // publico/posicionamento vem do operador (body.ad_sets, gerada por suggest-meta-audiences e
       // revisada). Sem proposta -> comportamento da fase 1 (1 conjunto amplo, 1o corte renderizado).
+      // So criativos APROVADOS (ou ja publicados) vao ao ar — alinha o edge ao gate do painel (readyAds)
+      // e impede que um render de teste/rascunho ('generated') seja publicado.
       const { data: assets } = await svc.from("premium_campaign_assets").select("*")
-        .eq("campaign_id", campaignId).eq("channel", "meta_ads").in("status", ["generated", "approved", "published"]);
+        .eq("campaign_id", campaignId).eq("channel", "meta_ads").in("status", ["approved", "published"]);
       const all = assets || [];
       const feedOf = (groupKey: string) => {
         const inG = all.filter((a: any) => (a.metadata?.ad_group || "") === groupKey);
         return inG.find((a: any) => a.aspect_ratio === "1:1" && a.public_url) || inG.find((a: any) => a.public_url);
       };
       const anyFeed = all.find((a: any) => a.aspect_ratio === "1:1" && a.public_url) || all.find((a: any) => a.public_url);
-      if (!anyFeed?.public_url) return json({ error: "no_creative", message: "Nenhum corte renderizado (public_url) encontrado. Gere os criativos antes de publicar." }, 422);
+      if (!anyFeed?.public_url) return json({ error: "no_approved_creative", message: "Nenhum criativo APROVADO encontrado para esta campanha. Aprove ao menos 1 anúncio (QA completo) antes de publicar." }, 422);
 
       const proposed = Array.isArray(body.ad_sets) && body.ad_sets.length ? body.ad_sets : null;
       const specs: any[] = proposed || [{ group_key: anyFeed.metadata?.ad_group || null, label: anyFeed.metadata?.ad_label || "Conjunto Leads", placements: "automatic" }];

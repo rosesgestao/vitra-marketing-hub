@@ -519,6 +519,17 @@ export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBud
   return data
 }
 
+// Apaga um rascunho Meta (campanha + conjuntos + anuncios) e limpa o estado no banco. Destrutivo:
+// envia confirm:true. `metaCampaignId` opcional remove um orfao especifico.
+export async function deleteMetaDraft(campaignId, metaCampaignId) {
+  const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
+    headers: copilotGateHeaders(),
+    body: { action: 'delete_draft', campaign_id: campaignId, meta_campaign_id: metaCampaignId || undefined, confirm: true },
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
 // Fase 2b: a IA propoe publico/posicionamento por conjunto (ad_group) da campanha. So propoe — o build
 // aplica sob o gate. Devolve { ad_sets: [...] } para o operador revisar.
 export async function suggestMetaAudiences(campaignId, objective) {
