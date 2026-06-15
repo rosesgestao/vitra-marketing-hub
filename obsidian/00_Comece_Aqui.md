@@ -129,6 +129,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 41. **[[Atualizacao_2026-06-15_Publicacao_Meta_Fase1]]**
     Agente de campanhas Meta no dashboard (fase 1): Edge publish-meta-ads cria campanha->conjunto->criativo->anuncio na conta real em status PAUSED via Graph API (mesma sequencia do spike via MCP), com painel "Revisar e publicar" no Trafego Pago, teto de orcamento do operador, gate de QA e botao separado de ativar (confirm). Ativar de verdade exige o secret META_ACCESS_TOKEN. Commit b9a76d9.
 
+42. **[[Atualizacao_2026-06-15_Meta_Fase2a_Sync_Metricas]]**
+    Fase 2a: Edge sync-metrics-from-meta puxa insights da Meta (read-only) e faz upsert idempotente em premium_metrics; botao "Sincronizar agora (Meta)" na tela de Metricas. Migration de indice unico aplicada. Restante da fase 2 (2b multiplos conjuntos+IA, 2c audiences, 2d formulario instantaneo) sequenciado. Commit ea037b5.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
