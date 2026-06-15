@@ -7,6 +7,12 @@
       "skillPath": "skills/copywriting/SKILL.md",
       "computedHash": "20663e361c3b6767e1318de69111b75edc1fb19ded6369cffca677b8bd0c8696"
     },
+    "pdf": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pdf/SKILL.md",
+      "computedHash": "37226d4220d844377e6b2a386c51a011df4cd130855ff0b80bcc22f9c28abd57"
+    },
     "skill-creator": {
       "source": "anthropics/skills",
       "sourceType": "github",
