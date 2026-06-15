@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.sync-metrics-from-meta]
 verify_jwt = false
+
+[functions.suggest-meta-audiences]
+verify_jwt = false

@@ -55,6 +55,7 @@ import {
   saveAssetEdit,
   buildMetaDraft,
   activateMetaCampaign,
+  suggestMetaAudiences,
   META_AD_ACCOUNTS,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
@@ -1822,6 +1823,8 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   const [activating, setActivating] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [proposal, setProposal] = useState([])
+  const [suggesting, setSuggesting] = useState(false)
 
   const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
   const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && !loading
@@ -1829,9 +1832,14 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   async function handleBuild() {
     setLoading(true); setError(null)
     try {
-      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination })
+      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, adSets: proposal })
       setResult(data)
     } catch (e) { setError(e) } finally { setLoading(false) }
+  }
+  async function handleSuggest() {
+    setSuggesting(true); setError(null)
+    try { setProposal(await suggestMetaAudiences(campaign.id)) }
+    catch (e) { setError(e) } finally { setSuggesting(false) }
   }
   async function handleActivate() {
     if (!result?.meta_campaign_id) return
@@ -1866,6 +1874,32 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
         <label className="block"><span className="form-label">Página (ID Facebook)</span><input className="form-input" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="ID da Página" /></label>
         <label className="block"><span className="form-label">Teto de orçamento (R$/dia)</span><input className="form-input" inputMode="decimal" value={budget} onChange={e => setBudget(e.target.value)} /></label>
         <label className="block"><span className="form-label">Destino (site ou WhatsApp)</span><input className="form-input" value={destination} onChange={e => setDestination(e.target.value)} placeholder="https://… ou https://wa.me/55…" /></label>
+      </div>
+
+      <div className="mt-4">
+        <button type="button" onClick={handleSuggest} disabled={suggesting} className="btn-ghost inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
+          {suggesting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+          {suggesting ? 'Sugerindo…' : (proposal.length ? 'Re-sugerir públicos (IA)' : 'Sugerir públicos por IA')}
+        </button>
+        {proposal.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <p className="text-[11px] text-white/45">{proposal.length} conjunto(s) propostos pela IA — cada um vira um ad set pausado:</p>
+            {proposal.map((s, i) => (
+              <div key={i} className="rounded-lg border border-white/10 bg-white/[0.025] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-xs font-semibold text-white">{s.label || s.group_key}</p>
+                  <span className="flex-shrink-0 text-[10px] text-white/45">{s.age_min}–{s.age_max} anos{s.retargeting ? ' · retarget' : ''}</span>
+                </div>
+                {Array.isArray(s.interest_keywords) && s.interest_keywords.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {s.interest_keywords.map((k, j) => <span key={j} className="rounded bg-gold-500/10 px-1.5 py-0.5 text-[10px] text-gold-200">{k}</span>)}
+                  </div>
+                )}
+                {s.rationale && <p className="mt-1.5 text-[11px] leading-4 text-white/40">{s.rationale}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {error && (

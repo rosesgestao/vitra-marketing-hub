@@ -490,8 +490,10 @@ async function edgeError(error) {
 // O agente monta tudo PAUSED (sem gasto). Ativar e uma acao SEPARADA (activateMetaCampaign), nunca
 // automatica. O token da Meta fica server-side (secret META_ACCESS_TOKEN); aqui so passamos parametros.
 
-// Cria o rascunho na Meta (campanha -> conjunto -> criativo -> anuncio), TUDO PAUSED. Devolve os IDs.
-export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, targeting } = {}) {
+// Cria o rascunho na Meta (campanha CBO -> N conjuntos -> criativo -> anuncio), TUDO PAUSED.
+// `adSets` = proposta de publicos/posicionamentos por conjunto (de suggestMetaAudiences, revisada pelo
+// operador). Sem ela, cai em 1 conjunto amplo (fase 1). Devolve os IDs/contagem.
+export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, targeting, adSets } = {}) {
   const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
     headers: copilotGateHeaders(),
     body: {
@@ -504,10 +506,22 @@ export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBud
       end_time: endTime || undefined,
       destination_url: destinationUrl,
       targeting: targeting || undefined,
+      ad_sets: Array.isArray(adSets) && adSets.length ? adSets : undefined,
     },
   })
   if (error) throw await edgeError(error)
   return data
+}
+
+// Fase 2b: a IA propoe publico/posicionamento por conjunto (ad_group) da campanha. So propoe — o build
+// aplica sob o gate. Devolve { ad_sets: [...] } para o operador revisar.
+export async function suggestMetaAudiences(campaignId) {
+  const { data, error } = await supabase.functions.invoke('suggest-meta-audiences', {
+    headers: copilotGateHeaders(),
+    body: { campaign_id: campaignId },
+  })
+  if (error) throw await edgeError(error)
+  return Array.isArray(data?.ad_sets) ? data.ad_sets : []
 }
 
 // GATE: ativa a campanha na Meta (passa a gastar). Acao explicita do operador — exige confirm:true.
