@@ -530,6 +530,18 @@ export async function getMetaCampaignStatus(campaignId) {
   return data
 }
 
+// Fase 2a: puxa os insights da Meta (Graph) das publicacoes pagas e faz upsert em premium_metrics.
+// READ-ONLY na Meta (nao gasta). Sem campaignId, sincroniza todas as publicacoes pagas. Devolve o
+// resumo { publications, rows, empty, message } para a UI.
+export async function syncMetricsFromMeta(campaignId) {
+  const { data, error } = await supabase.functions.invoke('sync-metrics-from-meta', {
+    headers: copilotGateHeaders(),
+    body: campaignId ? { campaign_id: campaignId } : {},
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
 // Degrau B' por LINK: busca o texto da pagina do imovel (site da construtora) via middleware server-side
 // (Node) — evita CORS/SSRF do browser, reusa o guard de URL e a limpeza HTML->texto. Devolve o texto +
 // avisos (ex.: pagina em JS retornou pouco texto). O operador revisa o texto antes de extrair.

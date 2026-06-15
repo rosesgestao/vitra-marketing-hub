@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.publish-meta-ads]
 verify_jwt = false
+
+[functions.sync-metrics-from-meta]
+verify_jwt = false

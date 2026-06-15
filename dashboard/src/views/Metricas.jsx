@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, BarChart3, Loader2, Plus, Radio, Repeat2, Target } from 'lucide-react'
-import { createManualMetric, loadPremiumWorkspace } from '../lib/premiumData.js'
+import { Activity, AlertTriangle, BarChart3, Loader2, Plus, Radio, RefreshCw, Repeat2, Target } from 'lucide-react'
+import { createManualMetric, loadPremiumWorkspace, syncMetricsFromMeta } from '../lib/premiumData.js'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 
 const INITIAL_METRIC = {
@@ -70,6 +70,8 @@ export default function Metricas() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [form, setForm] = useState(INITIAL_METRIC)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState(null)
 
   async function refresh() {
     setLoading(true)
@@ -121,6 +123,33 @@ export default function Metricas() {
     setForm(current => ({ ...current, [field]: value }))
   }
 
+  // Sync de metricas da Meta (read-only). Sem dados (campanha pausada/sem entrega) volta gracioso.
+  async function handleSync() {
+    setSyncing(true); setError(null); setSyncMsg(null)
+    try {
+      const r = await syncMetricsFromMeta()
+      setSyncMsg(r?.message || `Sincronizadas ${r?.rows || 0} linha(s) de metricas.`)
+      await refresh()
+    } catch (err) {
+      setError(err)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const syncButton = (
+    <button
+      type="button"
+      onClick={handleSync}
+      disabled={syncing}
+      className="btn-ghost inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+      title="Puxa alcance, gasto, cliques e leads da Meta para as publicacoes pagas (read-only)"
+    >
+      {syncing ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+      {syncing ? 'Sincronizando…' : 'Sincronizar agora (Meta)'}
+    </button>
+  )
+
   async function submit(event) {
     event.preventDefault()
     const publication = publicationById.get(form.publication_id)
@@ -162,8 +191,13 @@ export default function Metricas() {
       <PremiumPageHeader
         kicker="Performance Premium"
         title="Metricas por publicacao"
-        subtitle="Leitura por post, asset e campanha usando somente `premium_publications` e `premium_metrics`."
+        subtitle="Leitura por post, asset e campanha — entrada manual ou sync direto da Meta."
+        actions={syncButton}
       />
+
+      {syncMsg && (
+        <div className="mb-6 rounded-lg border border-gold-500/25 bg-gold-500/8 px-4 py-3 text-xs text-gold-100">{syncMsg}</div>
+      )}
 
       {error && (
         <div className="mb-6 rounded-lg border border-red-400/25 bg-red-950/25 p-4">
