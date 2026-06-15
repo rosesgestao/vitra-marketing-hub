@@ -54,6 +54,33 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch { /* vazio */ }
   const action = String(body.action || "list");
+
+  // page_status (read-only): le name + leadgen_tos_accepted por Pagina com o NOSSO token. Aceita
+  // page_ids[] direto, ou deriva as Paginas promovidas a partir de ad_account_id. Serve para
+  // reconciliar o aceite do ToS de Lead (a UI pode dizer "Aceitou" antes da API/token refletir).
+  if (action === "page_status") {
+    try {
+      let pageIds: string[] = Array.isArray(body.page_ids) ? body.page_ids.map((p: unknown) => String(p)) : [];
+      const acct = String(body.ad_account_id || "").replace(/^act_/, "");
+      if (!pageIds.length && acct) {
+        const promo = await graphGet(`act_${acct}/promote_pages`, "fields=id&limit=200");
+        pageIds = (promo.data || []).map((p: any) => String(p.id));
+      }
+      if (!pageIds.length) return json({ error: "missing_pages", message: "Informe page_ids[] ou ad_account_id." }, 400);
+      const pages = await Promise.all(pageIds.map(async (id) => {
+        try {
+          const p = await graphGet(id, "fields=name,leadgen_tos_accepted");
+          return { page_id: id, name: p.name ?? null, leadgen_tos_accepted: !!p.leadgen_tos_accepted };
+        } catch (e) {
+          return { page_id: id, error: String((e as Error)?.message || e) };
+        }
+      }));
+      return json({ pages });
+    } catch (e) {
+      return json({ error: "exception", message: String((e as Error)?.message || e) }, 500);
+    }
+  }
+
   const adAccountId = String(body.ad_account_id || "").replace(/^act_/, "");
   if (!adAccountId) return json({ error: "missing_account", message: "Informe ad_account_id." }, 400);
 
