@@ -7,6 +7,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { authorizeAiEdge } from "../_shared/edgeAuth.ts";
+import { objectiveSpec } from "../_shared/objectivePlaybook.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -90,7 +91,8 @@ Deno.serve(async (req) => {
     produto: campaign.product_name, bairro: pd.neighborhood || campaign.neighborhood, cidade: pd.city || campaign.city,
     preco: pd.price, area: pd.area, dormitorios: pd.suites || pd.rooms, diferenciais: pd.differentials,
   };
-  const userPrompt = `FATOS:\n${JSON.stringify(facts)}\n\nCONJUNTOS (ad_groups) — proponha 1 publico por item:\n${JSON.stringify(groups)}`;
+  const obj = objectiveSpec(body.objective || campaign.campaign_objective);
+  const userPrompt = `OBJETIVO DA CAMPANHA: ${obj.label} — ${obj.funnel}. Ajuste os publicos a esse objetivo (topo = mais amplo; fundo = mais intencao/interesses especificos).\n\nFATOS:\n${JSON.stringify(facts)}\n\nCONJUNTOS (ad_groups) — proponha 1 publico por item:\n${JSON.stringify(groups)}`;
 
   try {
     const aRes = await fetch("https://api.anthropic.com/v1/messages", {

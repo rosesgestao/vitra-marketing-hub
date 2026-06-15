@@ -60,6 +60,8 @@ import {
   createWebsiteAudience,
   createLookalikeAudience,
   META_AD_ACCOUNTS,
+  META_OBJECTIVE_OPTIONS,
+  DEFAULT_OBJECTIVE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
@@ -1833,6 +1835,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   const [audMsg, setAudMsg] = useState(null)
   const [pixelId, setPixelId] = useState('')
   const [lkOrigin, setLkOrigin] = useState('')
+  const [objective, setObjective] = useState(DEFAULT_OBJECTIVE)
 
   const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
   const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && !loading
@@ -1840,13 +1843,13 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   async function handleBuild() {
     setLoading(true); setError(null)
     try {
-      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, adSets: proposal })
+      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, adSets: proposal, objective })
       setResult(data)
     } catch (e) { setError(e) } finally { setLoading(false) }
   }
   async function handleSuggest() {
     setSuggesting(true); setError(null)
-    try { setProposal(await suggestMetaAudiences(campaign.id)) }
+    try { setProposal(await suggestMetaAudiences(campaign.id, objective)) }
     catch (e) { setError(e) } finally { setSuggesting(false) }
   }
   async function handleListAudiences() {
@@ -1893,6 +1896,24 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
         {readyAds > 0
           ? (<><CheckCircle2 size={14} className="text-emerald-300" /><span className="text-white/70">{readyAds} anúncio(s) aprovado(s) e prontos para publicar</span></>)
           : (<><AlertTriangle size={14} className="text-amber-300" /><span className="text-white/55">Aprove ao menos 1 anúncio (QA completo) para liberar a publicação.</span></>)}
+      </div>
+
+      <div className="mt-4">
+        <span className="form-label">Objetivo da campanha</span>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {META_OBJECTIVE_OPTIONS.map(o => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => o.available && setObjective(o.key)}
+              disabled={!o.available}
+              title={o.available ? '' : o.hint}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${objective === o.key ? 'border-gold-500/55 bg-gold-500/15 text-gold-200' : o.available ? 'border-white/10 text-white/60 hover:text-white' : 'cursor-not-allowed border-white/5 text-white/25'}`}
+            >
+              {o.label}{o.available ? '' : ' 🔒'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

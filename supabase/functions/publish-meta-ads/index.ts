@@ -13,6 +13,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { authorizeAiEdge } from "../_shared/edgeAuth.ts";
 import { validateCopyAngle } from "../_shared/copyValidation.ts";
+import { objectiveSpec } from "../_shared/objectivePlaybook.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -124,6 +125,14 @@ Deno.serve(async (req) => {
       if (cErr || !campaign) return json({ error: "campaign_not_found" }, 404);
       const scope = campaign.brief?.brand_scope || campaign.brief?.qa_policy?.brand_scope || "vitra_imobiliaria";
 
+      // Objetivo (fase 2e): do body (teste de objetivo) ou da campanha; deriva campanha/conjunto/CTA do
+      // playbook. Objetivos com pre-requisito (Vendas->pixel, Leads-formulario->ToS) ficam bloqueados
+      // com mensagem acionavel ate o pre-requisito existir.
+      const obj = objectiveSpec(body.objective || campaign.campaign_objective);
+      if (!obj.available) {
+        return json({ error: "objective_unavailable", message: `Objetivo "${obj.label}" ainda nao disponivel: ${obj.hint || "pre-requisito pendente."}`, needs: obj.needs }, 422);
+      }
+
       // ---- Conjuntos a construir ----
       // Agrupa os cortes meta_ads por ad_group (espelha groupMetaAds do front): cada grupo vira 1
       // conjunto + criativo (corte 1:1 do grupo) + anuncio, sob a MESMA campanha CBO. A proposta de
@@ -184,8 +193,8 @@ Deno.serve(async (req) => {
       // ---- Campanha (1x, CBO com o teto do operador, PAUSED) ----
       const stamp = new Date().toISOString().slice(0, 10);
       const campRes = await graphPost(`act_${adAccountId}/campaigns`, {
-        name: `${campaign.name} | Leads ${stamp}`,
-        objective: "OUTCOME_LEADS", status: "PAUSED", special_ad_categories: [],
+        name: `${campaign.name} | ${obj.label} ${stamp}`.slice(0, 100),
+        objective: obj.objective, status: "PAUSED", special_ad_categories: [],
         buying_type: "AUCTION", bid_strategy: "LOWEST_COST_WITHOUT_CAP", daily_budget: dailyBudgetCents,
       });
       await svc.from("premium_campaigns").update({ meta_campaign_id: campRes.id }).eq("id", campaignId);
@@ -204,8 +213,9 @@ Deno.serve(async (req) => {
         const targeting = await targetingFor(spec);
         const adsetRes = await graphPost(`act_${adAccountId}/adsets`, {
           name: `${campaign.name} | ${spec.label || asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
-          campaign_id: campRes.id, optimization_goal: "LINK_CLICKS", billing_event: "IMPRESSIONS",
-          destination_type: "WEBSITE", targeting, status: "PAUSED",
+          campaign_id: campRes.id, optimization_goal: obj.optimization_goal, billing_event: obj.billing_event,
+          ...(obj.destination_type ? { destination_type: obj.destination_type } : {}),
+          targeting, status: "PAUSED",
           ...(body.start_time ? { start_time: body.start_time } : {}),
           ...(body.end_time ? { end_time: body.end_time } : {}),
         });
@@ -213,7 +223,7 @@ Deno.serve(async (req) => {
           name: `${campaign.name} | ${spec.label || "Criativo"}`.slice(0, 100),
           object_story_spec: { page_id: pageId, link_data: {
             link: destinationUrl, message: primaryText, name: headline, description: String(m.descricao || ""),
-            picture: String(asset.public_url).split("?")[0], call_to_action: { type: "LEARN_MORE", value: { link: destinationUrl } },
+            picture: String(asset.public_url).split("?")[0], call_to_action: { type: obj.cta, value: { link: destinationUrl } },
           } },
         });
         const adRes = await graphPost(`act_${adAccountId}/ads`, {

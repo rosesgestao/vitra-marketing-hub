@@ -3,6 +3,10 @@ import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandP
 // Mesma validacao pura que a Edge generate-copy roda no servidor (fonte unica em _shared), reusada no
 // cliente para REVALIDAR a copy ao vivo quando o operador edita um rascunho (badges de issue corretos).
 import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValidation.ts'
+import { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE } from '../../../supabase/functions/_shared/objectivePlaybook.ts'
+
+// Reexport para a UI (seletor de Objetivo) — fonte unica e o playbook compartilhado com a Edge.
+export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE }
 import {
   creativeTemplateForTemplateKey,
   selectableCreativeTemplatesForBrand,
@@ -493,12 +497,13 @@ async function edgeError(error) {
 // Cria o rascunho na Meta (campanha CBO -> N conjuntos -> criativo -> anuncio), TUDO PAUSED.
 // `adSets` = proposta de publicos/posicionamentos por conjunto (de suggestMetaAudiences, revisada pelo
 // operador). Sem ela, cai em 1 conjunto amplo (fase 1). Devolve os IDs/contagem.
-export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, targeting, adSets } = {}) {
+export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, targeting, adSets, objective } = {}) {
   const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
     headers: copilotGateHeaders(),
     body: {
       action: 'build_draft',
       campaign_id: campaignId,
+      objective: objective || undefined,
       ad_account_id: adAccountId,
       page_id: pageId,
       daily_budget_cents: dailyBudgetCents,
@@ -515,10 +520,10 @@ export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBud
 
 // Fase 2b: a IA propoe publico/posicionamento por conjunto (ad_group) da campanha. So propoe — o build
 // aplica sob o gate. Devolve { ad_sets: [...] } para o operador revisar.
-export async function suggestMetaAudiences(campaignId) {
+export async function suggestMetaAudiences(campaignId, objective) {
   const { data, error } = await supabase.functions.invoke('suggest-meta-audiences', {
     headers: copilotGateHeaders(),
-    body: { campaign_id: campaignId },
+    body: { campaign_id: campaignId, objective: objective || undefined },
   })
   if (error) throw await edgeError(error)
   return Array.isArray(data?.ad_sets) ? data.ad_sets : []
