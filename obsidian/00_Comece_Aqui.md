@@ -141,6 +141,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 45. **[[Atualizacao_2026-06-15_Meta_Fase2e_Objetivos_Flexiveis]]**
     Fase 2e: objetivos flexiveis via _shared/objectivePlaybook.ts (fonte unica Deno+Vite). Seletor "Objetivo da campanha" (Reconhecimento/Trafego/Engajamento/Leads ativos; Leads-formulario e Vendas em 🔒 destravaveis por ToS/pixel). build_draft e suggest-meta-audiences derivam do playbook. Padronizacao mantida; tudo PAUSED+gate. Verificado no preview. Commit 6996c32.
 
+46. **[[Atualizacao_2026-06-15_Meta_Fase2d_Formulario_Lead]]**
+    Fase 2d: formulario instantaneo de Lead. leads_form destravado (ToS da Vitra Imobiliaria confirmado true pelo nosso token); publish-meta-ads valida ToS por Pagina em runtime (422 acionavel antes de criar nada), garante/reusa leadgen_form, monta conjunto LEAD_GENERATION ON_AD + promoted_object e criativo que abre o form. UI ganha campo de Politica de Privacidade. Guard testado ao vivo. Resta leads_retrieval no token + atribuir Paginas das outras marcas. Commit bd021de.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
