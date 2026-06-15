@@ -497,7 +497,7 @@ async function edgeError(error) {
 // Cria o rascunho na Meta (campanha CBO -> N conjuntos -> criativo -> anuncio), TUDO PAUSED.
 // `adSets` = proposta de publicos/posicionamentos por conjunto (de suggestMetaAudiences, revisada pelo
 // operador). Sem ela, cai em 1 conjunto amplo (fase 1). Devolve os IDs/contagem.
-export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, targeting, adSets, objective } = {}) {
+export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, privacyPolicyUrl, targeting, adSets, objective } = {}) {
   const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
     headers: copilotGateHeaders(),
     body: {
@@ -510,6 +510,7 @@ export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBud
       start_time: startTime || undefined,
       end_time: endTime || undefined,
       destination_url: destinationUrl,
+      privacy_policy_url: privacyPolicyUrl || undefined,
       targeting: targeting || undefined,
       ad_sets: Array.isArray(adSets) && adSets.length ? adSets : undefined,
     },

@@ -55,6 +55,23 @@ async function graphGet(id: string, fields: string) {
   return data;
 }
 
+// 2d: garante um formulario instantaneo de Lead na Pagina (idempotente — reusa por nome). Form basico:
+// nome completo, e-mail e telefone, em pt-BR, com link de Politica de Privacidade obrigatorio (a Meta
+// exige). follow_up_action_url leva o lead ao site/WhatsApp depois de enviar.
+async function ensureLeadForm(pageId: string, formName: string, privacyUrl: string, followUrl: string) {
+  const name = formName.slice(0, 100);
+  const existing = await graphGet(`${pageId}/leadgen_forms`, "id,name,status").catch(() => null);
+  const match = (existing?.data || []).find((f: any) => f.name === name && f.status !== "DELETED" && f.status !== "ARCHIVED");
+  if (match?.id) return match.id as string;
+  const res = await graphPost(`${pageId}/leadgen_forms`, {
+    name, locale: "PT_BR",
+    privacy_policy: { url: privacyUrl, link_text: "Politica de Privacidade" },
+    questions: [{ type: "FULL_NAME" }, { type: "EMAIL" }, { type: "PHONE" }],
+    ...(followUrl ? { follow_up_action_url: followUrl } : {}),
+  });
+  return res.id as string;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "metodo nao permitido" }, 405);
@@ -131,6 +148,20 @@ Deno.serve(async (req) => {
       const obj = objectiveSpec(body.objective || campaign.campaign_objective);
       if (!obj.available) {
         return json({ error: "objective_unavailable", message: `Objetivo "${obj.label}" ainda nao disponivel: ${obj.hint || "pre-requisito pendente."}`, needs: obj.needs }, 422);
+      }
+
+      // 2d: Leads por FORMULARIO instantaneo (LEAD_GENERATION). Valida o ToS de Lead da Pagina em
+      // runtime (o nosso token e a autoridade — a UI pode dizer "Aceitou" antes de refletir) e garante
+      // um formulario. O conjunto usa destination ON_AD + promoted_object{page_id}; o criativo abre o form.
+      const isLeadForm = obj.optimization_goal === "LEAD_GENERATION";
+      let leadFormId = "";
+      if (isLeadForm) {
+        const page = await graphGet(pageId, "name,leadgen_tos_accepted").catch(() => null);
+        if (!page?.leadgen_tos_accepted) {
+          return json({ error: "leadgen_tos_pending", message: `A Pagina ${page?.name || pageId} ainda nao aceitou o ToS de Lead (ou o token nao a enxerga). Um admin precisa aceitar em facebook.com/legal/leadgen/tos e a Pagina deve estar atribuida ao system user.`, needs: ["leadgen_tos"] }, 422);
+        }
+        const privacyUrl = String(body.privacy_policy_url || destinationUrl);
+        leadFormId = await ensureLeadForm(pageId, `${campaign.name} | Lead`, privacyUrl, destinationUrl);
       }
 
       // ---- Conjuntos a construir ----
@@ -215,15 +246,20 @@ Deno.serve(async (req) => {
           name: `${campaign.name} | ${spec.label || asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
           campaign_id: campRes.id, optimization_goal: obj.optimization_goal, billing_event: obj.billing_event,
           ...(obj.destination_type ? { destination_type: obj.destination_type } : {}),
+          ...(isLeadForm ? { promoted_object: { page_id: pageId } } : {}),
           targeting, status: "PAUSED",
           ...(body.start_time ? { start_time: body.start_time } : {}),
           ...(body.end_time ? { end_time: body.end_time } : {}),
         });
+        // CTA: formulario instantaneo abre o lead_gen_form na propria Meta; demais objetivos levam ao link.
+        const callToAction = isLeadForm
+          ? { type: obj.cta, value: { lead_gen_form_id: leadFormId, link: destinationUrl } }
+          : { type: obj.cta, value: { link: destinationUrl } };
         const creativeRes = await graphPost(`act_${adAccountId}/adcreatives`, {
           name: `${campaign.name} | ${spec.label || "Criativo"}`.slice(0, 100),
           object_story_spec: { page_id: pageId, link_data: {
             link: destinationUrl, message: primaryText, name: headline, description: String(m.descricao || ""),
-            picture: String(asset.public_url).split("?")[0], call_to_action: { type: obj.cta, value: { link: destinationUrl } },
+            picture: String(asset.public_url).split("?")[0], call_to_action: callToAction,
           } },
         });
         const adRes = await graphPost(`act_${adAccountId}/ads`, {

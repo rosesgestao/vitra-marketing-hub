@@ -1836,6 +1836,8 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   const [pixelId, setPixelId] = useState('')
   const [lkOrigin, setLkOrigin] = useState('')
   const [objective, setObjective] = useState(DEFAULT_OBJECTIVE)
+  const [privacyUrl, setPrivacyUrl] = useState('')
+  const isLeadForm = objective === 'leads_form'
 
   const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
   const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && !loading
@@ -1843,7 +1845,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   async function handleBuild() {
     setLoading(true); setError(null)
     try {
-      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, adSets: proposal, objective })
+      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, adSets: proposal, objective })
       setResult(data)
     } catch (e) { setError(e) } finally { setLoading(false) }
   }
@@ -1922,6 +1924,14 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
         <label className="block"><span className="form-label">Teto de orçamento (R$/dia)</span><input className="form-input" inputMode="decimal" value={budget} onChange={e => setBudget(e.target.value)} /></label>
         <label className="block"><span className="form-label">Destino (site ou WhatsApp)</span><input className="form-input" value={destination} onChange={e => setDestination(e.target.value)} placeholder="https://… ou https://wa.me/55…" /></label>
       </div>
+
+      {isLeadForm && (
+        <label className="mt-3 block">
+          <span className="form-label">Política de Privacidade (URL)</span>
+          <input className="form-input" value={privacyUrl} onChange={e => setPrivacyUrl(e.target.value)} placeholder="https://… (exigida pela Meta no formulário; usa o destino se vazio)" />
+          <span className="mt-1 block text-[11px] text-white/40">Formulário instantâneo com nome, e-mail e telefone. O ToS de Lead da Página é validado no momento de criar o rascunho.</span>
+        </label>
+      )}
 
       <div className="mt-4">
         <button type="button" onClick={handleSuggest} disabled={suggesting} className="btn-ghost inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
