@@ -132,6 +132,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 42. **[[Atualizacao_2026-06-15_Meta_Fase2a_Sync_Metricas]]**
     Fase 2a: Edge sync-metrics-from-meta puxa insights da Meta (read-only) e faz upsert idempotente em premium_metrics; botao "Sincronizar agora (Meta)" na tela de Metricas. Migration de indice unico aplicada. Restante da fase 2 (2b multiplos conjuntos+IA, 2c audiences, 2d formulario instantaneo) sequenciado. Commit ea037b5.
 
+43. **[[Atualizacao_2026-06-15_Meta_Fase2b_Conjuntos_IA]]**
+    Fase 2b: Edge suggest-meta-audiences (IA propoe publico/posicionamento por conjunto) + build_draft refatorado para N conjuntos (1 por ad_group, CBO, resolve interesses/geo via Graph search, tudo PAUSED) + UI "Sugerir publicos por IA" revisavel. Verificado ao vivo: 3 conjuntos coerentes por funil. Build real depende do META_ACCESS_TOKEN. Commit 009992b.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
