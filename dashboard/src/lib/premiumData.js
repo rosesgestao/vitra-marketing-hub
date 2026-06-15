@@ -464,6 +464,72 @@ export function revalidateCopyAngle(angle, { scope, headlineMax, productName } =
   }).issues
 }
 
+// Conta de anuncio Meta por marca (prefill do painel "Revisar e publicar"). O operador confirma/edita
+// a conta e a Pagina antes de criar o rascunho. IDs descobertos via MCP (ads_get_ad_accounts).
+export const META_AD_ACCOUNTS = {
+  [BRAND_SCOPES.imobiliaria]: { adAccountId: '122035585232240', label: 'Vitra Porto Alegre' },
+  [BRAND_SCOPES.premium]: { adAccountId: '1057868298461356', label: 'Vitra Premium' },
+}
+
+// Extrai a mensagem/issues acionavel de um erro do supabase.functions.invoke (corpo non-2xx vem em
+// error.context). Mesmo padrao do generateCopyWithAI, mas tambem propaga `issues` da validacao de copy.
+async function edgeError(error) {
+  let message = error?.message || 'Falha ao falar com a Edge de publicacao.'
+  let issues = []
+  try {
+    const detail = await error?.context?.json?.()
+    if (detail?.message) message = detail.message
+    if (Array.isArray(detail?.issues)) issues = detail.issues
+  } catch (_) { /* sem corpo */ }
+  const err = new Error(message)
+  err.issues = issues
+  return err
+}
+
+// ===== Tráfego Pago: publicacao Meta via Edge publish-meta-ads =====
+// O agente monta tudo PAUSED (sem gasto). Ativar e uma acao SEPARADA (activateMetaCampaign), nunca
+// automatica. O token da Meta fica server-side (secret META_ACCESS_TOKEN); aqui so passamos parametros.
+
+// Cria o rascunho na Meta (campanha -> conjunto -> criativo -> anuncio), TUDO PAUSED. Devolve os IDs.
+export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, targeting } = {}) {
+  const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
+    headers: copilotGateHeaders(),
+    body: {
+      action: 'build_draft',
+      campaign_id: campaignId,
+      ad_account_id: adAccountId,
+      page_id: pageId,
+      daily_budget_cents: dailyBudgetCents,
+      start_time: startTime || undefined,
+      end_time: endTime || undefined,
+      destination_url: destinationUrl,
+      targeting: targeting || undefined,
+    },
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
+// GATE: ativa a campanha na Meta (passa a gastar). Acao explicita do operador — exige confirm:true.
+export async function activateMetaCampaign(campaignId) {
+  const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
+    headers: copilotGateHeaders(),
+    body: { action: 'activate', campaign_id: campaignId, confirm: true },
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
+// Le o estado atual do rascunho/campanha na Meta (para a UI mostrar review/delivery).
+export async function getMetaCampaignStatus(campaignId) {
+  const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
+    headers: copilotGateHeaders(),
+    body: { action: 'status', campaign_id: campaignId },
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
 // Degrau B' por LINK: busca o texto da pagina do imovel (site da construtora) via middleware server-side
 // (Node) — evita CORS/SSRF do browser, reusa o guard de URL e a limpeza HTML->texto. Devolve o texto +
 // avisos (ex.: pagina em JS retornou pouco texto). O operador revisa o texto antes de extrair.

@@ -53,6 +53,9 @@ import {
   renderCampaignAssets,
   saveAd,
   saveAssetEdit,
+  buildMetaDraft,
+  activateMetaCampaign,
+  META_AD_ACCOUNTS,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
@@ -1804,6 +1807,102 @@ function groupMetaAdsByCampaign(assets) {
   return [...map.values()]
 }
 
+// Painel "Revisar e publicar": o agente monta a campanha Meta (campanha -> conjunto -> criativo ->
+// anuncio) em status PAUSED via Edge publish-meta-ads. O orcamento usa o TETO definido aqui pelo
+// operador. Ativar (gastar) e uma acao SEPARADA, com window.confirm — nunca automatica.
+function PublishMetaPanel({ campaign, brandProfile, ads }) {
+  const readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok).length
+  const intake = campaign?.brief?.source_intake || {}
+  const acct = META_AD_ACCOUNTS[brandProfile.scope] || META_AD_ACCOUNTS[BRAND_SCOPES.imobiliaria] || {}
+  const [adAccountId, setAdAccountId] = useState(acct.adAccountId || '')
+  const [pageId, setPageId] = useState('')
+  const [destination, setDestination] = useState(intake.whatsapp_url || intake.landing_url || intake.url || '')
+  const [budget, setBudget] = useState('20')
+  const [loading, setLoading] = useState(false)
+  const [activating, setActivating] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
+
+  const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
+  const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && !loading
+
+  async function handleBuild() {
+    setLoading(true); setError(null)
+    try {
+      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination })
+      setResult(data)
+    } catch (e) { setError(e) } finally { setLoading(false) }
+  }
+  async function handleActivate() {
+    if (!result?.meta_campaign_id) return
+    const ok = window.confirm(`Ativar a campanha na Meta? A partir daqui ela passa a GASTAR ate R$ ${budget}/dia. Confirmacao do operador.`)
+    if (!ok) return
+    setActivating(true); setError(null)
+    try {
+      const data = await activateMetaCampaign(campaign.id)
+      setResult(r => ({ ...r, activated: data.activated }))
+    } catch (e) { setError(e) } finally { setActivating(false) }
+  }
+
+  return (
+    <div className="rounded-xl border border-gold-500/25 bg-[color:var(--surface-1)] p-5">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="h-px w-7 bg-gold-500/70" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Revisar e publicar</p>
+      </div>
+      <h3 className="font-display text-xl font-semibold tracking-tight text-white">Publicar na Meta (rascunho pausado)</h3>
+      <p className="mt-1.5 max-w-2xl text-xs leading-5 text-white/50">
+        O agente monta campanha → conjunto → criativo → anúncio na sua conta, <span className="text-white/75">tudo pausado</span>. Objetivo <span className="text-white/75">Leads</span>, posicionamentos automáticos, orçamento com o <span className="text-white/75">teto que você define</span>. Nada gasta até você ativar.
+      </p>
+
+      <div className="mt-4 flex items-center gap-2 text-xs">
+        {readyAds > 0
+          ? (<><CheckCircle2 size={14} className="text-emerald-300" /><span className="text-white/70">{readyAds} anúncio(s) aprovado(s) e prontos para publicar</span></>)
+          : (<><AlertTriangle size={14} className="text-amber-300" /><span className="text-white/55">Aprove ao menos 1 anúncio (QA completo) para liberar a publicação.</span></>)}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="block"><span className="form-label">Conta de anúncio</span><input className="form-input" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} /></label>
+        <label className="block"><span className="form-label">Página (ID Facebook)</span><input className="form-input" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="ID da Página" /></label>
+        <label className="block"><span className="form-label">Teto de orçamento (R$/dia)</span><input className="form-input" inputMode="decimal" value={budget} onChange={e => setBudget(e.target.value)} /></label>
+        <label className="block"><span className="form-label">Destino (site ou WhatsApp)</span><input className="form-input" value={destination} onChange={e => setDestination(e.target.value)} placeholder="https://… ou https://wa.me/55…" /></label>
+      </div>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-red-400/25 bg-red-950/25 px-4 py-3 text-xs text-red-100/85">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-red-300" />
+            <div>
+              <p>{error.message}</p>
+              {error.issues?.length ? <ul className="mt-1 list-disc pl-4 text-red-200/70">{error.issues.map((i, k) => <li key={k}>{i}</li>)}</ul> : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <button type="button" onClick={handleBuild} disabled={!canBuild} className="btn-gold inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <Megaphone size={16} />}
+          {loading ? 'Criando rascunho…' : 'Criar rascunho na Meta (pausado)'}
+        </button>
+        {result?.meta_campaign_id && (
+          <>
+            <a href={result.ads_manager_url} target="_blank" rel="noopener noreferrer" className="btn-ghost inline-flex items-center justify-center gap-2">Abrir no Ads Manager</a>
+            <button type="button" onClick={handleActivate} disabled={activating || result.activated} className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50">
+              {activating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+              {result.activated ? 'Ativada ✓' : 'Publicar (ativar)'}
+            </button>
+          </>
+        )}
+      </div>
+
+      {result?.meta_campaign_id && !result.activated && (
+        <p className="mt-3 text-[11px] leading-4 text-white/45">Rascunho criado <span className="text-white/65">PAUSADO</span> (campanha {result.meta_campaign_id}). Revise no Ads Manager; “Publicar (ativar)” inicia o gasto e pede confirmação.</p>
+      )}
+    </div>
+  )
+}
+
 function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
   if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
   const ads = groupMetaAds(assets)
@@ -1876,6 +1975,8 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
         <StatTile label="Aprovados" value={approved} sub="prontos p/ subir" icon={CheckCircle2} tone="#F0C95C" />
         <StatTile label="QA final" value={`${readyAds}/${ads.length}`} sub="anuncios exportaveis" icon={Target} tone="#C4942A" />
       </div>
+
+      <PublishMetaPanel campaign={campaign} brandProfile={brandProfile} ads={ads} />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {ads.map(ad => (
