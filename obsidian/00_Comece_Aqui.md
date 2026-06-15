@@ -135,6 +135,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 43. **[[Atualizacao_2026-06-15_Meta_Fase2b_Conjuntos_IA]]**
     Fase 2b: Edge suggest-meta-audiences (IA propoe publico/posicionamento por conjunto) + build_draft refatorado para N conjuntos (1 por ad_group, CBO, resolve interesses/geo via Graph search, tudo PAUSED) + UI "Sugerir publicos por IA" revisavel. Verificado ao vivo: 3 conjuntos coerentes por funil. Build real depende do META_ACCESS_TOKEN. Commit 009992b.
 
+44. **[[Atualizacao_2026-06-15_Meta_Fase2c_Audiences]]**
+    Fase 2c: Edge manage-audiences (list / create_website por pixel / create_lookalike via Graph) + targetingFor usa custom_audiences no retargeting + UI "Publicos da Meta" (listar/criar) e seletor de publico nos conjuntos de retarget. Gated; criacao real depende do META_ACCESS_TOKEN. Resta 2d (formulario instantaneo, exige ToS de Lead). Commit fe8a9ce.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
