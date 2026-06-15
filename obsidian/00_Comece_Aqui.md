@@ -138,6 +138,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 44. **[[Atualizacao_2026-06-15_Meta_Fase2c_Audiences]]**
     Fase 2c: Edge manage-audiences (list / create_website por pixel / create_lookalike via Graph) + targetingFor usa custom_audiences no retargeting + UI "Publicos da Meta" (listar/criar) e seletor de publico nos conjuntos de retarget. Gated; criacao real depende do META_ACCESS_TOKEN. Resta 2d (formulario instantaneo, exige ToS de Lead). Commit fe8a9ce.
 
+45. **[[Atualizacao_2026-06-15_Meta_Fase2e_Objetivos_Flexiveis]]**
+    Fase 2e: objetivos flexiveis via _shared/objectivePlaybook.ts (fonte unica Deno+Vite). Seletor "Objetivo da campanha" (Reconhecimento/Trafego/Engajamento/Leads ativos; Leads-formulario e Vendas em 🔒 destravaveis por ToS/pixel). build_draft e suggest-meta-audiences derivam do playbook. Padronizacao mantida; tudo PAUSED+gate. Verificado no preview. Commit 6996c32.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
