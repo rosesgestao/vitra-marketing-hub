@@ -159,6 +159,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 51. **[[Atualizacao_2026-06-16_Criativos_Preco_Repetido_e_CTA]]**
     Criativos hero-checklist: guard no render (isPriceLikeHeadline/heroBenefitHeadline) evita headline = preco quando o bloco De/Por ja mostra a oferta; generate-copy (Imobiliaria) sem "Simular financiamento" + CTAs consultivos e regra anti-preco na headline. Dado da campanha TOM MENINO DEUS corrigido e re-renderizado; PNG conferido. Commit 35e6932.
 
+52. **[[Atualizacao_2026-06-16_Auto_Descoberta_Contas_Paginas]]**
+    Painel "Publicar na Meta" auto-descobre contas (/me/adaccounts) e Paginas (act_/promote_pages) reais do token: acoes list_ad_accounts/list_pages em manage-audiences, helpers, e selects auto-carregados (pre-seleciona a conta da marca; fallback input manual). Verificado: PoA/RH/Premium + Pagina Vitra Imobiliaria. Commit 652f795.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
