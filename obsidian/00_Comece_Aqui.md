@@ -156,6 +156,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 50. **[[Atualizacao_2026-06-16_Fix_Render_546_CORS]]**
     Fix: cortes falhando com "CORS"+546 no render-asset. Causa: execucoes de render CONCORRENTES (auto-render + manual) abriam isolates paralelos que estouravam o limite (546 volta sem CORS -> browser mostra "CORS"). Correcao: fila unica (renderChain) serializa as execucoes no premiumData.js; sem tocar no edge/output. Commit 341a305.
 
+51. **[[Atualizacao_2026-06-16_Criativos_Preco_Repetido_e_CTA]]**
+    Criativos hero-checklist: guard no render (isPriceLikeHeadline/heroBenefitHeadline) evita headline = preco quando o bloco De/Por ja mostra a oferta; generate-copy (Imobiliaria) sem "Simular financiamento" + CTAs consultivos e regra anti-preco na headline. Dado da campanha TOM MENINO DEUS corrigido e re-renderizado; PNG conferido. Commit 35e6932.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
