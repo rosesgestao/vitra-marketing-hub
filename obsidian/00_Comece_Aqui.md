@@ -147,6 +147,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 47. **[[Atualizacao_2026-06-15_Meta_Guards_Marca_e_Aprovacao]]**
     Guards anti-contaminacao no publish-meta-ads: (1) brand_mismatch (conta/Pagina nao pode ser de marca diferente da campanha), (2) so criativos approved vao ao ar (nada de render generated/teste), (3) acao delete_draft (DELETE na Meta + limpa banco). Validado ao vivo; 2 rascunhos de teste apagados. Hoje nenhuma campanha tem criativo approved -> e2e limpo exige aprovar 1 criativo antes. Commit 505c721.
 
+48. **[[Atualizacao_2026-06-16_Meta_Objetivo_WhatsApp]]**
+    Objetivo Conversas (WhatsApp) no playbook: OUTCOME_ENGAGEMENT / CONVERSATIONS / destination WHATSAPP / CTA WHATSAPP_MESSAGE, needs ['whatsapp'], available:false (🔒) ate haver numero conectado. build_draft aplica promoted_object no click-to-WhatsApp; page_status le WhatsApp da Pagina. Verificado: Vitra Imobiliaria sem WhatsApp -> gated (422). Commit 20769fe.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
