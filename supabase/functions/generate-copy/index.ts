@@ -49,7 +49,7 @@ function brandVoice(scope: string) {
     nome: "Vitra Imobiliaria",
     paleta: "navy #0A1628 + dourado, institucional-comercial",
     tom: "Institucional-comercial DIRETO. Vende com argumento concreto de imovel: preco, parcela, planta, bairro, financiamento, lazer, prazo de entrega, escassez concreta (ultimas unidades).",
-    ctas: "Fale com a Vitra, Agendar visita, Simular financiamento, Receber condicoes, Conhecer a regiao",
+    ctas: "Fale com a Vitra, Fale com um consultor, Agendar visita, Conhecer o imovel, Receber condicoes, Conhecer a regiao",
     evite: "NAO usar a voz editorial da Premium: nada de 'curadoria', 'uma categoria acima', 'liquidez', 'alto padrao', 'leitura objetiva', 'exclusividade', 'patrimonial'. Regra do Brand System: Premium e Imobiliaria NAO misturam linguagem.",
   };
 }
@@ -68,7 +68,7 @@ REGRAS OBRIGATORIAS:
 1. Escreva em portugues do Brasil.
 2. Cada angulo deve ter um GANCHO de venda DIFERENTE (preco, localizacao, financiamento, lazer, planta, prazo/entrega, escassez, investimento). Nada de variacoes da mesma ideia.
 3. Use SOMENTE os fatos fornecidos. NAO invente preco, metragem, bairro, diferenciais nem prazos.
-4. headline: curta e impactante, no MAXIMO ${headlineMax} caracteres.
+4. headline: curta e impactante, no MAXIMO ${headlineMax} caracteres. NAO use o preco nem o formato "De X por Y" como headline (o criativo ja mostra o preco em destaque) — a headline e beneficio/posicionamento.
 5. NAO repita o nome do produto na headline E no inicio do texto (evite "Produto. Produto.").
 6. body (texto principal): 1 a 2 frases, com um beneficio concreto e o proximo passo.
 7. cta: curto, de conversao imobiliaria, coerente com a voz da marca.

@@ -812,6 +812,25 @@ function heroChecklistBullets(pd: any, campaign: any, max: number) {
     .filter(Boolean).map((value) => String(value).trim()).slice(0, max);
 }
 
+// Detecta headline que e basicamente o preco/oferta (duplicaria o bloco De/Por do hero-checklist).
+function isPriceLikeHeadline(s: string) {
+  const t = String(s || "").toLowerCase();
+  if (/r\$\s*[\d.]/.test(t) && /\bpor\b/.test(t)) return true;              // "... R$ ... por ..."
+  if (/\bde\b/.test(t) && /\bpor\b/.test(t) && /\d{3}/.test(t)) return true; // "de ... por ... <numero>"
+  return false;
+}
+// Titulo de BENEFICIO (sem preco) a partir dos dados do imovel — para nao repetir a oferta De/Por.
+function heroBenefitHeadline(pd: any, campaign: any, brandProfile: any) {
+  const bits: string[] = [];
+  if (pd?.suites) bits.push(String(pd.suites));
+  else if (pd?.rooms) bits.push(String(pd.rooms));
+  if (pd?.area) bits.push(String(pd.area));
+  const nb = pd?.neighborhood || campaign?.city || "";
+  let h = bits.join(" · ");
+  if (nb) h = h ? `${h} — ${nb}` : `Oportunidade em ${nb}`;
+  return h || campaign?.name || brandProfile?.fallbackHeadline || "OPORTUNIDADE";
+}
+
 function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
@@ -819,7 +838,11 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   const isWide = W > H * 1.35;
   const hero = images[0] || null;
 
-  const headlineRaw = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
+  // O hero-checklist JA exibe o preco no bloco De/Por. Se a headline for o proprio preco (ex.:
+  // "De R$X por R$Y"), trocamos por um titulo de beneficio para nao repetir a oferta na peca.
+  let headlineSource = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString();
+  if (isPriceLikeHeadline(headlineSource)) headlineSource = heroBenefitHeadline(pd, campaign, brandProfile);
+  const headlineRaw = headlineSource.toUpperCase();
   const lines = wrapText(headlineRaw, isWide ? 16 : 14, 3);
 
   const parts = priceParts(pd.price || campaign?.offer || "");
