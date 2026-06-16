@@ -59,9 +59,9 @@ export const META_OBJECTIVES: Record<string, ObjectiveSpec> = {
   whatsapp: {
     key: "whatsapp", label: "Conversas (WhatsApp)", objective: "OUTCOME_ENGAGEMENT",
     optimization_goal: "CONVERSATIONS", billing_event: "IMPRESSIONS", destination_type: "WHATSAPP",
-    cta: "WHATSAPP_MESSAGE", needs: ["whatsapp"], available: false,
+    cta: "WHATSAPP_MESSAGE", needs: ["whatsapp"], available: true,
     funnel: "fundo de funil: conversa direta no WhatsApp (click-to-WhatsApp)",
-    hint: "Requer um numero de WhatsApp Business conectado a Pagina (Meta Business Suite > WhatsApp).",
+    hint: "Usa o numero principal de WhatsApp conectado a Pagina; a Meta valida a conexao no build.",
   },
   sales: {
     key: "sales", label: "Vendas / Conversoes", objective: "OUTCOME_SALES",
