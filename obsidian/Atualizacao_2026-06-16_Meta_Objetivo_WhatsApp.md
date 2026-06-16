@@ -28,7 +28,16 @@ conectado NAO e lido de forma confiavel pelo nosso token. Por isso o guard hoje 
 (`available:false`); ao conectar o numero, viramos `available:true` e a propria Meta valida a conexao na
 criacao do conjunto (erro gracioso se faltar).
 
+## DESTRAVADO (commit e5f6554)
+As Configuracoes da Pagina Vitra Imobiliaria mostram WhatsApp conectado: "Usar WhatsApp como botao de
+acao" ligado + numeros **+55 51 8225-0218 (principal)**, 9017-5037, 8331-1573, 8279-0239. Ou seja, o
+pre-requisito ESTAVA atendido — o `page_status` deu **falso negativo** (token nao le esse estado de
+forma confiavel; o que vale e a config da Pagina). Virei `whatsapp.available=true`. Com
+`promoted_object:{page_id}` a Meta usa o numero PRINCIPAL e valida a conexao no build. Verificado: o
+objetivo passa do gate de disponibilidade (cai em `no_approved_creative`, como qualquer objetivo sem
+criativo aprovado).
+
 ## Resta
-Conectar um numero de WhatsApp Business a Pagina (Meta Business Suite > WhatsApp) e entao virar
-`whatsapp.available=true`. Ver [[meta-ads-publicacao]]. Continuacao de
-[[Atualizacao_2026-06-15_Meta_Guards_Marca_e_Aprovacao]].
+Aprovar 1 criativo (gate comum a todos os objetivos) para um build real de Conversas. A forma de
+pagamento do WABA (aviso no Gerenciador do WhatsApp) ajuda a nao limitar conversas. Ver
+[[meta-ads-publicacao]].
