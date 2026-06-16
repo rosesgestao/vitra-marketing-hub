@@ -2010,10 +2010,23 @@ function renderAssetErrorMessage(error) {
   return details.join(' - ') || String(error)
 }
 
+// Serializa TODAS as execucoes de render no app numa fila unica. Execucoes concorrentes (auto-render
+// por efeito + disparo manual, ou re-triggers) abrem isolates paralelos do edge render-asset que
+// competem pelo limite de CPU/memoria do worker e estouram em 546 — que volta SEM header CORS, e o
+// browser reporta como erro de "CORS". Render ja e 1-a-1 por design, entao enfileirar nao muda o
+// resultado: so remove a contencao e mantem o isolate quente entre cortes.
+let renderChain = Promise.resolve()
+export function renderCampaignAssets(campaignId, opts = {}) {
+  const run = () => _renderCampaignAssets(campaignId, opts)
+  const p = renderChain.then(run, run)
+  renderChain = p.then(() => {}, () => {})
+  return p
+}
+
 // Dispara a Edge Function render-asset em lotes pequenos (limite de memoria do worker).
 // Envia asset_ids explicitos para evitar que campanhas com upload manual fiquem presas
 // em queued quando o disparo automatico inicial nao completa o ciclo.
-export async function renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60, assetIds = [], onProgress = null } = {}) {
+async function _renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60, assetIds = [], onProgress = null } = {}) {
   let rendered = 0
   let failed = 0
   let lastError = null
