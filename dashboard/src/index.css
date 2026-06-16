@@ -210,6 +210,42 @@
            transition-colors focus:border-gold-500/40 focus:bg-white/[0.06] focus:outline-none;
   }
 
+  /* Dropdowns nativos com a identidade Vitra. O popup do <select> e desenhado pelo navegador a partir
+     do fundo do controle: como o .form-input usa branco translucido, o Chromium caia num popup BRANCO.
+     Damos um fundo SOLIDO (surface) + color-scheme dark (popup escuro) + opcoes em surface com item
+     selecionado dourado, e uma seta dourada custom. So aparencia — a logica do campo nao muda. */
+  select.form-input {
+    color-scheme: dark;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--surface-2);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23C4942A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M1 1.5 6 6.5 11 1.5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 0.7rem;
+    padding-right: 2.4rem;
+  }
+  select.form-input:focus {
+    background-color: var(--surface-2);
+  }
+  /* Opcoes do popup nativo (Chromium/Firefox respeitam fundo+cor; o item ativo fica dourado). */
+  select.form-input option,
+  select.form-input optgroup,
+  select option {
+    background-color: var(--surface-2);
+    color: rgba(255, 255, 255, 0.92);
+  }
+  select.form-input option:checked,
+  select option:checked {
+    background: #C4942A;
+    color: var(--surface-0);
+    font-weight: 600;
+  }
+  /* Rede de seguranca para qualquer <select> fora do .form-input (popup escuro consistente). */
+  select {
+    color-scheme: dark;
+  }
+
   .skeleton {
     background: linear-gradient(
       90deg,
