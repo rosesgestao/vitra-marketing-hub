@@ -153,6 +153,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 49. **[[Atualizacao_2026-06-16_Meta_Objetivo_Vendas_Pixel]]**
     Objetivo Vendas/Conversoes (OFFSITE_CONVERSIONS): exige pixel_id da conta (valida via act_/adspixels) + evento de conversao (default LEAD); promoted_object{pixel_id,event}. list_pixels em manage-audiences; UI com seletor de pixel + evento. Imobiliaria tem "Pixel Site Vitra" ativo; Premium sem pixel. Verificado (pixel_required / pixel_invalid / passa guard). Playbook completo. Commit b4f5f90.
 
+50. **[[Atualizacao_2026-06-16_Fix_Render_546_CORS]]**
+    Fix: cortes falhando com "CORS"+546 no render-asset. Causa: execucoes de render CONCORRENTES (auto-render + manual) abriam isolates paralelos que estouravam o limite (546 volta sem CORS -> browser mostra "CORS"). Correcao: fila unica (renderChain) serializa as execucoes no premiumData.js; sem tocar no edge/output. Commit 341a305.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
