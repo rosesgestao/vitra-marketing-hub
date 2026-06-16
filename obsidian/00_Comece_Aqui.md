@@ -148,7 +148,10 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
     Guards anti-contaminacao no publish-meta-ads: (1) brand_mismatch (conta/Pagina nao pode ser de marca diferente da campanha), (2) so criativos approved vao ao ar (nada de render generated/teste), (3) acao delete_draft (DELETE na Meta + limpa banco). Validado ao vivo; 2 rascunhos de teste apagados. Hoje nenhuma campanha tem criativo approved -> e2e limpo exige aprovar 1 criativo antes. Commit 505c721.
 
 48. **[[Atualizacao_2026-06-16_Meta_Objetivo_WhatsApp]]**
-    Objetivo Conversas (WhatsApp) no playbook: OUTCOME_ENGAGEMENT / CONVERSATIONS / destination WHATSAPP / CTA WHATSAPP_MESSAGE, needs ['whatsapp'], available:false (🔒) ate haver numero conectado. build_draft aplica promoted_object no click-to-WhatsApp; page_status le WhatsApp da Pagina. Verificado: Vitra Imobiliaria sem WhatsApp -> gated (422). Commit 20769fe.
+    Objetivo Conversas (WhatsApp) no playbook: OUTCOME_ENGAGEMENT / CONVERSATIONS / destination WHATSAPP / CTA WHATSAPP_MESSAGE, needs ['whatsapp']. Comecou 🔒; DESTRAVADO (commit e5f6554) ao confirmar que a Pagina Vitra Imobiliaria tem WhatsApp conectado (principal +55 51 8225-0218). page_status deu falso negativo (token nao le confiavel). Commits 20769fe + e5f6554.
+
+49. **[[Atualizacao_2026-06-16_Meta_Objetivo_Vendas_Pixel]]**
+    Objetivo Vendas/Conversoes (OFFSITE_CONVERSIONS): exige pixel_id da conta (valida via act_/adspixels) + evento de conversao (default LEAD); promoted_object{pixel_id,event}. list_pixels em manage-audiences; UI com seletor de pixel + evento. Imobiliaria tem "Pixel Site Vitra" ativo; Premium sem pixel. Verificado (pixel_required / pixel_invalid / passa guard). Playbook completo. Commit b4f5f90.
 
 ---
 
