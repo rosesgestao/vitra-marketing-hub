@@ -70,7 +70,16 @@ Deno.serve(async (req) => {
       const pages = await Promise.all(pageIds.map(async (id) => {
         try {
           const p = await graphGet(id, "fields=name,leadgen_tos_accepted");
-          return { page_id: id, name: p.name ?? null, leadgen_tos_accepted: !!p.leadgen_tos_accepted };
+          // WhatsApp conectado a Pagina: best-effort (campo varia/depende de permissao). Nao quebra a leitura.
+          let wa: string | null = null;
+          for (const f of ["whatsapp_number", "connected_whatsapp"]) {
+            try { const w = await graphGet(id, `fields=${f}`); const v = (w as any)[f]; if (v) { wa = typeof v === "string" ? v : (v.display_phone_number || JSON.stringify(v)); break; } } catch { /* campo indisponivel */ }
+          }
+          return {
+            page_id: id, name: p.name ?? null,
+            leadgen_tos_accepted: !!p.leadgen_tos_accepted,
+            whatsapp_connected: !!wa, whatsapp_number: wa,
+          };
         } catch (e) {
           return { page_id: id, error: String((e as Error)?.message || e) };
         }

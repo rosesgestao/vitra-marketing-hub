@@ -56,6 +56,13 @@ export const META_OBJECTIVES: Record<string, ObjectiveSpec> = {
     funnel: "fundo de funil: formulario instantaneo na propria Meta",
     hint: "Requer ToS de Lead aceito na Pagina — validado por Pagina no build (fase 2d).",
   },
+  whatsapp: {
+    key: "whatsapp", label: "Conversas (WhatsApp)", objective: "OUTCOME_ENGAGEMENT",
+    optimization_goal: "CONVERSATIONS", billing_event: "IMPRESSIONS", destination_type: "WHATSAPP",
+    cta: "WHATSAPP_MESSAGE", needs: ["whatsapp"], available: false,
+    funnel: "fundo de funil: conversa direta no WhatsApp (click-to-WhatsApp)",
+    hint: "Requer um numero de WhatsApp Business conectado a Pagina (Meta Business Suite > WhatsApp).",
+  },
   sales: {
     key: "sales", label: "Vendas / Conversoes", objective: "OUTCOME_SALES",
     optimization_goal: "OFFSITE_CONVERSIONS", billing_event: "IMPRESSIONS", destination_type: "WEBSITE",

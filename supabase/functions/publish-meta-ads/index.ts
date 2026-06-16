@@ -199,6 +199,10 @@ Deno.serve(async (req) => {
       // runtime (o nosso token e a autoridade — a UI pode dizer "Aceitou" antes de refletir) e garante
       // um formulario. O conjunto usa destination ON_AD + promoted_object{page_id}; o criativo abre o form.
       const isLeadForm = obj.optimization_goal === "LEAD_GENERATION";
+      // Click-to-WhatsApp: conjunto otimiza por CONVERSATIONS com destination WHATSAPP + promoted_object;
+      // o criativo usa CTA WHATSAPP_MESSAGE (obj.cta) com link wa.me (destination_url). A Pagina precisa
+      // de um numero de WhatsApp Business conectado — hoje bloqueado no playbook (available:false) ate isso.
+      const isWhatsApp = obj.destination_type === "WHATSAPP";
       let leadFormId = "";
       if (isLeadForm) {
         const page = await graphGet(pageId, "name,leadgen_tos_accepted").catch(() => null);
@@ -298,7 +302,7 @@ Deno.serve(async (req) => {
           name: `${campaign.name} | ${spec.label || asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
           campaign_id: campRes.id, optimization_goal: obj.optimization_goal, billing_event: obj.billing_event,
           ...(obj.destination_type ? { destination_type: obj.destination_type } : {}),
-          ...(isLeadForm ? { promoted_object: { page_id: pageId } } : {}),
+          ...((isLeadForm || isWhatsApp) ? { promoted_object: { page_id: pageId } } : {}),
           targeting, status: "PAUSED",
           ...(body.start_time ? { start_time: body.start_time } : {}),
           ...(body.end_time ? { end_time: body.end_time } : {}),
