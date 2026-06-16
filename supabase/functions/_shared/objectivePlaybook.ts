@@ -66,9 +66,9 @@ export const META_OBJECTIVES: Record<string, ObjectiveSpec> = {
   sales: {
     key: "sales", label: "Vendas / Conversoes", objective: "OUTCOME_SALES",
     optimization_goal: "OFFSITE_CONVERSIONS", billing_event: "IMPRESSIONS", destination_type: "WEBSITE",
-    cta: "SHOP_NOW", needs: ["pixel"], available: false,
-    funnel: "conversao: otimiza por evento de conversao no site",
-    hint: "Requer um pixel com evento de conversao configurado.",
+    cta: "SHOP_NOW", needs: ["pixel"], available: true,
+    funnel: "conversao: otimiza por evento de conversao no site (ex.: Lead/Contato)",
+    hint: "Escolha um pixel ativo + evento de conversao (default Lead). O site precisa disparar o evento.",
   },
 };
 

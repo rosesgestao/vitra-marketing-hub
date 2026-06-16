@@ -497,7 +497,7 @@ async function edgeError(error) {
 // Cria o rascunho na Meta (campanha CBO -> N conjuntos -> criativo -> anuncio), TUDO PAUSED.
 // `adSets` = proposta de publicos/posicionamentos por conjunto (de suggestMetaAudiences, revisada pelo
 // operador). Sem ela, cai em 1 conjunto amplo (fase 1). Devolve os IDs/contagem.
-export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, privacyPolicyUrl, targeting, adSets, objective } = {}) {
+export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBudgetCents, startTime, endTime, destinationUrl, privacyPolicyUrl, pixelId, conversionEvent, targeting, adSets, objective } = {}) {
   const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
     headers: copilotGateHeaders(),
     body: {
@@ -511,6 +511,8 @@ export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBud
       end_time: endTime || undefined,
       destination_url: destinationUrl,
       privacy_policy_url: privacyPolicyUrl || undefined,
+      pixel_id: pixelId || undefined,
+      conversion_event: conversionEvent || undefined,
       targeting: targeting || undefined,
       ad_sets: Array.isArray(adSets) && adSets.length ? adSets : undefined,
     },
@@ -539,6 +541,16 @@ export async function suggestMetaAudiences(campaignId, objective) {
   })
   if (error) throw await edgeError(error)
   return Array.isArray(data?.ad_sets) ? data.ad_sets : []
+}
+
+// Lista os pixels (datasets) da conta — para o objetivo Vendas/Conversoes escolher qual otimizar.
+export async function listMetaPixels(adAccountId) {
+  const { data, error } = await supabase.functions.invoke('manage-audiences', {
+    headers: copilotGateHeaders(),
+    body: { action: 'list_pixels', ad_account_id: adAccountId },
+  })
+  if (error) throw await edgeError(error)
+  return Array.isArray(data?.pixels) ? data.pixels : []
 }
 
 // ===== Fase 2c: publicos custom/lookalike (Edge manage-audiences, via Graph) =====

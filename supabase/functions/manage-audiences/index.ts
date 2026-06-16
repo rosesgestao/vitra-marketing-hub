@@ -94,6 +94,13 @@ Deno.serve(async (req) => {
   if (!adAccountId) return json({ error: "missing_account", message: "Informe ad_account_id." }, 400);
 
   try {
+    if (action === "list_pixels") {
+      // Pixels (datasets) da conta, para o objetivo Vendas/Conversoes escolher qual otimizar.
+      const data = await graphGet(`act_${adAccountId}/adspixels`, "fields=id,name,is_active,last_fired_time&limit=100");
+      const pixels = (data.data || []).map((p: any) => ({ id: p.id, name: p.name, is_active: p.is_active !== false, last_fired_time: p.last_fired_time || null }));
+      return json({ pixels });
+    }
+
     if (action === "list") {
       const data = await graphGet(`act_${adAccountId}/customaudiences`, "fields=id,name,subtype,approximate_count_lower_bound,delivery_status,time_created&limit=200");
       const audiences = (data.data || []).map((a: any) => ({

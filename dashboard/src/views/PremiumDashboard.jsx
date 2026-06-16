@@ -57,6 +57,7 @@ import {
   activateMetaCampaign,
   suggestMetaAudiences,
   listMetaAudiences,
+  listMetaPixels,
   createWebsiteAudience,
   createLookalikeAudience,
   META_AD_ACCOUNTS,
@@ -1837,17 +1838,26 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   const [lkOrigin, setLkOrigin] = useState('')
   const [objective, setObjective] = useState(DEFAULT_OBJECTIVE)
   const [privacyUrl, setPrivacyUrl] = useState('')
+  const [pixels, setPixels] = useState([])
+  const [convPixelId, setConvPixelId] = useState('')
+  const [conversionEvent, setConversionEvent] = useState('LEAD')
   const isLeadForm = objective === 'leads_form'
+  const isSales = objective === 'sales'
 
   const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
-  const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && !loading
+  const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && (!isSales || Boolean(convPixelId)) && !loading
 
   async function handleBuild() {
     setLoading(true); setError(null)
     try {
-      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, adSets: proposal, objective })
+      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, pixelId: convPixelId, conversionEvent, adSets: proposal, objective })
       setResult(data)
     } catch (e) { setError(e) } finally { setLoading(false) }
+  }
+  async function handleLoadPixels() {
+    setError(null)
+    try { const px = await listMetaPixels(adAccountId); setPixels(px); if (px[0] && !convPixelId) setConvPixelId(px[0].id) }
+    catch (e) { setError(e) }
   }
   async function handleSuggest() {
     setSuggesting(true); setError(null)
@@ -1931,6 +1941,28 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
           <input className="form-input" value={privacyUrl} onChange={e => setPrivacyUrl(e.target.value)} placeholder="https://… (exigida pela Meta no formulário; usa o destino se vazio)" />
           <span className="mt-1 block text-[11px] text-white/40">Formulário instantâneo com nome, e-mail e telefone. O ToS de Lead da Página é validado no momento de criar o rascunho.</span>
         </label>
+      )}
+
+      {isSales && (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="form-label">Pixel (conversões)</span>
+            <div className="flex gap-2">
+              <select className="form-input flex-1" value={convPixelId} onChange={e => setConvPixelId(e.target.value)}>
+                <option value="">{pixels.length ? 'Selecione o pixel' : 'Liste os pixels →'}</option>
+                {pixels.map(p => <option key={p.id} value={p.id}>{p.name}{p.is_active ? '' : ' (inativo)'}</option>)}
+              </select>
+              <button type="button" onClick={handleLoadPixels} className="btn-ghost flex-shrink-0 !px-3">Listar</button>
+            </div>
+          </label>
+          <label className="block">
+            <span className="form-label">Evento de conversão</span>
+            <select className="form-input" value={conversionEvent} onChange={e => setConversionEvent(e.target.value)}>
+              {['LEAD','CONTACT','SCHEDULE','COMPLETE_REGISTRATION','VIEW_CONTENT','PURCHASE'].map(ev => <option key={ev} value={ev}>{ev}</option>)}
+            </select>
+            <span className="mt-1 block text-[11px] text-white/40">O site precisa disparar esse evento no pixel para a otimização funcionar.</span>
+          </label>
+        </div>
       )}
 
       <div className="mt-4">

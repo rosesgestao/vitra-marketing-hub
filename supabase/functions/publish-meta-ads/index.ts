@@ -203,6 +203,20 @@ Deno.serve(async (req) => {
       // o criativo usa CTA WHATSAPP_MESSAGE (obj.cta) com link wa.me (destination_url). A Pagina precisa
       // de um numero de WhatsApp Business conectado — hoje bloqueado no playbook (available:false) ate isso.
       const isWhatsApp = obj.destination_type === "WHATSAPP";
+      // Vendas/Conversoes: otimiza por evento do pixel. Exige pixel_id (dataset) + evento de conversao
+      // (default LEAD — imovel raramente tem 'Compra'). O conjunto leva promoted_object{pixel_id,event}.
+      const isConversions = obj.optimization_goal === "OFFSITE_CONVERSIONS";
+      let pixelId = "";
+      let conversionEvent = "LEAD";
+      if (isConversions) {
+        pixelId = String(body.pixel_id || "");
+        conversionEvent = String(body.conversion_event || "LEAD").toUpperCase();
+        if (!pixelId) return json({ error: "pixel_required", message: "Selecione o pixel (dataset) para otimizar por conversao." }, 422);
+        // Valida pela COLECAO de pixels da conta (o nó single nao expõe is_active de forma confiavel).
+        const list = await graphGet(`act_${adAccountId}/adspixels`, "id,name").catch(() => null);
+        const ok = (list?.data || []).some((p: any) => String(p.id) === pixelId);
+        if (!ok) return json({ error: "pixel_invalid", message: `Pixel ${pixelId} nao pertence a esta conta de anuncio. Escolha um pixel da conta.` }, 422);
+      }
       let leadFormId = "";
       if (isLeadForm) {
         const page = await graphGet(pageId, "name,leadgen_tos_accepted").catch(() => null);
@@ -302,7 +316,9 @@ Deno.serve(async (req) => {
           name: `${campaign.name} | ${spec.label || asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
           campaign_id: campRes.id, optimization_goal: obj.optimization_goal, billing_event: obj.billing_event,
           ...(obj.destination_type ? { destination_type: obj.destination_type } : {}),
-          ...((isLeadForm || isWhatsApp) ? { promoted_object: { page_id: pageId } } : {}),
+          ...(isConversions
+            ? { promoted_object: { pixel_id: pixelId, custom_event_type: conversionEvent } }
+            : (isLeadForm || isWhatsApp) ? { promoted_object: { page_id: pageId } } : {}),
           targeting, status: "PAUSED",
           ...(body.start_time ? { start_time: body.start_time } : {}),
           ...(body.end_time ? { end_time: body.end_time } : {}),
