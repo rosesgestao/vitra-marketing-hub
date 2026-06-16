@@ -58,6 +58,8 @@ import {
   suggestMetaAudiences,
   listMetaAudiences,
   listMetaPixels,
+  listMetaAdAccounts,
+  listMetaPages,
   createWebsiteAudience,
   createLookalikeAudience,
   META_AD_ACCOUNTS,
@@ -1841,6 +1843,38 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   const [pixels, setPixels] = useState([])
   const [convPixelId, setConvPixelId] = useState('')
   const [conversionEvent, setConversionEvent] = useState('LEAD')
+  const [metaAccounts, setMetaAccounts] = useState([])
+  const [metaPages, setMetaPages] = useState([])
+
+  // Auto-descoberta das contas de anuncio acessiveis (sem digitar ID). Pre-seleciona a conta da marca.
+  useEffect(() => {
+    let alive = true
+    listMetaAdAccounts()
+      .then(list => {
+        if (!alive) return
+        setMetaAccounts(list)
+        if (!adAccountId && list.length) {
+          const brandAcct = list.find(a => a.id === acct.adAccountId) || list[0]
+          setAdAccountId(brandAcct.id)
+        }
+      })
+      .catch(() => { /* sem token/permissao: cai no input manual */ })
+    return () => { alive = false }
+  }, [])
+
+  // Ao escolher a conta, carrega as Paginas promoveis dela e seleciona a primeira valida.
+  useEffect(() => {
+    if (!adAccountId) { setMetaPages([]); return }
+    let alive = true
+    listMetaPages(adAccountId)
+      .then(list => {
+        if (!alive) return
+        setMetaPages(list)
+        if (list.length && !list.some(p => p.id === pageId)) setPageId(list[0].id)
+      })
+      .catch(() => { /* fallback input manual */ })
+    return () => { alive = false }
+  }, [adAccountId])
   const isLeadForm = objective === 'leads_form'
   const isSales = objective === 'sales'
 
@@ -1929,8 +1963,28 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="block"><span className="form-label">Conta de anúncio</span><input className="form-input" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} /></label>
-        <label className="block"><span className="form-label">Página (ID Facebook)</span><input className="form-input" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="ID da Página" /></label>
+        <label className="block">
+          <span className="form-label">Conta de anúncio</span>
+          {metaAccounts.length ? (
+            <select className="form-input" value={adAccountId} onChange={e => setAdAccountId(e.target.value)}>
+              <option value="">Selecione a conta</option>
+              {metaAccounts.map(a => <option key={a.id} value={a.id}>{a.name || a.id}{a.currency ? ` · ${a.currency}` : ''}</option>)}
+            </select>
+          ) : (
+            <input className="form-input" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} placeholder="ID da conta" />
+          )}
+        </label>
+        <label className="block">
+          <span className="form-label">Página (Facebook)</span>
+          {metaPages.length ? (
+            <select className="form-input" value={pageId} onChange={e => setPageId(e.target.value)}>
+              <option value="">Selecione a página</option>
+              {metaPages.map(p => <option key={p.id} value={p.id}>{p.name || p.id}</option>)}
+            </select>
+          ) : (
+            <input className="form-input" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="ID da Página" />
+          )}
+        </label>
         <label className="block"><span className="form-label">Teto de orçamento (R$/dia)</span><input className="form-input" inputMode="decimal" value={budget} onChange={e => setBudget(e.target.value)} /></label>
         <label className="block"><span className="form-label">Destino (site ou WhatsApp)</span><input className="form-input" value={destination} onChange={e => setDestination(e.target.value)} placeholder="https://… ou https://wa.me/55…" /></label>
       </div>

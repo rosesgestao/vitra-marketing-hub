@@ -90,10 +90,32 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Auto-descoberta: contas de anuncio que o token (system user) acessa. Sem ad_account_id.
+  if (action === "list_ad_accounts") {
+    try {
+      const data = await graphGet("me/adaccounts", "fields=account_id,name,currency,account_status&limit=200");
+      const accounts = (data.data || []).map((a: any) => ({
+        id: String(a.account_id || a.id || "").replace(/^act_/, ""),
+        name: a.name ?? null, currency: a.currency ?? null,
+        active: a.account_status === 1,
+      })).filter((a: any) => a.id);
+      return json({ accounts });
+    } catch (e) {
+      return json({ error: "exception", message: String((e as Error)?.message || e) }, 500);
+    }
+  }
+
   const adAccountId = String(body.ad_account_id || "").replace(/^act_/, "");
   if (!adAccountId) return json({ error: "missing_account", message: "Informe ad_account_id." }, 400);
 
   try {
+    if (action === "list_pages") {
+      // Paginas promoveis nesta conta (refletem os ativos atribuidos ao system user).
+      const data = await graphGet(`act_${adAccountId}/promote_pages`, "fields=id,name&limit=200");
+      const pages = (data.data || []).map((p: any) => ({ id: String(p.id), name: p.name ?? null }));
+      return json({ pages });
+    }
+
     if (action === "list_pixels") {
       // Pixels (datasets) da conta, para o objetivo Vendas/Conversoes escolher qual otimizar.
       const data = await graphGet(`act_${adAccountId}/adspixels`, "fields=id,name,is_active,last_fired_time&limit=100");

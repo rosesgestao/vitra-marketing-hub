@@ -543,6 +543,26 @@ export async function suggestMetaAudiences(campaignId, objective) {
   return Array.isArray(data?.ad_sets) ? data.ad_sets : []
 }
 
+// Auto-descoberta: contas de anuncio que o token acessa (para o operador escolher, sem digitar ID).
+export async function listMetaAdAccounts() {
+  const { data, error } = await supabase.functions.invoke('manage-audiences', {
+    headers: copilotGateHeaders(),
+    body: { action: 'list_ad_accounts' },
+  })
+  if (error) throw await edgeError(error)
+  return Array.isArray(data?.accounts) ? data.accounts : []
+}
+
+// Paginas promoveis na conta (refletem os ativos atribuidos ao system user).
+export async function listMetaPages(adAccountId) {
+  const { data, error } = await supabase.functions.invoke('manage-audiences', {
+    headers: copilotGateHeaders(),
+    body: { action: 'list_pages', ad_account_id: adAccountId },
+  })
+  if (error) throw await edgeError(error)
+  return Array.isArray(data?.pages) ? data.pages : []
+}
+
 // Lista os pixels (datasets) da conta — para o objetivo Vendas/Conversoes escolher qual otimizar.
 export async function listMetaPixels(adAccountId) {
   const { data, error } = await supabase.functions.invoke('manage-audiences', {
