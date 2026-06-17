@@ -18,9 +18,10 @@ controle 100% (pixel-perfect) e recursos como type-ahead, troca-se por um compon
     **check** dourado, chevron dourado. Funciona nas duas marcas (gold #C4942A comum; surface por marca).
   - API espelha o select: `value`, `onChange(value)`, `options` ({value,label} ou strings),
     `placeholder`, `disabled`, `className`, `ariaLabel` — **logica dos campos inalterada**.
-- **Aplicado** aos 6 dropdowns do painel: conta, pagina, pixel, evento de conversao, retargeting,
-  fonte do lookalike. Os selects de formularios/modais (AdEditor, publicacao manual, Metricas) seguem
-  com o **tema nativo ja corrigido** (popup escuro) — migraveis para VitraSelect depois se quiser.
+- **Aplicado a TODOS os dropdowns do app** (consistencia 100%, commit 85ba32f): painel Publicar na Meta
+  (conta, pagina, pixel, evento, retargeting, lookalike) + Metricas (Publicacao, com guard de obrigatorio
+  no submit ja que o `required` nativo sai) + publicacao manual/editor de anuncio (CTA, conteudo vinculado
+  com efeito colateral preservado, asset, plataforma, tipo). **Nenhum `<select>` nativo restante.**
 
 ## Verificacao
 lint, 151 testes, build OK. Ao vivo no painel: VitraSelect de Conta abre com popup navy (surface-2),
