@@ -33,6 +33,17 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString('pt-BR')
 }
 
+// Corte Orgânico x Pago: derivado do tipo da publicacao ligada a metrica. 'paid'/'dark_post' = pago;
+// 'organic'/'manual'/demais = organico. Mantem a separacao de mundos (presenca x demanda ativa).
+function segmentOfType(type) {
+  return type === 'paid' || type === 'dark_post' ? 'pago' : 'organico'
+}
+const SEGMENTS = [
+  { key: 'todos', label: 'Todos' },
+  { key: 'organico', label: 'Orgânico' },
+  { key: 'pago', label: 'Pago' },
+]
+
 function MetricTile({ label, value, sub, icon: Icon }) {
   return (
     <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-4 transition duration-200 hover:border-gold-500/30 hover:bg-white/[0.045]">
@@ -73,6 +84,7 @@ export default function Metricas() {
   const [form, setForm] = useState(INITIAL_METRIC)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState(null)
+  const [segment, setSegment] = useState('todos')
 
   async function refresh() {
     setLoading(true)
@@ -105,8 +117,13 @@ export default function Metricas() {
     [workspace.campaigns],
   )
 
+  const filteredMetrics = useMemo(() => {
+    if (segment === 'todos') return workspace.metrics
+    return workspace.metrics.filter(m => segmentOfType(publicationById.get(m.publication_id)?.publication_type) === segment)
+  }, [workspace.metrics, segment, publicationById])
+
   const totals = useMemo(() => {
-    return workspace.metrics.reduce(
+    return filteredMetrics.reduce(
       (acc, metric) => {
         acc.reach += Number(metric.reach || 0)
         acc.impressions += Number(metric.impressions || 0)
@@ -114,11 +131,16 @@ export default function Metricas() {
         acc.clicks += Number(metric.link_clicks || metric.clicks || 0)
         acc.leads += Number(metric.leads || 0)
         acc.spend += Number(metric.spend || 0)
+        acc.likes += Number(metric.likes || 0)
+        acc.comments += Number(metric.comments || 0)
+        acc.shares += Number(metric.shares || 0)
+        acc.saves += Number(metric.saves || 0)
+        acc.follows += Number(metric.follows || 0)
         return acc
       },
-      { reach: 0, impressions: 0, engagement: 0, clicks: 0, leads: 0, spend: 0 },
+      { reach: 0, impressions: 0, engagement: 0, clicks: 0, leads: 0, spend: 0, likes: 0, comments: 0, shares: 0, saves: 0, follows: 0 },
     )
-  }, [workspace.metrics])
+  }, [filteredMetrics])
 
   function update(field, value) {
     setForm(current => ({ ...current, [field]: value }))
@@ -213,16 +235,42 @@ export default function Metricas() {
         </div>
       )}
 
+      <div className="mb-4 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+        {SEGMENTS.map(s => (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => setSegment(s.key)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${segment === s.key ? 'bg-gold-500/15 text-gold-200' : 'text-white/55 hover:text-white'}`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${workspace.metrics.length} coletas`} icon={Target} />
-        <MetricTile label="Impressoes" value={formatNumber(totals.impressions)} sub={`${workspace.publications.length} publicacoes`} icon={Activity} />
-        <MetricTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.clicks)} cliques`} icon={Repeat2} />
-        <MetricTile
-          label="Investimento"
-          value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })}
-          sub={`${formatNumber(totals.leads)} leads`}
-          icon={BarChart3}
-        />
+        {segment === 'pago' ? (
+          <>
+            <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
+            <MetricTile label="Cliques" value={formatNumber(totals.clicks)} sub="no link" icon={Repeat2} />
+            <MetricTile label="Leads" value={formatNumber(totals.leads)} sub="capturados" icon={Activity} />
+            <MetricTile label="Investimento" value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })} sub={totals.leads ? `CPL ${formatNumber(totals.spend / totals.leads, { style: 'currency', currency: 'BRL' })}` : 'sem leads'} icon={BarChart3} />
+          </>
+        ) : segment === 'organico' ? (
+          <>
+            <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
+            <MetricTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.likes + totals.comments + totals.shares)} interações`} icon={Repeat2} />
+            <MetricTile label="Salvos" value={formatNumber(totals.saves)} sub={`${formatNumber(totals.shares)} compart.`} icon={Activity} />
+            <MetricTile label="Novos seguidores" value={formatNumber(totals.follows)} sub="no período" icon={BarChart3} />
+          </>
+        ) : (
+          <>
+            <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
+            <MetricTile label="Impressoes" value={formatNumber(totals.impressions)} sub={`${workspace.publications.length} publicacoes`} icon={Activity} />
+            <MetricTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.clicks)} cliques`} icon={Repeat2} />
+            <MetricTile label="Investimento" value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })} sub={`${formatNumber(totals.leads)} leads`} icon={BarChart3} />
+          </>
+        )}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[420px,1fr]">
@@ -315,9 +363,9 @@ export default function Metricas() {
             <span>Coleta</span>
           </div>
 
-          {workspace.metrics.length ? (
+          {filteredMetrics.length ? (
             <div className="divide-y divide-white/10">
-              {workspace.metrics.map(metric => {
+              {filteredMetrics.map(metric => {
                 const publication = publicationById.get(metric.publication_id)
                 const campaign = campaignById.get(metric.campaign_id || publication?.campaign_id)
                 return (
