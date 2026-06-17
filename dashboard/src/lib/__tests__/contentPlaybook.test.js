@@ -7,6 +7,10 @@ import {
   DEFAULT_CONTENT_TYPE,
   contentTypeSpec,
   contentFormatSpec,
+  CONTENT_STATUSES,
+  CONTENT_BOARD_LANES,
+  contentStatusLane,
+  contentStatusLabel,
 } from '../../../../supabase/functions/_shared/contentPlaybook.ts'
 
 describe('contentPlaybook (playbook editorial — fonte unica)', () => {
@@ -30,5 +34,19 @@ describe('contentPlaybook (playbook editorial — fonte unica)', () => {
 
   it('as opcoes da UI cobrem todos os tipos', () => {
     expect(CONTENT_TYPE_OPTIONS.length).toBe(Object.keys(CONTENT_TYPES).length)
+  })
+
+  it('todo status mapeia para uma lane existente do board', () => {
+    const laneKeys = new Set(CONTENT_BOARD_LANES.map(l => l.key))
+    for (const s of CONTENT_STATUSES) {
+      // arquivado nao tem lane no board (e ok ficar fora); os demais devem ter
+      if (s.key === 'archived') continue
+      expect(laneKeys.has(contentStatusLane(s.key)), `lane do status ${s.key}`).toBe(true)
+    }
+  })
+
+  it('contentStatusLabel/Lane caem no default para status invalido', () => {
+    expect(contentStatusLabel('draft')).toBe('Rascunho')
+    expect(contentStatusLane('xyz')).toBe('rascunho')
   })
 })

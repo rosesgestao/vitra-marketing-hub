@@ -67,10 +67,13 @@ import {
   DEFAULT_OBJECTIVE,
   generateContentWithAI,
   createContentPost,
+  updateContentPost,
   CONTENT_TYPE_OPTIONS,
   CONTENT_PILLAR_OPTIONS,
   CONTENT_FORMAT_OPTIONS,
   CONTENT_TONES,
+  CONTENT_STATUS_OPTIONS,
+  contentStatusLabel,
   DEFAULT_CONTENT_TYPE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
@@ -1439,6 +1442,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
   const [savingKey, setSavingKey] = useState(null)
   const [savedKeys, setSavedKeys] = useState(() => new Set())
   const [drafts, setDrafts] = useState({})
+  const [rowBusy, setRowBusy] = useState(null)
 
   // Ao trocar o tipo, sugere pilar e formato default (operador pode mudar).
   useEffect(() => {
@@ -1469,6 +1473,26 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
       setSavedKeys(prev => new Set(prev).add(post.key))
       onSaved?.()
     } catch (e) { setError(e) } finally { setSavingKey(null) }
+  }
+
+  // Acompanhamento (Fase C): muda status, agenda (scheduled_for) ou marca como publicado (+link).
+  async function patchPost(id, patch) {
+    setRowBusy(id); setError(null)
+    try { await updateContentPost(id, patch); onSaved?.() }
+    catch (e) { setError(e) } finally { setRowBusy(null) }
+  }
+  function handleStatusChange(post, status) {
+    if (status === 'published') {
+      const url = window.prompt('Link do post publicado (opcional):', post.metadata?.published_url || '')
+      if (url === null) return
+      patchPost(post.id, { status, publishedUrl: url })
+    } else {
+      patchPost(post.id, { status })
+    }
+  }
+  function handleSchedule(post, dateStr) {
+    if (!dateStr) return
+    patchPost(post.id, { scheduledFor: new Date(dateStr).toISOString(), status: 'scheduled' })
   }
 
   return (
@@ -1547,12 +1571,27 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
 
       {campaignPosts.length > 0 && (
         <div className="mt-6 border-t border-white/10 pt-4">
-          <p className="form-label mb-2">Conteúdos desta oferta ({campaignPosts.length})</p>
-          <div className="space-y-1.5">
-            {campaignPosts.slice(0, 8).map(p => (
-              <div key={p.id} className="flex items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2">
-                <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 60)}</span>
-                <span className="flex-shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/45">{p.status || 'planejado'}</span>
+          <p className="form-label mb-2">Conteúdos desta oferta ({campaignPosts.length}) — status, agendamento e publicação</p>
+          <div className="space-y-2">
+            {campaignPosts.slice(0, 12).map(p => (
+              <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
+                  {rowBusy === p.id && <Loader2 size={13} className="flex-shrink-0 animate-spin text-gold-300" />}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="w-40">
+                    <VitraSelect className="!py-1 text-[11px]" ariaLabel="Status" value={p.status || 'draft'}
+                      onChange={v => handleStatusChange(p, v)}
+                      options={CONTENT_STATUS_OPTIONS.map(s => ({ value: s.key, label: s.label }))} />
+                  </div>
+                  <input type="date" className="form-input !w-auto !py-1 text-[11px]"
+                    value={p.scheduled_for ? new Date(p.scheduled_for).toISOString().slice(0, 10) : ''}
+                    onChange={e => handleSchedule(p, e.target.value)} title="Agendar publicação" />
+                  {p.metadata?.published_url && (
+                    <a href={p.metadata.published_url} target="_blank" rel="noreferrer" className="text-[10px] text-gold-300 underline">ver post</a>
+                  )}
+                </div>
               </div>
             ))}
           </div>

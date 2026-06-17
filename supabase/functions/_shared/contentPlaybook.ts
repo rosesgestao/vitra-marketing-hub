@@ -74,6 +74,49 @@ export const CONTENT_TONES: Array<{ key: string; label: string }> = [
   { key: "proximo",    label: "Proximo e acolhedor" },
 ];
 
+// ---- Ciclo de vida do conteudo (FONTE UNICA de status) ----
+// Os valores SAO os do CHECK do banco (premium_content_posts): draft|planned|in_copy|in_design|review|
+// approved|scheduled|published|archived. O board (Conteúdos) e o Calendário consomem este modelo —
+// sem mais divergencia PT x EN. `lane` agrupa os status em colunas do board.
+export interface ContentStatus { key: string; label: string; lane: string; order: number }
+
+export const CONTENT_STATUSES: ContentStatus[] = [
+  { key: "draft",     label: "Rascunho",   lane: "rascunho",   order: 1 },
+  { key: "planned",   label: "Planejado",  lane: "rascunho",   order: 1 },
+  { key: "in_copy",   label: "Em copy",    lane: "producao",   order: 2 },
+  { key: "in_design", label: "Em design",  lane: "producao",   order: 2 },
+  { key: "review",    label: "Em revisão", lane: "revisao",    order: 3 },
+  { key: "approved",  label: "Aprovado",   lane: "aprovado",   order: 4 },
+  { key: "scheduled", label: "Agendado",   lane: "agendado",   order: 5 },
+  { key: "published", label: "Publicado",  lane: "publicado",  order: 6 },
+  { key: "archived",  label: "Arquivado",  lane: "arquivado",  order: 7 },
+];
+
+// Colunas do board Conteúdos (cada uma agrega 1+ status do banco).
+export const CONTENT_BOARD_LANES = [
+  { key: "rascunho",  label: "Rascunho" },
+  { key: "producao",  label: "Em produção" },
+  { key: "revisao",   label: "Em revisão" },
+  { key: "aprovado",  label: "Aprovado" },
+  { key: "agendado",  label: "Agendado" },
+  { key: "publicado", label: "Publicado" },
+];
+
+// Status que o operador pode escolher manualmente (sem 'planned'/'archived' por padrao).
+export const CONTENT_STATUS_OPTIONS = CONTENT_STATUSES
+  .filter((s) => !["planned", "archived"].includes(s.key))
+  .map((s) => ({ key: s.key, label: s.label }));
+
+export function contentStatusMeta(status: string | null | undefined): ContentStatus {
+  return CONTENT_STATUSES.find((s) => s.key === String(status || "")) || CONTENT_STATUSES[0];
+}
+export function contentStatusLane(status: string | null | undefined): string {
+  return contentStatusMeta(status).lane;
+}
+export function contentStatusLabel(status: string | null | undefined): string {
+  return contentStatusMeta(status).label;
+}
+
 export const DEFAULT_CONTENT_TYPE = "imovel";
 
 export function contentTypeSpec(key: string | null | undefined): ContentType {

@@ -4,12 +4,14 @@ import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandP
 // cliente para REVALIDAR a copy ao vivo quando o operador edita um rascunho (badges de issue corretos).
 import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValidation.ts'
 import { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE } from '../../../supabase/functions/_shared/objectivePlaybook.ts'
-import { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE } from '../../../supabase/functions/_shared/contentPlaybook.ts'
+import { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE, CONTENT_STATUS_OPTIONS, CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel } from '../../../supabase/functions/_shared/contentPlaybook.ts'
 
 // Reexport para a UI (seletor de Objetivo) — fonte unica e o playbook compartilhado com a Edge.
 export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE }
 // Reexport do playbook EDITORIAL (aba Produção) — mesma fonte unica usada pela Edge generate-content.
 export { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE }
+// Reexport do modelo de STATUS de conteudo (fonte unica) — board Conteúdos, Calendário e aba Produção.
+export { CONTENT_STATUS_OPTIONS, CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel }
 import {
   creativeTemplateForTemplateKey,
   selectableCreativeTemplatesForBrand,
@@ -504,6 +506,26 @@ export async function createContentPost({ campaignId, brandScope, contentType, p
   }
   const { data, error } = await supabase.from('premium_content_posts').insert(payload).select('*').single()
   if (error) throw new Error(error.message || 'Falha ao salvar o conteúdo.')
+  return data
+}
+
+// Fase C: atualiza um conteudo (status / agendamento / link publicado). `patch` mescla em metadata
+// (ex.: published_url). status segue o CHECK do banco. Usado pelo acompanhamento na aba Produção.
+export async function updateContentPost(id, { status, scheduledFor, publishedUrl, metadata } = {}) {
+  if (!id) throw new Error('Conteúdo inválido.')
+  const patch = {}
+  if (status) patch.status = status
+  if (scheduledFor !== undefined) patch.scheduled_for = scheduledFor || null
+  if (status === 'approved') patch.approved_at = new Date().toISOString()
+  let mergedMeta = metadata
+  if (publishedUrl !== undefined) {
+    // mescla published_url no metadata existente (sem sobrescrever o resto)
+    const { data: cur } = await supabase.from('premium_content_posts').select('metadata').eq('id', id).maybeSingle()
+    mergedMeta = { ...(cur?.metadata || {}), ...(metadata || {}), published_url: publishedUrl }
+  }
+  if (mergedMeta !== undefined) patch.metadata = mergedMeta
+  const { data, error } = await supabase.from('premium_content_posts').update(patch).eq('id', id).select('*').single()
+  if (error) throw new Error(error.message || 'Falha ao atualizar o conteúdo.')
   return data
 }
 
@@ -1656,7 +1678,7 @@ export async function loadPremiumWorkspace({ brandScope = BRAND_SCOPES.premium }
     jobs,
     accounts,
     snapshots,
-  ] = await withTimeout(Promise.all(requests), 8000, 'Tempo esgotado ao consultar o Supabase Premium.')
+  ] = await withTimeout(Promise.all(requests), 20000, 'Tempo esgotado ao consultar o Supabase Premium.')
 
   const responses = [campaigns, assets, posts, publications, metrics, jobs, accounts, snapshots]
   const failed = responses.find(response => response.error)
