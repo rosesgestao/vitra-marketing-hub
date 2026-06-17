@@ -1658,16 +1658,14 @@ async function ensureCampaignSourceImages(campaignId) {
 }
 
 export async function loadPremiumWorkspace({ brandScope = BRAND_SCOPES.premium } = {}) {
-  const requests = [
-    supabase.from('premium_campaigns').select('*').order('created_at', { ascending: false }).limit(50),
-    supabase.from('premium_campaign_assets').select('*').order('created_at', { ascending: false }).limit(600),
-    supabase.from('premium_content_posts').select('*').order('created_at', { ascending: false }).limit(300),
-    supabase.from('premium_publications').select('*').order('published_at', { ascending: false, nullsFirst: false }).limit(300),
-    supabase.from('premium_metrics').select('*').order('collected_at', { ascending: false }).limit(500),
-    supabase.from('premium_generation_jobs').select('*').order('created_at', { ascending: false }).limit(200),
-    supabase.from('social_accounts').select('*').eq('brand_scope', brandScope).order('created_at', { ascending: false }).limit(50),
-    supabase.from('social_metric_snapshots').select('*').order('snapshot_at', { ascending: false }).limit(200),
-  ]
+  // Carga RESILIENTE: cada query tem timeout proprio e degrada para vazio em caso de lentidao/erro
+  // (em vez de um Promise.all + timeout global que derrubava o dashboard inteiro quando UMA query
+  // lenta — ex.: assets/metricas — estourava). Assim campanhas e conteudo aparecem mesmo que uma
+  // fatia falhe. Limites reduzidos para baixar o payload e o tempo de resposta.
+  const safeQuery = async (builder, ms = 12000) => {
+    try { return await withTimeout(builder, ms, 'timeout') }
+    catch (error) { return { data: [], error } }
+  }
 
   const [
     campaigns,
@@ -1678,13 +1676,23 @@ export async function loadPremiumWorkspace({ brandScope = BRAND_SCOPES.premium }
     jobs,
     accounts,
     snapshots,
-  ] = await withTimeout(Promise.all(requests), 20000, 'Tempo esgotado ao consultar o Supabase Premium.')
+  ] = await Promise.all([
+    // Campanhas e o essencial: timeout generoso (as queries rodam em PARALELO, entao o total ~ a mais
+    // lenta, nao a soma). As pesadas (assets/metricas) usam payload menor e degradam para vazio se lentas.
+    safeQuery(supabase.from('premium_campaigns').select('*').order('created_at', { ascending: false }).limit(50), 25000),
+    safeQuery(supabase.from('premium_campaign_assets').select('*').order('created_at', { ascending: false }).limit(150), 18000),
+    safeQuery(supabase.from('premium_content_posts').select('*').order('created_at', { ascending: false }).limit(200), 18000),
+    safeQuery(supabase.from('premium_publications').select('*').order('published_at', { ascending: false, nullsFirst: false }).limit(150), 15000),
+    safeQuery(supabase.from('premium_metrics').select('*').order('collected_at', { ascending: false }).limit(120), 15000),
+    safeQuery(supabase.from('premium_generation_jobs').select('*').order('created_at', { ascending: false }).limit(80), 12000),
+    safeQuery(supabase.from('social_accounts').select('*').eq('brand_scope', brandScope).order('created_at', { ascending: false }).limit(50), 12000),
+    safeQuery(supabase.from('social_metric_snapshots').select('*').order('snapshot_at', { ascending: false }).limit(120), 12000),
+  ])
 
-  const responses = [campaigns, assets, posts, publications, metrics, jobs, accounts, snapshots]
-  const failed = responses.find(response => response.error)
-  if (failed) {
-    const error = new Error(failed.error.message)
-    error.supabase = failed.error
+  // So a falha das CAMPANHAS e critica (sem elas nao ha workspace); as demais degradam para vazio.
+  if (campaigns.error) {
+    const error = new Error(campaigns.error.message || 'Tempo esgotado ao consultar o Supabase Premium.')
+    error.supabase = campaigns.error
     throw error
   }
 
