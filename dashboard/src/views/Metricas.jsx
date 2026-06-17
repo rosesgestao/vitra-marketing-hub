@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Activity, AlertTriangle, BarChart3, Loader2, Plus, Radio, RefreshCw, Repeat2, Target } from 'lucide-react'
 import { createManualMetric, loadPremiumWorkspace, syncMetricsFromMeta } from '../lib/premiumData.js'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import VitraSelect from '../components/VitraSelect.jsx'
 
 const INITIAL_METRIC = {
   publication_id: '',
@@ -152,6 +153,7 @@ export default function Metricas() {
 
   async function submit(event) {
     event.preventDefault()
+    if (!form.publication_id) { setError(new Error('Selecione uma publicação.')); return }
     const publication = publicationById.get(form.publication_id)
     setSaving(true)
     setError(null)
@@ -234,22 +236,16 @@ export default function Metricas() {
 
           <div className="space-y-4">
             <Field label="Publicacao">
-              <select
-                required
+              <VitraSelect
                 value={form.publication_id}
-                onChange={event => update('publication_id', event.target.value)}
-                className="form-input"
-              >
-                <option value="">Selecione</option>
-                {workspace.publications.map(publication => {
+                onChange={v => update('publication_id', v)}
+                placeholder="Selecione"
+                ariaLabel="Publicação"
+                options={workspace.publications.map(publication => {
                   const campaign = campaignById.get(publication.campaign_id)
-                  return (
-                    <option key={publication.id} value={publication.id}>
-                      {publication.platform} · {campaign?.name || publication.external_post_id || publication.id}
-                    </option>
-                  )
+                  return { value: publication.id, label: `${publication.platform} · ${campaign?.name || publication.external_post_id || publication.id}` }
                 })}
-              </select>
+              />
             </Field>
 
             <Field label="Data da coleta">

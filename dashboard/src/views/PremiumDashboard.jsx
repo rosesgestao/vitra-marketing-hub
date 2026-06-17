@@ -2409,9 +2409,7 @@ function AdEditModal({ ad, saving, onClose, onSave }) {
             <input value={form.descricao} onChange={e => set('descricao', e.target.value)} className={inputClass} placeholder="Detalhes adicionais (opcional)" />
           </Field>
           <Field label="Chamada para ação (CTA)" labelClass={labelClass}>
-            <select value={form.cta} onChange={e => set('cta', e.target.value)} className={inputClass}>
-              {CTA_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
+            <VitraSelect value={form.cta} onChange={v => set('cta', v)} ariaLabel="CTA" options={CTA_OPTIONS} />
           </Field>
           <Field label="Parâmetros de URL (UTM)" labelClass={labelClass}>
             <input value={form.url_params} onChange={e => set('url_params', e.target.value)} className={inputClass} placeholder="utm_source=meta&utm_medium=paid&utm_campaign=..." />
@@ -2532,54 +2530,54 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
 
         <div className="space-y-3">
           <Field label="Conteúdo" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            <select
+            <VitraSelect
               value={form.content_post_id}
-              onChange={event => {
-                const post = posts.find(item => item.id === event.target.value)
-                update('content_post_id', event.target.value)
+              ariaLabel="Conteúdo vinculado"
+              onChange={v => {
+                const post = posts.find(item => item.id === v)
+                update('content_post_id', v)
                 if (post?.asset_id) update('asset_id', post.asset_id)
                 if (post?.platform) update('platform', post.platform)
               }}
-              className="form-input"
-            >
-              <option value="">Sem conteúdo vinculado</option>
-              {posts.map(post => (
-                <option key={post.id} value={post.id}>{post.platform} · {post.title}</option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'Sem conteúdo vinculado' },
+                ...posts.map(post => ({ value: post.id, label: `${post.platform} · ${post.title}` })),
+              ]}
+            />
           </Field>
 
           <Field label="Asset" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            <select
+            <VitraSelect
               value={form.asset_id}
-              onChange={event => update('asset_id', event.target.value)}
-              className="form-input"
-            >
-              <option value="">Sem asset vinculado</option>
-              {assets.map(asset => (
-                <option key={asset.id} value={asset.id}>{asset.channel} · {asset.title}</option>
-              ))}
-            </select>
+              onChange={v => update('asset_id', v)}
+              ariaLabel="Asset vinculado"
+              options={[
+                { value: '', label: 'Sem asset vinculado' },
+                ...assets.map(asset => ({ value: asset.id, label: `${asset.channel} · ${asset.title}` })),
+              ]}
+            />
           </Field>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Plataforma" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-              <select value={form.platform} onChange={event => update('platform', event.target.value)} className="form-input">
-                <option value="instagram">Instagram</option>
-                <option value="facebook">Facebook</option>
-                <option value="youtube">YouTube</option>
-                <option value="tiktok">TikTok</option>
-                <option value="whatsapp">WhatsApp</option>
-                <option value="email">E-mail</option>
-              </select>
+              <VitraSelect value={form.platform} onChange={v => update('platform', v)} ariaLabel="Plataforma"
+                options={[
+                  { value: 'instagram', label: 'Instagram' },
+                  { value: 'facebook', label: 'Facebook' },
+                  { value: 'youtube', label: 'YouTube' },
+                  { value: 'tiktok', label: 'TikTok' },
+                  { value: 'whatsapp', label: 'WhatsApp' },
+                  { value: 'email', label: 'E-mail' },
+                ]} />
             </Field>
             <Field label="Tipo" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-              <select value={form.publication_type} onChange={event => update('publication_type', event.target.value)} className="form-input">
-                <option value="organic">Orgânico</option>
-                <option value="paid">Pago</option>
-                <option value="manual">Manual</option>
-                <option value="dark_post">Dark post</option>
-              </select>
+              <VitraSelect value={form.publication_type} onChange={v => update('publication_type', v)} ariaLabel="Tipo de publicação"
+                options={[
+                  { value: 'organic', label: 'Orgânico' },
+                  { value: 'paid', label: 'Pago' },
+                  { value: 'manual', label: 'Manual' },
+                  { value: 'dark_post', label: 'Dark post' },
+                ]} />
             </Field>
           </div>
 
