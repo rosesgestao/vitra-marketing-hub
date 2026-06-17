@@ -191,6 +191,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 62. **[[Atualizacao_2026-06-17_Fix_Load_Resiliente_Dashboard]]**
     Fix do "Tempo esgotado ao consultar o Supabase Premium": era 1 timeout GLOBAL no Promise.all (uma query lenta derrubava tudo). Agora safeQuery por dataset (timeout proprio + degrada p/ vazio); so campanhas e critica; timeouts generosos (campanhas 25s, paralelo) + payloads menores (assets 600->150 etc.). Posts de teste B/C limpos via service-role. Commit 5e5a286.
 
+63. **[[Atualizacao_2026-06-17_Conteudo_FaseD_Metricas_Organico_Pago]]**
+    Conteúdo Fase D: Métricas com corte Orgânico | Pago (derivado do publication_type). Pills Todos/Orgânico/Pago filtram tiles+totais+tabela; KPIs proprios (Orgânico: engajamento/salvos/novos seguidores; Pago: cliques/leads/investimento+CPL). So UI. Verificado ao vivo. Fecha o nucleo do canal organico (A-D). Resta Biblioteca/Config. Commit d09c658.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
