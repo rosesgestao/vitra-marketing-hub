@@ -167,6 +167,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 54. **[[Atualizacao_2026-06-17_Meta_Advantage_Audience_Build_E2E]]**
     Build na Meta funcional E2E: faltava `targeting_automation.advantage_audience` (exigido agora pela Meta no ad set). targetingFor envia advantage_audience:0 (publico explicito). Verificado ao vivo: campanha+conjunto+criativo+anuncio PAUSED na PoA, depois apagados. Lembrete: destino obrigatorio p/ qualquer objetivo. Commit 506b541.
 
+55. **[[Atualizacao_2026-06-17_IA_Menu_Organico_x_Pago]]**
+    Refatoracao SO de navegacao (App.jsx): marcas com 2 pilares (Conteúdo & Curadoria = organico / Tráfego Pago = pago); nova secao "Produção de conteúdo" (Calendário, Conteúdos); "Operação compartilhada" -> "Inteligência & automação" (Agentes, Métricas); Pipeline mesclado em Conteúdos (fora do menu, reversivel). Sem tocar em telas nem no fluxo de Trafego Pago. Commit 2e00915.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
