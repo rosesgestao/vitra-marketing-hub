@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Menu, Wand2, X, Zap } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Menu, Wand2, X } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -19,7 +19,7 @@ const BRAND_SECTIONS = [
     title: 'Vitra Imobiliária',
     scope: BRAND_SCOPES.imobiliaria,
     items: [
-      { id: 'imobiliaria', label: 'Painel Imobiliária', icon: Building2, brandScope: BRAND_SCOPES.imobiliaria },
+      { id: 'imobiliaria', label: 'Conteúdo & Curadoria', icon: Building2, brandScope: BRAND_SCOPES.imobiliaria },
       { id: 'imobiliaria-trafego', label: 'Tráfego Pago', icon: Megaphone, brandScope: BRAND_SCOPES.imobiliaria, focusMode: 'trafego' },
     ],
   },
@@ -27,16 +27,23 @@ const BRAND_SECTIONS = [
     title: 'Vitra Premium',
     scope: BRAND_SCOPES.premium,
     items: [
-      { id: 'premium', label: 'Painel Premium', icon: Gem, brandScope: BRAND_SCOPES.premium },
+      { id: 'premium', label: 'Conteúdo & Curadoria', icon: Gem, brandScope: BRAND_SCOPES.premium },
       { id: 'premium-trafego', label: 'Tráfego Pago', icon: Megaphone, brandScope: BRAND_SCOPES.premium, focusMode: 'trafego' },
     ],
   },
 ]
 
-const OPERATIONS = [
-  { id: 'pipeline', label: 'Pipeline', icon: Zap },
+// Producao de conteudo ORGANICO (transversal as marcas): planejar e produzir a presenca em redes.
+// Pipeline foi MESCLADO em "Conteúdos" (mesmo job de quadro por etapa/status) e saiu do menu para
+// reduzir redundancia — o componente segue no codigo e no renderizador (reversivel: basta readicionar
+// o item aqui). NENHUMA logica de tela foi alterada.
+const CONTEUDO_ORGANICO = [
   { id: 'calendario', label: 'Calendário', icon: CalendarDays },
   { id: 'kanban', label: 'Conteúdos', icon: Layers },
+]
+
+// Transversal: atende organico E pago.
+const TRANSVERSAL = [
   { id: 'agentes', label: 'Agentes', icon: Bot },
   { id: 'metricas', label: 'Métricas', icon: BarChart3 },
 ]
@@ -53,12 +60,15 @@ const CRIATIVOS_NAV = [
 ]
 
 // Modelo unico de seções da sidebar (acordeão): cada seção tem id, título e itens.
-// Ordem preservada: marcas primeiro, Estúdio de Criativos, Estúdio de Peças, Operação.
+// Arquitetura por INTENCAO: cada marca tem os 2 pilares (Conteúdo & Curadoria = organico; Tráfego Pago
+// = pago); depois a producao de conteudo organico, os estudios (producao de artes, servem aos dois) e,
+// por fim, o que e transversal (automacao + metricas). So navegacao/nomenclatura — telas inalteradas.
 const NAV_SECTIONS = [
   ...BRAND_SECTIONS.map(section => ({ id: section.scope, title: section.title, items: section.items })),
+  { id: 'conteudo', title: 'Produção de conteúdo', items: CONTEUDO_ORGANICO },
   { id: 'criativos', title: 'Estúdio de Criativos', items: CRIATIVOS_NAV },
   { id: 'pecas', title: 'Estúdio de Peças', items: PECAS_NAV },
-  { id: 'operacao', title: 'Operação compartilhada', items: OPERATIONS },
+  { id: 'operacao', title: 'Inteligência & automação', items: TRANSVERSAL },
 ]
 
 const ALL_VIEWS = NAV_SECTIONS.flatMap(section => section.items)
