@@ -179,6 +179,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 58. **[[Atualizacao_2026-06-17_Hero_Conteudo_Ambas_Marcas]]**
     Hero da central Conteúdo alinhado ao foco organico nas 2 marcas (brandProfiles): titulos "Conteúdo Vitra Imobiliária/Premium" + subtitles de publicacoes organicas. Separacao de marca (Imob sem "curadoria"). So copy do hero; Tráfego Pago intacto. Commit 43301a8.
 
+59. **[[Atualizacao_2026-06-17_Conteudo_FaseA_IA_Editorial]]**
+    Conteúdo Fase A (base do canal organico): _shared/contentPlaybook.ts (pilares/tipos/formatos/tons, fonte unica) + edge generate-content (Claude, modo organico: ideia/legenda/roteiro/hashtags/CTA/visual na voz da marca + copyValidation) + helper generateContentWithAI + re-export + teste (155). Verificado ao vivo (gate + geracao on-brand). Proximo: Fase B (UI Novo conteúdo). Commit 66fc380.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
