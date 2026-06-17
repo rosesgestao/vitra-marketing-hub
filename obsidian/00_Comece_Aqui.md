@@ -173,6 +173,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 56. **[[Atualizacao_2026-06-17_Conteudo_Curadoria_So_Organico]]**
     "Conteúdo & Curadoria" vira organico puro: abas Tráfego Pago (duplicata do destino pago) e Métricas (duplicata da transversal) removidas; "Campanhas" -> "Ofertas" (raiz compartilhada/seletor, sem rotulo publicitario). Abas: Ofertas · Produção · Publicações · Modelo. So a lista TABS; fluxo de Tráfego Pago intacto (verificado). Commit 74c7651.
 
+57. **[[Atualizacao_2026-06-17_Menu_Conteudo_e_remove_Ofertas]]**
+    Menu "Conteúdo & Curadoria" -> "Conteúdo"; aba "Ofertas" removida da central de conteudo (virou seletor compacto "Oferta em foco" no topo; criar segue no botao Nova campanha). Abas: Produção · Publicações · Modelo. So navegacao/UI; Tráfego Pago intacto. Commit e4cce39.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
