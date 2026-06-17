@@ -65,6 +65,13 @@ import {
   META_AD_ACCOUNTS,
   META_OBJECTIVE_OPTIONS,
   DEFAULT_OBJECTIVE,
+  generateContentWithAI,
+  createContentPost,
+  CONTENT_TYPE_OPTIONS,
+  CONTENT_PILLAR_OPTIONS,
+  CONTENT_FORMAT_OPTIONS,
+  CONTENT_TONES,
+  DEFAULT_CONTENT_TYPE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import VitraSelect from '../components/VitraSelect.jsx'
@@ -925,19 +932,27 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
         )}
 
         {!loading && !isPaidTrafficMode && activeTab === 'assets' && (
-          <AssetsSection
-            brandProfile={brandProfile}
-            campaign={selectedCampaign}
-            assets={scoped.assets.filter(a => a.channel !== 'meta_ads')}
-            jobs={scoped.jobs}
-            rendering={rendering}
-            busyId={assetBusyId}
-            notice={notice}
-            onRender={handleRenderCampaign}
-            onApprove={handleApproveAsset}
-            onApproveGroup={handleApproveGroup}
-            onEdit={setEditingAsset}
-          />
+          <div className="space-y-8">
+            <ContentProductionSection
+              brandProfile={brandProfile}
+              campaign={selectedCampaign}
+              posts={scoped.posts}
+              onSaved={() => refresh(selectedCampaign?.id, { silent: true })}
+            />
+            <AssetsSection
+              brandProfile={brandProfile}
+              campaign={selectedCampaign}
+              assets={scoped.assets.filter(a => a.channel !== 'meta_ads')}
+              jobs={scoped.jobs}
+              rendering={rendering}
+              busyId={assetBusyId}
+              notice={notice}
+              onRender={handleRenderCampaign}
+              onApprove={handleApproveAsset}
+              onApproveGroup={handleApproveGroup}
+              onEdit={setEditingAsset}
+            />
+          </div>
         )}
 
         {!loading && !isPaidTrafficMode && activeTab === 'trafego' && (
@@ -1406,6 +1421,145 @@ function itemPhase(item) {
     return cover?.metadata?.campaign_phase ? String(cover.metadata.campaign_phase) : null
   }
   return item.asset?.metadata?.campaign_phase ? String(item.asset.metadata.campaign_phase) : null
+}
+
+// Fase B — estacao de criacao de conteudo ORGANICO (IA editorial). Escolhe tipo+pilar+formato+tom +
+// briefing leve; a IA (generate-content) propoe ideias; o operador revisa/edita a legenda e salva em
+// premium_content_posts como "planejado" (ja aparece no board Conteúdos). Reusa o contentPlaybook.
+function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, posts = [], onSaved }) {
+  const typeMeta = id => CONTENT_TYPE_OPTIONS.find(t => t.key === id)
+  const [contentType, setContentType] = useState(DEFAULT_CONTENT_TYPE)
+  const [pillar, setPillar] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.pillar || '')
+  const [format, setFormat] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.format || 'feed')
+  const [tone, setTone] = useState('padrao')
+  const [tema, setTema] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [results, setResults] = useState([])
+  const [error, setError] = useState(null)
+  const [savingKey, setSavingKey] = useState(null)
+  const [savedKeys, setSavedKeys] = useState(() => new Set())
+  const [drafts, setDrafts] = useState({})
+
+  // Ao trocar o tipo, sugere pilar e formato default (operador pode mudar).
+  useEffect(() => {
+    const t = typeMeta(contentType)
+    if (t) { setPillar(t.pillar); setFormat(t.format) }
+  }, [contentType])
+
+  const campaignPosts = posts.filter(p => !campaign || p.campaign_id === campaign.id)
+
+  async function handleGenerate() {
+    setGenerating(true); setError(null); setResults([]); setSavedKeys(new Set())
+    try {
+      const context = { tema, product_name: campaign?.product_name || '', bairro: campaign?.city || '' }
+      setResults(await generateContentWithAI({ brandScope: brandProfile.scope, contentType, pillar, format, tone, count: 3, context }))
+    } catch (e) { setError(e) } finally { setGenerating(false) }
+  }
+
+  async function handleSave(post) {
+    setSavingKey(post.key); setError(null)
+    try {
+      await createContentPost({
+        campaignId: campaign?.id, brandScope: brandProfile.scope, contentType,
+        pillar: post.pillar || pillar, format: post.format || format,
+        title: post.headline || post.idea, hook: post.headline,
+        caption: drafts[post.key] ?? post.caption, hashtags: post.hashtags, cta: post.cta,
+        visual: post.visual, script: post.script,
+      })
+      setSavedKeys(prev => new Set(prev).add(post.key))
+      onSaved?.()
+    } catch (e) { setError(e) } finally { setSavingKey(null) }
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="h-px w-7 bg-gold-500/70" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Produção · IA editorial</p>
+      </div>
+      <h3 className="font-display text-xl font-semibold tracking-tight text-white">Novo conteúdo</h3>
+      <p className="mt-1.5 max-w-2xl text-xs leading-5 text-white/50">
+        Escolha o tipo e o pilar; a IA propõe ideias, legendas e direção visual na voz da <span className="text-white/75">{brandProfile.shortName}</span>. Você revisa, edita e salva como <span className="text-white/75">rascunho</span> da oferta em foco.
+      </p>
+      {!campaign && <p className="mt-2 text-[11px] text-amber-300">Selecione uma “Oferta em foco” no topo para salvar os conteúdos.</p>}
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="block"><span className="form-label">Tipo de conteúdo</span>
+          <VitraSelect value={contentType} onChange={setContentType} ariaLabel="Tipo de conteúdo"
+            options={CONTENT_TYPE_OPTIONS.map(t => ({ value: t.key, label: t.label }))} /></label>
+        <label className="block"><span className="form-label">Pilar</span>
+          <VitraSelect value={pillar} onChange={setPillar} ariaLabel="Pilar"
+            options={CONTENT_PILLAR_OPTIONS.map(p => ({ value: p.key, label: p.label }))} /></label>
+        <label className="block"><span className="form-label">Formato</span>
+          <VitraSelect value={format} onChange={setFormat} ariaLabel="Formato"
+            options={CONTENT_FORMAT_OPTIONS.map(f => ({ value: f.key, label: f.label }))} /></label>
+        <label className="block"><span className="form-label">Tom</span>
+          <VitraSelect value={tone} onChange={setTone} ariaLabel="Tom"
+            options={CONTENT_TONES.map(t => ({ value: t.key, label: t.label }))} /></label>
+      </div>
+      <label className="mt-3 block"><span className="form-label">Tema / contexto (opcional)</span>
+        <input className="form-input" value={tema} onChange={e => setTema(e.target.value)} placeholder="ex.: valorização do bairro, financiamento, bastidor da entrega de chaves…" /></label>
+
+      <div className="mt-4">
+        <button type="button" onClick={handleGenerate} disabled={generating} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
+          {generating ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+          {generating ? 'Gerando ideias…' : 'Gerar com IA'}
+        </button>
+      </div>
+
+      {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
+
+      {results.length > 0 && (
+        <div className="mt-5 space-y-3">
+          <p className="text-[11px] text-white/45">{results.length} ideia(s) — revise, edite a legenda e salve:</p>
+          {results.map(post => {
+            const saved = savedKeys.has(post.key)
+            return (
+              <div key={post.key} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-semibold text-white">{post.headline || post.idea}</p>
+                  <span className="flex-shrink-0 text-[10px] uppercase tracking-wide text-gold-300/80">{post.format}</span>
+                </div>
+                {post.idea && <p className="mt-1 text-[11px] italic text-white/40">{post.idea}</p>}
+                <textarea className="form-input mt-2 min-h-[88px] text-xs leading-5" value={drafts[post.key] ?? post.caption} onChange={e => setDrafts(d => ({ ...d, [post.key]: e.target.value }))} />
+                {post.cta && <p className="mt-1.5 text-[11px] text-white/55"><span className="text-white/35">CTA:</span> {post.cta}</p>}
+                {Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {post.hashtags.map((h, i) => <span key={i} className="rounded bg-gold-500/10 px-1.5 py-0.5 text-[10px] text-gold-200">#{h}</span>)}
+                  </div>
+                )}
+                {post.script && <p className="mt-1.5 whitespace-pre-line text-[11px] text-white/45"><span className="text-white/35">Roteiro:</span> {post.script}</p>}
+                {post.visual && <p className="mt-1.5 text-[11px] text-white/45"><span className="text-white/35">Visual:</span> {post.visual}</p>}
+                {Array.isArray(post.issues) && post.issues.length > 0 && (
+                  <p className="mt-1.5 text-[11px] text-amber-300">⚠ {post.issues.join(' · ')}</p>
+                )}
+                <div className="mt-3">
+                  <button type="button" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || !campaign} className="btn-ghost inline-flex items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
+                    {savingKey === post.key ? <Loader2 size={14} className="animate-spin" /> : saved ? <CheckCircle2 size={14} className="text-emerald-300" /> : <Plus size={14} />}
+                    {saved ? 'Salvo no board' : savingKey === post.key ? 'Salvando…' : 'Salvar conteúdo'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {campaignPosts.length > 0 && (
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <p className="form-label mb-2">Conteúdos desta oferta ({campaignPosts.length})</p>
+          <div className="space-y-1.5">
+            {campaignPosts.slice(0, 8).map(p => (
+              <div key={p.id} className="flex items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 60)}</span>
+                <span className="flex-shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/45">{p.status || 'planejado'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function AssetsSection({ brandProfile = getBrandProfile(), campaign, assets, jobs, rendering, busyId, notice, onRender, onApprove, onApproveGroup, onEdit }) {

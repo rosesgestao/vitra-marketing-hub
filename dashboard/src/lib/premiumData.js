@@ -480,6 +480,33 @@ export async function generateContentWithAI({ brandScope, contentType, pillar, f
   return Array.isArray(data?.posts) ? data.posts : []
 }
 
+// Fase B (conteudo organico): salva uma ideia/post editorial em premium_content_posts. Status inicial
+// 'planejado' (1a coluna do board Conteúdos) -> ja aparece no Kanban. campaign_id e contexto opcional
+// (oferta em foco). Reusa as colunas existentes da tabela; direcao visual/roteiro ficam em metadata.
+export async function createContentPost({ campaignId, brandScope, contentType, pillar, format, platform = 'instagram', title, hook, caption, hashtags = [], cta, visual = '', script = '', status = 'draft' } = {}) {
+  // campaign_id e NOT NULL na tabela (conteudo vive sob uma oferta/empreendimento). Status segue o
+  // CHECK do banco (draft|planned|in_copy|in_design|review|approved|scheduled|published|archived).
+  if (!campaignId) throw new Error('Selecione uma oferta em foco para salvar o conteúdo.')
+  const payload = {
+    campaign_id: campaignId,
+    asset_id: null,
+    platform,
+    format: format || 'feed',
+    editorial_pillar: pillar || null,
+    title: title || (caption || '').slice(0, 80) || 'Conteúdo',
+    hook: hook || null,
+    caption: caption || '',
+    hashtags: Array.isArray(hashtags) ? hashtags : [],
+    cta: cta || null,
+    status,
+    notes: 'Criado na aba Produção (IA editorial — Fase B).',
+    metadata: { brand_scope: brandScope || getBrandProfile().scope, content_type: contentType || null, visual, script, source: 'ai_editorial' },
+  }
+  const { data, error } = await supabase.from('premium_content_posts').insert(payload).select('*').single()
+  if (error) throw new Error(error.message || 'Falha ao salvar o conteúdo.')
+  return data
+}
+
 // Revalida UM angulo de copy no cliente (mesmas regras da Edge): usada ao editar um rascunho para
 // atualizar os badges de issue ao vivo (tamanho da headline, nome do produto duplicado, vocabulario
 // fora da marca). Devolve o array de issues (vazio = ok).
