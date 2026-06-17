@@ -188,6 +188,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 61. **[[Atualizacao_2026-06-17_Conteudo_FaseC_Unifica_Board_Calendario]]**
     Conteúdo Fase C: status como fonte unica (contentPlaybook); board Conteúdos (Kanban) e Calendário REAPONTADOS de tabelas legadas para premium_content_posts (lanes por contentStatusLane; calendario por scheduled_for); updateContentPost + controles status/Agendar/Marcar publicado(link) na aba Produção; fix do timeout do loadPremiumWorkspace (8s->20s). Verificado ao vivo (6 campanhas, gerar+salvar, board 6 lanes, agendar/publicar). Resta Fase D (metricas organicas + Biblioteca/Config). Commit 090414c.
 
+62. **[[Atualizacao_2026-06-17_Fix_Load_Resiliente_Dashboard]]**
+    Fix do "Tempo esgotado ao consultar o Supabase Premium": era 1 timeout GLOBAL no Promise.all (uma query lenta derrubava tudo). Agora safeQuery por dataset (timeout proprio + degrada p/ vazio); so campanhas e critica; timeouts generosos (campanhas 25s, paralelo) + payloads menores (assets 600->150 etc.). Posts de teste B/C limpos via service-role. Commit 5e5a286.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
