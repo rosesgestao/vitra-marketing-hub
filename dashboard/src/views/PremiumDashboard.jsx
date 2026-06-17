@@ -499,7 +499,8 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     try {
       const data = await loadPremiumWorkspace({ brandScope })
       setWorkspace(data)
-      const nextSelected = selectCampaignId || data.campaigns[0]?.id || null
+      // '' = "sem oferta" escolhido explicitamente (preservar); null = inicial -> default p/ 1a oferta.
+      const nextSelected = selectCampaignId != null ? selectCampaignId : (data.campaigns[0]?.id || null)
       setSelectedCampaignId(nextSelected)
     } catch (err) {
       setError(err)
@@ -513,7 +514,8 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   }, [brandScope])
 
   const selectedCampaign = useMemo(
-    () => workspace.campaigns.find(campaign => campaign.id === selectedCampaignId) || workspace.campaigns[0] || null,
+    // '' = "sem oferta" escolhido explicitamente -> nenhuma oferta em foco (conteudo de marca).
+    () => (selectedCampaignId === '' ? null : (workspace.campaigns.find(campaign => campaign.id === selectedCampaignId) || workspace.campaigns[0] || null)),
     [selectedCampaignId, workspace.campaigns],
   )
 
@@ -859,14 +861,16 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
         {/* Seletor compacto da oferta em foco: a secao Conteúdo e organica/content-first, mas o material
             ainda e organizado por oferta/empreendimento — entao mantemos um picker leve (sem a antiga
             aba de gestao "Ofertas"). Criar/excluir oferta segue no botao "Nova campanha" do header. */}
+        {/* Conteúdo é content-first: a oferta é um vínculo OPCIONAL (conteúdo de marca nasce sem oferta).
+            "Sem oferta" mantém o conteúdo escopado pela marca; só conteúdo de imóvel/oportunidade sugere o vínculo. */}
         {!isPaidTrafficMode && !loading && workspace.campaigns.length > 0 && (
           <div className="mb-5 max-w-md">
-            <span className="form-label">Oferta em foco</span>
+            <span className="form-label">Oferta vinculada (opcional)</span>
             <VitraSelect
-              value={selectedCampaign?.id || ''}
+              value={selectedCampaign?.id ?? ''}
               onChange={setSelectedCampaignId}
-              ariaLabel="Oferta em foco"
-              options={workspace.campaigns.map(c => ({ value: c.id, label: c.name }))}
+              ariaLabel="Oferta vinculada (opcional)"
+              options={[{ value: '', label: 'Sem oferta — conteúdo de marca' }, ...workspace.campaigns.map(c => ({ value: c.id, label: c.name }))]}
             />
           </div>
         )}
@@ -939,8 +943,9 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             <ContentProductionSection
               brandProfile={brandProfile}
               campaign={selectedCampaign}
+              campaigns={workspace.campaigns}
               posts={scoped.posts}
-              onSaved={() => refresh(selectedCampaign?.id, { silent: true })}
+              onSaved={() => refresh(selectedCampaignId, { silent: true })}
             />
             <AssetsSection
               brandProfile={brandProfile}
@@ -1429,7 +1434,7 @@ function itemPhase(item) {
 // Fase B — estacao de criacao de conteudo ORGANICO (IA editorial). Escolhe tipo+pilar+formato+tom +
 // briefing leve; a IA (generate-content) propoe ideias; o operador revisa/edita a legenda e salva em
 // premium_content_posts como "planejado" (ja aparece no board Conteúdos). Reusa o contentPlaybook.
-function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, posts = [], onSaved }) {
+function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, campaigns = [], posts = [], onSaved }) {
   const typeMeta = id => CONTENT_TYPE_OPTIONS.find(t => t.key === id)
   const [contentType, setContentType] = useState(DEFAULT_CONTENT_TYPE)
   const [pillar, setPillar] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.pillar || '')
@@ -1450,7 +1455,14 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     if (t) { setPillar(t.pillar); setFormat(t.format) }
   }, [contentType])
 
-  const campaignPosts = posts.filter(p => !campaign || p.campaign_id === campaign.id)
+  // Opcao A (content-first): vinculo com oferta e CONTEXTUAL ao tipo. "required" bloqueia salvar sem
+  // oferta; "suggested" so mostra dica (nao bloqueia); "none" ignora o campo (conteudo de marca).
+  const offerLink = typeMeta(contentType)?.offer || 'none'
+  const offerRequired = offerLink === 'required'
+  const offerSuggested = offerLink === 'suggested'
+  // Tracker editorial e da MARCA (nao "desta oferta"): mostra todos os conteudos escopados, com a oferta
+  // como rotulo opcional por linha. `posts` ja vem escopado por marca no loadPremiumWorkspace.
+  const campaignName = id => campaigns.find(c => c.id === id)?.name || null
 
   async function handleGenerate() {
     setGenerating(true); setError(null); setResults([]); setSavedKeys(new Set())
@@ -1503,9 +1515,14 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
       </div>
       <h3 className="font-display text-xl font-semibold tracking-tight text-white">Novo conteúdo</h3>
       <p className="mt-1.5 max-w-2xl text-xs leading-5 text-white/50">
-        Escolha o tipo e o pilar; a IA propõe ideias, legendas e direção visual na voz da <span className="text-white/75">{brandProfile.shortName}</span>. Você revisa, edita e salva como <span className="text-white/75">rascunho</span> da oferta em foco.
+        Escolha o tipo e o pilar; a IA propõe ideias, legendas e direção visual na voz da <span className="text-white/75">{brandProfile.shortName}</span>. Você revisa, edita e salva como <span className="text-white/75">rascunho</span> no board editorial.
       </p>
-      {!campaign && <p className="mt-2 text-[11px] text-amber-300">Selecione uma “Oferta em foco” no topo para salvar os conteúdos.</p>}
+      {offerRequired && !campaign && (
+        <p className="mt-2 text-[11px] text-amber-300">Este tipo fala de uma oferta específica — selecione a “Oferta vinculada” no topo para salvar.</p>
+      )}
+      {offerSuggested && !campaign && (
+        <p className="mt-2 text-[11px] text-white/45">Conteúdo de imóvel: você pode vincular uma oferta no topo (opcional). Sem vínculo, salva como conteúdo de marca.</p>
+      )}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block"><span className="form-label">Tipo de conteúdo</span>
@@ -1558,7 +1575,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
                   <p className="mt-1.5 text-[11px] text-amber-300">⚠ {post.issues.join(' · ')}</p>
                 )}
                 <div className="mt-3">
-                  <button type="button" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || !campaign} className="btn-ghost inline-flex items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || (offerRequired && !campaign)} className="btn-ghost inline-flex items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
                     {savingKey === post.key ? <Loader2 size={14} className="animate-spin" /> : saved ? <CheckCircle2 size={14} className="text-emerald-300" /> : <Plus size={14} />}
                     {saved ? 'Salvo no board' : savingKey === post.key ? 'Salvando…' : 'Salvar conteúdo'}
                   </button>
@@ -1569,15 +1586,20 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
         </div>
       )}
 
-      {campaignPosts.length > 0 && (
+      {posts.length > 0 && (
         <div className="mt-6 border-t border-white/10 pt-4">
-          <p className="form-label mb-2">Conteúdos desta oferta ({campaignPosts.length}) — status, agendamento e publicação</p>
+          <p className="form-label mb-2">Conteúdos em produção ({posts.length}) — status, agendamento e publicação</p>
           <div className="space-y-2">
-            {campaignPosts.slice(0, 12).map(p => (
+            {posts.slice(0, 12).map(p => (
               <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
                 <div className="flex items-center justify-between gap-3">
                   <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
-                  {rowBusy === p.id && <Loader2 size={13} className="flex-shrink-0 animate-spin text-gold-300" />}
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-wide text-white/40">
+                      {p.campaign_id ? (campaignName(p.campaign_id) || 'Oferta') : 'Marca'}
+                    </span>
+                    {rowBusy === p.id && <Loader2 size={13} className="animate-spin text-gold-300" />}
+                  </div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <div className="w-40">

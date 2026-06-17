@@ -14,12 +14,19 @@ export interface ContentPillar {
   description: string;  // o que o pilar comunica (guia a IA e o operador)
 }
 
+// `offer` = vinculo com uma oferta/imovel: "required" (o post E sobre uma oferta especifica),
+// "suggested" (fala de imovel/oportunidade — vincular ajuda, mas nao obriga) ou "none" (conteudo de
+// marca: institucional, bastidores, educativo, autoridade — nasce SEM oferta). Dirige a obrigatoriedade
+// contextual do campo "Oferta vinculada" na aba Produção.
+export type ContentOfferLink = "required" | "suggested" | "none";
+
 export interface ContentType {
   key: string;
   label: string;
   pillar: string;       // pilar editorial default
   format: string;       // formato sugerido (key de CONTENT_FORMATS)
   funnel: string;
+  offer: ContentOfferLink; // vinculo com oferta/imovel
   hint: string;         // orientacao para a IA gerar o conteudo
 }
 
@@ -44,16 +51,16 @@ export const CONTENT_PILLARS: Record<string, ContentPillar> = {
 
 // ---- Tipos de conteudo (intencao editorial) ----
 export const CONTENT_TYPES: Record<string, ContentType> = {
-  institucional:   { key: "institucional",   label: "Post institucional",        pillar: "autoridade",   format: "feed",      funnel: "topo",       hint: "reforca o posicionamento e os valores da marca; institucional, sem oferta direta" },
-  imovel:          { key: "imovel",           label: "Post de imovel",            pillar: "imovel",       format: "carrossel", funnel: "fundo",      hint: "apresenta um imovel/empreendimento: diferenciais, planta, bairro; usa os fatos fornecidos" },
-  bastidores:      { key: "bastidores",       label: "Post de bastidores",        pillar: "bastidores",   format: "reels",     funnel: "relacionamento", hint: "humaniza a marca: rotina do time, atendimento, dia a dia da operacao" },
-  educativo:       { key: "educativo",        label: "Post educativo",            pillar: "educativo",    format: "carrossel", funnel: "topo",       hint: "ensina algo util ao comprador (financiamento, documentacao, dicas), gerando autoridade" },
-  autoridade:      { key: "autoridade",       label: "Post de autoridade",        pillar: "autoridade",   format: "feed",      funnel: "meio",       hint: "dados/analise de mercado, tendencias, leitura do momento imobiliario" },
-  oportunidade:    { key: "oportunidade",     label: "Post de oportunidade",      pillar: "oportunidade", format: "feed",      funnel: "fundo",      hint: "destaca uma condicao/disponibilidade e convida a agir (sem tom de promocao barata)" },
-  prova_social:    { key: "prova_social",     label: "Post de prova social",      pillar: "prova_social", format: "carrossel", funnel: "meio/fundo", hint: "depoimento, entrega de chaves, historia de cliente; constroi confianca" },
-  captacao:        { key: "captacao",         label: "Captacao de proprietario",  pillar: "captacao",     format: "feed",      funnel: "aquisicao",  hint: "fala com quem quer VENDER/alugar: anuncie com a Vitra; foco em seguranca e alcance" },
-  parcerias_b2b:   { key: "parcerias_b2b",    label: "Construtoras e incorporadoras", pillar: "autoridade", format: "feed",   funnel: "B2B",        hint: "fala com construtoras/incorporadoras: parceria de vendas, performance, estrutura da Vitra" },
-  lifestyle_bairro:{ key: "lifestyle_bairro", label: "Bairro e lifestyle",        pillar: "localizacao",  format: "carrossel", funnel: "topo/meio",  hint: "explora a regiao/bairro: valorizacao, conveniencias, estilo de vida" },
+  institucional:   { key: "institucional",   label: "Post institucional",        pillar: "autoridade",   format: "feed",      funnel: "topo",       offer: "none",      hint: "reforca o posicionamento e os valores da marca; institucional, sem oferta direta" },
+  imovel:          { key: "imovel",           label: "Post de imovel",            pillar: "imovel",       format: "carrossel", funnel: "fundo",      offer: "suggested", hint: "apresenta um imovel/empreendimento: diferenciais, planta, bairro; usa os fatos fornecidos" },
+  bastidores:      { key: "bastidores",       label: "Post de bastidores",        pillar: "bastidores",   format: "reels",     funnel: "relacionamento", offer: "none",  hint: "humaniza a marca: rotina do time, atendimento, dia a dia da operacao" },
+  educativo:       { key: "educativo",        label: "Post educativo",            pillar: "educativo",    format: "carrossel", funnel: "topo",       offer: "none",      hint: "ensina algo util ao comprador (financiamento, documentacao, dicas), gerando autoridade" },
+  autoridade:      { key: "autoridade",       label: "Post de autoridade",        pillar: "autoridade",   format: "feed",      funnel: "meio",       offer: "none",      hint: "dados/analise de mercado, tendencias, leitura do momento imobiliario" },
+  oportunidade:    { key: "oportunidade",     label: "Post de oportunidade",      pillar: "oportunidade", format: "feed",      funnel: "fundo",      offer: "suggested", hint: "destaca uma condicao/disponibilidade e convida a agir (sem tom de promocao barata)" },
+  prova_social:    { key: "prova_social",     label: "Post de prova social",      pillar: "prova_social", format: "carrossel", funnel: "meio/fundo", offer: "suggested", hint: "depoimento, entrega de chaves, historia de cliente; constroi confianca" },
+  captacao:        { key: "captacao",         label: "Captacao de proprietario",  pillar: "captacao",     format: "feed",      funnel: "aquisicao",  offer: "none",      hint: "fala com quem quer VENDER/alugar: anuncie com a Vitra; foco em seguranca e alcance" },
+  parcerias_b2b:   { key: "parcerias_b2b",    label: "Construtoras e incorporadoras", pillar: "autoridade", format: "feed",   funnel: "B2B",        offer: "none",      hint: "fala com construtoras/incorporadoras: parceria de vendas, performance, estrutura da Vitra" },
+  lifestyle_bairro:{ key: "lifestyle_bairro", label: "Bairro e lifestyle",        pillar: "localizacao",  format: "carrossel", funnel: "topo/meio",  offer: "none",      hint: "explora a regiao/bairro: valorizacao, conveniencias, estilo de vida" },
 };
 
 // ---- Formatos de entrega ----
@@ -127,9 +134,15 @@ export function contentFormatSpec(key: string | null | undefined): ContentFormat
   return CONTENT_FORMATS[String(key || "")] || CONTENT_FORMATS.feed;
 }
 
+// Nivel de vinculo com oferta/imovel do tipo: "required" | "suggested" | "none". Dirige a
+// obrigatoriedade CONTEXTUAL do campo "Oferta vinculada" na aba Produção (e o guard no createContentPost).
+export function contentTypeOffer(key: string | null | undefined): ContentOfferLink {
+  return contentTypeSpec(key).offer || "none";
+}
+
 // Opcoes para os seletores da UI.
 export const CONTENT_TYPE_OPTIONS = Object.values(CONTENT_TYPES).map((t) => ({
-  key: t.key, label: t.label, pillar: t.pillar, format: t.format, funnel: t.funnel,
+  key: t.key, label: t.label, pillar: t.pillar, format: t.format, funnel: t.funnel, offer: t.offer,
 }));
 export const CONTENT_PILLAR_OPTIONS = Object.values(CONTENT_PILLARS).map((p) => ({
   key: p.key, label: p.label, funnel: p.funnel,

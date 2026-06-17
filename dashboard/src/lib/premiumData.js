@@ -4,7 +4,7 @@ import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandP
 // cliente para REVALIDAR a copy ao vivo quando o operador edita um rascunho (badges de issue corretos).
 import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValidation.ts'
 import { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE } from '../../../supabase/functions/_shared/objectivePlaybook.ts'
-import { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE, CONTENT_STATUS_OPTIONS, CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel } from '../../../supabase/functions/_shared/contentPlaybook.ts'
+import { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE, CONTENT_STATUS_OPTIONS, CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel, contentTypeOffer } from '../../../supabase/functions/_shared/contentPlaybook.ts'
 
 // Reexport para a UI (seletor de Objetivo) — fonte unica e o playbook compartilhado com a Edge.
 export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE }
@@ -483,14 +483,17 @@ export async function generateContentWithAI({ brandScope, contentType, pillar, f
 }
 
 // Fase B (conteudo organico): salva uma ideia/post editorial em premium_content_posts. Status inicial
-// 'planejado' (1a coluna do board Conteúdos) -> ja aparece no Kanban. campaign_id e contexto opcional
-// (oferta em foco). Reusa as colunas existentes da tabela; direcao visual/roteiro ficam em metadata.
+// 'draft'. Reusa as colunas existentes da tabela; direcao visual/roteiro ficam em metadata.
+// Opcao A (content-first): campaign_id e OPCIONAL (nullable no banco). O vinculo com oferta e CONTEXTUAL
+// — exigido apenas para tipos cujo offer='required'; conteudo de marca nasce sem oferta e e escopado
+// por metadata.brand_scope. Status segue o CHECK do banco
+// (draft|planned|in_copy|in_design|review|approved|scheduled|published|archived).
 export async function createContentPost({ campaignId, brandScope, contentType, pillar, format, platform = 'instagram', title, hook, caption, hashtags = [], cta, visual = '', script = '', status = 'draft' } = {}) {
-  // campaign_id e NOT NULL na tabela (conteudo vive sob uma oferta/empreendimento). Status segue o
-  // CHECK do banco (draft|planned|in_copy|in_design|review|approved|scheduled|published|archived).
-  if (!campaignId) throw new Error('Selecione uma oferta em foco para salvar o conteúdo.')
+  if (!campaignId && contentTypeOffer(contentType) === 'required') {
+    throw new Error('Este tipo de conteúdo fala de uma oferta específica — selecione a oferta vinculada.')
+  }
   const payload = {
-    campaign_id: campaignId,
+    campaign_id: campaignId || null,
     asset_id: null,
     platform,
     format: format || 'feed',
@@ -1699,7 +1702,8 @@ export async function loadPremiumWorkspace({ brandScope = BRAND_SCOPES.premium }
   const scopedCampaigns = (campaigns.data || []).filter(campaign => inferCampaignBrandScope(campaign) === brandScope)
   const campaignIds = new Set(scopedCampaigns.map(campaign => campaign.id))
   const scopedAssets = (assets.data || []).filter(asset => campaignIds.has(asset.campaign_id) || asset.metadata?.brand_scope === brandScope)
-  const scopedPosts = (posts.data || []).filter(post => campaignIds.has(post.campaign_id))
+  // Conteudo de marca (Opcao A) pode nao ter oferta — escopa por metadata.brand_scope quando campaign_id e nulo.
+  const scopedPosts = (posts.data || []).filter(post => campaignIds.has(post.campaign_id) || (!post.campaign_id && post.metadata?.brand_scope === brandScope))
   const scopedPublications = (publications.data || []).filter(publication => campaignIds.has(publication.campaign_id))
   const scopedMetrics = (metrics.data || []).filter(metric => campaignIds.has(metric.campaign_id))
   const scopedJobs = (jobs.data || []).filter(job => campaignIds.has(job.campaign_id))
