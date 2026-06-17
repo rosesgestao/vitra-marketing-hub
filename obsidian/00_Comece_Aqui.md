@@ -185,6 +185,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 60. **[[Atualizacao_2026-06-17_Conteudo_FaseB_Producao_Novo_Conteudo]]**
     Conteúdo Fase B: aba Produção conteudo-first. ContentProductionSection (tipo+pilar+formato+tom + briefing -> Gerar com IA -> revisar/editar -> Salvar) grava em premium_content_posts via createContentPost (status 'draft' conforme CHECK; campaign_id=oferta em foco; save guardado sem oferta). Sem tabelas novas. Verificado: geracao on-brand + insert real (limpo). Status EN x board PT a alinhar na Fase C. Commit d9ff490.
 
+61. **[[Atualizacao_2026-06-17_Conteudo_FaseC_Unifica_Board_Calendario]]**
+    Conteúdo Fase C: status como fonte unica (contentPlaybook); board Conteúdos (Kanban) e Calendário REAPONTADOS de tabelas legadas para premium_content_posts (lanes por contentStatusLane; calendario por scheduled_for); updateContentPost + controles status/Agendar/Marcar publicado(link) na aba Produção; fix do timeout do loadPremiumWorkspace (8s->20s). Verificado ao vivo (6 campanhas, gerar+salvar, board 6 lanes, agendar/publicar). Resta Fase D (metricas organicas + Biblioteca/Config). Commit 090414c.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
