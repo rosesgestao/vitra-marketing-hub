@@ -67,6 +67,7 @@ import {
   DEFAULT_OBJECTIVE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
+import VitraSelect from '../components/VitraSelect.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import {
   selectableCreativeTemplatesForBrand,
@@ -1966,10 +1967,8 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
         <label className="block">
           <span className="form-label">Conta de anúncio</span>
           {metaAccounts.length ? (
-            <select className="form-input" value={adAccountId} onChange={e => setAdAccountId(e.target.value)}>
-              <option value="">Selecione a conta</option>
-              {metaAccounts.map(a => <option key={a.id} value={a.id}>{a.name || a.id}{a.currency ? ` · ${a.currency}` : ''}</option>)}
-            </select>
+            <VitraSelect value={adAccountId} onChange={setAdAccountId} placeholder="Selecione a conta" ariaLabel="Conta de anúncio"
+              options={metaAccounts.map(a => ({ value: a.id, label: `${a.name || a.id}${a.currency ? ` · ${a.currency}` : ''}` }))} />
           ) : (
             <input className="form-input" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} placeholder="ID da conta" />
           )}
@@ -1977,10 +1976,8 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
         <label className="block">
           <span className="form-label">Página (Facebook)</span>
           {metaPages.length ? (
-            <select className="form-input" value={pageId} onChange={e => setPageId(e.target.value)}>
-              <option value="">Selecione a página</option>
-              {metaPages.map(p => <option key={p.id} value={p.id}>{p.name || p.id}</option>)}
-            </select>
+            <VitraSelect value={pageId} onChange={setPageId} placeholder="Selecione a página" ariaLabel="Página"
+              options={metaPages.map(p => ({ value: p.id, label: p.name || p.id }))} />
           ) : (
             <input className="form-input" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="ID da Página" />
           )}
@@ -2002,18 +1999,18 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
           <label className="block">
             <span className="form-label">Pixel (conversões)</span>
             <div className="flex gap-2">
-              <select className="form-input flex-1" value={convPixelId} onChange={e => setConvPixelId(e.target.value)}>
-                <option value="">{pixels.length ? 'Selecione o pixel' : 'Liste os pixels →'}</option>
-                {pixels.map(p => <option key={p.id} value={p.id}>{p.name}{p.is_active ? '' : ' (inativo)'}</option>)}
-              </select>
+              <div className="flex-1">
+                <VitraSelect value={convPixelId} onChange={setConvPixelId} ariaLabel="Pixel de conversão"
+                  placeholder={pixels.length ? 'Selecione o pixel' : 'Liste os pixels →'}
+                  options={pixels.map(p => ({ value: p.id, label: `${p.name}${p.is_active ? '' : ' (inativo)'}` }))} />
+              </div>
               <button type="button" onClick={handleLoadPixels} className="btn-ghost flex-shrink-0 !px-3">Listar</button>
             </div>
           </label>
           <label className="block">
             <span className="form-label">Evento de conversão</span>
-            <select className="form-input" value={conversionEvent} onChange={e => setConversionEvent(e.target.value)}>
-              {['LEAD','CONTACT','SCHEDULE','COMPLETE_REGISTRATION','VIEW_CONTENT','PURCHASE'].map(ev => <option key={ev} value={ev}>{ev}</option>)}
-            </select>
+            <VitraSelect value={conversionEvent} onChange={setConversionEvent} ariaLabel="Evento de conversão"
+              options={['LEAD', 'CONTACT', 'SCHEDULE', 'COMPLETE_REGISTRATION', 'VIEW_CONTENT', 'PURCHASE']} />
             <span className="mt-1 block text-[11px] text-white/40">O site precisa disparar esse evento no pixel para a otimização funcionar.</span>
           </label>
         </div>
@@ -2040,14 +2037,18 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
                 )}
                 {s.rationale && <p className="mt-1.5 text-[11px] leading-4 text-white/40">{s.rationale}</p>}
                 {s.retargeting && (
-                  <select
-                    className="form-input mt-2 !py-1.5 text-xs"
-                    value={s.custom_audience_id || ''}
-                    onChange={e => assignAudience(i, e.target.value)}
-                  >
-                    <option value="">Retarget: público amplo (ou escolha um custom)</option>
-                    {audiences.map(a => <option key={a.id} value={a.id}>{a.name} · {a.subtype}{a.size != null ? ` · ${a.size}` : ''}</option>)}
-                  </select>
+                  <div className="mt-2">
+                    <VitraSelect
+                      className="!py-1.5 text-xs"
+                      ariaLabel="Público de retargeting"
+                      value={s.custom_audience_id || ''}
+                      onChange={v => assignAudience(i, v)}
+                      options={[
+                        { value: '', label: 'Retarget: público amplo (ou escolha um custom)' },
+                        ...audiences.map(a => ({ value: a.id, label: `${a.name} · ${a.subtype}${a.size != null ? ` · ${a.size}` : ''}` })),
+                      ]}
+                    />
+                  </div>
                 )}
               </div>
             ))}
@@ -2075,10 +2076,8 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
           </div>
           <div className="flex items-end gap-2">
             <label className="flex-1 block"><span className="form-label">Lookalike (fonte)</span>
-              <select className="form-input !py-1.5 text-xs" value={lkOrigin} onChange={e => setLkOrigin(e.target.value)}>
-                <option value="">Selecione a fonte</option>
-                {audiences.filter(a => a.subtype !== 'LOOKALIKE').map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
+              <VitraSelect value={lkOrigin} onChange={setLkOrigin} placeholder="Selecione a fonte" ariaLabel="Fonte do lookalike" className="!py-1.5 text-xs"
+                options={audiences.filter(a => a.subtype !== 'LOOKALIKE').map(a => ({ value: a.id, label: a.name }))} />
             </label>
             <button type="button" onClick={handleCreateLookalike} disabled={audBusy || !lkOrigin} className="btn-ghost !px-2.5 !py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">Criar LAL</button>
           </div>
