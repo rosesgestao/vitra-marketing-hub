@@ -176,6 +176,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 57. **[[Atualizacao_2026-06-17_Menu_Conteudo_e_remove_Ofertas]]**
     Menu "Conteúdo & Curadoria" -> "Conteúdo"; aba "Ofertas" removida da central de conteudo (virou seletor compacto "Oferta em foco" no topo; criar segue no botao Nova campanha). Abas: Produção · Publicações · Modelo. So navegacao/UI; Tráfego Pago intacto. Commit e4cce39.
 
+58. **[[Atualizacao_2026-06-17_Hero_Conteudo_Ambas_Marcas]]**
+    Hero da central Conteúdo alinhado ao foco organico nas 2 marcas (brandProfiles): titulos "Conteúdo Vitra Imobiliária/Premium" + subtitles de publicacoes organicas. Separacao de marca (Imob sem "curadoria"). So copy do hero; Tráfego Pago intacto. Commit 43301a8.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
