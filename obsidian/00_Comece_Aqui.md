@@ -162,6 +162,8 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 52. **[[Atualizacao_2026-06-16_Auto_Descoberta_Contas_Paginas]]**
     Painel "Publicar na Meta" auto-descobre contas (/me/adaccounts) e Paginas (act_/promote_pages) reais do token: acoes list_ad_accounts/list_pages em manage-audiences, helpers, e selects auto-carregados (pre-seleciona a conta da marca; fallback input manual). Verificado: PoA/RH/Premium + Pagina Vitra Imobiliaria. Commit 652f795.
 
+53. **Dropdowns no tema Vitra** — (a) fix CSS do <select> nativo: fundo solido surface-2 + color-scheme dark + chevron/opcao dourada (popup deixou de ser branco), commit 247b48b; (b) **[[Atualizacao_2026-06-16_VitraSelect_Dropdown_Custom]]** — componente proprio acessivel VitraSelect (pixel-perfect, teclado/ARIA/type-ahead) aplicado aos 6 dropdowns do painel Publicar na Meta.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
