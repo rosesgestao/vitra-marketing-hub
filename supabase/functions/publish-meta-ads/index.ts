@@ -288,6 +288,10 @@ Deno.serve(async (req) => {
           if (fb.length) t.facebook_positions = fb;
           if (ig.length) t.instagram_positions = ig;
         }
+        // A Meta passou a EXIGIR a sinalizacao do Advantage+ Audience no targeting. Como enviamos
+        // publico explicito (geo/interesses/custom), declaramos 0 = NAO usar a expansao Advantage+
+        // (respeita o publico definido). Sem isso a criacao do conjunto falha com "Invalid parameter".
+        t.targeting_automation = { advantage_audience: 0 };
         return t;
       }
 
