@@ -194,6 +194,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 63. **[[Atualizacao_2026-06-17_Conteudo_FaseD_Metricas_Organico_Pago]]**
     Conteúdo Fase D: Métricas com corte Orgânico | Pago (derivado do publication_type). Pills Todos/Orgânico/Pago filtram tiles+totais+tabela; KPIs proprios (Orgânico: engajamento/salvos/novos seguidores; Pago: cliques/leads/investimento+CPL). So UI. Verificado ao vivo. Fecha o nucleo do canal organico (A-D). Resta Biblioteca/Config. Commit d09c658.
 
+64. **[[Atualizacao_2026-06-17_Conteudo_Oferta_Vinculada_Contextual]]**
+    Conteúdo: "Oferta em foco" deixou de ser obrigatoria (era heranca do schema NOT NULL, nao decisao de produto). Opcao A content-first: migration deixa campaign_id nullable; campo vira "Oferta vinculada (opcional)" + "Sem oferta — conteudo de marca"; vinculo CONTEXTUAL por tipo (offer required|suggested|none no contentPlaybook); tracker "Conteudos em producao" por marca (tag Marca/Oferta). E2E ao vivo: salvou post institucional sem oferta (campaign_id null), tag MARCA no board. Commit e59d5d0.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
