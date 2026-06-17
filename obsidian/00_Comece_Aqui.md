@@ -182,6 +182,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 59. **[[Atualizacao_2026-06-17_Conteudo_FaseA_IA_Editorial]]**
     Conteúdo Fase A (base do canal organico): _shared/contentPlaybook.ts (pilares/tipos/formatos/tons, fonte unica) + edge generate-content (Claude, modo organico: ideia/legenda/roteiro/hashtags/CTA/visual na voz da marca + copyValidation) + helper generateContentWithAI + re-export + teste (155). Verificado ao vivo (gate + geracao on-brand). Proximo: Fase B (UI Novo conteúdo). Commit 66fc380.
 
+60. **[[Atualizacao_2026-06-17_Conteudo_FaseB_Producao_Novo_Conteudo]]**
+    Conteúdo Fase B: aba Produção conteudo-first. ContentProductionSection (tipo+pilar+formato+tom + briefing -> Gerar com IA -> revisar/editar -> Salvar) grava em premium_content_posts via createContentPost (status 'draft' conforme CHECK; campaign_id=oferta em foco; save guardado sem oferta). Sem tabelas novas. Verificado: geracao on-brand + insert real (limpo). Status EN x board PT a alinhar na Fase C. Commit d9ff490.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
