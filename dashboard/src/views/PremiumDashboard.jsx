@@ -1863,7 +1863,9 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
     return () => { alive = false }
   }, [])
 
-  // Ao escolher a conta, carrega as Paginas promoveis dela e seleciona a primeira valida.
+  // Ao escolher a conta, carrega as Paginas promoveis dela e pre-seleciona a Pagina da MARCA da campanha
+  // (quando a conta lista mais de uma marca — ex.: apos atribuir a Pagina Premium, a conta passa a trazer
+  // Imobiliaria + Premium). Evita pre-selecionar a marca errada e cair no guard de marca.
   useEffect(() => {
     if (!adAccountId) { setMetaPages([]); return }
     let alive = true
@@ -1871,7 +1873,11 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
       .then(list => {
         if (!alive) return
         setMetaPages(list)
-        if (list.length && !list.some(p => p.id === pageId)) setPageId(list[0].id)
+        if (list.length && !list.some(p => p.id === pageId)) {
+          const isPremium = brandProfile.scope === BRAND_SCOPES.premium
+          const match = list.find(p => /premium/i.test(p.name || '') === isPremium)
+          setPageId((match || list[0]).id)
+        }
       })
       .catch(() => { /* fallback input manual */ })
     return () => { alive = false }
