@@ -4,6 +4,9 @@ verify_jwt = false
 [functions.generate-copy]
 verify_jwt = false
 
+[functions.generate-content]
+verify_jwt = false
+
 [functions.extract-facts]
 verify_jwt = false
 

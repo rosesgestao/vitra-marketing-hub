@@ -1,0 +1,96 @@
+// Playbook EDITORIAL (conteudo organico) — FONTE UNICA, no mesmo padrao do objectivePlaybook (pago).
+// O operador escolhe UM tipo de conteudo + (opcional) pilar/formato/tom; o resto (foco de funil, dica
+// para a IA, formato sugerido) e DERIVADO daqui. Pilares/tipos/formatos sao NEUTROS de marca — a VOZ
+// (Imobiliaria x Premium) e aplicada na edge generate-content. Mantem a padronizacao: nenhum caminho
+// ad-hoc por tipo na UI/edge.
+//
+// Puro TS (sem Deno/Vite APIs) — importado pela Edge (Deno) E pelo dashboard (Vite), igual a
+// copyValidation.ts / objectivePlaybook.ts.
+
+export interface ContentPillar {
+  key: string;
+  label: string;
+  funnel: string;       // etapa de funil que o pilar costuma servir
+  description: string;  // o que o pilar comunica (guia a IA e o operador)
+}
+
+export interface ContentType {
+  key: string;
+  label: string;
+  pillar: string;       // pilar editorial default
+  format: string;       // formato sugerido (key de CONTENT_FORMATS)
+  funnel: string;
+  hint: string;         // orientacao para a IA gerar o conteudo
+}
+
+export interface ContentFormat {
+  key: string;
+  label: string;
+  spec: string;         // dimensao/observacao do formato
+  hasScript: boolean;   // se pede roteiro (reels/stories)
+}
+
+// ---- Pilares editoriais (demanda receptiva: presenca, autoridade, relacionamento) ----
+export const CONTENT_PILLARS: Record<string, ContentPillar> = {
+  autoridade:   { key: "autoridade",   label: "Autoridade imobiliaria", funnel: "topo/meio", description: "mercado, dados, tendencias e por que confiar na Vitra" },
+  educativo:    { key: "educativo",    label: "Educar o comprador",     funnel: "topo",      description: "duvidas comuns: financiamento, documentacao, primeiro imovel, passo a passo" },
+  bastidores:   { key: "bastidores",   label: "Bastidores e relacionamento", funnel: "relacionamento", description: "time, rotina, humanizacao da marca, proximidade" },
+  prova_social: { key: "prova_social", label: "Prova social",           funnel: "meio/fundo", description: "depoimentos, chaves entregues, clientes satisfeitos, resultados" },
+  imovel:       { key: "imovel",       label: "Imovel em destaque",     funnel: "fundo",     description: "apresentar um imovel/empreendimento e seus diferenciais" },
+  oportunidade: { key: "oportunidade", label: "Oportunidade",           funnel: "fundo",     description: "condicao, disponibilidade e o momento de decidir" },
+  captacao:     { key: "captacao",     label: "Captacao de proprietario", funnel: "aquisicao", description: "quem quer vender/alugar: anuncie seu imovel com a Vitra" },
+  localizacao:  { key: "localizacao",  label: "Bairro e localizacao",   funnel: "topo/meio", description: "regioes, valorizacao e lifestyle do bairro" },
+};
+
+// ---- Tipos de conteudo (intencao editorial) ----
+export const CONTENT_TYPES: Record<string, ContentType> = {
+  institucional:   { key: "institucional",   label: "Post institucional",        pillar: "autoridade",   format: "feed",      funnel: "topo",       hint: "reforca o posicionamento e os valores da marca; institucional, sem oferta direta" },
+  imovel:          { key: "imovel",           label: "Post de imovel",            pillar: "imovel",       format: "carrossel", funnel: "fundo",      hint: "apresenta um imovel/empreendimento: diferenciais, planta, bairro; usa os fatos fornecidos" },
+  bastidores:      { key: "bastidores",       label: "Post de bastidores",        pillar: "bastidores",   format: "reels",     funnel: "relacionamento", hint: "humaniza a marca: rotina do time, atendimento, dia a dia da operacao" },
+  educativo:       { key: "educativo",        label: "Post educativo",            pillar: "educativo",    format: "carrossel", funnel: "topo",       hint: "ensina algo util ao comprador (financiamento, documentacao, dicas), gerando autoridade" },
+  autoridade:      { key: "autoridade",       label: "Post de autoridade",        pillar: "autoridade",   format: "feed",      funnel: "meio",       hint: "dados/analise de mercado, tendencias, leitura do momento imobiliario" },
+  oportunidade:    { key: "oportunidade",     label: "Post de oportunidade",      pillar: "oportunidade", format: "feed",      funnel: "fundo",      hint: "destaca uma condicao/disponibilidade e convida a agir (sem tom de promocao barata)" },
+  prova_social:    { key: "prova_social",     label: "Post de prova social",      pillar: "prova_social", format: "carrossel", funnel: "meio/fundo", hint: "depoimento, entrega de chaves, historia de cliente; constroi confianca" },
+  captacao:        { key: "captacao",         label: "Captacao de proprietario",  pillar: "captacao",     format: "feed",      funnel: "aquisicao",  hint: "fala com quem quer VENDER/alugar: anuncie com a Vitra; foco em seguranca e alcance" },
+  parcerias_b2b:   { key: "parcerias_b2b",    label: "Construtoras e incorporadoras", pillar: "autoridade", format: "feed",   funnel: "B2B",        hint: "fala com construtoras/incorporadoras: parceria de vendas, performance, estrutura da Vitra" },
+  lifestyle_bairro:{ key: "lifestyle_bairro", label: "Bairro e lifestyle",        pillar: "localizacao",  format: "carrossel", funnel: "topo/meio",  hint: "explora a regiao/bairro: valorizacao, conveniencias, estilo de vida" },
+};
+
+// ---- Formatos de entrega ----
+export const CONTENT_FORMATS: Record<string, ContentFormat> = {
+  feed:      { key: "feed",      label: "Post unico (feed)", spec: "1:1 1080x1080",        hasScript: false },
+  carrossel: { key: "carrossel", label: "Carrossel",         spec: "4:5 1080x1350, 3-8 cards", hasScript: false },
+  reels:     { key: "reels",     label: "Reels",             spec: "9:16 1080x1920, com roteiro", hasScript: true },
+  stories:   { key: "stories",   label: "Stories",           spec: "9:16 1080x1920, sequencia", hasScript: true },
+  legenda:   { key: "legenda",   label: "Legenda avulsa",    spec: "so texto",             hasScript: false },
+};
+
+// ---- Tons (refinamento opcional; a VOZ base ja vem da marca) ----
+export const CONTENT_TONES: Array<{ key: string; label: string }> = [
+  { key: "padrao",     label: "Padrao da marca" },
+  { key: "didatico",   label: "Didatico" },
+  { key: "inspirador", label: "Inspirador" },
+  { key: "direto",     label: "Direto ao ponto" },
+  { key: "proximo",    label: "Proximo e acolhedor" },
+];
+
+export const DEFAULT_CONTENT_TYPE = "imovel";
+
+export function contentTypeSpec(key: string | null | undefined): ContentType {
+  return CONTENT_TYPES[String(key || "")] || CONTENT_TYPES[DEFAULT_CONTENT_TYPE];
+}
+
+export function contentFormatSpec(key: string | null | undefined): ContentFormat {
+  return CONTENT_FORMATS[String(key || "")] || CONTENT_FORMATS.feed;
+}
+
+// Opcoes para os seletores da UI.
+export const CONTENT_TYPE_OPTIONS = Object.values(CONTENT_TYPES).map((t) => ({
+  key: t.key, label: t.label, pillar: t.pillar, format: t.format, funnel: t.funnel,
+}));
+export const CONTENT_PILLAR_OPTIONS = Object.values(CONTENT_PILLARS).map((p) => ({
+  key: p.key, label: p.label, funnel: p.funnel,
+}));
+export const CONTENT_FORMAT_OPTIONS = Object.values(CONTENT_FORMATS).map((f) => ({
+  key: f.key, label: f.label, hasScript: f.hasScript,
+}));

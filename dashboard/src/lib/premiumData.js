@@ -4,9 +4,12 @@ import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandP
 // cliente para REVALIDAR a copy ao vivo quando o operador edita um rascunho (badges de issue corretos).
 import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValidation.ts'
 import { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE } from '../../../supabase/functions/_shared/objectivePlaybook.ts'
+import { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE } from '../../../supabase/functions/_shared/contentPlaybook.ts'
 
 // Reexport para a UI (seletor de Objetivo) — fonte unica e o playbook compartilhado com a Edge.
 export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE }
+// Reexport do playbook EDITORIAL (aba Produção) — mesma fonte unica usada pela Edge generate-content.
+export { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE }
 import {
   creativeTemplateForTemplateKey,
   selectableCreativeTemplatesForBrand,
@@ -455,6 +458,26 @@ export async function generateCopyWithAI(form, brandProfile = getBrandProfile())
     throw new Error(message)
   }
   return Array.isArray(data?.angles) ? data.angles : []
+}
+
+// Fase A (conteudo organico): chama a Edge generate-content (Claude) e devolve N ideias de post
+// (ideia/legenda/CTA/hashtags/roteiro/visual) na voz da marca, ja validadas. tipo/pilar/formato vem do
+// contentPlaybook; `context` e o briefing leve (objetivo/publico/tema/imovel) — opcional. Erro acionavel.
+export async function generateContentWithAI({ brandScope, contentType, pillar, format, tone, count = 3, context = {} } = {}) {
+  const { data, error } = await supabase.functions.invoke('generate-content', {
+    headers: copilotGateHeaders(),
+    body: {
+      brand_scope: brandScope || getBrandProfile().scope,
+      content_type: contentType || DEFAULT_CONTENT_TYPE,
+      pillar: pillar || undefined,
+      format: format || undefined,
+      tone: tone || undefined,
+      count,
+      context,
+    },
+  })
+  if (error) throw await edgeError(error)
+  return Array.isArray(data?.posts) ? data.posts : []
 }
 
 // Revalida UM angulo de copy no cliente (mesmas regras da Edge): usada ao editar um rascunho para
