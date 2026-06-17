@@ -167,13 +167,12 @@ const SOURCE_TYPE_OPTIONS = [
   { value: 'manual', label: 'Brief manual' },
 ]
 
-// "Conteúdo & Curadoria" = canal ORGÂNICO. As abas de demanda PAGA saem daqui:
-// - "Tráfego Pago" era duplicata da area dedicada (item de menu Tráfego Pago) -> removida;
-// - "Métricas" duplicava a Métricas transversal -> removida (metricas organicas vao para a transversal);
-// - "Campanhas" foi renomeada para "Ofertas": e a raiz COMPARTILHADA (empreendimento/oferta) e o
-//   seletor que as abas orgânicas usam — fica como contexto neutro, sem rotulo publicitario.
+// "Conteúdo" = canal ORGÂNICO puro (planejar, criar, curar, organizar e acompanhar publicacoes).
+// A demanda PAGA e a gestao de ofertas NAO ficam aqui:
+// - "Tráfego Pago" e "Métricas" saíram (duplicavam a area de midia paga e a Métricas transversal);
+// - "Ofertas" (gestao de campanha/empreendimento) saiu como ABA — a escolha da oferta para a qual se
+//   produz conteudo vira um seletor compacto no topo (a criacao segue no botao "Nova campanha" do header).
 const TABS = [
-  { id: 'campanhas', label: 'Ofertas', icon: Gem },
   { id: 'assets', label: 'Produção', icon: Layers3 },
   { id: 'publicacoes', label: 'Publicações', icon: Send },
   { id: 'modelo', label: 'Modelo', icon: Database },
@@ -465,7 +464,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedCampaignId, setSelectedCampaignId] = useState(null)
-  const [activeTab, setActiveTab] = useState(isPaidTrafficMode ? 'trafego' : 'campanhas')
+  const [activeTab, setActiveTab] = useState(isPaidTrafficMode ? 'trafego' : 'assets')
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingPublication, setSavingPublication] = useState(false)
@@ -844,6 +843,21 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Seletor compacto da oferta em foco: a secao Conteúdo e organica/content-first, mas o material
+            ainda e organizado por oferta/empreendimento — entao mantemos um picker leve (sem a antiga
+            aba de gestao "Ofertas"). Criar/excluir oferta segue no botao "Nova campanha" do header. */}
+        {!isPaidTrafficMode && !loading && workspace.campaigns.length > 0 && (
+          <div className="mb-5 max-w-md">
+            <span className="form-label">Oferta em foco</span>
+            <VitraSelect
+              value={selectedCampaign?.id || ''}
+              onChange={setSelectedCampaignId}
+              ariaLabel="Oferta em foco"
+              options={workspace.campaigns.map(c => ({ value: c.id, label: c.name }))}
+            />
           </div>
         )}
 

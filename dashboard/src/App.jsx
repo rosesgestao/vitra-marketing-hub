@@ -19,7 +19,7 @@ const BRAND_SECTIONS = [
     title: 'Vitra Imobiliária',
     scope: BRAND_SCOPES.imobiliaria,
     items: [
-      { id: 'imobiliaria', label: 'Conteúdo & Curadoria', icon: Building2, brandScope: BRAND_SCOPES.imobiliaria },
+      { id: 'imobiliaria', label: 'Conteúdo', icon: Building2, brandScope: BRAND_SCOPES.imobiliaria },
       { id: 'imobiliaria-trafego', label: 'Tráfego Pago', icon: Megaphone, brandScope: BRAND_SCOPES.imobiliaria, focusMode: 'trafego' },
     ],
   },
@@ -27,7 +27,7 @@ const BRAND_SECTIONS = [
     title: 'Vitra Premium',
     scope: BRAND_SCOPES.premium,
     items: [
-      { id: 'premium', label: 'Conteúdo & Curadoria', icon: Gem, brandScope: BRAND_SCOPES.premium },
+      { id: 'premium', label: 'Conteúdo', icon: Gem, brandScope: BRAND_SCOPES.premium },
       { id: 'premium-trafego', label: 'Tráfego Pago', icon: Megaphone, brandScope: BRAND_SCOPES.premium, focusMode: 'trafego' },
     ],
   },
