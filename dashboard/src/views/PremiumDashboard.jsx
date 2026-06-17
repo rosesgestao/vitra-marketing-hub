@@ -167,12 +167,15 @@ const SOURCE_TYPE_OPTIONS = [
   { value: 'manual', label: 'Brief manual' },
 ]
 
+// "Conteúdo & Curadoria" = canal ORGÂNICO. As abas de demanda PAGA saem daqui:
+// - "Tráfego Pago" era duplicata da area dedicada (item de menu Tráfego Pago) -> removida;
+// - "Métricas" duplicava a Métricas transversal -> removida (metricas organicas vao para a transversal);
+// - "Campanhas" foi renomeada para "Ofertas": e a raiz COMPARTILHADA (empreendimento/oferta) e o
+//   seletor que as abas orgânicas usam — fica como contexto neutro, sem rotulo publicitario.
 const TABS = [
-  { id: 'campanhas', label: 'Campanhas', icon: Gem },
+  { id: 'campanhas', label: 'Ofertas', icon: Gem },
   { id: 'assets', label: 'Produção', icon: Layers3 },
-  { id: 'trafego', label: 'Tráfego Pago', icon: Megaphone },
   { id: 'publicacoes', label: 'Publicações', icon: Send },
-  { id: 'metricas', label: 'Métricas', icon: BarChart3 },
   { id: 'modelo', label: 'Modelo', icon: Database },
 ]
 
