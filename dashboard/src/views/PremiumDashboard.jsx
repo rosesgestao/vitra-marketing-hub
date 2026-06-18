@@ -70,6 +70,7 @@ import {
   importContentPlan,
   updateContentPost,
   publishContentPost,
+  uploadPostArt,
   CONTENT_TYPE_OPTIONS,
   CONTENT_PILLAR_OPTIONS,
   CONTENT_FORMAT_OPTIONS,
@@ -77,6 +78,7 @@ import {
   DEFAULT_CONTENT_TYPE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
+import { renderPostArtToCanvas, postArtBlob } from '../lib/postArt.js'
 import VitraSelect from '../components/VitraSelect.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import {
@@ -1466,6 +1468,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
   const [importResult, setImportResult] = useState(null)
   const [rowBusy, setRowBusy] = useState(null)
   const [schedulingId, setSchedulingId] = useState(null)
+  const [artPost, setArtPost] = useState(null)
 
   // Ao trocar o tipo, sugere pilar e formato default (operador pode mudar).
   useEffect(() => {
@@ -1759,6 +1762,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
                     {stage !== 'rascunho' && stage !== 'publicado' && (
                       <button type="button" disabled={busy} onClick={() => backToDraft(p)} className="text-[10px] text-white/35 hover:text-white/60">voltar a rascunho</button>
                     )}
+                    <button type="button" onClick={() => setArtPost(p)} className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-white/45 hover:text-gold-200" title="Gerar a arte (imagem) do post">
+                      <ImageIcon size={13} />{p.metadata?.art_url ? 'Ver arte' : 'Gerar arte'}
+                    </button>
                   </div>
                 </div>
               )
@@ -1767,6 +1773,81 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
           {posts.length > 15 && <p className="mt-2 text-[10px] text-white/35">Mostrando 15 de {posts.length}. Pipeline completo em Conteúdos (board) e Calendário.</p>}
         </div>
       )}
+
+      {artPost && (
+        <PostArtModal post={artPost} brandProfile={brandProfile} onClose={() => setArtPost(null)} onSaved={() => { setArtPost(null); onSaved?.() }} />
+      )}
+    </div>
+  )
+}
+
+// Modal "Gerar arte do post": gera a imagem branded (Canvas 2D, postArt.js) a partir do texto do post.
+// Diferente do render pago — aqui e cartao tipografico organico. Baixa o PNG e/ou salva no post (Storage).
+function PostArtModal({ post, brandProfile = getBrandProfile(), onClose, onSaved }) {
+  const canvasRef = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const scope = post?.metadata?.brand_scope || brandProfile.scope
+  const kicker = (CONTENT_PILLAR_OPTIONS.find(p => p.key === post?.editorial_pillar)?.label) || brandProfile.shortName
+  const artOpts = {
+    brandScope: scope, format: post?.format || 'feed',
+    title: post?.title || post?.hook || (post?.caption || '').slice(0, 60),
+    caption: post?.caption || '', cta: post?.cta || '', kicker,
+  }
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try { if (canvasRef.current) { await renderPostArtToCanvas(canvasRef.current, artOpts); if (!alive) return } }
+      catch (e) { setError(e) }
+    })()
+    return () => { alive = false }
+  }, [post?.id])
+
+  async function handleDownload() {
+    setBusy(true); setError(null)
+    try {
+      const blob = await postArtBlob(artOpts)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `arte-${(post?.title || 'post').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)}.png`
+      a.click(); URL.revokeObjectURL(url)
+    } catch (e) { setError(e) } finally { setBusy(false) }
+  }
+
+  async function handleSave() {
+    setBusy(true); setError(null)
+    try {
+      const blob = await postArtBlob(artOpts)
+      await uploadPostArt({ postId: post.id, blob, brandScope: scope })
+      onSaved?.()
+    } catch (e) { setError(e) } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-5" onClick={e => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-display text-lg font-semibold text-white">Arte do post</h3>
+          <button type="button" onClick={onClose} className="text-white/40 hover:text-white"><X size={18} /></button>
+        </div>
+        <p className="mb-3 text-[11px] leading-5 text-white/45">Imagem branded gerada do texto do post (cartão tipográfico, na identidade da {brandProfile.shortName}). Baixe para postar ou salve no conteúdo.</p>
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
+          <canvas ref={canvasRef} className="mx-auto block h-auto w-full max-h-[52vh] object-contain" />
+        </div>
+        {error && <p className="mt-2 text-xs text-red-300">{error.message || String(error)}</p>}
+        <div className="mt-4 flex items-center gap-2">
+          <button type="button" onClick={handleSave} disabled={busy} className="btn-gold inline-flex items-center gap-2 disabled:opacity-50">
+            {busy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}Salvar no post
+          </button>
+          <button type="button" onClick={handleDownload} disabled={busy} className="btn-ghost inline-flex items-center gap-2 text-sm disabled:opacity-50">
+            <Download size={15} />Baixar PNG
+          </button>
+          {post?.metadata?.art_url && (
+            <a href={post.metadata.art_url} target="_blank" rel="noreferrer" className="ml-auto text-[11px] text-gold-300 underline">arte salva</a>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

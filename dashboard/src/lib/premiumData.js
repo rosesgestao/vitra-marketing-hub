@@ -573,6 +573,27 @@ export async function updateContentPost(id, { status, scheduledFor, publishedUrl
   return data
 }
 
+// Arte do post organico: faz upload do PNG gerado no cliente (postArt.js) para o bucket publico 'cards'
+// e grava a URL em metadata.art_url do conteudo. Reusa o mesmo bucket dos uploads de imagem do projeto.
+// E a contraparte do "Gerar arte do post" — NAO usa o render-asset (Satori/pago).
+export async function uploadPostArt({ postId, blob, brandScope } = {}) {
+  if (!postId || !blob) throw new Error('Arte inválida para salvar.')
+  const scope = brandScope || getBrandProfile().scope
+  const path = `organic-art/${scope}/${postId}-${Date.now()}.png`
+  const { error: upErr } = await supabase.storage.from('cards').upload(path, blob, {
+    contentType: 'image/png', upsert: true,
+  })
+  if (upErr) throw new Error(upErr.message || 'Falha ao enviar a arte para o storage.')
+  const { data: pub } = supabase.storage.from('cards').getPublicUrl(path)
+  const url = pub?.publicUrl
+  // Mescla art_url no metadata existente (sem sobrescrever o resto).
+  const { data: cur } = await supabase.from('premium_content_posts').select('metadata').eq('id', postId).maybeSingle()
+  const metadata = { ...(cur?.metadata || {}), art_url: url, art_path: path }
+  const { error } = await supabase.from('premium_content_posts').update({ metadata }).eq('id', postId)
+  if (error) throw new Error(error.message || 'Falha ao vincular a arte ao conteúdo.')
+  return { url, path }
+}
+
 // Revalida UM angulo de copy no cliente (mesmas regras da Edge): usada ao editar um rascunho para
 // atualizar os badges de issue ao vivo (tamanho da headline, nome do produto duplicado, vocabulario
 // fora da marca). Devolve o array de issues (vazio = ok).
