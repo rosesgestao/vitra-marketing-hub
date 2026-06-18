@@ -60,7 +60,30 @@ function firstSentence(caption, max = 140) {
   return cut.length > max ? cut.slice(0, max - 1).trim() + '…' : cut
 }
 
-// Desenha a arte no canvas fornecido. opts: { brandScope, format, title, caption, cta, kicker }.
+// Carrega uma imagem com CORS habilitado (Storage Supabase serve CORS *). Rejeita se nao carregar
+// (ex.: URL invalida ou sem CORS) — quem chama faz fallback para o cartao tipografico.
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Não foi possível carregar a imagem (verifique a URL e o CORS).'))
+    img.src = url
+  })
+}
+
+// Desenha a imagem cobrindo o retangulo (object-fit: cover), centralizada.
+function drawCover(ctx, img, x, y, w, h) {
+  const ir = img.width / img.height
+  const r = w / h
+  let sw, sh, sx, sy
+  if (ir > r) { sh = img.height; sw = sh * r; sx = (img.width - sw) / 2; sy = 0 }
+  else { sw = img.width; sh = sw / r; sx = 0; sy = (img.height - sh) / 2 }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h)
+}
+
+// Desenha a arte no canvas fornecido. opts: { brandScope, format, title, caption, cta, kicker, photoUrl }.
+// Com photoUrl: variante "com foto do imovel" (hero no topo + scrim); sem: cartao tipografico.
 export async function renderPostArtToCanvas(canvas, opts = {}) {
   const scope = THEME[opts.brandScope] ? opts.brandScope : 'vitra_imobiliaria'
   const t = THEME[scope]
@@ -69,43 +92,61 @@ export async function renderPostArtToCanvas(canvas, opts = {}) {
   const ctx = canvas.getContext('2d')
   const pad = Math.round(W * 0.1)
 
-  // Fundo (gradiente sutil) + leve vinheta dourada no topo.
+  // Fundo (gradiente sutil).
   const g = ctx.createLinearGradient(0, 0, 0, H)
   g.addColorStop(0, t.bg2); g.addColorStop(1, t.bg)
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
+
+  // Variante COM FOTO: hero no topo + scrim que funde para o fundo (texto fica na area inferior).
+  let hasPhoto = false
+  const photoH = Math.round(H * (H >= 1600 ? 0.56 : 0.52))
+  if (opts.photoUrl) {
+    try {
+      const img = await loadImage(opts.photoUrl)
+      drawCover(ctx, img, 0, 0, W, photoH)
+      const scrim = ctx.createLinearGradient(0, photoH * 0.45, 0, photoH)
+      scrim.addColorStop(0, 'rgba(0,0,0,0)'); scrim.addColorStop(1, t.bg)
+      ctx.fillStyle = scrim; ctx.fillRect(0, Math.round(photoH * 0.45), W, photoH - Math.round(photoH * 0.45))
+      // continua o fundo solido abaixo do hero
+      ctx.fillStyle = t.bg; ctx.fillRect(0, photoH, W, H - photoH)
+      hasPhoto = true
+    } catch { /* fallback: cartao tipografico (segue sem foto) */ }
+  }
 
   // Moldura dourada fina (safe zone visível).
   ctx.strokeStyle = t.gold; ctx.globalAlpha = 0.5; ctx.lineWidth = 3
   ctx.strokeRect(pad * 0.5, pad * 0.5, W - pad, H - pad)
   ctx.globalAlpha = 1
 
-  // Kicker (eyebrow) + régua dourada.
+  // Kicker (eyebrow) + régua dourada. Com foto, ganha sombra para legibilidade sobre a imagem.
   const kicker = String(opts.kicker || t.mark).toUpperCase()
   ctx.fillStyle = t.goldLight
   ctx.font = '700 24px "Inter", Arial, sans-serif'
   ctx.textBaseline = 'alphabetic'
+  if (hasPhoto) { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 8 }
   ctx.save(); ctx.translate(pad, pad * 1.25)
-  // espaçamento de letras manual
   let kx = 0
   for (const ch of kicker) { ctx.fillText(ch, kx, 0); kx += ctx.measureText(ch).width + 4 }
   ctx.restore()
+  if (hasPhoto) ctx.restore()
   ctx.fillStyle = t.gold; ctx.fillRect(pad, pad * 1.45, 84, 4)
 
-  // Título (Playfair Display) — auto-fit por tamanho conforme o comprimento.
+  // Título (Playfair Display) — auto-fit por tamanho. Com foto, começa abaixo do hero.
   const title = String(opts.title || opts.caption || 'Conteúdo Vitra').replace(/\s+/g, ' ').trim()
   const maxTextW = W - pad * 2
+  const titleTop = hasPhoto ? photoH + Math.round(pad * 0.6) : Math.round(H * (H >= 1600 ? 0.34 : 0.30))
+  const titleBudget = (H - pad - titleTop) * (opts.caption ? 0.62 : 0.9)
   let size = title.length > 90 ? 64 : title.length > 50 ? 78 : 96
   let lines = []
-  for (; size >= 44; size -= 4) {
+  for (; size >= 40; size -= 4) {
     ctx.font = `700 ${size}px "Playfair Display", Georgia, serif`
-    lines = wrapLines(ctx, title, maxTextW, H >= 1600 ? 6 : 4)
-    const lineH = size * 1.16
-    if (lines.length * lineH <= H * (H >= 1600 ? 0.42 : 0.40)) break
+    lines = wrapLines(ctx, title, maxTextW, hasPhoto ? 3 : (H >= 1600 ? 6 : 4))
+    if (lines.length * size * 1.16 <= titleBudget) break
   }
   ctx.fillStyle = t.ink
   ctx.font = `700 ${size}px "Playfair Display", Georgia, serif`
   const lineH = size * 1.16
-  let ty = Math.round(H * (H >= 1600 ? 0.34 : 0.30))
+  let ty = titleTop
   for (const ln of lines) { ctx.fillText(ln, pad, ty); ty += lineH }
 
   // Linha de apoio (1ª frase da legenda), em Inter.

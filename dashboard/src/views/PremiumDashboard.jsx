@@ -1730,7 +1730,10 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
               return (
                 <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      {p.metadata?.art_url && <img src={p.metadata.art_url} alt="" className="h-8 w-8 flex-shrink-0 rounded border border-white/10 object-cover" />}
+                      <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
+                    </span>
                     <div className="flex flex-shrink-0 items-center gap-2">
                       <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${meta.cls}`}>{meta.label}</span>
                       <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-wide text-white/35">{p.campaign_id ? (campaignName(p.campaign_id) || 'Oferta') : 'Marca'}</span>
@@ -1787,12 +1790,15 @@ function PostArtModal({ post, brandProfile = getBrandProfile(), onClose, onSaved
   const canvasRef = useRef(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [variant, setVariant] = useState('tipografico')   // 'tipografico' | 'foto'
+  const [photoUrl, setPhotoUrl] = useState('')
   const scope = post?.metadata?.brand_scope || brandProfile.scope
   const kicker = (CONTENT_PILLAR_OPTIONS.find(p => p.key === post?.editorial_pillar)?.label) || brandProfile.shortName
   const artOpts = {
     brandScope: scope, format: post?.format || 'feed',
     title: post?.title || post?.hook || (post?.caption || '').slice(0, 60),
     caption: post?.caption || '', cta: post?.cta || '', kicker,
+    photoUrl: variant === 'foto' ? photoUrl.trim() : null,
   }
 
   useEffect(() => {
@@ -1802,7 +1808,7 @@ function PostArtModal({ post, brandProfile = getBrandProfile(), onClose, onSaved
       catch (e) { setError(e) }
     })()
     return () => { alive = false }
-  }, [post?.id])
+  }, [post?.id, variant, photoUrl])
 
   async function handleDownload() {
     setBusy(true); setError(null)
@@ -1831,7 +1837,22 @@ function PostArtModal({ post, brandProfile = getBrandProfile(), onClose, onSaved
           <h3 className="font-display text-lg font-semibold text-white">Arte do post</h3>
           <button type="button" onClick={onClose} className="text-white/40 hover:text-white"><X size={18} /></button>
         </div>
-        <p className="mb-3 text-[11px] leading-5 text-white/45">Imagem branded gerada do texto do post (cartão tipográfico, na identidade da {brandProfile.shortName}). Baixe para postar ou salve no conteúdo.</p>
+        <p className="mb-3 text-[11px] leading-5 text-white/45">Imagem branded gerada do texto do post, na identidade da {brandProfile.shortName}. Baixe para postar ou salve no conteúdo.</p>
+        <div className="mb-3 inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+          {[{ k: 'tipografico', label: 'Tipográfico' }, { k: 'foto', label: 'Com foto' }].map(({ k, label }) => (
+            <button key={k} type="button" onClick={() => { setVariant(k); setError(null) }}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${variant === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {variant === 'foto' && (
+          <label className="mb-3 block">
+            <span className="form-label">URL da foto do imóvel (pública)</span>
+            <input className="form-input" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="https://…/foto.jpg" />
+            <span className="mt-1 block text-[10px] text-white/35">Use uma imagem pública (ex.: do site/galeria do imóvel). Se não aparecer, verifique a URL/CORS.</span>
+          </label>
+        )}
         <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
           <canvas ref={canvasRef} className="mx-auto block h-auto w-full max-h-[52vh] object-contain" />
         </div>

@@ -2263,6 +2263,7 @@ export async function createManualPublication(payload) {
       source: payload.source || 'dashboard_manual_mapping',
       notes: cleanText(payload.notes),
       ...(payload.brand_scope ? { brand_scope: payload.brand_scope } : {}),
+      ...(payload.artUrl ? { art_url: payload.artUrl } : {}),
     },
   }
 
@@ -2307,6 +2308,7 @@ export async function publishContentPost({ post, url = '', brandScope } = {}) {
     publication_type: 'organic',
     permalink,
     brand_scope: scope,
+    artUrl: post.metadata?.art_url || null,   // a arte gerada vira a midia de referencia da publicacao
     source: 'content_publish',
   })
   return { created: true, id: publication?.id }

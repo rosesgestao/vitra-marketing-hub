@@ -26,7 +26,7 @@ export default function Calendario() {
 
       const { data } = await supabase
         .from('premium_content_posts')
-        .select('id, title, hook, platform, format, status, scheduled_for, editorial_pillar')
+        .select('id, title, hook, platform, format, status, scheduled_for, editorial_pillar, metadata')
         .not('scheduled_for', 'is', null)
         .gte('scheduled_for', inicio.toISOString())
         .lte('scheduled_for', fim.toISOString())
@@ -141,6 +141,10 @@ export default function Calendario() {
                         </div>
                         <span className="label-section">{hora}</span>
                       </div>
+
+                      {post.metadata?.art_url && (
+                        <img src={post.metadata.art_url} alt="" className="mb-2 h-24 w-full rounded-md border border-white/10 object-cover" />
+                      )}
 
                       <p className="text-white text-sm font-medium leading-snug mb-2 line-clamp-2">{post.title || post.hook || '—'}</p>
 
