@@ -212,6 +212,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 69. **[[Atualizacao_2026-06-18_Conteudo_Gerar_Arte_Do_Post]]**
     Conteúdo: "Gerar arte do post" — imagem branded a partir do TEXTO (antes a IA so dava direcao visual). Motor Canvas 2D no cliente (postArt.js), sem dependencia nova e SEM o render-asset/Satori pago — cartao tipografico fiel ao brandbook por marca (navy+dourado / preto+dourado), dimensoes por formato. PostArtModal (preview + Baixar PNG + Salvar no post -> upload bucket 'cards' + metadata.art_url) por card do funil. E2E ao vivo OK (arte 1080x1920; PNG 200/image/png/406KB). Distinto de "Gerar criativos"/"Gerar cortes" (pago). Commit 3d9627f.
 
+70. **[[Atualizacao_2026-06-18_Conteudo_Arte_Foto_Thumbnail_Publicacao]]**
+    Conteúdo: cluster de arte. Variante COM FOTO (postArt.js photoUrl: hero+scrim, crossOrigin+fallback); PostArtModal com toggle Tipografico|Com foto + URL; thumbnail da arte (metadata.art_url) no card do funil e no Calendário; "Marcar publicado" copia art_url p/ a publicacao (midia de referencia). E2E ao vivo OK (foto+scrim sem taint; thumbnail no card). Resta sequenciado: Config editorial, DAM, publicacao nativa via Graph. Commit 4428158.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
