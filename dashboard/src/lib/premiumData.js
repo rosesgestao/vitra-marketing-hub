@@ -594,6 +594,32 @@ export async function uploadPostArt({ postId, blob, brandScope } = {}) {
   return { url, path }
 }
 
+// Configuracoes editoriais por marca (governanca da pauta): pilares ativos, tom padrao, cadencia e
+// diretrizes (que entram no prompt da IA via context). 1 linha por brand_scope em premium_editorial_settings.
+export async function loadEditorialSettings(brandScope) {
+  const scope = brandScope || getBrandProfile().scope
+  const { data, error } = await supabase
+    .from('premium_editorial_settings').select('*').eq('brand_scope', scope).maybeSingle()
+  if (error) return null
+  return data || null
+}
+
+export async function saveEditorialSettings(brandScope, { activePillars = [], defaultTone = 'padrao', cadencePerWeek = 5, guidelines = '' } = {}) {
+  const scope = brandScope || getBrandProfile().scope
+  const row = {
+    brand_scope: scope,
+    active_pillars: Array.isArray(activePillars) ? activePillars : [],
+    default_tone: defaultTone || 'padrao',
+    cadence_per_week: Number(cadencePerWeek) || 5,
+    guidelines: guidelines || '',
+    updated_at: new Date().toISOString(),
+  }
+  const { data, error } = await supabase
+    .from('premium_editorial_settings').upsert(row, { onConflict: 'brand_scope' }).select('*').single()
+  if (error) throw new Error(error.message || 'Falha ao salvar as configurações editoriais.')
+  return data
+}
+
 // Revalida UM angulo de copy no cliente (mesmas regras da Edge): usada ao editar um rascunho para
 // atualizar os badges de issue ao vivo (tamanho da headline, nome do produto duplicado, vocabulario
 // fora da marca). Devolve o array de issues (vazio = ok).

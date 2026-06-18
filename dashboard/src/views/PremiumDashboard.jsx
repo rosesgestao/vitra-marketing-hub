@@ -71,6 +71,8 @@ import {
   updateContentPost,
   publishContentPost,
   uploadPostArt,
+  loadEditorialSettings,
+  saveEditorialSettings,
   CONTENT_TYPE_OPTIONS,
   CONTENT_PILLAR_OPTIONS,
   CONTENT_FORMAT_OPTIONS,
@@ -187,6 +189,7 @@ const SOURCE_TYPE_OPTIONS = [
 const TABS = [
   { id: 'assets', label: 'Produção', icon: Layers3 },
   { id: 'publicacoes', label: 'Publicações', icon: Send },
+  { id: 'config', label: 'Configurações', icon: Target },
   { id: 'modelo', label: 'Modelo', icon: Database },
 ]
 
@@ -486,6 +489,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   const [rendering, setRendering] = useState(false)
   const [notice, setNotice] = useState(null)
   const [campaignSubmitError, setCampaignSubmitError] = useState(null)
+  const [editorialSettings, setEditorialSettings] = useState(null)
   const autoRenderCampaignsRef = useRef(new Set())
   const autoRenderRunningRef = useRef(null)
 
@@ -513,6 +517,13 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
 
   useEffect(() => {
     refresh(null)
+  }, [brandScope])
+
+  // Configuracoes editoriais por marca (governanca da pauta): pilares ativos, tom padrao, diretrizes.
+  useEffect(() => {
+    let alive = true
+    loadEditorialSettings(brandScope).then(s => { if (alive) setEditorialSettings(s) })
+    return () => { alive = false }
   }, [brandScope])
 
   const selectedCampaign = useMemo(
@@ -970,7 +981,16 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             campaign={selectedCampaign}
             campaigns={workspace.campaigns}
             posts={scoped.posts}
+            editorialSettings={editorialSettings}
             onSaved={() => refresh(selectedCampaignId, { silent: true })}
+          />
+        )}
+
+        {!loading && !isPaidTrafficMode && activeTab === 'config' && (
+          <EditorialSettingsSection
+            brandProfile={brandProfile}
+            settings={editorialSettings}
+            onSaved={setEditorialSettings}
           />
         )}
 
@@ -1446,7 +1466,7 @@ function itemPhase(item) {
 // (Rascunho -> Aprovado -> Agendado -> Publicado). O status e DERIVADO da acao (o operador nao escolhe
 // um estado cru); a data so aparece ao Agendar; "Marcar publicado" tambem registra a publicacao real
 // (premium_publications) para destravar metricas. Reusa contentPlaybook + premium_content_posts.
-function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, campaigns = [], posts = [], onSaved }) {
+function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, campaigns = [], posts = [], editorialSettings = null, onSaved }) {
   const typeMeta = id => CONTENT_TYPE_OPTIONS.find(t => t.key === id)
   const [mode, setMode] = useState('ia')                 // 'ia' | 'manual' | 'import'
   const [contentType, setContentType] = useState(DEFAULT_CONTENT_TYPE)
@@ -1475,6 +1495,14 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     const t = typeMeta(contentType)
     if (t) { setPillar(t.pillar); setFormat(t.format) }
   }, [contentType])
+
+  // Governanca editorial (Configurações): pilares ativos filtram o seletor; tom padrao da marca; as
+  // diretrizes entram no prompt da IA via context.
+  const activePillars = editorialSettings?.active_pillars || []
+  const pillarOpts = (activePillars.length ? CONTENT_PILLAR_OPTIONS.filter(p => activePillars.includes(p.key)) : CONTENT_PILLAR_OPTIONS)
+  useEffect(() => {
+    if (editorialSettings?.default_tone) setTone(editorialSettings.default_tone)
+  }, [editorialSettings?.default_tone])
 
   // Opcao A (content-first): vinculo com oferta e CONTEXTUAL ao tipo. "required" bloqueia salvar sem
   // oferta; "suggested" so mostra dica (nao bloqueia); "none" ignora o campo (conteudo de marca).
@@ -1511,6 +1539,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     setGenerating(true); setError(null); setResults([]); setSavedKeys(new Set())
     try {
       const context = { tema, product_name: campaign?.product_name || '', bairro: campaign?.city || '' }
+      if (editorialSettings?.guidelines?.trim()) context.diretrizes_da_marca = editorialSettings.guidelines.trim()
       setResults(await generateContentWithAI({ brandScope: brandProfile.scope, contentType, pillar, format, tone, count: 3, context }))
     } catch (e) { setError(e) } finally { setGenerating(false) }
   }
@@ -1611,7 +1640,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
             options={CONTENT_TYPE_OPTIONS.map(t => ({ value: t.key, label: t.label }))} /></label>
         <label className="block"><span className="form-label">Pilar</span>
           <VitraSelect value={pillar} onChange={setPillar} ariaLabel="Pilar"
-            options={CONTENT_PILLAR_OPTIONS.map(p => ({ value: p.key, label: p.label }))} /></label>
+            options={pillarOpts.map(p => ({ value: p.key, label: p.label }))} /></label>
         <label className="block"><span className="form-label">Formato</span>
           <VitraSelect value={format} onChange={setFormat} ariaLabel="Formato"
             options={CONTENT_FORMAT_OPTIONS.map(f => ({ value: f.key, label: f.label }))} /></label>
@@ -1868,6 +1897,92 @@ function PostArtModal({ post, brandProfile = getBrandProfile(), onClose, onSaved
             <a href={post.metadata.art_url} target="_blank" rel="noreferrer" className="ml-auto text-[11px] text-gold-300 underline">arte salva</a>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Configurações editoriais por marca: governa a pauta orgânica (pilares ativos, tom padrão, cadência e
+// diretrizes que entram no prompt da IA). Persiste em premium_editorial_settings (1 linha por marca).
+function EditorialSettingsSection({ brandProfile = getBrandProfile(), settings, onSaved }) {
+  const [active, setActive] = useState(() => new Set(settings?.active_pillars || []))
+  const [tone, setTone] = useState(settings?.default_tone || 'padrao')
+  const [cadence, setCadence] = useState(settings?.cadence_per_week ?? 5)
+  const [guidelines, setGuidelines] = useState(settings?.guidelines || '')
+  const [saving, setSaving] = useState(false)
+  const [savedAt, setSavedAt] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    setActive(new Set(settings?.active_pillars || []))
+    setTone(settings?.default_tone || 'padrao')
+    setCadence(settings?.cadence_per_week ?? 5)
+    setGuidelines(settings?.guidelines || '')
+  }, [settings])
+
+  function togglePillar(key) {
+    setActive(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next })
+  }
+
+  async function handleSave() {
+    setSaving(true); setError(null); setSavedAt(null)
+    try {
+      const saved = await saveEditorialSettings(brandProfile.scope, {
+        activePillars: [...active], defaultTone: tone, cadencePerWeek: cadence, guidelines,
+      })
+      onSaved?.(saved); setSavedAt(Date.now())
+    } catch (e) { setError(e) } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="card max-w-2xl p-5">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="h-px w-7 bg-gold-500/70" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Linha editorial · {brandProfile.shortName}</p>
+      </div>
+      <h3 className="font-display text-xl font-semibold tracking-tight text-white">Configurações editoriais</h3>
+      <p className="mt-1.5 max-w-xl text-xs leading-5 text-white/50">
+        Governe a pauta orgânica da {brandProfile.shortName}: quais pilares entram na produção, o tom padrão, a meta de cadência e as diretrizes que orientam a IA ao gerar posts.
+      </p>
+
+      <div className="mt-5">
+        <span className="form-label">Pilares ativos</span>
+        <p className="mb-2 text-[10px] text-white/35">Vazio = todos os pilares disponíveis. Selecione para restringir o que aparece na Produção.</p>
+        <div className="flex flex-wrap gap-2">
+          {CONTENT_PILLAR_OPTIONS.map(p => {
+            const on = active.has(p.key)
+            return (
+              <button key={p.key} type="button" onClick={() => togglePillar(p.key)}
+                className={`rounded-full border px-3 py-1.5 text-[11px] transition ${on ? 'border-gold-500/50 bg-gold-500/15 text-gold-200' : 'border-white/12 text-white/55 hover:border-white/30 hover:text-white/85'}`}>
+                {on ? '✓ ' : ''}{p.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <label className="block"><span className="form-label">Tom padrão</span>
+          <VitraSelect value={tone} onChange={setTone} ariaLabel="Tom padrão"
+            options={CONTENT_TONES.map(t => ({ value: t.key, label: t.label }))} /></label>
+        <label className="block"><span className="form-label">Cadência (posts/semana)</span>
+          <input type="number" min="0" max="40" className="form-input" value={cadence}
+            onChange={e => setCadence(Number(e.target.value))} /></label>
+      </div>
+
+      <label className="mt-4 block"><span className="form-label">Diretrizes para a IA</span>
+        <p className="mb-1.5 text-[10px] text-white/35">Entram no prompt do “Gerar posts”: temas a priorizar/evitar, jeito de falar, do/don’t da marca.</p>
+        <textarea className="form-input min-h-[110px] text-sm leading-5" value={guidelines}
+          onChange={e => setGuidelines(e.target.value)}
+          placeholder="ex.: priorize bairros da Zona Sul; evite jargão; sempre convidar para conversa no WhatsApp; tom consultivo, sem pressão." /></label>
+
+      {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
+
+      <div className="mt-4 flex items-center gap-3">
+        <button type="button" onClick={handleSave} disabled={saving} className="btn-gold inline-flex items-center gap-2 disabled:opacity-50">
+          {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}Salvar configurações
+        </button>
+        {savedAt && <span className="inline-flex items-center gap-1 text-[11px] text-emerald-300"><CheckCircle2 size={13} />Salvo</span>}
       </div>
     </div>
   )
