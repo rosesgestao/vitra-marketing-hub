@@ -227,6 +227,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 74. **[[Atualizacao_2026-06-18_Conteudo_Vinculo_Oferta_Contextual]]**
     Conteúdo (item 4): fim do seletor GLOBAL de oferta no topo do organico — a secao opera em visao de MARCA (KPIs/funil/Publicações brand-wide). O vinculo com oferta virou CONTEXTUAL, dentro do card "Novo conteúdo" (estado interno linkedCampaignId, default "Sem oferta"). PublicationsSection herda oferta/marca do conteudo escolhido. E2E ao vivo OK (salvar manual vinculando TOM MENINO DEUS -> post com aquela campaign_id; funil brand-wide 40 com tags MARCA+oferta); server limpo sem erros. So UI; Trafego Pago intacto. Resta so: publicacao nativa via Graph. Commit 5ac7f79.
 
+75. **[[Atualizacao_2026-06-18_Conteudo_Clareza_Salvar_Rascunho]]**
+    Conteúdo: clareza do "Salvar rascunho". Analise do fluxo Gerar posts -> Salvar: mecanica ja certa, faltava feedback de "pra onde foi" + proximo passo. Entregue: banner "Rascunho salvo em Conteúdos em produção — abaixo. Próximo passo: Aprovar"; ROLA+DESTACA o item (ring dourado+badge "novo" ~3,5s); funil ordena mais recentes no topo; bloco IA rotulado "Sugestões da IA" (aviso que somem ao gerar novas); "Salvo no board"->"Salvo em rascunhos"; microcopy do funil com "Acompanhe também em Conteúdos/Calendário". So UI. E2E ao vivo OK; console limpo. Resta so: publicacao nativa via Graph. Commit 2508911.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
