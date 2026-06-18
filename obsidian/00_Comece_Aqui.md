@@ -203,6 +203,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 66. **[[Atualizacao_2026-06-18_Conteudo_Gerar_Posts_Remove_Render_Pago]]**
     Conteúdo: corrige "0 criativo(s) gerado(s)". Causa: a secao exibia assets nao-meta_ads e oferecia "Gerar criativos", mas o render-asset so processa channel=meta_ads -> 0. E render Satori e conceito de tráfego pago, nao post organico. Fix: REMOVIDA a matriz de criativos + "Gerar criativos" da secao Conteúdo; a geracao organica vira "Gerar posts" (IA, ja funcional) e o entregavel e o post (texto) no funil. Render de arte fica no Tráfego Pago/Estúdio ("Gerar cortes"). Follow-up: "Gerar arte do post" (imagem organica). Commit a71e262.
 
+67. **[[Atualizacao_2026-06-18_Skill_Vitra_Conteudo_Planejador_Editorial]]**
+    Skill nova `vitra-conteudo` (planejador editorial orgânico, LOCAL em .claude/). Analise PO: o per-post ja e capability do app (generate-content) — nao virar skill p/ nao duplicar fonte unica. A lacuna real e PLANEJAMENTO EM LOTE (calendario/pauta). A skill, de um briefing (marca/periodo/foco), monta o plano por pilares (legenda/CTA/hashtags/roteiro/visual por post na voz da marca) reusando contentPlaybook+copyValidation; saida = markdown + JSON formato createContentPost (importavel p/ o board). Smoke test independente OK (funil equilibrado, voz correta, zero vocab Premium). Follow-up: botao "Importar plano". (.claude e gitignored — skill nao versionada.)
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
