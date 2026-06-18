@@ -221,6 +221,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 72. **[[Atualizacao_2026-06-18_Conteudo_Biblioteca_DAM]]**
     Conteúdo: Biblioteca (DAM) — acervo de midia organica por marca (tabela premium_media_assets, bucket 'cards'). Helpers list/register/upload/delete; uploadPostArt AUTO-REGISTRA a arte ao salvar no post; view Biblioteca.jsx (grid por marca/kind, enviar/copiar URL/baixar/excluir) no menu Produção de conteúdo. E2E ao vivo OK (arte salva apareceu no acervo; excluir removeu storage+linha). Resta so: publicacao nativa via Graph (entrega dedicada). Commit (ver git).
 
+73. **[[Atualizacao_2026-06-18_Conteudo_Simplifica_Organico]]**
+    Conteúdo: simplifica a secao organica separando do chrome PAGO (a secao reusa o PremiumDashboard e herdava roupa de campanha). Itens 1-3: oferta-first -> ORGANICO-first ("Oferta vinculada" comeca em "Sem oferta — conteudo de marca"; paid segue na 1a campanha); KPIs do header agora organicos (Conteúdos/Rascunhos/Agendados/Publicados no lugar de Campanhas/Assets/Investimento/leads); removidos a aba "Modelo" e o botao "Nova oferta" do organico. So UI; Trafego Pago intacto. E2E ao vivo OK; console limpo. Resta: publicacao nativa via Graph. Commit bb269c6.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
