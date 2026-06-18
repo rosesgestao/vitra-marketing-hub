@@ -197,6 +197,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 64. **[[Atualizacao_2026-06-17_Conteudo_Oferta_Vinculada_Contextual]]**
     Conteúdo: "Oferta em foco" deixou de ser obrigatoria (era heranca do schema NOT NULL, nao decisao de produto). Opcao A content-first: migration deixa campaign_id nullable; campo vira "Oferta vinculada (opcional)" + "Sem oferta — conteudo de marca"; vinculo CONTEXTUAL por tipo (offer required|suggested|none no contentPlaybook); tracker "Conteudos em producao" por marca (tag Marca/Oferta). E2E ao vivo: salvou post institucional sem oferta (campaign_id null), tag MARCA no board. Commit e59d5d0.
 
+65. **[[Atualizacao_2026-06-18_Conteudo_Fluxo_Publicacao_Por_Acoes]]**
+    Conteúdo: aba Produção reorganizada por FUNIL DE AÇÕES. Status deixa de ser dropdown de 7 opcoes — passa a ser DERIVADO da acao (Aprovar→Agendar→Publicar); data so aparece ao agendar. Entrada dupla "Novo conteúdo" (Gerar com IA | Criar do zero/manual). Publicar UNIFICADO: "Marcar publicado" tambem cria a publicacao real (premium_publications) p/ destravar metricas. Header: "Novo conteúdo" + "Nova oferta" (Nova campanha so no Tráfego Pago). migration: premium_publications.campaign_id nullable; brand_scope via metadata (coluna GENERATED). E2E ao vivo OK (rascunho manual → aprovado → publicado + publicacao criada). Commit 28ebbdf.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
