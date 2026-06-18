@@ -1469,6 +1469,8 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
   const [rowBusy, setRowBusy] = useState(null)
   const [schedulingId, setSchedulingId] = useState(null)
   const [artPost, setArtPost] = useState(null)
+  const [savedNotice, setSavedNotice] = useState(null)   // confirmacao "para onde foi"
+  const [highlightId, setHighlightId] = useState(null)    // id do rascunho recem-salvo (rolar + destacar)
 
   // Ao trocar o tipo, sugere pilar e formato default (operador pode mudar).
   useEffect(() => {
@@ -1483,6 +1485,16 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
   useEffect(() => {
     if (editorialSettings?.default_tone) setTone(editorialSettings.default_tone)
   }, [editorialSettings?.default_tone])
+
+  // Ao salvar, quando o board recarrega com o novo rascunho: rola ate ele e destaca por alguns segundos.
+  useEffect(() => {
+    if (!highlightId) return
+    const el = document.getElementById(`post-row-${highlightId}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const t1 = setTimeout(() => setHighlightId(null), 3500)
+    const t2 = setTimeout(() => setSavedNotice(null), 5000)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [highlightId, posts])
 
   // Opcao A (content-first): vinculo com oferta e CONTEXTUAL ao tipo. "required" bloqueia salvar sem
   // oferta; "suggested" so mostra dica (nao bloqueia); "none" ignora o campo (conteudo de marca).
@@ -1528,7 +1540,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
   async function handleSave(post) {
     setSavingKey(post.key); setError(null)
     try {
-      await createContentPost({
+      const saved = await createContentPost({
         campaignId: linkedCampaign?.id, brandScope: brandProfile.scope, contentType, platform,
         pillar: post.pillar || pillar, format: post.format || format,
         title: post.headline || post.idea, hook: post.headline,
@@ -1536,20 +1548,28 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
         visual: post.visual, script: post.script,
       })
       setSavedKeys(prev => new Set(prev).add(post.key))
+      flagSaved(saved)
       onSaved?.()
     } catch (e) { setError(e) } finally { setSavingKey(null) }
+  }
+
+  // Confirma "para onde foi" + marca o item para rolar/destacar no funil quando o board recarregar.
+  function flagSaved(saved) {
+    if (saved?.id) setHighlightId(saved.id)
+    setSavedNotice('Rascunho salvo em “Conteúdos em produção” — abaixo. Próximo passo: Aprovar.')
   }
 
   async function handleManualSave() {
     if (!manual.caption.trim() && !manual.title.trim()) { setError(new Error('Escreva ao menos um título ou uma legenda.')); return }
     setSavingManual(true); setError(null)
     try {
-      await createContentPost({
+      const saved = await createContentPost({
         campaignId: linkedCampaign?.id, brandScope: brandProfile.scope, contentType, pillar, format, platform,
         title: manual.title || manual.caption.slice(0, 60), caption: manual.caption, cta: manual.cta,
         hashtags: manual.hashtags.split(/[,\s]+/).map(h => h.replace(/^#/, '')).filter(Boolean),
       })
       setManual({ title: '', caption: '', cta: '', hashtags: '' })
+      flagSaved(saved)
       onSaved?.()
     } catch (e) { setError(e) } finally { setSavingManual(false) }
   }
@@ -1585,8 +1605,11 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
   }
   const backToDraft = post => runAction(post.id, () => updateContentPost(post.id, { status: 'draft' }))
 
-  // Itens que pedem acao primeiro (rascunho -> aprovado -> agendado -> publicado).
-  const sortedPosts = [...posts].sort((a, b) => STAGE[stageOf(a.status)].order - STAGE[stageOf(b.status)].order)
+  // Itens que pedem acao primeiro (rascunho -> aprovado -> agendado -> publicado); dentro da etapa, os
+  // MAIS RECENTES no topo — assim um rascunho recem-salvo aparece logo e e facil de achar/destacar.
+  const sortedPosts = [...posts].sort((a, b) =>
+    (STAGE[stageOf(a.status)].order - STAGE[stageOf(b.status)].order) ||
+    (Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0)))
 
   return (
     <div id="content-create" className="card p-5 scroll-mt-6">
@@ -1700,9 +1723,15 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
 
       {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
 
+      {savedNotice && (
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-3 py-1.5 text-[11px] text-emerald-200">
+          <CheckCircle2 size={13} />{savedNotice}
+        </p>
+      )}
+
       {mode === 'ia' && results.length > 0 && (
         <div className="mt-5 space-y-3">
-          <p className="text-[11px] text-white/45">{results.length} ideia(s) — revise, edite a legenda e salve:</p>
+          <p className="text-[11px] text-white/45"><span className="text-white/70">Sugestões da IA ({results.length})</span> — revise, edite a legenda e salve as que quiser. <span className="text-white/40">As não salvas somem ao gerar novas.</span></p>
           {results.map(post => {
             const saved = savedKeys.has(post.key)
             return (
@@ -1727,7 +1756,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
                 <div className="mt-3">
                   <button type="button" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || blockedByOffer} className="btn-ghost inline-flex items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
                     {savingKey === post.key ? <Loader2 size={14} className="animate-spin" /> : saved ? <CheckCircle2 size={14} className="text-emerald-300" /> : <Plus size={14} />}
-                    {saved ? 'Salvo no board' : savingKey === post.key ? 'Salvando…' : 'Salvar rascunho'}
+                    {saved ? 'Salvo em rascunhos' : savingKey === post.key ? 'Salvando…' : 'Salvar rascunho'}
                   </button>
                 </div>
               </div>
@@ -1739,19 +1768,22 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
       {/* Board por ACOES: cada card mostra a etapa + a proxima acao do funil (status derivado). */}
       {posts.length > 0 && (
         <div className="mt-6 border-t border-white/10 pt-4">
-          <p className="form-label mb-2">Conteúdos em produção ({posts.length}) — avance pelo funil</p>
+          <p className="form-label">Conteúdos em produção ({posts.length}) — avance pelo funil</p>
+          <p className="mb-2 text-[10px] text-white/35">Rascunho → Aprovar → Agendar → Publicar. Acompanhe também em <span className="text-white/55">Conteúdos</span> (board) e <span className="text-white/55">Calendário</span>.</p>
           <div className="space-y-2">
             {sortedPosts.slice(0, 15).map(p => {
               const stage = stageOf(p.status)
               const meta = STAGE[stage]
               const busy = rowBusy === p.id
+              const isNew = p.id === highlightId
               const scheduledLabel = p.scheduled_for ? new Date(p.scheduled_for).toLocaleDateString('pt-BR') : null
               return (
-                <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
+                <div key={p.id} id={`post-row-${p.id}`} className={`rounded-md border px-3 py-2.5 transition-colors duration-500 ${isNew ? 'border-gold-500/60 bg-gold-500/[0.07]' : 'border-white/[0.08] bg-white/[0.02]'}`}>
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex min-w-0 items-center gap-2">
                       {p.metadata?.art_url && <img src={p.metadata.art_url} alt="" className="h-8 w-8 flex-shrink-0 rounded border border-white/10 object-cover" />}
                       <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
+                      {isNew && <span className="flex-shrink-0 rounded-full bg-gold-500/20 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-gold-200">novo</span>}
                     </span>
                     <div className="flex flex-shrink-0 items-center gap-2">
                       <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${meta.cls}`}>{meta.label}</span>
