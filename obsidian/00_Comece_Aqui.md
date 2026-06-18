@@ -200,6 +200,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 65. **[[Atualizacao_2026-06-18_Conteudo_Fluxo_Publicacao_Por_Acoes]]**
     Conteúdo: aba Produção reorganizada por FUNIL DE AÇÕES. Status deixa de ser dropdown de 7 opcoes — passa a ser DERIVADO da acao (Aprovar→Agendar→Publicar); data so aparece ao agendar. Entrada dupla "Novo conteúdo" (Gerar com IA | Criar do zero/manual). Publicar UNIFICADO: "Marcar publicado" tambem cria a publicacao real (premium_publications) p/ destravar metricas. Header: "Novo conteúdo" + "Nova oferta" (Nova campanha so no Tráfego Pago). migration: premium_publications.campaign_id nullable; brand_scope via metadata (coluna GENERATED). E2E ao vivo OK (rascunho manual → aprovado → publicado + publicacao criada). Commit 28ebbdf.
 
+66. **[[Atualizacao_2026-06-18_Conteudo_Gerar_Posts_Remove_Render_Pago]]**
+    Conteúdo: corrige "0 criativo(s) gerado(s)". Causa: a secao exibia assets nao-meta_ads e oferecia "Gerar criativos", mas o render-asset so processa channel=meta_ads -> 0. E render Satori e conceito de tráfego pago, nao post organico. Fix: REMOVIDA a matriz de criativos + "Gerar criativos" da secao Conteúdo; a geracao organica vira "Gerar posts" (IA, ja funcional) e o entregavel e o post (texto) no funil. Render de arte fica no Tráfego Pago/Estúdio ("Gerar cortes"). Follow-up: "Gerar arte do post" (imagem organica). Commit a71e262.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
