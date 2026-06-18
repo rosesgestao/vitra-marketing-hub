@@ -190,7 +190,6 @@ const TABS = [
   { id: 'assets', label: 'Produção', icon: Layers3 },
   { id: 'publicacoes', label: 'Publicações', icon: Send },
   { id: 'config', label: 'Configurações', icon: Target },
-  { id: 'modelo', label: 'Modelo', icon: Database },
 ]
 
 // Posicionamentos Meta Ads por formato/aspect ratio
@@ -505,8 +504,9 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     try {
       const data = await loadPremiumWorkspace({ brandScope })
       setWorkspace(data)
-      // '' = "sem oferta" escolhido explicitamente (preservar); null = inicial -> default p/ 1a oferta.
-      const nextSelected = selectCampaignId != null ? selectCampaignId : (data.campaigns[0]?.id || null)
+      // '' = "sem oferta" (preservar). Inicial (null): no ORGANICO comeca SEM oferta (conteudo de marca
+      // e o padrao); so o Tráfego Pago precisa de uma oferta selecionada de cara.
+      const nextSelected = selectCampaignId != null ? selectCampaignId : (isPaidTrafficMode ? (data.campaigns[0]?.id || null) : '')
       setSelectedCampaignId(nextSelected)
     } catch (err) {
       setError(err)
@@ -562,6 +562,18 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
       paidSpend,
     }
   }, [scoped, workspace.campaigns.length])
+
+  // KPIs ORGANICOS do header (modo Conteúdo): contagem de posts por etapa do funil.
+  const contentStats = useMemo(() => {
+    const posts = scoped.posts
+    const isStatus = s => p => p.status === s
+    return {
+      total: posts.length,
+      drafts: posts.filter(p => !['scheduled', 'published', 'archived'].includes(p.status)).length,
+      scheduled: posts.filter(isStatus('scheduled')).length,
+      published: posts.filter(isStatus('published')).length,
+    }
+  }, [scoped.posts])
 
   const paidTrafficOverview = useMemo(() => {
     const metaAssets = workspace.assets.filter(asset => asset.channel === 'meta_ads')
@@ -799,24 +811,14 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
                   Nova campanha
                 </button>
               ) : (
-                <>
-                  {/* Seção orgânica: a ação primária é criar CONTEÚDO; criar oferta vira ação secundária. */}
-                  <button
-                    onClick={openCampaignModal}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-white/70 transition hover:border-gold-500/30 hover:text-white"
-                    title="Criar uma oferta/empreendimento"
-                  >
-                    <Plus size={15} />
-                    Nova oferta
-                  </button>
-                  <button
-                    onClick={() => { setActiveTab('assets'); requestAnimationFrame(() => document.getElementById('content-create')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }}
-                    className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400"
-                  >
-                    <Plus size={16} />
-                    Novo conteúdo
-                  </button>
-                </>
+                /* Seção orgânica: só conteúdo. Criar oferta é ação de campanha (vive no Tráfego Pago). */
+                <button
+                  onClick={() => { setActiveTab('assets'); requestAnimationFrame(() => document.getElementById('content-create')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }}
+                  className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400"
+                >
+                  <Plus size={16} />
+                  Novo conteúdo
+                </button>
               )}
             </div>
           </div>
@@ -835,17 +837,12 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
               />
             </div>
           ) : (
+            /* KPIs ORGANICOS (conteudo), nao pagos: nada de investimento/leads/campanhas aqui. */
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatTile label="Campanhas" value={totals.campaigns} sub={`no ambiente ${brandProfile.shortName}`} icon={Briefcase} />
-              <StatTile label="Assets" value={totals.assets} sub={selectedCampaign ? 'campanha selecionada' : 'aguardando'} icon={Layers3} />
-              <StatTile label="Publicacoes" value={totals.publications} sub={`${totals.posts} conteudos planejados`} icon={Send} tone="#E4C06E" />
-              <StatTile
-                label="Investimento"
-                value={formatNumber(totals.paidSpend, { style: 'currency', currency: 'BRL' })}
-                sub={`${formatNumber(totals.leads)} leads importados`}
-                icon={BarChart3}
-                tone="#D4A84A"
-              />
+              <StatTile label="Conteúdos" value={contentStats.total} sub={`no ambiente ${brandProfile.shortName}`} icon={FileText} />
+              <StatTile label="Rascunhos" value={contentStats.drafts} sub="em produção" icon={Pencil} />
+              <StatTile label="Agendados" value={contentStats.scheduled} sub="na linha do tempo" icon={Clock} tone="#E4C06E" />
+              <StatTile label="Publicados" value={contentStats.published} sub="no ar" icon={CheckCircle2} tone="#D4A84A" />
             </div>
           )}
 
@@ -1023,9 +1020,6 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           <MetricsSection campaign={selectedCampaign} publications={scoped.publications} metrics={scoped.metrics} totals={totals} snapshots={workspace.snapshots} />
         )}
 
-        {!loading && !isPaidTrafficMode && activeTab === 'modelo' && (
-          <DataModelSection brandProfile={brandProfile} accounts={workspace.accounts} />
-        )}
       </div>
 
       {modalOpen && (
