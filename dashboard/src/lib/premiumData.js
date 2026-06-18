@@ -727,6 +727,67 @@ export async function buildMetaDraft(campaignId, { adAccountId, pageId, dailyBud
   return data
 }
 
+// Preset de campanha de referencia (Fase 2). Le a config real de uma campanha vencedora na Meta
+// (read-only) e persiste/lista presets reutilizaveis por marca.
+export async function readMetaCampaignConfig(metaCampaignId) {
+  const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
+    headers: copilotGateHeaders(),
+    body: { action: 'read_campaign_config', meta_campaign_id: String(metaCampaignId || '').trim() },
+  })
+  if (error) throw await edgeError(error)
+  return data
+}
+
+// Converte o retorno do read_campaign_config no BLUEPRINT padronizado a aplicar (decisoes de gestor:
+// faixa unica 25-65 p/ ticket alto, raio 2km no conjunto regional, cidade no macro, FB+IG, generos todos).
+export function presetBlueprintFromConfig(config, { regionalRadiusKm = 2 } = {}) {
+  const adsets = Array.isArray(config?.adsets) ? config.adsets : []
+  const regional = adsets.find(a => a.geo?.type === 'radius_point' || a.geo?.type === 'radius_city') || adsets[0] || null
+  const macro = adsets.find(a => a.geo?.type === 'city' && a !== regional) || adsets[1] || null
+  return {
+    objective: config?.campaign?.objective || 'OUTCOME_LEADS',
+    optimization_goal: regional?.optimization_goal || macro?.optimization_goal || 'QUALITY_LEAD',
+    bid_strategy: config?.campaign?.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
+    daily_budget_cents: config?.campaign?.daily_budget_cents || 1500,
+    cbo: config?.campaign?.cbo ?? true,
+    age_min: 25, age_max: 65, genders: null, publisher_platforms: ['facebook', 'instagram'],
+    creatives: 3, copies: 3,
+    lead_form_quality: config?.lead_form?.higher_intent ? 'maior_intencao' : 'mais_volume',
+    adsets: [
+      { kind: 'regional', geo: 'radius', radius_km: regionalRadiusKm, lat: regional?.geo?.lat ?? null, lng: regional?.geo?.lng ?? null },
+      { kind: 'macro', geo: 'city', city_key: macro?.geo?.key ?? null },
+    ],
+    source: config || null,
+  }
+}
+
+export async function saveMetaPreset({ brandScope, name, sourceMetaCampaignId, blueprint } = {}) {
+  if (!name?.trim()) throw new Error('Dê um nome ao preset.')
+  const row = {
+    brand_scope: brandScope || getBrandProfile().scope,
+    name: name.trim(),
+    source_meta_campaign_id: sourceMetaCampaignId || null,
+    blueprint: blueprint || {},
+  }
+  const { data, error } = await supabase.from('premium_meta_presets').insert(row).select('*').single()
+  if (error) throw new Error(error.message || 'Falha ao salvar o preset.')
+  return data
+}
+
+export async function listMetaPresets(brandScope) {
+  let q = supabase.from('premium_meta_presets').select('*').order('created_at', { ascending: false }).limit(100)
+  if (brandScope) q = q.eq('brand_scope', brandScope)
+  const { data, error } = await q
+  if (error) return []
+  return data || []
+}
+
+export async function deleteMetaPreset(id) {
+  if (!id) throw new Error('Preset inválido.')
+  const { error } = await supabase.from('premium_meta_presets').delete().eq('id', id)
+  if (error) throw new Error(error.message || 'Falha ao excluir o preset.')
+}
+
 // Apaga um rascunho Meta (campanha + conjuntos + anuncios) e limpa o estado no banco. Destrutivo:
 // envia confirm:true. `metaCampaignId` opcional remove um orfao especifico.
 export async function deleteMetaDraft(campaignId, metaCampaignId) {
