@@ -206,6 +206,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 67. **[[Atualizacao_2026-06-18_Skill_Vitra_Conteudo_Planejador_Editorial]]**
     Skill nova `vitra-conteudo` (planejador editorial orgânico, LOCAL em .claude/). Analise PO: o per-post ja e capability do app (generate-content) — nao virar skill p/ nao duplicar fonte unica. A lacuna real e PLANEJAMENTO EM LOTE (calendario/pauta). A skill, de um briefing (marca/periodo/foco), monta o plano por pilares (legenda/CTA/hashtags/roteiro/visual por post na voz da marca) reusando contentPlaybook+copyValidation; saida = markdown + JSON formato createContentPost (importavel p/ o board). Smoke test independente OK (funil equilibrado, voz correta, zero vocab Premium). Follow-up: botao "Importar plano". (.claude e gitignored — skill nao versionada.)
 
+68. **[[Atualizacao_2026-06-18_Conteudo_Importar_Plano_Editorial]]**
+    Conteúdo: botao "Importar plano" (3o modo da aba Produção, ao lado de Gerar posts/Criar do zero). Cola o JSON do plano da skill vitra-conteudo -> `importContentPlan` cria os posts em lote como rascunhos no funil (tolerante a falha por item; data preservada -> Calendário). `createContentPost` ganhou scheduledFor+source. E2E ao vivo OK (2 posts importados, draft + scheduled_for + pilar/formato corretos). Fecha o ciclo planejamento->producao->publicacao. Commit 43553f4.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
