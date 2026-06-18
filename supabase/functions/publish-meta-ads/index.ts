@@ -70,6 +70,26 @@ async function createLeadForm(pageId: string, formName: string, privacyUrl: stri
   return res.id as string;
 }
 
+// Resume o geo_locations de um conjunto num formato legivel/aplicavel: cidade ampla, raio (cidade ou
+// ponto custom), regiao ou pais. Usado pelo read_campaign_config (importar campanha de referencia).
+function summarizeGeo(geo: any): any {
+  if (!geo) return { type: "unknown" };
+  const cities = geo.cities || [];
+  const custom = geo.custom_locations || [];
+  if (custom.length) {
+    const c = custom[0];
+    return { type: "radius_point", radius: c.radius ?? null, unit: c.distance_unit || "kilometer", lat: c.latitude ?? null, lng: c.longitude ?? null, count: custom.length };
+  }
+  if (cities.length) {
+    const c = cities[0];
+    const hasRadius = c.radius != null;
+    return { type: hasRadius ? "radius_city" : "city", key: c.key ?? null, radius: c.radius ?? null, unit: c.distance_unit || "kilometer", count: cities.length };
+  }
+  if ((geo.regions || []).length) return { type: "region", count: geo.regions.length };
+  if ((geo.countries || []).length) return { type: "country", countries: geo.countries };
+  return { type: "other" };
+}
+
 async function graphDelete(id: string) {
   const res = await fetch(`${GRAPH}/${id}?access_token=${encodeURIComponent(META_TOKEN)}`, { method: "DELETE" });
   const data = await res.json().catch(() => ({}));
@@ -109,6 +129,61 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch { /* vazio */ }
   const action = String(body.action || "build_draft");
+
+  // Importar CONFIG de uma campanha de referencia (vencedora) -> blueprint normalizado. READ-ONLY na Meta
+  // (nao gasta, nao cria nada). Usa meta_campaign_id (id da campanha NA META), nao a campanha do banco.
+  if (action === "read_campaign_config") {
+    const metaCampaignId = String(body.meta_campaign_id || "");
+    if (!metaCampaignId) return json({ error: "missing_meta_campaign_id", message: "Informe o meta_campaign_id da campanha de referencia." }, 400);
+    try {
+      const camp = await graphGet(metaCampaignId, "name,objective,buying_type,bid_strategy,daily_budget,lifetime_budget,status,effective_status");
+      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms}").catch(() => ({ data: [] }));
+      const adsets = (adsetsRes?.data || []).map((a: any) => ({
+        name: a.name,
+        optimization_goal: a.optimization_goal ?? null,
+        billing_event: a.billing_event ?? null,
+        age_min: a.targeting?.age_min ?? null,
+        age_max: a.targeting?.age_max ?? null,
+        genders: a.targeting?.genders ?? null,            // [1]=masc, [2]=fem; ausente = todos
+        publisher_platforms: a.targeting?.publisher_platforms ?? null, // ausente = automatico
+        geo: summarizeGeo(a.targeting?.geo_locations),
+        lead_gen_form_id: a.promoted_object?.lead_gen_form_id ?? null,
+      }));
+      // Formulario de Lead: tenta pelo promoted_object; senao, pelo 1o anuncio -> creative.
+      let formId = adsets.map((a: any) => a.lead_gen_form_id).find(Boolean) || null;
+      if (!formId) {
+        const adsRes = await graphGet(`${metaCampaignId}/ads`, "creative{id}").catch(() => ({ data: [] }));
+        const creativeId = (adsRes?.data || [])[0]?.creative?.id;
+        if (creativeId) {
+          const cr = await graphGet(creativeId, "object_story_spec").catch(() => null);
+          formId = cr?.object_story_spec?.link_data?.call_to_action?.value?.lead_gen_form_id || null;
+        }
+      }
+      let leadForm: any = null;
+      if (formId) {
+        const f = await graphGet(formId, "name,locale,is_optimized_for_quality,question_page_custom_headline,questions").catch(() => null);
+        if (f) leadForm = {
+          id: formId, name: f.name ?? null, locale: f.locale ?? null,
+          higher_intent: !!f.is_optimized_for_quality,   // true = "maior intencao" (mais fricçao/qualidade)
+          questions: (f.questions || []).map((q: any) => q.type || q.key).filter(Boolean),
+        };
+      }
+      return json({
+        source_meta_campaign_id: metaCampaignId,
+        campaign: {
+          name: camp.name ?? null, objective: camp.objective ?? null, buying_type: camp.buying_type ?? null,
+          bid_strategy: camp.bid_strategy ?? null,
+          daily_budget_cents: camp.daily_budget ? Number(camp.daily_budget) : null,
+          lifetime_budget_cents: camp.lifetime_budget ? Number(camp.lifetime_budget) : null,
+          cbo: !!camp.daily_budget || !!camp.lifetime_budget,
+        },
+        adsets, lead_form: leadForm,
+      });
+    } catch (e) {
+      return json({ error: "graph_error", message: String((e as Error)?.message || e) }, 502);
+    }
+  }
+
   const campaignId = body.campaign_id;
   if (!campaignId) return json({ error: "missing_campaign_id" }, 400);
 
