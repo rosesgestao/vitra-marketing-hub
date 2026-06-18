@@ -218,6 +218,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 71. **[[Atualizacao_2026-06-18_Conteudo_Configuracoes_Editoriais]]**
     Conteúdo: aba "Configurações" — governanca da pauta POR MARCA (tabela premium_editorial_settings: pilares ativos, tom padrao, cadencia, diretrizes). Nao e tela morta: pilares ativos filtram o seletor de Pilar na Produção, tom padrao pre-seleciona, e as diretrizes entram no prompt do "Gerar posts" via context (sem redeploy da edge). E2E ao vivo OK (salvou; Produção listou so os 2 pilares ativos). Resta: DAM, depois publicacao nativa via Graph. Commit 041f967.
 
+72. **[[Atualizacao_2026-06-18_Conteudo_Biblioteca_DAM]]**
+    Conteúdo: Biblioteca (DAM) — acervo de midia organica por marca (tabela premium_media_assets, bucket 'cards'). Helpers list/register/upload/delete; uploadPostArt AUTO-REGISTRA a arte ao salvar no post; view Biblioteca.jsx (grid por marca/kind, enviar/copiar URL/baixar/excluir) no menu Produção de conteúdo. E2E ao vivo OK (arte salva apareceu no acervo; excluir removeu storage+linha). Resta so: publicacao nativa via Graph (entrega dedicada). Commit (ver git).
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
