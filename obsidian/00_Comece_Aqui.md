@@ -230,6 +230,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 75. **[[Atualizacao_2026-06-18_Conteudo_Clareza_Salvar_Rascunho]]**
     Conteúdo: clareza do "Salvar rascunho". Analise do fluxo Gerar posts -> Salvar: mecanica ja certa, faltava feedback de "pra onde foi" + proximo passo. Entregue: banner "Rascunho salvo em Conteúdos em produção — abaixo. Próximo passo: Aprovar"; ROLA+DESTACA o item (ring dourado+badge "novo" ~3,5s); funil ordena mais recentes no topo; bloco IA rotulado "Sugestões da IA" (aviso que somem ao gerar novas); "Salvo no board"->"Salvo em rascunhos"; microcopy do funil com "Acompanhe também em Conteúdos/Calendário". So UI. E2E ao vivo OK; console limpo. Resta so: publicacao nativa via Graph. Commit 2508911.
 
+76. **[[Atualizacao_2026-06-18_Trafego_Preset_Campanha_Referencia_Fase1]]**
+    Tráfego: padrao reutilizavel "campanha de referencia -> preset". Analisadas 2 campanhas TOM MENINO DEUS: 30.05 (R$2.539, 179 leads, CPL R$14,19 = referencia validada) vs 10.06 (nova, CPL R$16,71). FASE 1: acao read_campaign_config na edge publish-meta-ads (READ-ONLY) le/normaliza o blueprint via Graph (summarizeGeo). Blueprint REAL da 30.05: OUTCOME_LEADS+QUALITY_LEAD+LOWEST_COST_WITHOUT_CAP+CBO R$15/dia; regional raio-ponto 1mi age 25-65; amplo cidade POA age 18-65; FB+IG; generos todos. Verificado ao vivo. Proximo: Fase 2 (tabela premium_meta_presets + helpers + UI importar) e Fase 3 (build com geo RAIO 2km + cidade + form SMS por ticket). Commit d2efbac.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
