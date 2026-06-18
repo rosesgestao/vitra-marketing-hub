@@ -68,12 +68,11 @@ import {
   generateContentWithAI,
   createContentPost,
   updateContentPost,
+  publishContentPost,
   CONTENT_TYPE_OPTIONS,
   CONTENT_PILLAR_OPTIONS,
   CONTENT_FORMAT_OPTIONS,
   CONTENT_TONES,
-  CONTENT_STATUS_OPTIONS,
-  contentStatusLabel,
   DEFAULT_CONTENT_TYPE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
@@ -777,13 +776,34 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
                 <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
                 Atualizar
               </button>
-              <button
-                onClick={openCampaignModal}
-                className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400"
-              >
-                <Plus size={16} />
-                Nova campanha
-              </button>
+              {isPaidTrafficMode ? (
+                <button
+                  onClick={openCampaignModal}
+                  className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400"
+                >
+                  <Plus size={16} />
+                  Nova campanha
+                </button>
+              ) : (
+                <>
+                  {/* Seção orgânica: a ação primária é criar CONTEÚDO; criar oferta vira ação secundária. */}
+                  <button
+                    onClick={openCampaignModal}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-white/70 transition hover:border-gold-500/30 hover:text-white"
+                    title="Criar uma oferta/empreendimento"
+                  >
+                    <Plus size={15} />
+                    Nova oferta
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab('assets'); requestAnimationFrame(() => document.getElementById('content-create')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }}
+                    className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400"
+                  >
+                    <Plus size={16} />
+                    Novo conteúdo
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1431,14 +1451,17 @@ function itemPhase(item) {
   return item.asset?.metadata?.campaign_phase ? String(item.asset.metadata.campaign_phase) : null
 }
 
-// Fase B — estacao de criacao de conteudo ORGANICO (IA editorial). Escolhe tipo+pilar+formato+tom +
-// briefing leve; a IA (generate-content) propoe ideias; o operador revisa/edita a legenda e salva em
-// premium_content_posts como "planejado" (ja aparece no board Conteúdos). Reusa o contentPlaybook.
+// Estacao de Conteúdo ORGANICO (reorg do fluxo): CRIAR (IA ou manual) -> board por ACOES
+// (Rascunho -> Aprovado -> Agendado -> Publicado). O status e DERIVADO da acao (o operador nao escolhe
+// um estado cru); a data so aparece ao Agendar; "Marcar publicado" tambem registra a publicacao real
+// (premium_publications) para destravar metricas. Reusa contentPlaybook + premium_content_posts.
 function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, campaigns = [], posts = [], onSaved }) {
   const typeMeta = id => CONTENT_TYPE_OPTIONS.find(t => t.key === id)
+  const [mode, setMode] = useState('ia')                 // 'ia' | 'manual'
   const [contentType, setContentType] = useState(DEFAULT_CONTENT_TYPE)
   const [pillar, setPillar] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.pillar || '')
   const [format, setFormat] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.format || 'feed')
+  const [platform, setPlatform] = useState('instagram')
   const [tone, setTone] = useState('padrao')
   const [tema, setTema] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -1447,7 +1470,10 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
   const [savingKey, setSavingKey] = useState(null)
   const [savedKeys, setSavedKeys] = useState(() => new Set())
   const [drafts, setDrafts] = useState({})
+  const [manual, setManual] = useState({ title: '', caption: '', cta: '', hashtags: '' })
+  const [savingManual, setSavingManual] = useState(false)
   const [rowBusy, setRowBusy] = useState(null)
+  const [schedulingId, setSchedulingId] = useState(null)
 
   // Ao trocar o tipo, sugere pilar e formato default (operador pode mudar).
   useEffect(() => {
@@ -1460,9 +1486,31 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
   const offerLink = typeMeta(contentType)?.offer || 'none'
   const offerRequired = offerLink === 'required'
   const offerSuggested = offerLink === 'suggested'
-  // Tracker editorial e da MARCA (nao "desta oferta"): mostra todos os conteudos escopados, com a oferta
-  // como rotulo opcional por linha. `posts` ja vem escopado por marca no loadPremiumWorkspace.
+  const blockedByOffer = offerRequired && !campaign
   const campaignName = id => campaigns.find(c => c.id === id)?.name || null
+
+  const PLATFORMS = [
+    { value: 'instagram', label: 'Instagram' }, { value: 'facebook', label: 'Facebook' },
+    { value: 'youtube', label: 'YouTube' }, { value: 'tiktok', label: 'TikTok' },
+    { value: 'linkedin', label: 'LinkedIn' }, { value: 'whatsapp', label: 'WhatsApp' },
+    { value: 'site', label: 'Site' }, { value: 'email', label: 'E-mail' },
+  ]
+
+  // Etapa (chip) DERIVADA do status — o operador pensa no funil, nao no status cru do banco.
+  function stageOf(status) {
+    if (status === 'published') return 'publicado'
+    if (status === 'scheduled') return 'agendado'
+    if (status === 'approved') return 'aprovado'
+    if (status === 'archived') return 'arquivado'
+    return 'rascunho'
+  }
+  const STAGE = {
+    rascunho:  { label: 'Rascunho',  cls: 'border-white/15 text-white/55', order: 0 },
+    aprovado:  { label: 'Aprovado',  cls: 'border-sky-400/30 text-sky-200', order: 1 },
+    agendado:  { label: 'Agendado',  cls: 'border-gold-500/40 text-gold-200', order: 2 },
+    publicado: { label: 'Publicado', cls: 'border-emerald-400/30 text-emerald-200', order: 3 },
+    arquivado: { label: 'Arquivado', cls: 'border-white/10 text-white/30', order: 4 },
+  }
 
   async function handleGenerate() {
     setGenerating(true); setError(null); setResults([]); setSavedKeys(new Set())
@@ -1476,7 +1524,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     setSavingKey(post.key); setError(null)
     try {
       await createContentPost({
-        campaignId: campaign?.id, brandScope: brandProfile.scope, contentType,
+        campaignId: campaign?.id, brandScope: brandProfile.scope, contentType, platform,
         pillar: post.pillar || pillar, format: post.format || format,
         title: post.headline || post.idea, hook: post.headline,
         caption: drafts[post.key] ?? post.caption, hashtags: post.hashtags, cta: post.cta,
@@ -1487,42 +1535,64 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     } catch (e) { setError(e) } finally { setSavingKey(null) }
   }
 
-  // Acompanhamento (Fase C): muda status, agenda (scheduled_for) ou marca como publicado (+link).
-  async function patchPost(id, patch) {
-    setRowBusy(id); setError(null)
-    try { await updateContentPost(id, patch); onSaved?.() }
-    catch (e) { setError(e) } finally { setRowBusy(null) }
-  }
-  function handleStatusChange(post, status) {
-    if (status === 'published') {
-      const url = window.prompt('Link do post publicado (opcional):', post.metadata?.published_url || '')
-      if (url === null) return
-      patchPost(post.id, { status, publishedUrl: url })
-    } else {
-      patchPost(post.id, { status })
-    }
-  }
-  function handleSchedule(post, dateStr) {
-    if (!dateStr) return
-    patchPost(post.id, { scheduledFor: new Date(dateStr).toISOString(), status: 'scheduled' })
+  async function handleManualSave() {
+    if (!manual.caption.trim() && !manual.title.trim()) { setError(new Error('Escreva ao menos um título ou uma legenda.')); return }
+    setSavingManual(true); setError(null)
+    try {
+      await createContentPost({
+        campaignId: campaign?.id, brandScope: brandProfile.scope, contentType, pillar, format, platform,
+        title: manual.title || manual.caption.slice(0, 60), caption: manual.caption, cta: manual.cta,
+        hashtags: manual.hashtags.split(/[,\s]+/).map(h => h.replace(/^#/, '')).filter(Boolean),
+      })
+      setManual({ title: '', caption: '', cta: '', hashtags: '' })
+      onSaved?.()
+    } catch (e) { setError(e) } finally { setSavingManual(false) }
   }
 
+  // Acoes do funil — o status e CONSEQUENCIA da acao, nao um seletor exposto ao operador.
+  async function runAction(id, fn) {
+    setRowBusy(id); setError(null)
+    try { await fn(); onSaved?.() }
+    catch (e) { setError(e) } finally { setRowBusy(null) }
+  }
+  const approve = post => runAction(post.id, () => updateContentPost(post.id, { status: 'approved' }))
+  const schedule = (post, dateStr) => { if (!dateStr) return; setSchedulingId(null); return runAction(post.id, () => updateContentPost(post.id, { scheduledFor: new Date(dateStr).toISOString(), status: 'scheduled' })) }
+  const publish = post => {
+    const url = window.prompt('Link do post publicado (opcional):', post.metadata?.published_url || '')
+    if (url === null) return
+    return runAction(post.id, () => publishContentPost({ post, url, brandScope: brandProfile.scope }))
+  }
+  const backToDraft = post => runAction(post.id, () => updateContentPost(post.id, { status: 'draft' }))
+
+  // Itens que pedem acao primeiro (rascunho -> aprovado -> agendado -> publicado).
+  const sortedPosts = [...posts].sort((a, b) => STAGE[stageOf(a.status)].order - STAGE[stageOf(b.status)].order)
+
   return (
-    <div className="card p-5">
+    <div id="content-create" className="card p-5 scroll-mt-6">
       <div className="mb-3 flex items-center gap-2.5">
         <span className="h-px w-7 bg-gold-500/70" />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Produção · IA editorial</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Produção editorial</p>
       </div>
       <h3 className="font-display text-xl font-semibold tracking-tight text-white">Novo conteúdo</h3>
       <p className="mt-1.5 max-w-2xl text-xs leading-5 text-white/50">
-        Escolha o tipo e o pilar; a IA propõe ideias, legendas e direção visual na voz da <span className="text-white/75">{brandProfile.shortName}</span>. Você revisa, edita e salva como <span className="text-white/75">rascunho</span> no board editorial.
+        Crie com a <span className="text-white/75">IA editorial</span> ou <span className="text-white/75">do zero</span>, na voz da {brandProfile.shortName}. Depois avance o card pelo funil: <span className="text-white/70">Aprovar → Agendar → Publicar</span>.
       </p>
       {offerRequired && !campaign && (
         <p className="mt-2 text-[11px] text-amber-300">Este tipo fala de uma oferta específica — selecione a “Oferta vinculada” no topo para salvar.</p>
       )}
       {offerSuggested && !campaign && (
-        <p className="mt-2 text-[11px] text-white/45">Conteúdo de imóvel: você pode vincular uma oferta no topo (opcional). Sem vínculo, salva como conteúdo de marca.</p>
+        <p className="mt-2 text-[11px] text-white/45">Conteúdo de imóvel: vincular uma oferta no topo é opcional. Sem vínculo, salva como conteúdo de marca.</p>
       )}
+
+      {/* Entrada dupla: IA ou manual */}
+      <div className="mt-4 inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+        {[{ k: 'ia', label: 'Gerar com IA', icon: Wand2 }, { k: 'manual', label: 'Criar do zero', icon: Pencil }].map(({ k, label, icon: Icon }) => (
+          <button key={k} type="button" onClick={() => { setMode(k); setError(null) }}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>
+            <Icon size={13} />{label}
+          </button>
+        ))}
+      </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block"><span className="form-label">Tipo de conteúdo</span>
@@ -1534,23 +1604,46 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
         <label className="block"><span className="form-label">Formato</span>
           <VitraSelect value={format} onChange={setFormat} ariaLabel="Formato"
             options={CONTENT_FORMAT_OPTIONS.map(f => ({ value: f.key, label: f.label }))} /></label>
-        <label className="block"><span className="form-label">Tom</span>
-          <VitraSelect value={tone} onChange={setTone} ariaLabel="Tom"
-            options={CONTENT_TONES.map(t => ({ value: t.key, label: t.label }))} /></label>
+        <label className="block"><span className="form-label">{mode === 'ia' ? 'Tom' : 'Plataforma'}</span>
+          {mode === 'ia'
+            ? <VitraSelect value={tone} onChange={setTone} ariaLabel="Tom" options={CONTENT_TONES.map(t => ({ value: t.key, label: t.label }))} />
+            : <VitraSelect value={platform} onChange={setPlatform} ariaLabel="Plataforma" options={PLATFORMS} />}
+        </label>
       </div>
-      <label className="mt-3 block"><span className="form-label">Tema / contexto (opcional)</span>
-        <input className="form-input" value={tema} onChange={e => setTema(e.target.value)} placeholder="ex.: valorização do bairro, financiamento, bastidor da entrega de chaves…" /></label>
 
-      <div className="mt-4">
-        <button type="button" onClick={handleGenerate} disabled={generating} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
-          {generating ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
-          {generating ? 'Gerando ideias…' : 'Gerar com IA'}
-        </button>
-      </div>
+      {mode === 'ia' ? (
+        <>
+          <label className="mt-3 block"><span className="form-label">Tema / contexto (opcional)</span>
+            <input className="form-input" value={tema} onChange={e => setTema(e.target.value)} placeholder="ex.: valorização do bairro, financiamento, bastidor da entrega de chaves…" /></label>
+          <div className="mt-4">
+            <button type="button" onClick={handleGenerate} disabled={generating} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
+              {generating ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+              {generating ? 'Gerando ideias…' : 'Gerar com IA'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="mt-3 space-y-3">
+          <label className="block"><span className="form-label">Título / ideia</span>
+            <input className="form-input" value={manual.title} onChange={e => setManual(m => ({ ...m, title: e.target.value }))} placeholder="ex.: 3 cuidados antes de financiar seu primeiro imóvel" /></label>
+          <label className="block"><span className="form-label">Legenda</span>
+            <textarea className="form-input min-h-[96px] text-sm leading-5" value={manual.caption} onChange={e => setManual(m => ({ ...m, caption: e.target.value }))} placeholder="Escreva a legenda do post…" /></label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block"><span className="form-label">CTA (opcional)</span>
+              <input className="form-input" value={manual.cta} onChange={e => setManual(m => ({ ...m, cta: e.target.value }))} placeholder="ex.: Agende uma visita" /></label>
+            <label className="block"><span className="form-label">Hashtags (opcional)</span>
+              <input className="form-input" value={manual.hashtags} onChange={e => setManual(m => ({ ...m, hashtags: e.target.value }))} placeholder="imovel, portoalegre, lancamento" /></label>
+          </div>
+          <button type="button" onClick={handleManualSave} disabled={savingManual || blockedByOffer} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
+            {savingManual ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+            {savingManual ? 'Salvando…' : 'Salvar rascunho'}
+          </button>
+        </div>
+      )}
 
       {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
 
-      {results.length > 0 && (
+      {mode === 'ia' && results.length > 0 && (
         <div className="mt-5 space-y-3">
           <p className="text-[11px] text-white/45">{results.length} ideia(s) — revise, edite a legenda e salve:</p>
           {results.map(post => {
@@ -1575,9 +1668,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
                   <p className="mt-1.5 text-[11px] text-amber-300">⚠ {post.issues.join(' · ')}</p>
                 )}
                 <div className="mt-3">
-                  <button type="button" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || (offerRequired && !campaign)} className="btn-ghost inline-flex items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || blockedByOffer} className="btn-ghost inline-flex items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
                     {savingKey === post.key ? <Loader2 size={14} className="animate-spin" /> : saved ? <CheckCircle2 size={14} className="text-emerald-300" /> : <Plus size={14} />}
-                    {saved ? 'Salvo no board' : savingKey === post.key ? 'Salvando…' : 'Salvar conteúdo'}
+                    {saved ? 'Salvo no board' : savingKey === post.key ? 'Salvando…' : 'Salvar rascunho'}
                   </button>
                 </div>
               </div>
@@ -1586,37 +1679,57 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
         </div>
       )}
 
+      {/* Board por ACOES: cada card mostra a etapa + a proxima acao do funil (status derivado). */}
       {posts.length > 0 && (
         <div className="mt-6 border-t border-white/10 pt-4">
-          <p className="form-label mb-2">Conteúdos em produção ({posts.length}) — status, agendamento e publicação</p>
+          <p className="form-label mb-2">Conteúdos em produção ({posts.length}) — avance pelo funil</p>
           <div className="space-y-2">
-            {posts.slice(0, 12).map(p => (
-              <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
-                  <div className="flex flex-shrink-0 items-center gap-2">
-                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-wide text-white/40">
-                      {p.campaign_id ? (campaignName(p.campaign_id) || 'Oferta') : 'Marca'}
-                    </span>
-                    {rowBusy === p.id && <Loader2 size={13} className="animate-spin text-gold-300" />}
+            {sortedPosts.slice(0, 15).map(p => {
+              const stage = stageOf(p.status)
+              const meta = STAGE[stage]
+              const busy = rowBusy === p.id
+              const scheduledLabel = p.scheduled_for ? new Date(p.scheduled_for).toLocaleDateString('pt-BR') : null
+              return (
+                <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${meta.cls}`}>{meta.label}</span>
+                      <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-wide text-white/35">{p.campaign_id ? (campaignName(p.campaign_id) || 'Oferta') : 'Marca'}</span>
+                      {busy && <Loader2 size={13} className="animate-spin text-gold-300" />}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {stage === 'rascunho' && (
+                      <button type="button" disabled={busy} onClick={() => approve(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Check size={13} />Aprovar</button>
+                    )}
+                    {(stage === 'aprovado' || stage === 'agendado') && schedulingId !== p.id && (
+                      <button type="button" disabled={busy} onClick={() => setSchedulingId(p.id)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Clock size={13} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</button>
+                    )}
+                    {schedulingId === p.id && (
+                      <input type="date" autoFocus className="form-input !w-auto !py-1 text-[11px]"
+                        defaultValue={p.scheduled_for ? new Date(p.scheduled_for).toISOString().slice(0, 10) : ''}
+                        onChange={e => schedule(p, e.target.value)} onBlur={() => setSchedulingId(null)} title="Data da publicação" />
+                    )}
+                    {(stage === 'aprovado' || stage === 'agendado') && (
+                      <button type="button" disabled={busy} onClick={() => publish(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] text-emerald-200 disabled:opacity-50"><Send size={13} />Marcar publicado</button>
+                    )}
+                    {stage === 'agendado' && scheduledLabel && <span className="text-[10px] text-gold-200/80">para {scheduledLabel}</span>}
+                    {stage === 'publicado' && (
+                      <>
+                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><CheckCircle2 size={12} />Publicado</span>
+                        {p.metadata?.published_url && <a href={p.metadata.published_url} target="_blank" rel="noreferrer" className="text-[10px] text-gold-300 underline">ver post</a>}
+                      </>
+                    )}
+                    {stage !== 'rascunho' && stage !== 'publicado' && (
+                      <button type="button" disabled={busy} onClick={() => backToDraft(p)} className="text-[10px] text-white/35 hover:text-white/60">voltar a rascunho</button>
+                    )}
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <div className="w-40">
-                    <VitraSelect className="!py-1 text-[11px]" ariaLabel="Status" value={p.status || 'draft'}
-                      onChange={v => handleStatusChange(p, v)}
-                      options={CONTENT_STATUS_OPTIONS.map(s => ({ value: s.key, label: s.label }))} />
-                  </div>
-                  <input type="date" className="form-input !w-auto !py-1 text-[11px]"
-                    value={p.scheduled_for ? new Date(p.scheduled_for).toISOString().slice(0, 10) : ''}
-                    onChange={e => handleSchedule(p, e.target.value)} title="Agendar publicação" />
-                  {p.metadata?.published_url && (
-                    <a href={p.metadata.published_url} target="_blank" rel="noreferrer" className="text-[10px] text-gold-300 underline">ver post</a>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
+          {posts.length > 15 && <p className="mt-2 text-[10px] text-white/35">Mostrando 15 de {posts.length}. Pipeline completo em Conteúdos (board) e Calendário.</p>}
         </div>
       )}
     </div>

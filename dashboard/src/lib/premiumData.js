@@ -2181,10 +2181,13 @@ async function _renderCampaignAssets(campaignId, { batch = 1, maxBatches = 60, a
 }
 
 export async function createManualPublication(payload) {
-  if (!payload.campaign_id) throw new Error('Selecione uma campanha para mapear a publicacao.')
+  // Content-first: a publicacao pode nascer de um conteudo de marca (sem oferta). Exige conteudo OU oferta.
+  if (!payload.campaign_id && !payload.content_post_id) {
+    throw new Error('Vincule um conteúdo ou uma oferta para mapear a publicação.')
+  }
 
   const publicationPayload = {
-    campaign_id: payload.campaign_id,
+    campaign_id: payload.campaign_id || null,
     content_post_id: payload.content_post_id || null,
     asset_id: payload.asset_id || null,
     platform: payload.platform || 'instagram',
@@ -2193,9 +2196,11 @@ export async function createManualPublication(payload) {
     permalink: cleanText(payload.permalink) || null,
     published_at: payload.published_at || new Date().toISOString(),
     status: payload.status || 'mapped',
+    // brand_scope e coluna GENERATED (COALESCE(metadata->>'brand_scope','vitra_premium')) — vai em metadata.
     metadata: {
-      source: 'dashboard_manual_mapping',
+      source: payload.source || 'dashboard_manual_mapping',
       notes: cleanText(payload.notes),
+      ...(payload.brand_scope ? { brand_scope: payload.brand_scope } : {}),
     },
   }
 
@@ -2207,6 +2212,42 @@ export async function createManualPublication(payload) {
 
   if (error) throw error
   return data
+}
+
+// Fase 3 (publicar unificado): marca o conteudo como PUBLICADO e, no mesmo passo, registra a publicacao
+// real em premium_publications (destrava metricas por peca) — sem o operador abrir a aba Publicações.
+// Idempotente: se ja houver publicacao para o conteudo, so atualiza o link; senao, cria uma.
+export async function publishContentPost({ post, url = '', brandScope } = {}) {
+  if (!post?.id) throw new Error('Conteúdo inválido para publicação.')
+  await updateContentPost(post.id, { status: 'published', publishedUrl: url })
+
+  const { data: existing } = await supabase
+    .from('premium_publications')
+    .select('id')
+    .eq('content_post_id', post.id)
+    .limit(1)
+
+  const permalink = cleanText(url) || null
+  if (Array.isArray(existing) && existing.length > 0) {
+    await supabase
+      .from('premium_publications')
+      .update({ permalink, published_at: new Date().toISOString() })
+      .eq('id', existing[0].id)
+    return { created: false, updated: true }
+  }
+
+  const scope = brandScope || post.metadata?.brand_scope || getBrandProfile().scope
+  const publication = await createManualPublication({
+    campaign_id: post.campaign_id || null,
+    content_post_id: post.id,
+    asset_id: post.asset_id || null,
+    platform: post.platform || 'instagram',
+    publication_type: 'organic',
+    permalink,
+    brand_scope: scope,
+    source: 'content_publish',
+  })
+  return { created: true, id: publication?.id }
 }
 
 function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = buildSourceIntake(form), brandProfile = getBrandProfile()) {
