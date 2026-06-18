@@ -224,6 +224,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 73. **[[Atualizacao_2026-06-18_Conteudo_Simplifica_Organico]]**
     Conteúdo: simplifica a secao organica separando do chrome PAGO (a secao reusa o PremiumDashboard e herdava roupa de campanha). Itens 1-3: oferta-first -> ORGANICO-first ("Oferta vinculada" comeca em "Sem oferta — conteudo de marca"; paid segue na 1a campanha); KPIs do header agora organicos (Conteúdos/Rascunhos/Agendados/Publicados no lugar de Campanhas/Assets/Investimento/leads); removidos a aba "Modelo" e o botao "Nova oferta" do organico. So UI; Trafego Pago intacto. E2E ao vivo OK; console limpo. Resta: publicacao nativa via Graph. Commit bb269c6.
 
+74. **[[Atualizacao_2026-06-18_Conteudo_Vinculo_Oferta_Contextual]]**
+    Conteúdo (item 4): fim do seletor GLOBAL de oferta no topo do organico — a secao opera em visao de MARCA (KPIs/funil/Publicações brand-wide). O vinculo com oferta virou CONTEXTUAL, dentro do card "Novo conteúdo" (estado interno linkedCampaignId, default "Sem oferta"). PublicationsSection herda oferta/marca do conteudo escolhido. E2E ao vivo OK (salvar manual vinculando TOM MENINO DEUS -> post com aquela campaign_id; funil brand-wide 40 com tags MARCA+oferta); server limpo sem erros. So UI; Trafego Pago intacto. Resta so: publicacao nativa via Graph. Commit 5ac7f79.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
