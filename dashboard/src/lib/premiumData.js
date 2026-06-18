@@ -488,7 +488,7 @@ export async function generateContentWithAI({ brandScope, contentType, pillar, f
 // — exigido apenas para tipos cujo offer='required'; conteudo de marca nasce sem oferta e e escopado
 // por metadata.brand_scope. Status segue o CHECK do banco
 // (draft|planned|in_copy|in_design|review|approved|scheduled|published|archived).
-export async function createContentPost({ campaignId, brandScope, contentType, pillar, format, platform = 'instagram', title, hook, caption, hashtags = [], cta, visual = '', script = '', status = 'draft' } = {}) {
+export async function createContentPost({ campaignId, brandScope, contentType, pillar, format, platform = 'instagram', title, hook, caption, hashtags = [], cta, visual = '', script = '', status = 'draft', scheduledFor = null, source = 'ai_editorial' } = {}) {
   if (!campaignId && contentTypeOffer(contentType) === 'required') {
     throw new Error('Este tipo de conteúdo fala de uma oferta específica — selecione a oferta vinculada.')
   }
@@ -504,12 +504,53 @@ export async function createContentPost({ campaignId, brandScope, contentType, p
     hashtags: Array.isArray(hashtags) ? hashtags : [],
     cta: cta || null,
     status,
+    scheduled_for: scheduledFor || null,
     notes: 'Criado na aba Produção (IA editorial — Fase B).',
-    metadata: { brand_scope: brandScope || getBrandProfile().scope, content_type: contentType || null, visual, script, source: 'ai_editorial' },
+    metadata: { brand_scope: brandScope || getBrandProfile().scope, content_type: contentType || null, visual, script, source },
   }
   const { data, error } = await supabase.from('premium_content_posts').insert(payload).select('*').single()
   if (error) throw new Error(error.message || 'Falha ao salvar o conteúdo.')
   return data
+}
+
+// Importa um PLANO editorial (saida da skill vitra-conteudo) em lote: cada item vira um rascunho em
+// premium_content_posts. Aceita o JSON no formato createContentPost (contentType/pillar/format/platform/
+// title/caption/cta/hashtags/script/visual/scheduled_for/brandScope). Nasce como rascunho (status
+// 'draft') com a data preservada (aparece no Calendário); o operador revisa e avanca pelo funil.
+// Tolerante a falha por item: nao interrompe o lote; devolve {created, failed, errors}.
+export async function importContentPlan(items, { brandScope, campaignId } = {}) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error('Plano vazio: cole um JSON com uma lista de posts (saída da skill vitra-conteudo).')
+  }
+  const scope = brandScope || getBrandProfile().scope
+  let created = 0
+  const errors = []
+  for (let i = 0; i < items.length; i += 1) {
+    const it = items[i] || {}
+    try {
+      await createContentPost({
+        campaignId: it.campaignId || campaignId || null,
+        brandScope: it.brandScope || scope,
+        contentType: it.contentType || it.content_type,
+        pillar: it.pillar,
+        format: it.format,
+        platform: it.platform || 'instagram',
+        title: it.title,
+        hook: it.hook || it.headline,
+        caption: it.caption,
+        hashtags: Array.isArray(it.hashtags) ? it.hashtags : [],
+        cta: it.cta,
+        visual: it.visual || '',
+        script: it.script || '',
+        scheduledFor: it.scheduled_for ? new Date(it.scheduled_for).toISOString() : null,
+        source: 'editorial_plan_import',
+      })
+      created += 1
+    } catch (e) {
+      errors.push(`Item ${i + 1}${it.title ? ` (“${String(it.title).slice(0, 40)}”)` : ''}: ${e.message || e}`)
+    }
+  }
+  return { created, failed: errors.length, errors }
 }
 
 // Fase C: atualiza um conteudo (status / agendamento / link publicado). `patch` mescla em metadata

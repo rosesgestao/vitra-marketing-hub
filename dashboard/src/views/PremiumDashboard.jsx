@@ -67,6 +67,7 @@ import {
   DEFAULT_OBJECTIVE,
   generateContentWithAI,
   createContentPost,
+  importContentPlan,
   updateContentPost,
   publishContentPost,
   CONTENT_TYPE_OPTIONS,
@@ -1445,7 +1446,7 @@ function itemPhase(item) {
 // (premium_publications) para destravar metricas. Reusa contentPlaybook + premium_content_posts.
 function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, campaigns = [], posts = [], onSaved }) {
   const typeMeta = id => CONTENT_TYPE_OPTIONS.find(t => t.key === id)
-  const [mode, setMode] = useState('ia')                 // 'ia' | 'manual'
+  const [mode, setMode] = useState('ia')                 // 'ia' | 'manual' | 'import'
   const [contentType, setContentType] = useState(DEFAULT_CONTENT_TYPE)
   const [pillar, setPillar] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.pillar || '')
   const [format, setFormat] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.format || 'feed')
@@ -1460,6 +1461,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
   const [drafts, setDrafts] = useState({})
   const [manual, setManual] = useState({ title: '', caption: '', cta: '', hashtags: '' })
   const [savingManual, setSavingManual] = useState(false)
+  const [importJson, setImportJson] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState(null)
   const [rowBusy, setRowBusy] = useState(null)
   const [schedulingId, setSchedulingId] = useState(null)
 
@@ -1537,6 +1541,22 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     } catch (e) { setError(e) } finally { setSavingManual(false) }
   }
 
+  // Importa um plano editorial (JSON da skill vitra-conteudo) em lote -> rascunhos no board.
+  async function handleImport() {
+    setImporting(true); setError(null); setImportResult(null)
+    try {
+      let items
+      try {
+        const parsed = JSON.parse(importJson)
+        items = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.posts) ? parsed.posts : null)
+      } catch { throw new Error('JSON inválido. Cole a lista de posts (saída da skill vitra-conteudo).') }
+      if (!items) throw new Error('O JSON precisa ser uma lista de posts (array).')
+      const res = await importContentPlan(items, { brandScope: brandProfile.scope, campaignId: campaign?.id })
+      setImportResult(res)
+      if (res.created > 0) { setImportJson(''); onSaved?.() }
+    } catch (e) { setError(e) } finally { setImporting(false) }
+  }
+
   // Acoes do funil — o status e CONSEQUENCIA da acao, nao um seletor exposto ao operador.
   async function runAction(id, fn) {
     setRowBusy(id); setError(null)
@@ -1572,9 +1592,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
         <p className="mt-2 text-[11px] text-white/45">Conteúdo de imóvel: vincular uma oferta no topo é opcional. Sem vínculo, salva como conteúdo de marca.</p>
       )}
 
-      {/* Entrada dupla: IA ou manual */}
-      <div className="mt-4 inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
-        {[{ k: 'ia', label: 'Gerar com IA', icon: Wand2 }, { k: 'manual', label: 'Criar do zero', icon: Pencil }].map(({ k, label, icon: Icon }) => (
+      {/* Entrada tripla: IA, manual ou importar plano (saída da skill vitra-conteudo) */}
+      <div className="mt-4 inline-flex flex-wrap rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+        {[{ k: 'ia', label: 'Gerar posts', icon: Wand2 }, { k: 'manual', label: 'Criar do zero', icon: Pencil }, { k: 'import', label: 'Importar plano', icon: Download }].map(({ k, label, icon: Icon }) => (
           <button key={k} type="button" onClick={() => { setMode(k); setError(null) }}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>
             <Icon size={13} />{label}
@@ -1582,7 +1602,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
         ))}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${mode === 'import' ? 'hidden' : ''}`}>
         <label className="block"><span className="form-label">Tipo de conteúdo</span>
           <VitraSelect value={contentType} onChange={setContentType} ariaLabel="Tipo de conteúdo"
             options={CONTENT_TYPE_OPTIONS.map(t => ({ value: t.key, label: t.label }))} /></label>
@@ -1599,7 +1619,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
         </label>
       </div>
 
-      {mode === 'ia' ? (
+      {mode === 'ia' && (
         <>
           <label className="mt-3 block"><span className="form-label">Tema / contexto (opcional)</span>
             <input className="form-input" value={tema} onChange={e => setTema(e.target.value)} placeholder="ex.: valorização do bairro, financiamento, bastidor da entrega de chaves…" /></label>
@@ -1610,7 +1630,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
             </button>
           </div>
         </>
-      ) : (
+      )}
+
+      {mode === 'manual' && (
         <div className="mt-3 space-y-3">
           <label className="block"><span className="form-label">Título / ideia</span>
             <input className="form-input" value={manual.title} onChange={e => setManual(m => ({ ...m, title: e.target.value }))} placeholder="ex.: 3 cuidados antes de financiar seu primeiro imóvel" /></label>
@@ -1626,6 +1648,31 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
             {savingManual ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
             {savingManual ? 'Salvando…' : 'Salvar rascunho'}
           </button>
+        </div>
+      )}
+
+      {mode === 'import' && (
+        <div className="mt-3 space-y-3">
+          <p className="text-[11px] leading-5 text-white/45">
+            Cole o <span className="text-white/70">JSON do plano editorial</span> gerado pela skill <span className="text-gold-200">vitra-conteudo</span>. Cada post entra como <span className="text-white/70">rascunho</span> no funil (a data, se houver, aparece no Calendário). Você revisa e avança normalmente.
+          </p>
+          <textarea className="form-input min-h-[150px] font-mono text-[11px] leading-4" value={importJson} onChange={e => setImportJson(e.target.value)} placeholder='[ { "contentType": "educativo", "format": "carrossel", "title": "…", "caption": "…", "cta": "…", "hashtags": ["…"], "scheduled_for": "2026-07-06" } ]' />
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={handleImport} disabled={importing || !importJson.trim() || blockedByOffer} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
+              {importing ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+              {importing ? 'Importando…' : 'Importar plano'}
+            </button>
+            {importResult && (
+              <span className="text-[11px] text-white/55">
+                {importResult.created} rascunho(s) criado(s){importResult.failed ? `, ${importResult.failed} com erro` : ''}.
+              </span>
+            )}
+          </div>
+          {importResult?.errors?.length > 0 && (
+            <ul className="mt-1 space-y-0.5 text-[10px] text-amber-300">
+              {importResult.errors.slice(0, 5).map((er, i) => <li key={i}>⚠ {er}</li>)}
+            </ul>
+          )}
         </div>
       )}
 
