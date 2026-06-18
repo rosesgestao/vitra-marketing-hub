@@ -576,7 +576,7 @@ export async function updateContentPost(id, { status, scheduledFor, publishedUrl
 // Arte do post organico: faz upload do PNG gerado no cliente (postArt.js) para o bucket publico 'cards'
 // e grava a URL em metadata.art_url do conteudo. Reusa o mesmo bucket dos uploads de imagem do projeto.
 // E a contraparte do "Gerar arte do post" — NAO usa o render-asset (Satori/pago).
-export async function uploadPostArt({ postId, blob, brandScope } = {}) {
+export async function uploadPostArt({ postId, blob, brandScope, title } = {}) {
   if (!postId || !blob) throw new Error('Arte inválida para salvar.')
   const scope = brandScope || getBrandProfile().scope
   const path = `organic-art/${scope}/${postId}-${Date.now()}.png`
@@ -591,7 +591,50 @@ export async function uploadPostArt({ postId, blob, brandScope } = {}) {
   const metadata = { ...(cur?.metadata || {}), art_url: url, art_path: path }
   const { error } = await supabase.from('premium_content_posts').update({ metadata }).eq('id', postId)
   if (error) throw new Error(error.message || 'Falha ao vincular a arte ao conteúdo.')
+  // Auto-registra a arte na Biblioteca (DAM) — best-effort, nao bloqueia o salvar.
+  try { await registerMediaAsset({ brandScope: scope, kind: 'art', title: title || 'Arte do post', url, path }) } catch { /* ignore */ }
   return { url, path }
+}
+
+// Biblioteca (DAM): midia organica reutilizavel por marca (premium_media_assets, bucket publico 'cards').
+export async function listMediaAssets(brandScope) {
+  let q = supabase.from('premium_media_assets').select('*').order('created_at', { ascending: false }).limit(300)
+  if (brandScope) q = q.eq('brand_scope', brandScope)
+  const { data, error } = await q
+  if (error) return []
+  return data || []
+}
+
+export async function registerMediaAsset({ brandScope, kind = 'art', title, url, path, tags = [] } = {}) {
+  if (!url) throw new Error('Mídia inválida (sem URL).')
+  const row = {
+    brand_scope: brandScope || getBrandProfile().scope,
+    kind: kind || 'art', title: title || null, url, path: path || null,
+    tags: Array.isArray(tags) ? tags : [],
+  }
+  const { data, error } = await supabase.from('premium_media_assets').insert(row).select('*').single()
+  if (error) throw new Error(error.message || 'Falha ao registrar a mídia na biblioteca.')
+  return data
+}
+
+export async function uploadMediaAsset({ brandScope, file, title, kind = 'photo' } = {}) {
+  if (!file) throw new Error('Selecione um arquivo para enviar.')
+  const scope = brandScope || getBrandProfile().scope
+  const safeName = (file.name || 'midia').replace(/[^a-z0-9.]+/gi, '-').toLowerCase()
+  const path = `library/${scope}/${Date.now()}-${safeName}`
+  const { error: upErr } = await supabase.storage.from('cards').upload(path, file, {
+    upsert: true, contentType: file.type || undefined,
+  })
+  if (upErr) throw new Error(upErr.message || 'Falha ao enviar o arquivo.')
+  const { data: pub } = supabase.storage.from('cards').getPublicUrl(path)
+  return await registerMediaAsset({ brandScope: scope, kind, title: title || file.name || 'Mídia', url: pub?.publicUrl, path })
+}
+
+export async function deleteMediaAsset(asset) {
+  if (!asset?.id) throw new Error('Mídia inválida.')
+  if (asset.path) { try { await supabase.storage.from('cards').remove([asset.path]) } catch { /* objeto pode ja nao existir */ } }
+  const { error } = await supabase.from('premium_media_assets').delete().eq('id', asset.id)
+  if (error) throw new Error(error.message || 'Falha ao excluir a mídia.')
 }
 
 // Configuracoes editoriais por marca (governanca da pauta): pilares ativos, tom padrao, cadencia e

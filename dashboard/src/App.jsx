@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Layers, LayoutGrid, Megaphone, Menu, Wand2, X } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Images, Layers, LayoutGrid, Megaphone, Menu, Wand2, X } from 'lucide-react'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
 import Kanban from './views/Kanban.jsx'
+import Biblioteca from './views/Biblioteca.jsx'
 import Agentes from './views/Agentes.jsx'
 import Metricas from './views/Metricas.jsx'
 import { BrandHorizontalLogo, BrandV } from './components/PremiumBrand.jsx'
@@ -40,6 +41,7 @@ const BRAND_SECTIONS = [
 const CONTEUDO_ORGANICO = [
   { id: 'calendario', label: 'Calendário', icon: CalendarDays },
   { id: 'kanban', label: 'Conteúdos', icon: Layers },
+  { id: 'biblioteca', label: 'Biblioteca', icon: Images },
 ]
 
 // Transversal: atende organico E pago.
@@ -223,6 +225,7 @@ export default function App() {
             {view === 'pipeline' && <Pipeline />}
             {view === 'calendario' && <Calendario />}
             {view === 'kanban' && <Kanban />}
+            {view === 'biblioteca' && <Biblioteca />}
             {view === 'agentes' && <Agentes />}
             {view === 'metricas' && <Metricas />}
           </div>

@@ -1854,7 +1854,7 @@ function PostArtModal({ post, brandProfile = getBrandProfile(), onClose, onSaved
     setBusy(true); setError(null)
     try {
       const blob = await postArtBlob(artOpts)
-      await uploadPostArt({ postId: post.id, blob, brandScope: scope })
+      await uploadPostArt({ postId: post.id, blob, brandScope: scope, title: artOpts.title })
       onSaved?.()
     } catch (e) { setError(e) } finally { setBusy(false) }
   }
