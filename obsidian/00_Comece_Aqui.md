@@ -215,6 +215,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 70. **[[Atualizacao_2026-06-18_Conteudo_Arte_Foto_Thumbnail_Publicacao]]**
     Conteúdo: cluster de arte. Variante COM FOTO (postArt.js photoUrl: hero+scrim, crossOrigin+fallback); PostArtModal com toggle Tipografico|Com foto + URL; thumbnail da arte (metadata.art_url) no card do funil e no Calendário; "Marcar publicado" copia art_url p/ a publicacao (midia de referencia). E2E ao vivo OK (foto+scrim sem taint; thumbnail no card). Resta sequenciado: Config editorial, DAM, publicacao nativa via Graph. Commit 4428158.
 
+71. **[[Atualizacao_2026-06-18_Conteudo_Configuracoes_Editoriais]]**
+    Conteúdo: aba "Configurações" — governanca da pauta POR MARCA (tabela premium_editorial_settings: pilares ativos, tom padrao, cadencia, diretrizes). Nao e tela morta: pilares ativos filtram o seletor de Pilar na Produção, tom padrao pre-seleciona, e as diretrizes entram no prompt do "Gerar posts" via context (sem redeploy da edge). E2E ao vivo OK (salvou; Produção listou so os 2 pilares ativos). Resta: DAM, depois publicacao nativa via Graph. Commit 041f967.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
