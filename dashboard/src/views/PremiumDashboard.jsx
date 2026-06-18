@@ -958,29 +958,17 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           />
         )}
 
+        {/* Conteúdo é ORGANICO: o entregavel e o POST (texto), produzido pelo fluxo de IA editorial /
+            manual no funil. A matriz de criativos (render Satori) e conceito de TRAFEGO PAGO/Estudio —
+            nao vive aqui (era o que mostrava "0 criativo(s) gerado(s)", pois so renderiza channel=meta_ads). */}
         {!loading && !isPaidTrafficMode && activeTab === 'assets' && (
-          <div className="space-y-8">
-            <ContentProductionSection
-              brandProfile={brandProfile}
-              campaign={selectedCampaign}
-              campaigns={workspace.campaigns}
-              posts={scoped.posts}
-              onSaved={() => refresh(selectedCampaignId, { silent: true })}
-            />
-            <AssetsSection
-              brandProfile={brandProfile}
-              campaign={selectedCampaign}
-              assets={scoped.assets.filter(a => a.channel !== 'meta_ads')}
-              jobs={scoped.jobs}
-              rendering={rendering}
-              busyId={assetBusyId}
-              notice={notice}
-              onRender={handleRenderCampaign}
-              onApprove={handleApproveAsset}
-              onApproveGroup={handleApproveGroup}
-              onEdit={setEditingAsset}
-            />
-          </div>
+          <ContentProductionSection
+            brandProfile={brandProfile}
+            campaign={selectedCampaign}
+            campaigns={workspace.campaigns}
+            posts={scoped.posts}
+            onSaved={() => refresh(selectedCampaignId, { silent: true })}
+          />
         )}
 
         {!loading && !isPaidTrafficMode && activeTab === 'trafego' && (
@@ -1618,7 +1606,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
           <div className="mt-4">
             <button type="button" onClick={handleGenerate} disabled={generating} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
               {generating ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
-              {generating ? 'Gerando ideias…' : 'Gerar com IA'}
+              {generating ? 'Gerando posts…' : 'Gerar posts'}
             </button>
           </div>
         </>
