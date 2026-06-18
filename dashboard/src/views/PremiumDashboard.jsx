@@ -889,23 +889,9 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           </div>
         )}
 
-        {/* Seletor compacto da oferta em foco: a secao Conteúdo e organica/content-first, mas o material
-            ainda e organizado por oferta/empreendimento — entao mantemos um picker leve (sem a antiga
-            aba de gestao "Ofertas"). Criar/excluir oferta segue no botao "Nova campanha" do header. */}
-        {/* Conteúdo é content-first: a oferta é um vínculo OPCIONAL (conteúdo de marca nasce sem oferta).
-            "Sem oferta" mantém o conteúdo escopado pela marca; só conteúdo de imóvel/oportunidade sugere o vínculo. */}
-        {!isPaidTrafficMode && !loading && workspace.campaigns.length > 0 && (
-          <div className="mb-5 max-w-md">
-            <span className="form-label">Oferta vinculada (opcional)</span>
-            <VitraSelect
-              value={selectedCampaign?.id ?? ''}
-              onChange={setSelectedCampaignId}
-              ariaLabel="Oferta vinculada (opcional)"
-              options={[{ value: '', label: 'Sem oferta — conteúdo de marca' }, ...workspace.campaigns.map(c => ({ value: c.id, label: c.name }))]}
-            />
-          </div>
-        )}
-
+        {/* Item 4 (content-first): NAO ha mais seletor global de oferta no topo do organico — a secao
+            opera em visao de MARCA (brand-wide). O vinculo com oferta virou CONTEXTUAL, dentro do card de
+            "Novo conteúdo" (por post). Oferta/campanha e nativo do Tráfego Pago. */}
         {!isPaidTrafficMode && (
           <div className="mb-6 flex gap-1 overflow-x-auto border-b border-white/10">
             {TABS.map(({ id, label, icon: Icon }) => {
@@ -975,7 +961,6 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
         {!loading && !isPaidTrafficMode && activeTab === 'assets' && (
           <ContentProductionSection
             brandProfile={brandProfile}
-            campaign={selectedCampaign}
             campaigns={workspace.campaigns}
             posts={scoped.posts}
             editorialSettings={editorialSettings}
@@ -1007,7 +992,6 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
 
         {!loading && !isPaidTrafficMode && activeTab === 'publicacoes' && (
           <PublicationsSection
-            campaign={selectedCampaign}
             posts={scoped.posts}
             publications={scoped.publications}
             assets={scoped.assets}
@@ -1460,9 +1444,11 @@ function itemPhase(item) {
 // (Rascunho -> Aprovado -> Agendado -> Publicado). O status e DERIVADO da acao (o operador nao escolhe
 // um estado cru); a data so aparece ao Agendar; "Marcar publicado" tambem registra a publicacao real
 // (premium_publications) para destravar metricas. Reusa contentPlaybook + premium_content_posts.
-function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, campaigns = [], posts = [], editorialSettings = null, onSaved }) {
+function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns = [], posts = [], editorialSettings = null, onSaved }) {
   const typeMeta = id => CONTENT_TYPE_OPTIONS.find(t => t.key === id)
   const [mode, setMode] = useState('ia')                 // 'ia' | 'manual' | 'import'
+  // Item 4: o vinculo com oferta e CONTEXTUAL (por conteudo), nao mais global no topo. Default = sem oferta.
+  const [linkedCampaignId, setLinkedCampaignId] = useState('')
   const [contentType, setContentType] = useState(DEFAULT_CONTENT_TYPE)
   const [pillar, setPillar] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.pillar || '')
   const [format, setFormat] = useState(typeMeta(DEFAULT_CONTENT_TYPE)?.format || 'feed')
@@ -1503,7 +1489,8 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
   const offerLink = typeMeta(contentType)?.offer || 'none'
   const offerRequired = offerLink === 'required'
   const offerSuggested = offerLink === 'suggested'
-  const blockedByOffer = offerRequired && !campaign
+  const linkedCampaign = campaigns.find(c => c.id === linkedCampaignId) || null
+  const blockedByOffer = offerRequired && !linkedCampaign
   const campaignName = id => campaigns.find(c => c.id === id)?.name || null
 
   const PLATFORMS = [
@@ -1532,7 +1519,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
   async function handleGenerate() {
     setGenerating(true); setError(null); setResults([]); setSavedKeys(new Set())
     try {
-      const context = { tema, product_name: campaign?.product_name || '', bairro: campaign?.city || '' }
+      const context = { tema, product_name: linkedCampaign?.product_name || '', bairro: linkedCampaign?.city || '' }
       if (editorialSettings?.guidelines?.trim()) context.diretrizes_da_marca = editorialSettings.guidelines.trim()
       setResults(await generateContentWithAI({ brandScope: brandProfile.scope, contentType, pillar, format, tone, count: 3, context }))
     } catch (e) { setError(e) } finally { setGenerating(false) }
@@ -1542,7 +1529,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     setSavingKey(post.key); setError(null)
     try {
       await createContentPost({
-        campaignId: campaign?.id, brandScope: brandProfile.scope, contentType, platform,
+        campaignId: linkedCampaign?.id, brandScope: brandProfile.scope, contentType, platform,
         pillar: post.pillar || pillar, format: post.format || format,
         title: post.headline || post.idea, hook: post.headline,
         caption: drafts[post.key] ?? post.caption, hashtags: post.hashtags, cta: post.cta,
@@ -1558,7 +1545,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
     setSavingManual(true); setError(null)
     try {
       await createContentPost({
-        campaignId: campaign?.id, brandScope: brandProfile.scope, contentType, pillar, format, platform,
+        campaignId: linkedCampaign?.id, brandScope: brandProfile.scope, contentType, pillar, format, platform,
         title: manual.title || manual.caption.slice(0, 60), caption: manual.caption, cta: manual.cta,
         hashtags: manual.hashtags.split(/[,\s]+/).map(h => h.replace(/^#/, '')).filter(Boolean),
       })
@@ -1577,7 +1564,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
         items = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.posts) ? parsed.posts : null)
       } catch { throw new Error('JSON inválido. Cole a lista de posts (saída da skill vitra-conteudo).') }
       if (!items) throw new Error('O JSON precisa ser uma lista de posts (array).')
-      const res = await importContentPlan(items, { brandScope: brandProfile.scope, campaignId: campaign?.id })
+      const res = await importContentPlan(items, { brandScope: brandProfile.scope, campaignId: linkedCampaign?.id })
       setImportResult(res)
       if (res.created > 0) { setImportJson(''); onSaved?.() }
     } catch (e) { setError(e) } finally { setImporting(false) }
@@ -1611,11 +1598,11 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
       <p className="mt-1.5 max-w-2xl text-xs leading-5 text-white/50">
         Crie com a <span className="text-white/75">IA editorial</span> ou <span className="text-white/75">do zero</span>, na voz da {brandProfile.shortName}. Depois avance o card pelo funil: <span className="text-white/70">Aprovar → Agendar → Publicar</span>.
       </p>
-      {offerRequired && !campaign && (
-        <p className="mt-2 text-[11px] text-amber-300">Este tipo fala de uma oferta específica — selecione a “Oferta vinculada” no topo para salvar.</p>
+      {offerRequired && !linkedCampaign && (
+        <p className="mt-2 text-[11px] text-amber-300">Este tipo fala de uma oferta específica — vincule a oferta no campo abaixo para salvar.</p>
       )}
-      {offerSuggested && !campaign && (
-        <p className="mt-2 text-[11px] text-white/45">Conteúdo de imóvel: vincular uma oferta no topo é opcional. Sem vínculo, salva como conteúdo de marca.</p>
+      {offerSuggested && !linkedCampaign && (
+        <p className="mt-2 text-[11px] text-white/45">Conteúdo de imóvel: vincular uma oferta abaixo é opcional. Sem vínculo, salva como conteúdo de marca.</p>
       )}
 
       {/* Entrada tripla: IA, manual ou importar plano (saída da skill vitra-conteudo) */}
@@ -1644,6 +1631,15 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaign, 
             : <VitraSelect value={platform} onChange={setPlatform} ariaLabel="Plataforma" options={PLATFORMS} />}
         </label>
       </div>
+
+      {/* Vínculo com oferta — CONTEXTUAL (por conteúdo), opcional. Default: sem oferta (conteúdo de marca). */}
+      {mode !== 'import' && campaigns.length > 0 && (
+        <label className="mt-3 block max-w-md">
+          <span className="form-label">Vincular a uma oferta (opcional)</span>
+          <VitraSelect value={linkedCampaignId} onChange={setLinkedCampaignId} ariaLabel="Vincular a uma oferta"
+            options={[{ value: '', label: 'Sem oferta — conteúdo de marca' }, ...campaigns.map(c => ({ value: c.id, label: c.name }))]} />
+        </label>
+      )}
 
       {mode === 'ia' && (
         <>
@@ -3081,7 +3077,7 @@ function AssetEditModal({ asset, saving, onClose, onSave }) {
   )
 }
 
-function PublicationsSection({ campaign, posts, publications, assets, saving, onCreatePublication }) {
+function PublicationsSection({ posts, publications, assets, saving, onCreatePublication }) {
   const [form, setForm] = useState({
     content_post_id: posts[0]?.id || '',
     asset_id: assets[0]?.id || '',
@@ -3102,7 +3098,7 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
     }))
   }, [posts, assets])
 
-  if (!campaign) return <EmptyState icon={Send} title="Nenhuma campanha selecionada" />
+  if (!posts.length) return <EmptyState icon={Send} title="Nenhum conteúdo para mapear" />
 
   function update(field, value) {
     setForm(current => ({ ...current, [field]: value }))
@@ -3110,9 +3106,12 @@ function PublicationsSection({ campaign, posts, publications, assets, saving, on
 
   function submit(event) {
     event.preventDefault()
+    // Item 4: a publicacao herda a oferta (se houver) do conteudo vinculado; conteudo de marca = sem oferta.
+    const post = posts.find(p => p.id === form.content_post_id)
     onCreatePublication({
       ...form,
-      campaign_id: campaign.id,
+      campaign_id: post?.campaign_id || null,
+      brand_scope: post?.metadata?.brand_scope || null,
       published_at: form.published_at ? new Date(form.published_at).toISOString() : new Date().toISOString(),
     })
   }
