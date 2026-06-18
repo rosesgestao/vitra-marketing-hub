@@ -343,6 +343,13 @@ Deno.serve(async (req) => {
       }
       async function targetingFor(spec: any) {
         const t: any = { ...geo };
+        // Geo POR CONJUNTO (preset "campanha de referencia"): raio em km a partir de um ponto (lat/lng)
+        // = conjunto REGIONAL; ou cidade inteira = conjunto MACRO. Sobrepoe o geo base da campanha.
+        if (spec.geo === "radius" && spec.lat != null && spec.lng != null) {
+          t.geo_locations = { custom_locations: [{ latitude: Number(spec.lat), longitude: Number(spec.lng), radius: Math.max(1, Math.min(80, Number(spec.radius_km) || 2)), distance_unit: "kilometer" }] };
+        } else if (spec.geo === "city" && spec.city_key) {
+          t.geo_locations = { cities: [{ key: String(spec.city_key) }] };
+        }
         if (spec.age_min) t.age_min = Math.max(18, Math.min(65, Number(spec.age_min)));
         if (spec.age_max) t.age_max = Math.max(18, Math.min(65, Number(spec.age_max)));
         // 2c: conjunto de retargeting usa um publico custom (site/lookalike) escolhido pelo operador.
