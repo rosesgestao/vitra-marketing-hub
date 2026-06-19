@@ -462,6 +462,47 @@ export async function generateCopyWithAI(form, brandProfile = getBrandProfile())
   return Array.isArray(data?.angles) ? data.angles : []
 }
 
+// Porta in-app da skill vitra-copy: gera 3 angulos de copy de ANUNCIO (headline/texto/descricao/cta) a
+// partir dos fatos de uma CAMPANHA ja criada (brief.product_data), para aplicar a um criativo aprovado.
+// Mesma Edge generate-copy (canal pago server-side). Angulos estrategicos: preco-ancora, aspiracao-local,
+// escassez/oportunidade — espelham o copy-playbook.
+export async function generateAdCopyAngles({ campaign, brandScope = BRAND_SCOPES.imobiliaria } = {}) {
+  const pd = campaign?.brief?.product_data || {}
+  const facts = {
+    product_name: cleanText(pd.name || campaign?.product_name),
+    price: cleanText(pd.price),
+    price_from: cleanText(pd.price_from),
+    neighborhood: cleanText(pd.neighborhood || campaign?.neighborhood),
+    location: cleanText(pd.location || campaign?.city),
+    area: cleanText(pd.area),
+    suites: cleanText(pd.suites),
+    towers: cleanText(pd.towers),
+    differentials: splitContentItems(pd.differentials),
+    financing_claim: cleanText(pd.financing_claim),
+    condo_argument: cleanText(pd.condo_argument),
+  }
+  const { data, error } = await supabase.functions.invoke('generate-copy', {
+    headers: copilotGateHeaders(),
+    body: {
+      brand_scope: brandScope,
+      headline_max: 40,
+      count: 3,
+      facts,
+      angle_hints: [
+        'preco-ancora (preco em destaque + ancoragem de valor)',
+        'aspiracao-local (viver no imovel/bairro, o upgrade)',
+        'escassez/oportunidade (ultimas unidades, condicao comercial)',
+      ],
+    },
+  })
+  if (error) {
+    let message = error.message || 'Falha ao gerar copy com IA.'
+    try { const detail = await error.context?.json?.(); if (detail?.message) message = detail.message } catch (_) { /* sem corpo */ }
+    throw new Error(message)
+  }
+  return Array.isArray(data?.angles) ? data.angles : []
+}
+
 // Fase A (conteudo organico): chama a Edge generate-content (Claude) e devolve N ideias de post
 // (ideia/legenda/CTA/hashtags/roteiro/visual) na voz da marca, ja validadas. tipo/pilar/formato vem do
 // contentPlaybook; `context` e o briefing leve (objetivo/publico/tema/imovel) — opcional. Erro acionavel.

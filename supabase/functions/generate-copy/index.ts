@@ -26,9 +26,10 @@ const ANGLES_SCHEMA = {
           angle: { type: "string", description: "tipo de angulo (preco, localizacao, financiamento, lazer, planta, escassez, investimento)" },
           headline: { type: "string" },
           body: { type: "string", description: "texto principal do anuncio, 1-2 frases" },
+          description: { type: "string", description: "descricao do link: 1 linha curta de reforco (<= 30 palavras), complementar ao texto" },
           cta: { type: "string" },
         },
-        required: ["key", "angle", "headline", "body", "cta"],
+        required: ["key", "angle", "headline", "body", "description", "cta"],
       },
     },
   },
@@ -71,8 +72,9 @@ REGRAS OBRIGATORIAS:
 4. headline: curta e impactante, no MAXIMO ${headlineMax} caracteres. NAO use o preco nem o formato "De X por Y" como headline (o criativo ja mostra o preco em destaque) — a headline e beneficio/posicionamento.
 5. NAO repita o nome do produto na headline E no inicio do texto (evite "Produto. Produto.").
 6. body (texto principal): 1 a 2 frases, com um beneficio concreto e o proximo passo.
-7. cta: curto, de conversao imobiliaria, coerente com a voz da marca.
-8. NUNCA use vocabulario fora da marca. Proibido aqui: ${bannedVocabForScope(scope, "paid").slice(0, 8).join(", ")}.
+7. description (descricao do link): UMA linha curta (ate ~30 palavras) que reforca o body sem repetir a headline.
+8. cta: curto, de conversao imobiliaria, coerente com a voz da marca.
+9. NUNCA use vocabulario fora da marca. Proibido aqui: ${bannedVocabForScope(scope, "paid").slice(0, 8).join(", ")}.
 
 Devolva ESTRITAMENTE no formato JSON pedido (angles[]). Sem texto fora do JSON.`;
 }
