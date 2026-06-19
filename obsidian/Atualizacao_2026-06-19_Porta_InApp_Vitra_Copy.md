@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-19 — Porta in-app da vitra-copy (gerar copy no anúncio + aplicar)
 
 > Leva a inteligência da skill vitra-copy para dentro do dashboard: gerar 3 ângulos de copy a partir dos
-> fatos do imóvel e aplicar ao criativo em 1 clique, com guard pago ao vivo. Na `main`. Commit: **<HASH>**.
+> fatos do imóvel e aplicar ao criativo em 1 clique, com guard pago ao vivo. Na `main`. Commit: **a349ea1**.
 
 ## Contexto
 Item #4 do roadmap (P1). Antes: a copy "esperta" só existia na skill (sessão) e o botão in-app gerava
