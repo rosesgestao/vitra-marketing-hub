@@ -242,6 +242,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 79. **[[Atualizacao_2026-06-19_Trafego_Auto_Seed_Preset]]**
     Tráfego: AUTO-SEED do preset. "Usar preset" semeia o PublishMetaPanel: objetivo (OUTCOME_LEADS->leads_form), orcamento (CBO), e os 2 conjuntos por geografia como proposta a revisar (regional geo=radius lat/lng+km; macro geo=city), com linha "Geo: raio Nkm (lat,lng)". targetingFor (Fase 3a) aplica no build. E2E ao vivo: preset Azenha -> painel com Leads (formulário)+R$15/dia+Regional(raio 2km -30.0608,-51.2115)+Cidade(POA) 25-65. Padrao "clonar a vencedora" COMPLETO (importar->normalizar->persistir->auto-seed->build geo raio->PAUSED->activate confirm). Commit 770cc02.
 
+80. **[[Atualizacao_2026-06-19_Trafego_Build_PAUSED_Azenha_E2E]]**
+    Tráfego: build PAUSED da Azenha ponta a ponta (validacao do preset). Campanha "Residencial Azenha 531" + 1 criativo aprovado de TESTE (placeholder) -> build_draft com o blueprint (leads_form, CBO R$15, 2 conjuntos: regional raio 2km em -30.0608/-51.2115 + cidade POA). meta_campaign_id 120252930267170221, 2 conjuntos PAUSED, zero gasto. read_campaign_config CONFERIU: radius_point 2km no ponto da Azenha + city 264859, age 25-65, FB+IG, lead form pt-BR is_optimized_for_quality=false (mais volume/sem SMS, ticket alto). Limpo via delete_draft + rows de teste (form leadgen orfao fica inofensivo). Achado: build usa LEAD_GENERATION; ref usa QUALITY_LEAD -> refinar leads_form no playbook. So validacao (sem codigo). Sem commit de codigo.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
