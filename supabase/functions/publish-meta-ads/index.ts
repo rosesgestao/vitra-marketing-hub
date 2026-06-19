@@ -317,10 +317,6 @@ Deno.serve(async (req) => {
       const { data: assets } = await svc.from("premium_campaign_assets").select("*")
         .eq("campaign_id", campaignId).eq("channel", "meta_ads").in("status", ["approved", "published"]);
       const all = assets || [];
-      const feedOf = (groupKey: string) => {
-        const inG = all.filter((a: any) => (a.metadata?.ad_group || "") === groupKey);
-        return inG.find((a: any) => a.aspect_ratio === "1:1" && a.public_url) || inG.find((a: any) => a.public_url);
-      };
       const anyFeed = all.find((a: any) => a.aspect_ratio === "1:1" && a.public_url) || all.find((a: any) => a.public_url);
       if (!anyFeed?.public_url) return json({ error: "no_approved_creative", message: "Nenhum criativo APROVADO encontrado para esta campanha. Aprove ao menos 1 anúncio (QA completo) antes de publicar." }, 422);
 
@@ -386,20 +382,38 @@ Deno.serve(async (req) => {
       });
       await svc.from("premium_campaigns").update({ meta_campaign_id: campRes.id }).eq("id", campaignId);
 
-      // ---- Um conjunto + criativo + anuncio por grupo (TUDO PAUSED) ----
+      // Criativos por conjunto: 1 anuncio POR criativo aprovado (ate N) — espelha a estrutura "3x3" da
+      // vencedora (varios criativos no mesmo conjunto p/ teste). Prefere 1:1; dedup por id; cap em N.
+      const maxCreatives = Math.max(1, Math.min(10, Number(body.creatives_per_adset) || 3));
+      const feedsFor = (spec: any) => {
+        const pool = spec.group_key ? all.filter((a: any) => (a.metadata?.ad_group || "") === spec.group_key) : all;
+        const withUrl = pool.filter((a: any) => a.public_url);
+        const ordered = [...withUrl.filter((a: any) => a.aspect_ratio === "1:1"), ...withUrl.filter((a: any) => a.aspect_ratio !== "1:1")];
+        const seen = new Set<string>(); const out: any[] = [];
+        for (const a of ordered) { if (!seen.has(a.id)) { seen.add(a.id); out.push(a); } if (out.length >= maxCreatives) break; }
+        return out.length ? out : (anyFeed ? [anyFeed] : []);
+      };
+
+      // ---- Um conjunto por grupo; N anuncios (1 por criativo aprovado) — TUDO PAUSED ----
       const built: any[] = [];
+      let totalAds = 0;
       for (const spec of specs) {
-        const asset = spec.group_key ? feedOf(spec.group_key) : anyFeed;
-        if (!asset?.public_url) { built.push({ group_key: spec.group_key, skipped: "sem criativo renderizado" }); continue; }
-        const m = asset.metadata?.meta_ad || {};
-        const headline = String(asset.headline || m.nome || campaign.product_name || "").slice(0, 40);
-        const primaryText = String(m.texto_principal || asset.copy || "");
-        const cta = String(asset.cta || "Saiba mais");
-        const issues = validateCopyAngle({ headline, body: primaryText, cta }, { scope, headlineMax: 40, productName: String(campaign.product_name || "") }).issues;
-        if (issues.length) { built.push({ group_key: spec.group_key, skipped: "copy reprovada", issues }); continue; }
+        // Pre-valida a copy de cada criativo; so cria o conjunto se houver ao menos 1 criativo valido.
+        const valid: any[] = [];
+        for (const asset of feedsFor(spec)) {
+          const m = asset.metadata?.meta_ad || {};
+          const headline = String(asset.headline || m.nome || campaign.product_name || "").slice(0, 40);
+          const primaryText = String(m.texto_principal || asset.copy || "");
+          const cta = String(asset.cta || "Saiba mais");
+          const issues = validateCopyAngle({ headline, body: primaryText, cta }, { scope, headlineMax: 40, productName: String(campaign.product_name || "") }).issues;
+          if (issues.length) continue;
+          valid.push({ asset, headline, primaryText, descricao: String(m.descricao || "") });
+        }
+        if (!valid.length) { built.push({ group_key: spec.group_key, label: spec.label, skipped: "sem criativo aprovado com copy valida" }); continue; }
+
         const targeting = await targetingFor(spec);
         const adsetRes = await graphPost(`act_${adAccountId}/adsets`, {
-          name: `${campaign.name} | ${spec.label || asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
+          name: `${campaign.name} | ${spec.label || valid[0].asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
           campaign_id: campRes.id, optimization_goal: obj.optimization_goal, billing_event: obj.billing_event,
           ...(obj.destination_type ? { destination_type: obj.destination_type } : {}),
           ...(isConversions
@@ -413,32 +427,37 @@ Deno.serve(async (req) => {
         const callToAction = isLeadForm
           ? { type: obj.cta, value: { lead_gen_form_id: leadFormId, link: destinationUrl } }
           : { type: obj.cta, value: { link: destinationUrl } };
-        const creativeRes = await graphPost(`act_${adAccountId}/adcreatives`, {
-          name: `${campaign.name} | ${spec.label || "Criativo"}`.slice(0, 100),
-          object_story_spec: { page_id: pageId, link_data: {
-            link: destinationUrl, message: primaryText, name: headline, description: String(m.descricao || ""),
-            picture: String(asset.public_url).split("?")[0], call_to_action: callToAction,
-          } },
-        });
-        const adRes = await graphPost(`act_${adAccountId}/ads`, {
-          name: `${campaign.name} | ${spec.label || "Anuncio"}`.slice(0, 100),
-          adset_id: adsetRes.id, creative: { creative_id: creativeRes.id }, status: "PAUSED",
-        });
-        await svc.from("premium_publications").insert({
-          campaign_id: campaignId, platform: "facebook", publication_type: "paid", status: "scheduled",
-          meta_campaign_id: campRes.id, meta_adset_id: adsetRes.id, meta_ad_id: adRes.id,
-          utm_url: destinationUrl, asset_id: asset.id,
-          metadata: { ad_account_id: adAccountId, page_id: pageId, daily_budget_cents: dailyBudgetCents, ad_group: spec.group_key, audience: spec, creative_id: creativeRes.id, created_via: "publish-meta-ads", paused: true },
-        });
-        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ad_id: adRes.id });
+        const adIds: string[] = [];
+        for (const v of valid) {
+          const creativeRes = await graphPost(`act_${adAccountId}/adcreatives`, {
+            name: `${campaign.name} | ${v.headline}`.slice(0, 100),
+            object_story_spec: { page_id: pageId, link_data: {
+              link: destinationUrl, message: v.primaryText, name: v.headline, description: v.descricao,
+              picture: String(v.asset.public_url).split("?")[0], call_to_action: callToAction,
+            } },
+          });
+          const adRes = await graphPost(`act_${adAccountId}/ads`, {
+            name: `${campaign.name} | ${v.headline}`.slice(0, 100),
+            adset_id: adsetRes.id, creative: { creative_id: creativeRes.id }, status: "PAUSED",
+          });
+          await svc.from("premium_publications").insert({
+            campaign_id: campaignId, platform: "facebook", publication_type: "paid", status: "scheduled",
+            meta_campaign_id: campRes.id, meta_adset_id: adsetRes.id, meta_ad_id: adRes.id,
+            utm_url: destinationUrl, asset_id: v.asset.id,
+            metadata: { ad_account_id: adAccountId, page_id: pageId, daily_budget_cents: dailyBudgetCents, ad_group: spec.group_key, audience: spec, creative_id: creativeRes.id, created_via: "publish-meta-ads", paused: true },
+          });
+          adIds.push(adRes.id);
+        }
+        totalAds += adIds.length;
+        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ads: adIds.length, ad_ids: adIds });
       }
 
-      const okBuilt = built.filter((b) => b.ad_id);
-      if (!okBuilt.length) return json({ error: "nothing_built", message: "Nenhum conjunto pode ser criado (sem criativo ou copy reprovada).", built }, 422);
+      const okBuilt = built.filter((b) => b.adset_id);
+      if (!okBuilt.length) return json({ error: "nothing_built", message: "Nenhum conjunto pode ser criado (sem criativo aprovado ou copy reprovada).", built }, 422);
       return json({
-        ok: true, paused: true, meta_campaign_id: campRes.id, ad_sets: okBuilt.length, built,
+        ok: true, paused: true, meta_campaign_id: campRes.id, ad_sets: okBuilt.length, ads: totalAds, built,
         ads_manager_url: `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${adAccountId}&selected_campaign_ids=${campRes.id}`,
-        message: `Rascunho criado na Meta: ${okBuilt.length} conjunto(s), tudo PAUSED. Nada foi ativado nem gastou verba.`,
+        message: `Rascunho criado na Meta: ${okBuilt.length} conjunto(s) e ${totalAds} anuncio(s), tudo PAUSED. Nada foi ativado nem gastou verba.`,
       });
     }
 
