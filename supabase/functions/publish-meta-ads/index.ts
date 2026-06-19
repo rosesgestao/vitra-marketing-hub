@@ -405,7 +405,7 @@ Deno.serve(async (req) => {
           const headline = String(asset.headline || m.nome || campaign.product_name || "").slice(0, 40);
           const primaryText = String(m.texto_principal || asset.copy || "");
           const cta = String(asset.cta || "Saiba mais");
-          const issues = validateCopyAngle({ headline, body: primaryText, cta }, { scope, headlineMax: 40, productName: String(campaign.product_name || "") }).issues;
+          const issues = validateCopyAngle({ headline, body: primaryText, cta }, { scope, headlineMax: 40, productName: String(campaign.product_name || ""), channel: "paid" }).issues;
           if (issues.length) continue;
           valid.push({ asset, headline, primaryText, descricao: String(m.descricao || "") });
         }

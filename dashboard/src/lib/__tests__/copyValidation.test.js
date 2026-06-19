@@ -21,6 +21,17 @@ describe('bannedVocabForScope', () => {
     expect(bannedVocabForScope('vitra_premium')).toContain('imperdivel')
     expect(bannedVocabForScope('vitra_premium')).not.toContain('curadoria')
   })
+  it("pago da Imobiliaria libera genericos de mercado mas mantem o lexico Premium", () => {
+    const paid = bannedVocabForScope('vitra_imobiliaria', 'paid')
+    // genericos de mercado liberados no pago (validado nos anuncios vencedores)
+    expect(paid).not.toContain('alto padrao')
+    expect(paid).not.toContain('exclusivo')
+    expect(paid).not.toContain('exclusiva')
+    // voz genuinamente Premium continua bloqueada mesmo no pago
+    expect(paid).toContain('curadoria')
+    expect(paid).toContain('atemporal')
+    expect(paid).toContain('seleto')
+  })
 })
 
 describe('validateCopyAngle', () => {
@@ -53,6 +64,22 @@ describe('validateCopyAngle', () => {
     const r = validateCopyAngle(
       { ...ok, body: 'Uma curadoria de alto padrao para voce.' },
       { headlineMax: 40, scope: 'vitra_imobiliaria' },
+    )
+    expect(r.issues.join(' ')).toMatch(/vocabulario fora da marca/)
+  })
+
+  it('no pago da Imobiliaria, termos genericos de mercado (alto padrao/exclusiva) NAO sao sinalizados', () => {
+    const r = validateCopyAngle(
+      { ...ok, body: 'Apartamento de alto padrao, unidade exclusiva em andar alto.' },
+      { headlineMax: 40, scope: 'vitra_imobiliaria', channel: 'paid' },
+    )
+    expect(r.issues.join(' ')).not.toMatch(/vocabulario fora da marca/)
+  })
+
+  it('no pago da Imobiliaria, o lexico Premium (curadoria) ainda e sinalizado', () => {
+    const r = validateCopyAngle(
+      { ...ok, body: 'Uma curadoria pensada para voce.' },
+      { headlineMax: 40, scope: 'vitra_imobiliaria', channel: 'paid' },
     )
     expect(r.issues.join(' ')).toMatch(/vocabulario fora da marca/)
   })

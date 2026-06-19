@@ -50,7 +50,7 @@ function brandVoice(scope: string) {
     paleta: "navy #0A1628 + dourado, institucional-comercial",
     tom: "Institucional-comercial DIRETO. Vende com argumento concreto de imovel: preco, parcela, planta, bairro, financiamento, lazer, prazo de entrega, escassez concreta (ultimas unidades).",
     ctas: "Fale com a Vitra, Fale com um consultor, Agendar visita, Conhecer o imovel, Receber condicoes, Conhecer a regiao",
-    evite: "NAO usar a voz editorial da Premium: nada de 'curadoria', 'uma categoria acima', 'liquidez', 'alto padrao', 'leitura objetiva', 'exclusividade', 'patrimonial'. Regra do Brand System: Premium e Imobiliaria NAO misturam linguagem.",
+    evite: "NAO usar a voz EDITORIAL da Premium: nada de 'curadoria', 'uma categoria acima', 'liquidez', 'leitura objetiva', 'atemporal', 'seleto', 'singular', 'sofisticado', 'patrimonial', 'experiencia de morar'. Termos genericos de mercado (ex.: 'alto padrao', 'exclusivo'/'exclusiva') SAO permitidos no anuncio pago. Regra do Brand System: a voz editorial Premium nao mistura com a Imobiliaria.",
   };
 }
 
@@ -72,7 +72,7 @@ REGRAS OBRIGATORIAS:
 5. NAO repita o nome do produto na headline E no inicio do texto (evite "Produto. Produto.").
 6. body (texto principal): 1 a 2 frases, com um beneficio concreto e o proximo passo.
 7. cta: curto, de conversao imobiliaria, coerente com a voz da marca.
-8. NUNCA use vocabulario fora da marca. Proibido aqui: ${bannedVocabForScope(scope).slice(0, 8).join(", ")}.
+8. NUNCA use vocabulario fora da marca. Proibido aqui: ${bannedVocabForScope(scope, "paid").slice(0, 8).join(", ")}.
 
 Devolva ESTRITAMENTE no formato JSON pedido (angles[]). Sem texto fora do JSON.`;
 }
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     // Validacao no codigo (a prova do schema): tamanho, vocabulario de marca, nome duplicado.
     const angles = rawAngles.map((a: any) => ({
       key: a.key, angle: a.angle, headline: a.headline, body: a.body, cta: a.cta,
-      issues: validateCopyAngle(a, { headlineMax, scope, productName }).issues,
+      issues: validateCopyAngle(a, { headlineMax, scope, productName, channel: "paid" }).issues,
     }));
     const flagged = angles.filter((a: any) => a.issues.length).length;
 

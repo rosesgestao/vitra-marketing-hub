@@ -4,22 +4,31 @@
 // da auditoria de copy: tamanho de headline, nao repetir o nome do produto na headline E no inicio
 // do texto, e nao misturar vocabulario entre Premium e Imobiliaria (regra do Brand System).
 
-// Vocabulario editorial da Vitra Premium — NAO pode vazar para a Imobiliaria. Inclui o lexico oficial
-// do brandbook Premium (Curadoria, Seleto, Atemporal, Discreto, Singular, Excepcional, Sofisticado...).
-const PREMIUM_VOCAB = [
-  "curadoria", "curado", "uma categoria acima", "liquidez", "alto padrao", "alto padrão",
-  "leitura objetiva", "sofisticacao", "sofisticação", "sofisticado", "exclusividade", "exclusivo", "exclusiva",
+// Lexico GENUINAMENTE editorial da Vitra Premium — NUNCA pode vazar para a Imobiliaria (em nenhum canal).
+// E a voz distintiva da Premium (brandbook): curadoria, seleto, atemporal, discreto, singular...
+const PREMIUM_STRICT = [
+  "curadoria", "curado", "uma categoria acima", "liquidez",
+  "leitura objetiva", "sofisticacao", "sofisticação", "sofisticado",
   "patrimonial", "experiencia de morar", "experiência de morar", "assinatura premium", "requinte",
   "seleto", "seleta", "atemporal", "singular", "discreto", "discreta", "excepcional",
 ];
+// Termos GENERICOS DE MERCADO imobiliario — bloqueados no ORGANICO da Imobiliaria (separacao de marca),
+// mas LIBERADOS no PAGO da Imobiliaria: convertem (validado nos anuncios vencedores) e nao sao exclusivos
+// da Premium. Decisao de produto (a): destravar o pago sem deixar a voz editorial Premium vazar.
+const MARKET_GENERIC = ["alto padrao", "alto padrão", "exclusividade", "exclusivo", "exclusiva"];
+// Vocabulario Premium completo (default p/ Imobiliaria: organico = separacao dura).
+const PREMIUM_VOCAB = [...PREMIUM_STRICT, ...MARKET_GENERIC];
 // Termos "promocao barata" que destoam do tom editorial da Premium.
 const CHEAP_VOCAB = [
   "baratinho", "baratissimo", "baratíssimo", "liquidacao", "liquidação", "imperdivel", "imperdível",
   "promocao relampago", "promoção relâmpago", "aproveite ja", "aproveite já", "ultima chance",
 ];
 
-export function bannedVocabForScope(scope: string): string[] {
-  return scope === "vitra_premium" ? CHEAP_VOCAB : PREMIUM_VOCAB;
+// `channel='paid'` na Imobiliaria libera os termos genericos de mercado (alto padrao, exclusivo...),
+// mantendo bloqueado o lexico genuinamente Premium. Organico (default) segue com separacao dura.
+export function bannedVocabForScope(scope: string, channel: "paid" | "organic" = "organic"): string[] {
+  if (scope === "vitra_premium") return CHEAP_VOCAB;
+  return channel === "paid" ? PREMIUM_STRICT : PREMIUM_VOCAB;
 }
 
 export interface CopyAngle {
@@ -34,6 +43,7 @@ export interface ValidateOpts {
   headlineMax?: number;
   scope?: string;
   productName?: string;
+  channel?: "paid" | "organic";   // 'paid' libera termos genericos de mercado na Imobiliaria
 }
 
 export interface ValidationResult {
@@ -42,7 +52,7 @@ export interface ValidationResult {
 }
 
 export function validateCopyAngle(angle: CopyAngle, opts: ValidateOpts = {}): ValidationResult {
-  const { headlineMax = 40, scope = "vitra_imobiliaria", productName = "" } = opts;
+  const { headlineMax = 40, scope = "vitra_imobiliaria", productName = "", channel = "organic" } = opts;
   const issues: string[] = [];
 
   const headline = String(angle?.headline ?? "").replace(/\s+/g, " ").trim();
@@ -64,7 +74,7 @@ export function validateCopyAngle(angle: CopyAngle, opts: ValidateOpts = {}): Va
 
   // Vocabulario fora da marca (cross-contaminacao Premium <-> Imobiliaria).
   const haystack = `${headline} ${body} ${cta}`.toLowerCase();
-  const hits = bannedVocabForScope(scope).filter((w) => haystack.includes(w.toLowerCase()));
+  const hits = bannedVocabForScope(scope, channel).filter((w) => haystack.includes(w.toLowerCase()));
   if (hits.length) {
     issues.push(`vocabulario fora da marca (${scope}): ${[...new Set(hits)].join(", ")}`);
   }
