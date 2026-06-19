@@ -396,6 +396,7 @@ Deno.serve(async (req) => {
 
       // ---- Um conjunto por grupo; N anuncios (1 por criativo aprovado) — TUDO PAUSED ----
       const built: any[] = [];
+      const skippedCreatives: any[] = [];   // criativos pulados por copy reprovada — devolvidos no response (nao mais silencioso)
       let totalAds = 0;
       for (const spec of specs) {
         // Pre-valida a copy de cada criativo; so cria o conjunto se houver ao menos 1 criativo valido.
@@ -406,7 +407,11 @@ Deno.serve(async (req) => {
           const primaryText = String(m.texto_principal || asset.copy || "");
           const cta = String(asset.cta || "Saiba mais");
           const issues = validateCopyAngle({ headline, body: primaryText, cta }, { scope, headlineMax: 40, productName: String(campaign.product_name || ""), channel: "paid" }).issues;
-          if (issues.length) continue;
+          if (issues.length) {
+            // Em vez de descartar em silencio, registra qual criativo foi pulado e por que (visivel ao operador).
+            skippedCreatives.push({ group_key: spec.group_key, asset_id: asset.id, headline, issues });
+            continue;
+          }
           valid.push({ asset, headline, primaryText, descricao: String(m.descricao || "") });
         }
         if (!valid.length) { built.push({ group_key: spec.group_key, label: spec.label, skipped: "sem criativo aprovado com copy valida" }); continue; }
@@ -453,11 +458,15 @@ Deno.serve(async (req) => {
       }
 
       const okBuilt = built.filter((b) => b.adset_id);
-      if (!okBuilt.length) return json({ error: "nothing_built", message: "Nenhum conjunto pode ser criado (sem criativo aprovado ou copy reprovada).", built }, 422);
+      const skippedNote = skippedCreatives.length
+        ? ` ${skippedCreatives.length} criativo(s) pulado(s) por copy reprovada (ver skipped_creatives).`
+        : "";
+      if (!okBuilt.length) return json({ error: "nothing_built", message: "Nenhum conjunto pode ser criado (sem criativo aprovado ou copy reprovada).", built, skipped_creatives: skippedCreatives }, 422);
       return json({
         ok: true, paused: true, meta_campaign_id: campRes.id, ad_sets: okBuilt.length, ads: totalAds, built,
+        skipped_creatives: skippedCreatives,
         ads_manager_url: `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${adAccountId}&selected_campaign_ids=${campRes.id}`,
-        message: `Rascunho criado na Meta: ${okBuilt.length} conjunto(s) e ${totalAds} anuncio(s), tudo PAUSED. Nada foi ativado nem gastou verba.`,
+        message: `Rascunho criado na Meta: ${okBuilt.length} conjunto(s) e ${totalAds} anuncio(s), tudo PAUSED. Nada foi ativado nem gastou verba.${skippedNote}`,
       });
     }
 

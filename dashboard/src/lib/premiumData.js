@@ -666,11 +666,14 @@ export async function saveEditorialSettings(brandScope, { activePillars = [], de
 // Revalida UM angulo de copy no cliente (mesmas regras da Edge): usada ao editar um rascunho para
 // atualizar os badges de issue ao vivo (tamanho da headline, nome do produto duplicado, vocabulario
 // fora da marca). Devolve o array de issues (vazio = ok).
-export function revalidateCopyAngle(angle, { scope, headlineMax, productName } = {}) {
+export function revalidateCopyAngle(angle, { scope, headlineMax, productName, channel = 'organic' } = {}) {
+  // `channel:'paid'` espelha a Edge generate-copy: no anuncio pago da Imobiliaria libera os termos
+  // genericos de mercado (alto padrao/exclusivo) e mantem bloqueado o lexico editorial Premium.
   return validateCopyAngle(angle, {
     scope: scope || BRAND_SCOPES.imobiliaria,
     headlineMax: Number(headlineMax) || 40,
     productName: productName || '',
+    channel,
   }).issues
 }
 

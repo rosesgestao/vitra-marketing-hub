@@ -2776,6 +2776,17 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
       {result?.meta_campaign_id && !result.activated && (
         <p className="mt-3 text-[11px] leading-4 text-white/45">Rascunho criado <span className="text-white/65">PAUSADO</span> (campanha {result.meta_campaign_id}). Revise no Ads Manager; “Publicar (ativar)” inicia o gasto e pede confirmação.</p>
       )}
+
+      {Array.isArray(result?.skipped_creatives) && result.skipped_creatives.length > 0 && (
+        <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] leading-4 text-amber-200">
+          <p className="font-semibold">{result.skipped_creatives.length} criativo(s) não publicado(s) — copy reprovada na validação de marca:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {result.skipped_creatives.map((s, i) => (
+              <li key={i}><span className="text-amber-100">{s.headline || s.asset_id}</span>: {Array.isArray(s.issues) ? s.issues.join('; ') : String(s.issues)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -3716,7 +3727,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
       drafts: (state.drafts || []).map((d, i) => {
         if (i !== index) return d
         const next = { ...d, [field]: value }
-        next.issues = revalidateCopyAngle(next, { scope: brandProfile.scope, headlineMax, productName: form.product_name })
+        next.issues = revalidateCopyAngle(next, { scope: brandProfile.scope, headlineMax, productName: form.product_name, channel: 'paid' })
         return next
       }),
     }))

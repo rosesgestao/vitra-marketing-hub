@@ -111,6 +111,16 @@ describe('revalidateCopyAngle (revalidacao ao vivo na edicao da copy)', () => {
     const issues = revalidateCopyAngle({ ...ok, body: 'Uma curadoria de alto padrao.' }, { scope: 'vitra_imobiliaria', headlineMax: 36 })
     expect(issues.join(' ')).toMatch(/vocabulario fora da marca/)
   })
+
+  it('no anuncio pago (channel:paid) NAO sinaliza genericos de mercado (alto padrao/exclusiva)', () => {
+    const issues = revalidateCopyAngle({ ...ok, body: 'Apartamento de alto padrao, unidade exclusiva.' }, { scope: 'vitra_imobiliaria', headlineMax: 36, channel: 'paid' })
+    expect(issues.join(' ')).not.toMatch(/vocabulario fora da marca/)
+  })
+
+  it('no anuncio pago (channel:paid) o lexico editorial Premium (curadoria) AINDA e sinalizado', () => {
+    const issues = revalidateCopyAngle({ ...ok, body: 'Uma curadoria para poucos.' }, { scope: 'vitra_imobiliaria', headlineMax: 36, channel: 'paid' })
+    expect(issues.join(' ')).toMatch(/vocabulario fora da marca/)
+  })
 })
 
 describe('aiCopyConcepts (copiloto de IA — degrau A)', () => {
