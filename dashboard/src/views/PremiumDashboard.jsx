@@ -2444,7 +2444,7 @@ function groupMetaAdsByCampaign(assets) {
 // Painel "Revisar e publicar": o agente monta a campanha Meta (campanha -> conjunto -> criativo ->
 // anuncio) em status PAUSED via Edge publish-meta-ads. O orcamento usa o TETO definido aqui pelo
 // operador. Ativar (gastar) e uma acao SEPARADA, com window.confirm — nunca automatica.
-function PublishMetaPanel({ campaign, brandProfile, ads }) {
+function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   const readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok).length
   const intake = campaign?.brief?.source_intake || {}
   const acct = META_AD_ACCOUNTS[brandProfile.scope] || META_AD_ACCOUNTS[BRAND_SCOPES.imobiliaria] || {}
@@ -2506,6 +2506,25 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
       .catch(() => { /* fallback input manual */ })
     return () => { alive = false }
   }, [adAccountId])
+  // Auto-seed a partir de um PRESET ("Usar preset" no painel de Presets): aplica objetivo, orcamento e os
+  // 2 conjuntos por geografia (regional por raio + cidade) como proposta a revisar. O operador confere e
+  // gera o rascunho PAUSED. So semeia campos do padrao; criativo/Pagina/destino seguem do fluxo normal.
+  useEffect(() => {
+    if (!seed) return
+    if (seed.objective === 'OUTCOME_LEADS') setObjective('leads_form')
+    else if (seed.objective === 'OUTCOME_SALES') setObjective('sales')
+    if (seed.daily_budget_cents) setBudget(String(seed.daily_budget_cents / 100))
+    const specs = (Array.isArray(seed.adsets) ? seed.adsets : []).map(a => ({
+      label: a.kind === 'regional' ? `Regional (raio ${a.radius_km || 2}km)` : 'Cidade (POA)',
+      geo: a.geo,
+      lat: a.lat ?? undefined, lng: a.lng ?? undefined,
+      radius_km: a.radius_km ?? undefined, city_key: a.city_key ?? undefined,
+      age_min: seed.age_min, age_max: seed.age_max,
+      placements: 'facebook,instagram',
+    }))
+    if (specs.length) setProposal(specs)
+  }, [seed])
+
   const isLeadForm = objective === 'leads_form'
   const isSales = objective === 'sales'
 
@@ -2660,6 +2679,11 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
                   <p className="truncate text-xs font-semibold text-white">{s.label || s.group_key}</p>
                   <span className="flex-shrink-0 text-[10px] text-white/45">{s.age_min}–{s.age_max} anos{s.retargeting ? ' · retarget' : ''}</span>
                 </div>
+                {s.geo && (
+                  <p className="mt-1 text-[10px] text-gold-200/70">
+                    {s.geo === 'radius' ? `Geo: raio ${s.radius_km || 2}km${(s.lat != null && s.lng != null) ? ` (${Number(s.lat).toFixed(4)}, ${Number(s.lng).toFixed(4)})` : ''}` : s.geo === 'city' ? 'Geo: cidade inteira' : ''}
+                  </p>
+                )}
                 {Array.isArray(s.interest_keywords) && s.interest_keywords.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {s.interest_keywords.map((k, j) => <span key={j} className="rounded bg-gold-500/10 px-1.5 py-0.5 text-[10px] text-gold-200">{k}</span>)}
@@ -2752,7 +2776,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
 // Padrao reutilizavel de Tráfego Pago: importa a config de uma campanha de REFERENCIA (vencedora) da
 // Meta, normaliza num blueprint (decisoes de gestor: age 25-65, raio 2km regional + cidade macro, FB+IG,
 // 3x3, form por ticket) e salva como PRESET por marca. Reusa-se ao montar novas campanhas semelhantes.
-function MetaPresetsPanel({ brandProfile = getBrandProfile() }) {
+function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
   const [metaCampaignId, setMetaCampaignId] = useState('')
   const [importing, setImporting] = useState(false)
   const [config, setConfig] = useState(null)
@@ -2844,7 +2868,12 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile() }) {
               <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-xs font-medium text-white/80">{p.name}</span>
-                  <button type="button" onClick={() => handleDelete(p)} className="text-[10px] text-white/40 hover:text-red-300">excluir</button>
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <button type="button" onClick={() => { onApply?.(p.blueprint); setNotice(`Preset "${p.name}" aplicado no painel abaixo — revise e gere o rascunho.`) }} className="inline-flex items-center gap-1 rounded-md border border-gold-500/40 px-2 py-1 text-[10px] text-gold-200 hover:bg-gold-500/10">
+                      <Check size={11} />Usar preset
+                    </button>
+                    <button type="button" onClick={() => handleDelete(p)} className="text-[10px] text-white/40 hover:text-red-300">excluir</button>
+                  </div>
                 </div>
                 <p className="mt-1 text-[10px] leading-4 text-white/45">{bpSummary(p.blueprint)}</p>
               </div>
@@ -2858,6 +2887,7 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile() }) {
 }
 
 function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
+  const [presetSeed, setPresetSeed] = useState(null)
   if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
   const ads = groupMetaAds(assets)
   if (!ads.length) {
@@ -2930,9 +2960,9 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
         <StatTile label="QA final" value={`${readyAds}/${ads.length}`} sub="anuncios exportaveis" icon={Target} tone="#C4942A" />
       </div>
 
-      <MetaPresetsPanel brandProfile={brandProfile} />
+      <MetaPresetsPanel brandProfile={brandProfile} onApply={setPresetSeed} />
 
-      <PublishMetaPanel campaign={campaign} brandProfile={brandProfile} ads={ads} />
+      <PublishMetaPanel campaign={campaign} brandProfile={brandProfile} ads={ads} seed={presetSeed} />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {ads.map(ad => (
