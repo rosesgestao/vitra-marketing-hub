@@ -123,6 +123,17 @@ Deno.serve(async (req) => {
       return json({ pixels });
     }
 
+    if (action === "list_campaigns") {
+      // Campanhas da conta — para escolher a campanha de REFERENCIA do preset por dropdown (sem digitar ID).
+      const data = await graphGet(`act_${adAccountId}/campaigns`, "fields=id,name,objective,effective_status,created_time,start_time,stop_time&limit=200");
+      const campaigns = (data.data || []).map((c: any) => ({
+        id: String(c.id), name: c.name ?? null, objective: c.objective ?? null,
+        status: c.effective_status ?? null,
+        created_time: c.created_time ?? null, start_time: c.start_time ?? null, stop_time: c.stop_time ?? null,
+      }));
+      return json({ campaigns });
+    }
+
     if (action === "list") {
       const data = await graphGet(`act_${adAccountId}/customaudiences`, "fields=id,name,subtype,approximate_count_lower_bound,delivery_status,time_created&limit=200");
       const audiences = (data.data || []).map((a: any) => ({

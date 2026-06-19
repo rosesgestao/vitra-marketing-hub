@@ -78,6 +78,7 @@ import {
   saveMetaPreset,
   listMetaPresets,
   deleteMetaPreset,
+  listMetaCampaigns,
   CONTENT_TYPE_OPTIONS,
   CONTENT_PILLAR_OPTIONS,
   CONTENT_FORMAT_OPTIONS,
@@ -2787,9 +2788,49 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
   const [presets, setPresets] = useState([])
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+  // Auto-descoberta (mesmo padrao da Conta/Página no "Publicar na Meta"): conta -> campanhas por dropdown.
+  const brandAcct = META_AD_ACCOUNTS[brandProfile.scope] || META_AD_ACCOUNTS[BRAND_SCOPES.imobiliaria] || {}
+  const [adAccountId, setAdAccountId] = useState(brandAcct.adAccountId || '')
+  const [accounts, setAccounts] = useState([])
+  const [campaigns, setCampaigns] = useState([])
+  const [statusFilter, setStatusFilter] = useState('todos')
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false)
+  const [manualMode, setManualMode] = useState(false)   // fallback se a conta nao listar (sem token/permissao)
 
   async function loadPresets() { try { setPresets(await listMetaPresets(brandProfile.scope)) } catch { /* ignore */ } }
   useEffect(() => { loadPresets() }, [brandProfile.scope])
+
+  // Contas acessiveis -> pre-seleciona a da marca (cai em input manual se nao listar).
+  useEffect(() => {
+    let alive = true
+    listMetaAdAccounts()
+      .then(list => { if (!alive) return; setAccounts(list); if (list.length && !list.some(a => a.id === adAccountId)) setAdAccountId((list.find(a => a.id === brandAcct.adAccountId) || list[0]).id) })
+      .catch(() => { if (alive) setManualMode(true) })
+    return () => { alive = false }
+  }, [brandProfile.scope])
+
+  // Ao trocar a conta, recarrega as campanhas dela e zera a selecao anterior.
+  useEffect(() => {
+    if (!adAccountId) { setCampaigns([]); return }
+    let alive = true
+    setLoadingCampaigns(true); setMetaCampaignId(''); setConfig(null); setBlueprint(null)
+    listMetaCampaigns(adAccountId)
+      .then(list => { if (alive) { setCampaigns(list); setManualMode(false) } })
+      .catch(() => { if (alive) setManualMode(true) })
+      .finally(() => { if (alive) setLoadingCampaigns(false) })
+    return () => { alive = false }
+  }, [adAccountId])
+
+  const STATUS_LABEL = s => ({ ACTIVE: 'Ativa', PAUSED: 'Pausada', CAMPAIGN_PAUSED: 'Pausada', ADSET_PAUSED: 'Pausada', ARCHIVED: 'Arquivada', DELETED: 'Excluída', IN_PROCESS: 'Em processo', WITH_ISSUES: 'Com pendência' }[s] || s || '—')
+  const campaignPeriod = c => {
+    // ignora datas invalidas/epoch-0 (campanha sem start_time vinha como "31/12/69").
+    const fmt = d => { const t = Date.parse(d || ''); return (t && new Date(t).getFullYear() >= 2015) ? new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : null }
+    const a = fmt(c.start_time || c.created_time), b = fmt(c.stop_time)
+    return a ? (b ? `${a}–${b}` : `desde ${a}`) : ''
+  }
+  const filteredCampaigns = campaigns.filter(c => statusFilter === 'todos'
+    || (statusFilter === 'ativas' && c.status === 'ACTIVE')
+    || (statusFilter === 'pausadas' && /PAUSED/.test(String(c.status))))
 
   async function handleImport() {
     if (!metaCampaignId.trim()) return
@@ -2827,14 +2868,49 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
         <p className="text-sm font-semibold text-white">Presets de campanha — clonar a vencedora</p>
       </div>
       <p className="mb-3 max-w-2xl text-xs leading-5 text-white/50">
-        Importe a configuração de uma <span className="text-white/75">campanha de referência</span> (ID da campanha na Meta) e salve como <span className="text-white/75">preset</span> — objetivo, otimização, orçamento, faixa etária e os 2 conjuntos por geografia (regional por raio + cidade) viram padrão para novas campanhas semelhantes.
+        Escolha uma <span className="text-white/75">campanha de referência</span> da conta (lista da Meta, sem digitar ID) e salve como <span className="text-white/75">preset</span> — objetivo, otimização, orçamento, faixa etária e os 2 conjuntos por geografia (regional por raio + cidade) viram padrão para novas campanhas semelhantes.
       </p>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="block"><span className="form-label">ID da campanha de referência (Meta)</span>
-          <input className="form-input !w-64" value={metaCampaignId} onChange={e => setMetaCampaignId(e.target.value)} placeholder="ex.: 120240689084870221" /></label>
+      {/* Conta de anúncio + Campanha de referência por DROPDOWN (sem digitar ID) — espelha Conta/Página do "Publicar na Meta". */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block"><span className="form-label">Conta de anúncio</span>
+          {accounts.length > 0
+            ? <VitraSelect value={adAccountId} onChange={setAdAccountId} ariaLabel="Conta de anúncio (preset)"
+                options={accounts.map(a => ({ value: a.id, label: `${a.name || a.id}${a.currency ? ` · ${a.currency}` : ''}` }))} />
+            : <input className="form-input" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} placeholder="ID da conta (act_…)" />}
+        </label>
         <label className="block"><span className="form-label">Raio regional (km)</span>
-          <input type="number" min="1" max="80" className="form-input !w-24" value={radiusKm} onChange={e => setRadiusKm(Number(e.target.value))} /></label>
+          <input type="number" min="1" max="80" className="form-input" value={radiusKm} onChange={e => setRadiusKm(Number(e.target.value))} /></label>
+      </div>
+
+      {!manualMode && (
+        <div className="mt-3">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="form-label">Campanha de referência</span>
+            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-0.5">
+              {[{ k: 'todos', l: 'Todas' }, { k: 'ativas', l: 'Ativas' }, { k: 'pausadas', l: 'Pausadas' }].map(o => (
+                <button key={o.k} type="button" onClick={() => setStatusFilter(o.k)}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition ${statusFilter === o.k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>{o.l}</button>
+              ))}
+            </div>
+          </div>
+          {loadingCampaigns
+            ? <p className="text-[11px] text-white/45"><Loader2 size={12} className="mr-1 inline animate-spin" />Carregando campanhas…</p>
+            : filteredCampaigns.length > 0
+              ? <VitraSelect value={metaCampaignId} onChange={setMetaCampaignId} ariaLabel="Campanha de referência"
+                  options={[{ value: '', label: 'Selecione uma campanha…' }, ...filteredCampaigns.map(c => ({ value: c.id, label: `${c.name || c.id} · ${STATUS_LABEL(c.status)}${campaignPeriod(c) ? ` · ${campaignPeriod(c)}` : ''}` }))]} />
+              : <p className="text-[11px] text-white/45">{campaigns.length ? 'Nenhuma campanha neste filtro.' : 'Nenhuma campanha nesta conta.'}</p>}
+        </div>
+      )}
+
+      {manualMode && (
+        <label className="mt-3 block max-w-md"><span className="form-label">ID da campanha de referência (Meta)</span>
+          <input className="form-input" value={metaCampaignId} onChange={e => setMetaCampaignId(e.target.value)} placeholder="ex.: 120240689084870221" />
+          <span className="mt-1 block text-[10px] text-white/35">Não foi possível listar campanhas desta conta — cole o ID manualmente.</span>
+        </label>
+      )}
+
+      <div className="mt-3">
         <button type="button" onClick={handleImport} disabled={importing || !metaCampaignId.trim()} className="btn-ghost inline-flex items-center gap-2 text-sm disabled:opacity-50">
           {importing ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}Importar config
         </button>

@@ -840,6 +840,17 @@ export async function listMetaPixels(adAccountId) {
   return Array.isArray(data?.pixels) ? data.pixels : []
 }
 
+// Campanhas da conta (read-only) — para escolher a campanha de REFERENCIA do preset por dropdown,
+// sem digitar o ID. Mesmo padrao de listMetaPages/listMetaPixels.
+export async function listMetaCampaigns(adAccountId) {
+  const { data, error } = await supabase.functions.invoke('manage-audiences', {
+    headers: copilotGateHeaders(),
+    body: { action: 'list_campaigns', ad_account_id: adAccountId },
+  })
+  if (error) throw await edgeError(error)
+  return Array.isArray(data?.campaigns) ? data.campaigns : []
+}
+
 // ===== Fase 2c: publicos custom/lookalike (Edge manage-audiences, via Graph) =====
 // Lista os publicos da conta (para escolher no retargeting).
 export async function listMetaAudiences(adAccountId) {
