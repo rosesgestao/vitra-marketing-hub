@@ -2823,6 +2823,17 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
           </ul>
         </div>
       )}
+
+      {Array.isArray(result?.targeting_adjustments) && result.targeting_adjustments.length > 0 && (
+        <div className="mt-3 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-[11px] leading-4 text-sky-200">
+          <p className="font-semibold">Direcionamento ajustado em {result.targeting_adjustments.length} conjunto(s) — a Meta recusou interesses depreciados; mantida a segmentação por geografia:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {result.targeting_adjustments.map((t, i) => (
+              <li key={i}><span className="text-sky-100">{t.label || t.group_key || `Conjunto ${i + 1}`}</span>: {t.note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

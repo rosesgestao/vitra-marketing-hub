@@ -42,7 +42,9 @@ async function graphPost(path: string, params: Record<string, unknown>) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok || (data && data.error)) {
     const e = data?.error || {};
-    throw new Error(`Graph ${path}: ${e.message || res.status}${e.error_user_msg ? ` — ${e.error_user_msg}` : ""}`);
+    const err = new Error(`Graph ${path}: ${e.message || res.status}${e.error_user_msg ? ` — ${e.error_user_msg}` : ""}`);
+    (err as any).graphError = e;   // {code, error_subcode, error_user_msg, error_data...} — usado p/ tratar direcionamento depreciado
+    throw err;
   }
   return data;
 }
@@ -397,6 +399,7 @@ Deno.serve(async (req) => {
       // ---- Um conjunto por grupo; N anuncios (1 por criativo aprovado) — TUDO PAUSED ----
       const built: any[] = [];
       const skippedCreatives: any[] = [];   // criativos pulados por copy reprovada — devolvidos no response (nao mais silencioso)
+      const targetingAdjustments: any[] = []; // conjuntos cujo direcionamento foi ajustado (interesses depreciados)
       let totalAds = 0;
       for (const spec of specs) {
         // Pre-valida a copy de cada criativo; so cria o conjunto se houver ao menos 1 criativo valido.
@@ -416,18 +419,49 @@ Deno.serve(async (req) => {
         }
         if (!valid.length) { built.push({ group_key: spec.group_key, label: spec.label, skipped: "sem criativo aprovado com copy valida" }); continue; }
 
-        const targeting = await targetingFor(spec);
-        const adsetRes = await graphPost(`act_${adAccountId}/adsets`, {
+        let targeting = await targetingFor(spec);
+        const adsetParams = (t: any) => ({
           name: `${campaign.name} | ${spec.label || valid[0].asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
           campaign_id: campRes.id, optimization_goal: obj.optimization_goal, billing_event: obj.billing_event,
           ...(obj.destination_type ? { destination_type: obj.destination_type } : {}),
           ...(isConversions
             ? { promoted_object: { pixel_id: pixelId, custom_event_type: conversionEvent } }
             : (isLeadForm || isWhatsApp) ? { promoted_object: { page_id: pageId } } : {}),
-          targeting, status: "PAUSED",
+          targeting: t, status: "PAUSED",
           ...(body.start_time ? { start_time: body.start_time } : {}),
           ...(body.end_time ? { end_time: body.end_time } : {}),
         });
+        let adsetRes: any;
+        let targetingNote: string | null = null;
+        try {
+          adsetRes = await graphPost(`act_${adAccountId}/adsets`, adsetParams(targeting));
+        } catch (e) {
+          // A Meta rejeita INTERESSES DEPRECIADOS no direcionamento ("Invalid parameter — Atualize a
+          // especificacao de direcionamento"). Interesses sao um REFORCO opcional sobre o geo (raio/cidade),
+          // que e o nucleo da segmentacao. Em vez de falhar o build, removemos os interesses depreciados
+          // (ou todos, se nao der pra identifica-los) e recriamos o conjunto so com geo. Retry unico.
+          const ge = (e as any).graphError || {};
+          const raw = JSON.stringify(ge);
+          const isTargeting = ge.error_subcode === 1487079 ||
+            /deprecated_interest_id/.test(raw) ||
+            /direcionamento|targeting|interest|Invalid parameter/i.test(String((e as any)?.message || ""));
+          if (isTargeting && targeting.flexible_spec) {
+            const deprecatedIds = new Set((raw.match(/"deprecated_interest_id":\s*"?(\d+)"?/g) || []).map((s) => s.replace(/\D/g, "")));
+            const cleaned: any = { ...targeting };
+            const kept = (targeting.flexible_spec?.[0]?.interests || []).filter((it: any) => !deprecatedIds.has(String(it.id)));
+            if (deprecatedIds.size && kept.length) {
+              cleaned.flexible_spec = [{ interests: kept }];
+              targetingNote = `interesses depreciados removidos (${[...deprecatedIds].join(", ")}); mantidos ${kept.length}`;
+            } else {
+              delete cleaned.flexible_spec;
+              targetingNote = "interesses removidos (direcionamento depreciado/invalido) — conjunto publicado so com geo";
+            }
+            targeting = cleaned;
+            adsetRes = await graphPost(`act_${adAccountId}/adsets`, adsetParams(cleaned));
+          } else {
+            throw e;
+          }
+        }
         // CTA: formulario instantaneo abre o lead_gen_form na propria Meta; demais objetivos levam ao link.
         const callToAction = isLeadForm
           ? { type: obj.cta, value: { lead_gen_form_id: leadFormId, link: destinationUrl } }
@@ -454,19 +488,24 @@ Deno.serve(async (req) => {
           adIds.push(adRes.id);
         }
         totalAds += adIds.length;
-        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ads: adIds.length, ad_ids: adIds });
+        if (targetingNote) targetingAdjustments.push({ group_key: spec.group_key, label: spec.label, note: targetingNote });
+        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ads: adIds.length, ad_ids: adIds, targeting_note: targetingNote || undefined });
       }
 
       const okBuilt = built.filter((b) => b.adset_id);
       const skippedNote = skippedCreatives.length
         ? ` ${skippedCreatives.length} criativo(s) pulado(s) por copy reprovada (ver skipped_creatives).`
         : "";
+      const targetingNoteMsg = targetingAdjustments.length
+        ? ` ${targetingAdjustments.length} conjunto(s) com direcionamento ajustado (interesses depreciados removidos).`
+        : "";
       if (!okBuilt.length) return json({ error: "nothing_built", message: "Nenhum conjunto pode ser criado (sem criativo aprovado ou copy reprovada).", built, skipped_creatives: skippedCreatives }, 422);
       return json({
         ok: true, paused: true, meta_campaign_id: campRes.id, ad_sets: okBuilt.length, ads: totalAds, built,
         skipped_creatives: skippedCreatives,
+        targeting_adjustments: targetingAdjustments,
         ads_manager_url: `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${adAccountId}&selected_campaign_ids=${campRes.id}`,
-        message: `Rascunho criado na Meta: ${okBuilt.length} conjunto(s) e ${totalAds} anuncio(s), tudo PAUSED. Nada foi ativado nem gastou verba.${skippedNote}`,
+        message: `Rascunho criado na Meta: ${okBuilt.length} conjunto(s) e ${totalAds} anuncio(s), tudo PAUSED. Nada foi ativado nem gastou verba.${skippedNote}${targetingNoteMsg}`,
       });
     }
 
