@@ -236,6 +236,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 77. **[[Atualizacao_2026-06-18_Trafego_Preset_Fases2e3a]]**
     Tráfego: preset Fases 2+3a. FASE 2 (commit 9d1f92f): tabela premium_meta_presets + helpers readMetaCampaignConfig/presetBlueprintFromConfig (normaliza: age 25-65, raio 2km, cidade macro, FB+IG, 3x3, form por ticket)/save/list/delete. FASE 3a (commit 89ab518): targetingFor aceita geo por conjunto — radius (custom_locations lat/lng+km) = regional; city (city_key) = macro. deno+deploy OK; tabela verificada. Backend do "clonar a vencedora" completo. RESTA: painel de presets no Tráfego Pago (importar/salvar/listar/usar->semeia o build) + build PAUSED ao vivo do produto Azenha (precisa endereco->lat/lng + 1 criativo aprovado).
 
+78. **[[Atualizacao_2026-06-19_Trafego_Painel_Presets_e_Azenha]]**
+    Tráfego: painel de Presets (MetaPresetsPanel no Tráfego Pago) — importa config de campanha de referencia, mostra blueprint padronizado e salva/lista/exclui presets por marca. E2E ao vivo: importou a 30.05 -> blueprint OUTCOME_LEADS/QUALITY_LEAD/CBO R$15/25-65/regional 2km+cidade/mais volume -> salvou. AZENHA: endereco Carlos Barbosa 531 geocodificado (lat -30.0608422, lng -51.2115284), preset "Padrão Lead Imóvel — Azenha" criado com raio 2km nesse ponto + cidade POA + form mais_volume (ticket alto). Build ao vivo PAUSED depende de: criar a campanha Azenha + aprovar >=1 criativo (3x3); ativar = confirm. Commit e6386df.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
