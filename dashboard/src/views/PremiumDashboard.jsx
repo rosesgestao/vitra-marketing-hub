@@ -2534,7 +2534,31 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   const isSales = objective === 'sales'
 
   const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
-  const canBuild = readyAds > 0 && Boolean(adAccountId) && Boolean(pageId) && Boolean(destination) && budgetCents >= 100 && (!isSales || Boolean(convPixelId)) && !loading
+
+  // Prontidao de PUBLICACAO = contrato REAL do build_draft (nao o QA-polish completo do evaluateMetaAdReadiness,
+  // que tambem exige os 3 cortes + foto de origem + UTM por anuncio). O edge publica qualquer asset APROVADO
+  // e RENDERIZADO (public_url) com textos validos; conta/pagina/destino/orcamento vem deste painel.
+  const publishableAssets = ads
+    .flatMap(ad => ad.assets || [])
+    .filter(a =>
+      ['approved', 'published'].includes(a.status) &&
+      Boolean(a.public_url) &&
+      !needsVitraImobiliariaApprovedTemplateRender(a) &&
+      Boolean(a.headline) &&
+      Boolean(a.metadata?.meta_ad?.texto_principal || a.copy) &&
+      Boolean(a.cta),
+    ).length
+
+  // Lista EXATA do que falta para liberar o botao (em vez de desabilitar sem explicacao).
+  const missingToBuild = []
+  if (!adAccountId) missingToBuild.push('selecione a conta de anúncio')
+  if (!pageId) missingToBuild.push('selecione a Página do Facebook')
+  if (!destination) missingToBuild.push('informe o destino (site ou WhatsApp)')
+  if (budgetCents < 100) missingToBuild.push('defina o orçamento diário (mínimo R$ 1,00)')
+  if (isSales && !convPixelId) missingToBuild.push('selecione o pixel de conversão (objetivo Vendas)')
+  if (publishableAssets < 1) missingToBuild.push('aprove ao menos 1 criativo renderizado com título, texto e CTA (use "Aprovar anúncio" no QA)')
+
+  const canBuild = missingToBuild.length === 0 && !loading
 
   async function handleBuild() {
     setLoading(true); setError(null)
@@ -2594,9 +2618,9 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
       </p>
 
       <div className="mt-4 flex items-center gap-2 text-xs">
-        {readyAds > 0
-          ? (<><CheckCircle2 size={14} className="text-emerald-300" /><span className="text-white/70">{readyAds} anúncio(s) aprovado(s) e prontos para publicar</span></>)
-          : (<><AlertTriangle size={14} className="text-amber-300" /><span className="text-white/55">Aprove ao menos 1 anúncio (QA completo) para liberar a publicação.</span></>)}
+        {publishableAssets > 0
+          ? (<><CheckCircle2 size={14} className="text-emerald-300" /><span className="text-white/70">{publishableAssets} criativo(s) aprovado(s) e renderizado(s) — prontos para publicar{readyAds > 0 ? '' : ' (alguns itens de QA opcionais ainda pendentes)'}</span></>)
+          : (<><AlertTriangle size={14} className="text-amber-300" /><span className="text-white/55">Aprove ao menos 1 criativo renderizado (com título, texto e CTA) para liberar a publicação.</span></>)}
       </div>
 
       <div className="mt-4">
@@ -2760,8 +2784,17 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
         </div>
       )}
 
+      {!loading && missingToBuild.length > 0 && (
+        <div className="mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3.5 py-3 text-[11px] leading-4 text-amber-200">
+          <p className="font-semibold">Para liberar “Criar rascunho na Meta”, falta:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {missingToBuild.map((m, i) => <li key={i}>{m}</li>)}
+          </ul>
+        </div>
+      )}
+
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <button type="button" onClick={handleBuild} disabled={!canBuild} className="btn-gold inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" onClick={handleBuild} disabled={!canBuild} title={canBuild ? '' : `Falta: ${missingToBuild.join('; ')}`} className="btn-gold inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Megaphone size={16} />}
           {loading ? 'Criando rascunho…' : 'Criar rascunho na Meta (pausado)'}
         </button>
