@@ -750,7 +750,12 @@ export function presetBlueprintFromConfig(config, { regionalRadiusKm = 2 } = {})
   const macro = adsets.find(a => a.geo?.type === 'city' && a !== regional) || adsets[1] || null
   return {
     objective: config?.campaign?.objective || 'OUTCOME_LEADS',
-    optimization_goal: regional?.optimization_goal || macro?.optimization_goal || 'QUALITY_LEAD',
+    // O build deriva o optimization_goal do objectivePlaybook (LEAD_GENERATION p/ lead form). QUALITY_LEAD
+    // exige CRM/conversoes e seria rejeitado pela Meta — normaliza p/ refletir o que sera CONSTRUIDO, mesmo
+    // quando a campanha de referencia (ex.: 30.05) usa QUALITY_LEAD.
+    optimization_goal: (regional?.optimization_goal || macro?.optimization_goal) === 'QUALITY_LEAD'
+      ? 'LEAD_GENERATION'
+      : (regional?.optimization_goal || macro?.optimization_goal || 'LEAD_GENERATION'),
     bid_strategy: config?.campaign?.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
     daily_budget_cents: config?.campaign?.daily_budget_cents || 1500,
     cbo: config?.campaign?.cbo ?? true,
