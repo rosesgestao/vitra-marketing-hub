@@ -2,7 +2,7 @@
 
 > Copywriter de anuncios pagos como skill propria, ancorada nos padroes reais das campanhas vencedoras;
 > e o guard `copyValidation` agora libera, **so no pago da Imobiliaria**, os termos genericos de mercado
-> que mais converteram — sem deixar a voz editorial Premium vazar. Na `main`. Commit: **<HASH>**.
+> que mais converteram — sem deixar a voz editorial Premium vazar. Na `main`. Commit: **08c7446**.
 
 ## Contexto (analises que motivaram)
 Como copywriter senior, analisei as copies reais das campanhas ATIVAS da conta PoA `122035585232240`
