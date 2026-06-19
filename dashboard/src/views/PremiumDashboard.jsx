@@ -2453,6 +2453,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   const [pageId, setPageId] = useState('')
   const [destination, setDestination] = useState(intake.whatsapp_url || intake.landing_url || intake.url || '')
   const [budget, setBudget] = useState('20')
+  const [creativesPerAdset, setCreativesPerAdset] = useState(3)   // anuncios por conjunto (3x3 da vencedora)
   const [loading, setLoading] = useState(false)
   const [activating, setActivating] = useState(false)
   const [result, setResult] = useState(null)
@@ -2535,7 +2536,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   async function handleBuild() {
     setLoading(true); setError(null)
     try {
-      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, pixelId: convPixelId, conversionEvent, adSets: proposal, objective })
+      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, pixelId: convPixelId, conversionEvent, adSets: proposal, objective, creativesPerAdset })
       setResult(data)
     } catch (e) { setError(e) } finally { setLoading(false) }
   }
@@ -2634,6 +2635,11 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
         </label>
         <label className="block"><span className="form-label">Teto de orçamento (R$/dia)</span><input className="form-input" inputMode="decimal" value={budget} onChange={e => setBudget(e.target.value)} /></label>
         <label className="block"><span className="form-label">Destino (site ou WhatsApp)</span><input className="form-input" value={destination} onChange={e => setDestination(e.target.value)} placeholder="https://… ou https://wa.me/55…" /></label>
+        <label className="block"><span className="form-label">Criativos por conjunto</span>
+          <VitraSelect value={String(creativesPerAdset)} onChange={v => setCreativesPerAdset(Number(v))} ariaLabel="Criativos por conjunto"
+            options={[{ value: '1', label: '1 criativo' }, { value: '2', label: '2 criativos' }, { value: '3', label: '3 criativos (padrão)' }, { value: '4', label: '4 criativos' }]} />
+          <span className="mt-1 block text-[10px] text-white/35">1 anúncio por criativo aprovado em cada conjunto (até o nº escolhido).</span>
+        </label>
       </div>
 
       {isLeadForm && (
