@@ -51,10 +51,12 @@ export const META_OBJECTIVES: Record<string, ObjectiveSpec> = {
   },
   leads_form: {
     key: "leads_form", label: "Leads (formulario)", objective: "OUTCOME_LEADS",
-    optimization_goal: "LEAD_GENERATION", billing_event: "IMPRESSIONS", destination_type: "ON_AD",
+    // QUALITY_LEAD espelha a campanha de referencia validada (TOM MENINO DEUS 30.05, CPL R$14,19):
+    // otimiza por lead QUALIFICADO, nao so por volume de envio do formulario.
+    optimization_goal: "QUALITY_LEAD", billing_event: "IMPRESSIONS", destination_type: "ON_AD",
     cta: "SIGN_UP", needs: ["leadgen_tos"], available: true,
     funnel: "fundo de funil: formulario instantaneo na propria Meta",
-    hint: "Requer ToS de Lead aceito na Pagina — validado por Pagina no build (fase 2d).",
+    hint: "Requer ToS de Lead aceito na Pagina — validado por Pagina no build (fase 2d). Otimiza por lead qualificado (QUALITY_LEAD).",
   },
   whatsapp: {
     key: "whatsapp", label: "Conversas (WhatsApp)", objective: "OUTCOME_ENGAGEMENT",

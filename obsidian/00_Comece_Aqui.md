@@ -245,6 +245,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 80. **[[Atualizacao_2026-06-19_Trafego_Build_PAUSED_Azenha_E2E]]**
     Tráfego: build PAUSED da Azenha ponta a ponta (validacao do preset). Campanha "Residencial Azenha 531" + 1 criativo aprovado de TESTE (placeholder) -> build_draft com o blueprint (leads_form, CBO R$15, 2 conjuntos: regional raio 2km em -30.0608/-51.2115 + cidade POA). meta_campaign_id 120252930267170221, 2 conjuntos PAUSED, zero gasto. read_campaign_config CONFERIU: radius_point 2km no ponto da Azenha + city 264859, age 25-65, FB+IG, lead form pt-BR is_optimized_for_quality=false (mais volume/sem SMS, ticket alto). Limpo via delete_draft + rows de teste (form leadgen orfao fica inofensivo). Achado: build usa LEAD_GENERATION; ref usa QUALITY_LEAD -> refinar leads_form no playbook. So validacao (sem codigo). Sem commit de codigo.
 
+81. **[[Atualizacao_2026-06-19_Skill_Vitra_Trafego_e_QualityLead]]**
+    Skill nova `vitra-trafego` (v1, LOCAL em .claude/) — estrategista de Meta Ads: analisa campanhas pagas, ranqueia VENCEDORAS por contexto (CPL/leads/maturidade), extrai o padrao e ADAPTA a um novo imovel (endereco→raio, ticket→form, publico, regiao, objetivo). So PROPOE: relatorio markdown + JSON do preset (forma de premium_meta_presets.blueprint, importavel/auto-seed). NAO executa/ativa — build do app, PAUSED, sob aprovacao. Espelha vitra-conteudo (organico). Regras: vencedora=CPL≤mediana+leads≥30+madura; score+proveniencia; TTL p/ depreciar; nunca fora dos guards. + Ajuste no objectivePlaybook: leads_form optimization_goal LEAD_GENERATION→**QUALITY_LEAD** (espelha a 30.05); deno+deploy OK. (.claude gitignored — skill nao versionada.)
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
