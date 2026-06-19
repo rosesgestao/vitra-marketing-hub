@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-19 — Auditoria das skills vitra-trafego e vitra-copy + correções
 
 > Auditoria PO/dev das duas skills (instalação, estrutura, integração, I/O) e correção da inconsistência
-> de `QUALITY_LEAD`. Na `main`. Commit: **<HASH>**.
+> de `QUALITY_LEAD`. Na `main`. Commit: **50ad173**.
 
 ## Diagnóstico
 Ambas as skills são **Claude Code skills** (`.claude/skills/`, gitignored, invocadas em sessão pelo
