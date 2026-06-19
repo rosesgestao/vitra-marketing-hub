@@ -73,6 +73,11 @@ import {
   uploadPostArt,
   loadEditorialSettings,
   saveEditorialSettings,
+  readMetaCampaignConfig,
+  presetBlueprintFromConfig,
+  saveMetaPreset,
+  listMetaPresets,
+  deleteMetaPreset,
   CONTENT_TYPE_OPTIONS,
   CONTENT_PILLAR_OPTIONS,
   CONTENT_FORMAT_OPTIONS,
@@ -2744,6 +2749,114 @@ function PublishMetaPanel({ campaign, brandProfile, ads }) {
   )
 }
 
+// Padrao reutilizavel de Tráfego Pago: importa a config de uma campanha de REFERENCIA (vencedora) da
+// Meta, normaliza num blueprint (decisoes de gestor: age 25-65, raio 2km regional + cidade macro, FB+IG,
+// 3x3, form por ticket) e salva como PRESET por marca. Reusa-se ao montar novas campanhas semelhantes.
+function MetaPresetsPanel({ brandProfile = getBrandProfile() }) {
+  const [metaCampaignId, setMetaCampaignId] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [config, setConfig] = useState(null)
+  const [blueprint, setBlueprint] = useState(null)
+  const [radiusKm, setRadiusKm] = useState(2)
+  const [presetName, setPresetName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [presets, setPresets] = useState([])
+  const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
+
+  async function loadPresets() { try { setPresets(await listMetaPresets(brandProfile.scope)) } catch { /* ignore */ } }
+  useEffect(() => { loadPresets() }, [brandProfile.scope])
+
+  async function handleImport() {
+    if (!metaCampaignId.trim()) return
+    setImporting(true); setError(null); setNotice(null); setConfig(null); setBlueprint(null)
+    try {
+      const cfg = await readMetaCampaignConfig(metaCampaignId)
+      setConfig(cfg)
+      setBlueprint(presetBlueprintFromConfig(cfg, { regionalRadiusKm: Number(radiusKm) || 2 }))
+      setPresetName(cfg?.campaign?.name ? `Padrão — ${cfg.campaign.name}`.slice(0, 60) : 'Padrão Lead Imóvel')
+    } catch (e) { setError(e) } finally { setImporting(false) }
+  }
+
+  async function handleSave() {
+    if (!blueprint) return
+    setSaving(true); setError(null)
+    try {
+      await saveMetaPreset({ brandScope: brandProfile.scope, name: presetName, sourceMetaCampaignId: metaCampaignId.trim(), blueprint })
+      setNotice('Preset salvo. Reutilize-o ao montar novas campanhas semelhantes.')
+      setConfig(null); setBlueprint(null); setMetaCampaignId('')
+      await loadPresets()
+    } catch (e) { setError(e) } finally { setSaving(false) }
+  }
+
+  async function handleDelete(p) {
+    if (!window.confirm(`Excluir o preset "${p.name}"?`)) return
+    try { await deleteMetaPreset(p.id); await loadPresets() } catch (e) { setError(e) }
+  }
+
+  const bpSummary = bp => bp ? `${bp.objective} · ${bp.optimization_goal} · CBO R$${((bp.daily_budget_cents || 0) / 100).toFixed(0)}/dia · ${bp.age_min}-${bp.age_max} · ${(bp.adsets || []).map(a => a.geo === 'radius' ? `regional ${a.radius_km}km` : 'cidade').join(' + ')} · form: ${bp.lead_form_quality === 'maior_intencao' ? 'maior intenção (SMS)' : 'mais volume'}` : ''
+
+  return (
+    <div className="rounded-xl border border-gold-500/20 bg-[color:var(--surface-1)] p-4">
+      <div className="mb-3 flex items-center gap-2.5">
+        <Target size={15} className="text-gold-400" />
+        <p className="text-sm font-semibold text-white">Presets de campanha — clonar a vencedora</p>
+      </div>
+      <p className="mb-3 max-w-2xl text-xs leading-5 text-white/50">
+        Importe a configuração de uma <span className="text-white/75">campanha de referência</span> (ID da campanha na Meta) e salve como <span className="text-white/75">preset</span> — objetivo, otimização, orçamento, faixa etária e os 2 conjuntos por geografia (regional por raio + cidade) viram padrão para novas campanhas semelhantes.
+      </p>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="block"><span className="form-label">ID da campanha de referência (Meta)</span>
+          <input className="form-input !w-64" value={metaCampaignId} onChange={e => setMetaCampaignId(e.target.value)} placeholder="ex.: 120240689084870221" /></label>
+        <label className="block"><span className="form-label">Raio regional (km)</span>
+          <input type="number" min="1" max="80" className="form-input !w-24" value={radiusKm} onChange={e => setRadiusKm(Number(e.target.value))} /></label>
+        <button type="button" onClick={handleImport} disabled={importing || !metaCampaignId.trim()} className="btn-ghost inline-flex items-center gap-2 text-sm disabled:opacity-50">
+          {importing ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}Importar config
+        </button>
+      </div>
+
+      {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
+      {notice && <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-emerald-200"><CheckCircle2 size={13} />{notice}</p>}
+
+      {blueprint && (
+        <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.025] p-3">
+          <p className="text-[11px] uppercase tracking-wide text-gold-300/80">Blueprint padronizado</p>
+          <p className="mt-1 text-xs leading-5 text-white/70">{bpSummary(blueprint)}</p>
+          {config?.adsets?.length > 0 && (
+            <p className="mt-1 text-[10px] text-white/40">Origem: {config.adsets.length} conjunto(s) · {(config.lead_form ? 'form lido' : 'form não localizado na leitura')}.</p>
+          )}
+          <div className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="block"><span className="form-label">Nome do preset</span>
+              <input className="form-input !w-72" value={presetName} onChange={e => setPresetName(e.target.value)} /></label>
+            <button type="button" onClick={handleSave} disabled={saving} className="btn-gold inline-flex items-center gap-2 disabled:opacity-50">
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}Salvar preset
+            </button>
+          </div>
+        </div>
+      )}
+
+      {presets.length > 0 && (
+        <div className="mt-4 border-t border-white/10 pt-3">
+          <p className="form-label mb-2">Presets salvos ({presets.length})</p>
+          <div className="space-y-2">
+            {presets.map(p => (
+              <div key={p.id} className="rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-medium text-white/80">{p.name}</span>
+                  <button type="button" onClick={() => handleDelete(p)} className="text-[10px] text-white/40 hover:text-red-300">excluir</button>
+                </div>
+                <p className="mt-1 text-[10px] leading-4 text-white/45">{bpSummary(p.blueprint)}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-white/35">Use o preset como referência ao preencher o painel “Revisar e publicar” abaixo (build PAUSED).</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
   if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
   const ads = groupMetaAds(assets)
@@ -2816,6 +2929,8 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
         <StatTile label="Aprovados" value={approved} sub="prontos p/ subir" icon={CheckCircle2} tone="#F0C95C" />
         <StatTile label="QA final" value={`${readyAds}/${ads.length}`} sub="anuncios exportaveis" icon={Target} tone="#C4942A" />
       </div>
+
+      <MetaPresetsPanel brandProfile={brandProfile} />
 
       <PublishMetaPanel campaign={campaign} brandProfile={brandProfile} ads={ads} />
 
