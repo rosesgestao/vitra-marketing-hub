@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-19 — Fix: botão "Criar rascunho na Meta" travado sem explicação
 
 > O botão ficava desabilitado mesmo com tudo preenchido, porque o gate exigia o QA-polish completo
-> (mais rígido que o build_draft). Alinhado ao contrato real + lista do que falta. Na `main`. Commit: **<HASH>**.
+> (mais rígido que o build_draft). Alinhado ao contrato real + lista do que falta. Na `main`. Commit: **f5a2e8c**.
 
 ## Causa raiz
 `canBuild` exigia `readyAds > 0`, e `readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok)`.
@@ -29,7 +29,7 @@ devolve `skipped_creatives` com o motivo (já exibido), em vez de travar o botã
 
 ## Verificação
 - lint limpo · **162 testes** ✓ · build OK · preview sem erros no console.
-- Só front-end (sem deploy de edge). Commit <HASH>.
+- Só front-end (sem deploy de edge). Commit f5a2e8c.
 
 Ver [[Atualizacao_2026-06-19_Correcoes_P0_Trafego_Copywriter]] (skipped_creatives) e
 [[Atualizacao_2026-06-19_Porta_InApp_Vitra_Copy]].
