@@ -51,12 +51,14 @@ export const META_OBJECTIVES: Record<string, ObjectiveSpec> = {
   },
   leads_form: {
     key: "leads_form", label: "Leads (formulario)", objective: "OUTCOME_LEADS",
-    // QUALITY_LEAD espelha a campanha de referencia validada (TOM MENINO DEUS 30.05, CPL R$14,19):
-    // otimiza por lead QUALIFICADO, nao so por volume de envio do formulario.
-    optimization_goal: "QUALITY_LEAD", billing_event: "IMPRESSIONS", destination_type: "ON_AD",
+    // LEAD_GENERATION = padrao CONFIAVEL (promoted_object {page_id} + form ON_AD; validado no build PAUSED).
+    // QUALITY_LEAD (otimizacao "leads de conversao", como a ref. 30.05) NAO e swap livre: a Meta exige
+    // objeto promovido com integracao de CRM/conversoes offline ("Selecione um objeto promovido...") —
+    // so habilitar quando o CRM estiver conectado. Ate la, mantem LEAD_GENERATION.
+    optimization_goal: "LEAD_GENERATION", billing_event: "IMPRESSIONS", destination_type: "ON_AD",
     cta: "SIGN_UP", needs: ["leadgen_tos"], available: true,
     funnel: "fundo de funil: formulario instantaneo na propria Meta",
-    hint: "Requer ToS de Lead aceito na Pagina — validado por Pagina no build (fase 2d). Otimiza por lead qualificado (QUALITY_LEAD).",
+    hint: "Requer ToS de Lead aceito na Pagina — validado por Pagina no build (fase 2d).",
   },
   whatsapp: {
     key: "whatsapp", label: "Conversas (WhatsApp)", objective: "OUTCOME_ENGAGEMENT",
