@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-19 — Fix: interesse depreciado quebrava o build (fallback p/ geo)
 
 > A Meta recusava a criação do conjunto por incluir um interesse DEPRECIADO ("Porto Alegre"). Build agora
-> remove os interesses depreciados e refaz o conjunto só com geo, em vez de falhar. Na `main`. Commit: **<HASH>**.
+> remove os interesses depreciados e refaz o conjunto só com geo, em vez de falhar. Na `main`. Commit: **cf6a04a**.
 
 ## Erro (anexo)
 `Graph act_…/adsets: Invalid parameter — Atualize a especificação de direcionamento… deprecated_interest_id
