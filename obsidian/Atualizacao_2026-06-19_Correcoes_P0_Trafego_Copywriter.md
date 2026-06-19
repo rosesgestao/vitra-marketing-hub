@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-19 — Correções P0 (Tráfego Pago + Copywriter zeradas)
 
 > Fecha as 3 correções P0 do diagnóstico integrado: coerência do guard na UI, redeploy do gate e aviso
-> de criativo pulado. Na `main`. Commit: **<HASH>**.
+> de criativo pulado. Na `main`. Commit: **cc1464e**.
 
 ## Contexto
 O diagnóstico PO/dev das features Tráfego Pago + Copywriter apontou 3 pendências P0 (coerência/erro),
