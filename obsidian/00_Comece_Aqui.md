@@ -239,6 +239,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 78. **[[Atualizacao_2026-06-19_Trafego_Painel_Presets_e_Azenha]]**
     Tráfego: painel de Presets (MetaPresetsPanel no Tráfego Pago) — importa config de campanha de referencia, mostra blueprint padronizado e salva/lista/exclui presets por marca. E2E ao vivo: importou a 30.05 -> blueprint OUTCOME_LEADS/QUALITY_LEAD/CBO R$15/25-65/regional 2km+cidade/mais volume -> salvou. AZENHA: endereco Carlos Barbosa 531 geocodificado (lat -30.0608422, lng -51.2115284), preset "Padrão Lead Imóvel — Azenha" criado com raio 2km nesse ponto + cidade POA + form mais_volume (ticket alto). Build ao vivo PAUSED depende de: criar a campanha Azenha + aprovar >=1 criativo (3x3); ativar = confirm. Commit e6386df.
 
+79. **[[Atualizacao_2026-06-19_Trafego_Auto_Seed_Preset]]**
+    Tráfego: AUTO-SEED do preset. "Usar preset" semeia o PublishMetaPanel: objetivo (OUTCOME_LEADS->leads_form), orcamento (CBO), e os 2 conjuntos por geografia como proposta a revisar (regional geo=radius lat/lng+km; macro geo=city), com linha "Geo: raio Nkm (lat,lng)". targetingFor (Fase 3a) aplica no build. E2E ao vivo: preset Azenha -> painel com Leads (formulário)+R$15/dia+Regional(raio 2km -30.0608,-51.2115)+Cidade(POA) 25-65. Padrao "clonar a vencedora" COMPLETO (importar->normalizar->persistir->auto-seed->build geo raio->PAUSED->activate confirm). Commit 770cc02.
+
 ---
 
 ## ðŸš€ Como Executar o Projeto
