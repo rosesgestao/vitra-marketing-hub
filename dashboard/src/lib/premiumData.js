@@ -6,9 +6,10 @@ import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValid
 import { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE } from '../../../supabase/functions/_shared/objectivePlaybook.ts'
 import { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE, CONTENT_STATUS_OPTIONS, CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel, contentTypeOffer } from '../../../supabase/functions/_shared/contentPlaybook.ts'
 import { DETAILED_TARGETING_PRESETS, detailedTargetingPreset } from '../../../supabase/functions/_shared/detailedTargetingPresets.ts'
+import { PLACEMENT_PRESETS, placementPreset, PLACEMENTS_NEEDING_OTHER_FORMATS } from '../../../supabase/functions/_shared/placementPresets.ts'
 
-// Reexport para a UI (seletor de Objetivo / direcionamento detalhado) — fonte unica compartilhada com a Edge.
-export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE, DETAILED_TARGETING_PRESETS, detailedTargetingPreset }
+// Reexport para a UI (seletor de Objetivo / direcionamento / posicionamentos) — fonte unica com a Edge.
+export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE, DETAILED_TARGETING_PRESETS, detailedTargetingPreset, PLACEMENT_PRESETS, placementPreset, PLACEMENTS_NEEDING_OTHER_FORMATS }
 // Reexport do playbook EDITORIAL (aba Produção) — mesma fonte unica usada pela Edge generate-content.
 export { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE }
 // Reexport do modelo de STATUS de conteudo (fonte unica) — board Conteúdos, Calendário e aba Produção.
@@ -927,12 +928,20 @@ export async function saveCampaignGeo(campaignId, geo) {
 
 // Monta os 2 conjuntos canônicos de localização (regra do gestor): "Porto Alegre" (cidade inteira) +
 // "Região do imóvel" (raio <= 2 km no lat/lng). Sem lat/lng válido, devolve só o conjunto de Porto Alegre.
-export function buildGeoAdSets({ lat, lng, radiusKm = 2, ageMin = 25, ageMax = 65, placements = 'facebook,instagram' } = {}) {
-  const macro = { kind: 'macro', label: 'Porto Alegre', geo: 'city', city_key: META_POA_CITY_KEY, age_min: ageMin, age_max: ageMax, placements }
+export function buildGeoAdSets({ lat, lng, radiusKm = 2, ageMin = 25, ageMax = 65, placementKey = 'fb_ig_recomendado' } = {}) {
+  // Frente 1 (default seguro): os 2 conjuntos já nascem com o PRESET de posicionamentos recomendado
+  // (FB+IG, sem Messenger/Audience Network, posições feed/stories/reels/marketplace/perfil) — espelha a
+  // referência. Assim toda campanha nova sobe com os posicionamentos corretos, sem depender da UI.
+  const pl = placementPreset(placementKey) || placementPreset('fb_ig_recomendado')
+  const place = pl && !pl.advantage_plus && Array.isArray(pl.publisher_platforms)
+    ? { publisher_platforms: pl.publisher_platforms, facebook_positions: pl.facebook_positions, instagram_positions: pl.instagram_positions }
+    : {}   // advantage_plus / sem preset => omite posições (Meta otimiza tudo)
+  const common = { age_min: ageMin, age_max: ageMax, placements: 'facebook,instagram', ...place }
+  const macro = { kind: 'macro', label: 'Porto Alegre', geo: 'city', city_key: META_POA_CITY_KEY, ...common }
   const hasPoint = Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
   if (!hasPoint) return [macro]
   const r = Math.max(1, Math.min(REGIONAL_RADIUS_MAX_KM, Number(radiusKm) || REGIONAL_RADIUS_MAX_KM))   // Meta exige raio >= 1km
-  const regional = { kind: 'regional', label: `Região do imóvel (raio ${r} km)`, geo: 'radius', lat: Number(lat), lng: Number(lng), radius_km: r, age_min: ageMin, age_max: ageMax, placements }
+  const regional = { kind: 'regional', label: `Região do imóvel (raio ${r} km)`, geo: 'radius', lat: Number(lat), lng: Number(lng), radius_km: r, ...common }
   // Região primeiro (mais quente), depois a cidade inteira.
   return [regional, macro]
 }

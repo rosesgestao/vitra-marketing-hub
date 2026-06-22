@@ -22,6 +22,7 @@ import {
   Megaphone,
   MapPin,
   Users,
+  RotateCcw,
   Pencil,
   Plus,
   Radio,
@@ -66,6 +67,8 @@ import {
   REGIONAL_RADIUS_MAX_KM,
   DETAILED_TARGETING_PRESETS,
   detailedTargetingPreset,
+  PLACEMENT_PRESETS,
+  placementPreset,
   listMetaAudiences,
   listMetaPixels,
   listMetaAdAccounts,
@@ -2868,6 +2871,80 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
     } catch (e) { setEstimate({ loading: false, error: errorMessage(e), rows: null }) }
   }
 
+  // Posicionamentos manuais (Frente 2). Catálogo de plataformas + posições (rótulos PT + enum da Meta).
+  // `incompat` = posição que NÃO casa com os formatos Feed 4:5 / Story 9:16 (exigiria outra arte).
+  const PLATFORM_META = [
+    { key: 'facebook', label: 'Facebook', positions: [
+      { id: 'feed', label: 'Feed' }, { id: 'marketplace', label: 'Marketplace' }, { id: 'story', label: 'Stories' },
+      { id: 'facebook_reels', label: 'Reels' }, { id: 'profile_feed', label: 'Feed do perfil' },
+      { id: 'right_hand_column', label: 'Coluna da direita', incompat: true }, { id: 'instream_video', label: 'Vídeos in-stream', incompat: true }, { id: 'search', label: 'Resultados de pesquisa', incompat: true } ] },
+    { key: 'instagram', label: 'Instagram', positions: [
+      { id: 'stream', label: 'Feed' }, { id: 'story', label: 'Stories' }, { id: 'explore', label: 'Explorar' },
+      { id: 'reels', label: 'Reels' }, { id: 'profile_feed', label: 'Feed do perfil' },
+      { id: 'ig_search', label: 'Pesquisa', incompat: true } ] },
+    { key: 'messenger', label: 'Messenger', positions: [
+      { id: 'messenger_home', label: 'Caixa de entrada' }, { id: 'story', label: 'Stories' } ] },
+    { key: 'audience_network', label: 'Audience Network', positions: [
+      { id: 'classic', label: 'Aplicativos e sites' }, { id: 'rewarded_video', label: 'Vídeos premiados', incompat: true } ] },
+  ]
+  const PL_DEFAULT = PLACEMENT_PRESETS[0]
+  const plStateFromPreset = (p) => ({
+    platforms: new Set(p.advantage_plus ? [] : (p.publisher_platforms || [])),
+    positions: {
+      facebook: [...(p.facebook_positions || [])], instagram: [...(p.instagram_positions || [])],
+      messenger: [...(p.messenger_positions || [])], audience_network: [...(p.audience_network_positions || [])],
+    },
+    advantagePlus: !!p.advantage_plus,
+  })
+  const plInit = plStateFromPreset(PL_DEFAULT)
+  const [plPresetKey, setPlPresetKey] = useState(PL_DEFAULT.key)
+  const [plPlatforms, setPlPlatforms] = useState(plInit.platforms)
+  const [plPositions, setPlPositions] = useState(plInit.positions)
+  const [plAdvantagePlus, setPlAdvantagePlus] = useState(plInit.advantagePlus)
+  function applyPlacementPreset(key) {
+    const p = placementPreset(key) || PL_DEFAULT
+    const st = plStateFromPreset(p)
+    setPlPresetKey(p.key); setPlPlatforms(st.platforms); setPlPositions(st.positions); setPlAdvantagePlus(st.advantagePlus)
+  }
+  function togglePlatform(pf) {
+    setPlAdvantagePlus(false)
+    setPlPlatforms(prev => { const n = new Set(prev); n.has(pf) ? n.delete(pf) : n.add(pf); return n })
+  }
+  function togglePosition(pf, pos) {
+    setPlAdvantagePlus(false)
+    setPlPlatforms(prev => prev.has(pf) ? prev : new Set(prev).add(pf))
+    setPlPositions(prev => {
+      const cur = prev[pf] || []; const next = cur.includes(pos) ? cur.filter(x => x !== pos) : [...cur, pos]
+      return { ...prev, [pf]: next }
+    })
+  }
+  // Monta o recorte de posicionamentos para o build. Advantage+ => {} (omite = Meta otimiza tudo).
+  function placementSpec() {
+    if (plAdvantagePlus || plPlatforms.size === 0) return {}
+    const plats = [...plPlatforms]
+    const out = { publisher_platforms: plats }
+    const map = { facebook: 'facebook_positions', instagram: 'instagram_positions', messenger: 'messenger_positions', audience_network: 'audience_network_positions' }
+    for (const pf of plats) { const arr = plPositions[pf] || []; if (arr.length) out[map[pf]] = arr }
+    return out
+  }
+  // Avisos: incompatíveis com os formatos, entrega restrita, AN/Messenger ligados.
+  function placementWarnings() {
+    const w = []
+    if (plAdvantagePlus) { w.push({ kind: 'info', text: 'Advantage+ posicionamentos: a Meta distribui em TODOS os locais (inclui Messenger e Audience Network).' }); return w }
+    const incompat = []
+    for (const pf of plPlatforms) for (const pos of (plPositions[pf] || [])) {
+      const meta = PLATFORM_META.find(x => x.key === pf)?.positions.find(x => x.id === pos)
+      if (meta?.incompat) incompat.push(`${PLATFORM_META.find(x => x.key === pf)?.label}: ${meta.label}`)
+    }
+    if (incompat.length) w.push({ kind: 'warn', text: `Posicionamento sem arte compatível (precisa de outro formato): ${incompat.join(' · ')}.` })
+    const totalPos = [...plPlatforms].reduce((n, pf) => n + (plPositions[pf]?.length || 0), 0)
+    if (plPlatforms.size === 0) w.push({ kind: 'warn', text: 'Nenhuma plataforma selecionada — a entrega fica bloqueada.' })
+    else if (totalPos > 0 && totalPos < 2) w.push({ kind: 'warn', text: 'Pouquíssimos posicionamentos — entrega muito restrita, pode encarecer o lead.' })
+    if (plPlatforms.has('audience_network')) w.push({ kind: 'info', text: 'Audience Network costuma trazer cliques baratos e de menor qualidade para lead.' })
+    if (plPlatforms.has('messenger')) w.push({ kind: 'info', text: 'Messenger raramente ajuda em formulário de lead.' })
+    return w
+  }
+
   // Auto-descoberta das contas de anuncio acessiveis (sem digitar ID). Pre-seleciona a conta da marca.
   useEffect(() => {
     let alive = true
@@ -2958,9 +3035,15 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
       // Direcionamento detalhado: aplica os interesses (ids pré-resolvidos + extras por nome) e a expansão
       // Advantage aos conjuntos por GEOGRAFIA (não a conjuntos de retarget/público custom, que já se definem).
       const interestIds = dtInterests.map(i => ({ id: i.id, name: i.name }))
-      const adSets = proposal.map(s => (s.retargeting || s.custom_audience_id || (Array.isArray(s.custom_audience_ids) && s.custom_audience_ids.length))
-        ? s
-        : { ...s, interest_ids: interestIds, interest_keywords: [...(s.interest_keywords || []), ...dtExtraList], advantage_audience: dtAdvantage })
+      const place = placementSpec()   // {} = Advantage+ (Meta otimiza tudo); senão publisher_platforms + *_positions
+      const advAll = plAdvantagePlus || plPlatforms.size === 0
+      const adSets = proposal.map(s => {
+        if (s.retargeting || s.custom_audience_id || (Array.isArray(s.custom_audience_ids) && s.custom_audience_ids.length)) return s
+        const base = { ...s, interest_ids: interestIds, interest_keywords: [...(s.interest_keywords || []), ...dtExtraList], advantage_audience: dtAdvantage }
+        // Advantage+: omite plataformas E neutraliza o `placements` coarse (senão o parser forçaria FB+IG).
+        if (advAll) return { ...base, placements: 'automatic', publisher_platforms: undefined, facebook_positions: undefined, instagram_positions: undefined, messenger_positions: undefined, audience_network_positions: undefined }
+        return { ...base, ...place }
+      })
       const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, pixelId: convPixelId, conversionEvent, adSets, objective, creativesPerAdset })
       setResult(data)
     } catch (e) { setError(e) } finally { setLoading(false) }
@@ -3176,6 +3259,55 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
         </div>
       </div>
       ) })()}
+
+      {/* Plataformas e posicionamentos (manuais) — preset das referências, editável. Aplicado aos conjuntos por geografia no build. */}
+      <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-200/80">Plataformas e posicionamentos</p>
+          <span className={`text-[10px] ${plAdvantagePlus ? 'text-emerald-300' : 'text-white/55'}`}>{plAdvantagePlus ? 'Advantage+ (automático)' : 'Posicionamentos manuais'}</span>
+        </div>
+        <p className="mt-0.5 text-[11px] leading-4 text-white/45">Onde os anúncios aparecem. O recomendado espelha as campanhas vencedoras (FB + IG, sem Messenger/Audience Network).</p>
+        <label className="mt-2 block">
+          <span className="form-label !mb-1 !text-[10px]">Preset (origem)</span>
+          <VitraSelect value={plPresetKey} onChange={applyPlacementPreset} ariaLabel="Preset de posicionamentos"
+            options={PLACEMENT_PRESETS.map(p => ({ value: p.key, label: `${p.label} — ${p.origin}` }))} />
+        </label>
+        {!plAdvantagePlus && (
+          <div className="mt-2.5 space-y-2">
+            {PLATFORM_META.map(pf => {
+              const on = plPlatforms.has(pf.key)
+              return (
+                <div key={pf.key} className={`rounded-lg border p-2 ${on ? 'border-white/15 bg-white/[0.03]' : 'border-white/10'}`}>
+                  <button type="button" onClick={() => togglePlatform(pf.key)} className="flex w-full items-center justify-between gap-2 text-left">
+                    <span className={`text-xs font-medium ${on ? 'text-white/85' : 'text-white/40'}`}>{pf.label}</span>
+                    <span className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition ${on ? 'bg-gold-500/70' : 'bg-white/15'}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${on ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </span>
+                  </button>
+                  {on && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {pf.positions.map(pos => {
+                        const sel = (plPositions[pf.key] || []).includes(pos.id)
+                        return (
+                          <button key={pos.id} type="button" onClick={() => togglePosition(pf.key, pos.id)}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] transition ${sel ? (pos.incompat ? 'border-amber-400/50 text-amber-200' : 'border-gold-500/40 text-gold-200') : 'border-white/10 text-white/40 hover:border-white/25'}`}
+                            title={pos.incompat ? 'Exige outro formato de arte (não cobre 4:5/9:16)' : ''}>
+                            {sel ? '✓ ' : ''}{pos.label}{pos.incompat ? ' ⚠' : ''}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {placementWarnings().map((w, i) => (
+          <p key={i} className={`mt-1.5 text-[11px] ${w.kind === 'warn' ? 'text-amber-300' : 'text-white/40'}`}>{w.kind === 'warn' ? '⚠ ' : 'ℹ '}{w.text}</p>
+        ))}
+        <button type="button" onClick={() => applyPlacementPreset('fb_ig_recomendado')} className="btn-ghost mt-2.5 inline-flex items-center gap-1.5 !py-1.5 text-xs"><RotateCcw size={13} />Restaurar recomendado</button>
+      </div>
 
       <div className="mt-4">
         <button type="button" onClick={handleSuggest} disabled={suggesting} className="btn-ghost inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
