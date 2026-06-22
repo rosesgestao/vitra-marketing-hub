@@ -886,6 +886,45 @@ export async function suggestMetaAudiences(campaignId, objective) {
   return Array.isArray(data?.ad_sets) ? data.ad_sets : []
 }
 
+// Chave de geolocalizacao da Meta (adgeolocation) para Porto Alegre — validada nos builds PAUSED.
+// Usada no conjunto "Porto Alegre" (cidade inteira). cities:[{key}].
+export const META_POA_CITY_KEY = '264859'
+// Teto do raio do conjunto regional (regra do gestor de trafego: raio <= 2 km do endereco do imovel).
+export const REGIONAL_RADIUS_MAX_KM = 2
+
+// Geocodifica um endereco -> {found, lat, lng, label} via Edge geocode-address (Nominatim, server-side).
+// Erro acionavel; nao encontrado retorna {found:false, message}.
+export async function geocodeAddress(address) {
+  const { data, error } = await supabase.functions.invoke('geocode-address', {
+    headers: copilotGateHeaders(),
+    body: { address },
+  })
+  if (error) throw await edgeError(error)
+  return data || { found: false }
+}
+
+// Persiste o alvo geografico no brief da campanha (reuso entre sessoes/builds). Merge em brief.geo_target.
+export async function saveCampaignGeo(campaignId, geo) {
+  if (!campaignId) return null
+  const { data: cur } = await supabase.from('premium_campaigns').select('brief').eq('id', campaignId).maybeSingle()
+  const brief = { ...(cur?.brief || {}), geo_target: geo || null }
+  const { error } = await supabase.from('premium_campaigns').update({ brief }).eq('id', campaignId)
+  if (error) throw new Error(error.message || 'Falha ao salvar a localização da campanha.')
+  return geo
+}
+
+// Monta os 2 conjuntos canônicos de localização (regra do gestor): "Porto Alegre" (cidade inteira) +
+// "Região do imóvel" (raio <= 2 km no lat/lng). Sem lat/lng válido, devolve só o conjunto de Porto Alegre.
+export function buildGeoAdSets({ lat, lng, radiusKm = 2, ageMin = 25, ageMax = 65, placements = 'facebook,instagram' } = {}) {
+  const macro = { kind: 'macro', label: 'Porto Alegre', geo: 'city', city_key: META_POA_CITY_KEY, age_min: ageMin, age_max: ageMax, placements }
+  const hasPoint = Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+  if (!hasPoint) return [macro]
+  const r = Math.max(1, Math.min(REGIONAL_RADIUS_MAX_KM, Number(radiusKm) || REGIONAL_RADIUS_MAX_KM))   // Meta exige raio >= 1km
+  const regional = { kind: 'regional', label: `Região do imóvel (raio ${r} km)`, geo: 'radius', lat: Number(lat), lng: Number(lng), radius_km: r, age_min: ageMin, age_max: ageMax, placements }
+  // Região primeiro (mais quente), depois a cidade inteira.
+  return [regional, macro]
+}
+
 // Auto-descoberta: contas de anuncio que o token acessa (para o operador escolher, sem digitar ID).
 export async function listMetaAdAccounts() {
   const { data, error } = await supabase.functions.invoke('manage-audiences', {

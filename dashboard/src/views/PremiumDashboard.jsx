@@ -20,6 +20,7 @@ import {
   Layers3,
   Loader2,
   Megaphone,
+  MapPin,
   Pencil,
   Plus,
   Radio,
@@ -57,6 +58,10 @@ import {
   buildMetaDraft,
   activateMetaCampaign,
   suggestMetaAudiences,
+  geocodeAddress,
+  saveCampaignGeo,
+  buildGeoAdSets,
+  REGIONAL_RADIUS_MAX_KM,
   listMetaAudiences,
   listMetaPixels,
   listMetaAdAccounts,
@@ -2784,6 +2789,38 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   const [conversionEvent, setConversionEvent] = useState('LEAD')
   const [metaAccounts, setMetaAccounts] = useState([])
   const [metaPages, setMetaPages] = useState([])
+  // Localização (2 conjuntos): endereço do imóvel -> geocodificação -> raio <= 2km + Porto Alegre (cidade).
+  const gt0 = campaign?.brief?.geo_target || {}
+  const pd0 = campaign?.brief?.product_data || {}
+  const [addr, setAddr] = useState(gt0.address || pd0.location || pd0.neighborhood || '')
+  const [geoLat, setGeoLat] = useState(gt0.lat != null ? String(gt0.lat) : '')
+  const [geoLng, setGeoLng] = useState(gt0.lng != null ? String(gt0.lng) : '')
+  const [geoLabel, setGeoLabel] = useState(gt0.label || '')
+  const [radiusKm, setRadiusKm] = useState(gt0.radius_km || REGIONAL_RADIUS_MAX_KM)
+  const [geoBusy, setGeoBusy] = useState(false)
+  const [geoMsg, setGeoMsg] = useState(null)
+  const geoHasPoint = Number.isFinite(Number(geoLat)) && String(geoLat).trim() !== '' && Number.isFinite(Number(geoLng)) && String(geoLng).trim() !== ''
+
+  async function handleGeocode() {
+    if (!addr.trim()) { setGeoMsg({ kind: 'err', text: 'Informe o endereço do imóvel.' }); return }
+    setGeoBusy(true); setGeoMsg(null)
+    try {
+      const r = await geocodeAddress(addr.trim())
+      if (r?.found) { setGeoLat(String(r.lat)); setGeoLng(String(r.lng)); setGeoLabel(r.label || ''); setGeoMsg({ kind: 'ok', text: 'Endereço localizado — confira o pino e o raio, ou ajuste as coordenadas.' }) }
+      else { setGeoMsg({ kind: 'warn', text: r?.message || 'Endereço não encontrado. Ajuste lat/lng manualmente.' }) }
+    } catch (e) { setGeoMsg({ kind: 'err', text: errorMessage(e) }) } finally { setGeoBusy(false) }
+  }
+  function applyGeoAdSets() {
+    const lat = Number(geoLat), lng = Number(geoLng)
+    const sets = buildGeoAdSets({ lat, lng, radiusKm: Number(radiusKm) })
+    setProposal(sets)
+    setGeoMsg({ kind: 'ok', text: geoHasPoint ? '2 conjuntos definidos: Região do imóvel + Porto Alegre.' : 'Sem coordenadas: só o conjunto de Porto Alegre foi definido.' })
+    saveCampaignGeo(campaign.id, {
+      address: addr.trim() || null, label: geoLabel || null,
+      lat: Number.isFinite(lat) ? lat : null, lng: Number.isFinite(lng) ? lng : null,
+      radius_km: Math.min(REGIONAL_RADIUS_MAX_KM, Number(radiusKm) || REGIONAL_RADIUS_MAX_KM),
+    }).catch(() => { /* persistência best-effort */ })
+  }
 
   // Auto-descoberta das contas de anuncio acessiveis (sem digitar ID). Pre-seleciona a conta da marca.
   useEffect(() => {
@@ -3008,10 +3045,38 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
         </div>
       )}
 
+      {/* Localização: regra fixa do gestor — toda campanha tem 2 conjuntos (Porto Alegre + Região do imóvel ≤2km). */}
+      <div className="mt-4 rounded-xl border border-gold-500/25 bg-gold-500/[0.05] p-3.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-200/80">Localização · 2 conjuntos de anúncios</p>
+        <p className="mt-0.5 text-[11px] leading-4 text-white/45">Toda campanha sobe com <span className="text-white/70">Porto Alegre</span> (cidade inteira) + <span className="text-white/70">Região do imóvel</span> (raio ≤ {REGIONAL_RADIUS_MAX_KM} km do endereço).</p>
+        <div className="mt-2.5 flex items-center gap-2">
+          <input className="form-input !py-1.5 flex-1 text-xs" value={addr} onChange={e => setAddr(e.target.value)} placeholder="Endereço do imóvel (rua, número, bairro)" />
+          <button type="button" onClick={handleGeocode} disabled={geoBusy} className="btn-ghost inline-flex shrink-0 items-center gap-1.5 !py-1.5 text-xs disabled:opacity-50">
+            {geoBusy ? <Loader2 size={13} className="animate-spin" /> : <MapPin size={13} />}Localizar
+          </button>
+        </div>
+        {geoLabel && <p className="mt-1 truncate text-[10px] text-white/40" title={geoLabel}>📍 {geoLabel}</p>}
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label className="block"><span className="form-label !mb-1 !text-[10px]">Latitude</span>
+            <input className="form-input !py-1.5 text-xs" value={geoLat} onChange={e => setGeoLat(e.target.value)} placeholder="-30.0608" inputMode="decimal" /></label>
+          <label className="block"><span className="form-label !mb-1 !text-[10px]">Longitude</span>
+            <input className="form-input !py-1.5 text-xs" value={geoLng} onChange={e => setGeoLng(e.target.value)} placeholder="-51.2115" inputMode="decimal" /></label>
+          {geoHasPoint && <a href={`https://www.openstreetmap.org/?mlat=${Number(geoLat)}&mlon=${Number(geoLng)}#map=15/${Number(geoLat)}/${Number(geoLng)}`} target="_blank" rel="noreferrer" className="self-center text-[11px] text-gold-300 underline sm:self-end sm:pb-2">ver no mapa ↗</a>}
+        </div>
+        <div className="mt-2 flex items-center gap-3">
+          <span className="text-[10px] uppercase tracking-wide text-white/35">Raio</span>
+          <input type="range" min="1" max={REGIONAL_RADIUS_MAX_KM} step="0.1" value={Math.min(REGIONAL_RADIUS_MAX_KM, Math.max(1, Number(radiusKm) || REGIONAL_RADIUS_MAX_KM))} onChange={e => setRadiusKm(Number(e.target.value))} className="flex-1 accent-gold-500" aria-label="Raio em km" />
+          <span className="w-14 text-right text-xs text-white/70">{Math.min(REGIONAL_RADIUS_MAX_KM, Number(radiusKm) || REGIONAL_RADIUS_MAX_KM)} km</span>
+        </div>
+        <button type="button" onClick={applyGeoAdSets} className="btn-gold mt-2.5 inline-flex items-center gap-2 !py-1.5 text-xs"><CheckCircle2 size={14} />Definir os 2 conjuntos</button>
+        {!geoHasPoint && <p className="mt-1.5 text-[11px] text-amber-300">⚠ Sem coordenadas válidas, só o conjunto de Porto Alegre é criado. Localize o endereço ou informe lat/lng para o raio do imóvel.</p>}
+        {geoMsg && <p className={`mt-1.5 text-[11px] ${geoMsg.kind === 'ok' ? 'text-emerald-300' : geoMsg.kind === 'warn' ? 'text-amber-300' : 'text-red-300'}`}>{geoMsg.text}</p>}
+      </div>
+
       <div className="mt-4">
         <button type="button" onClick={handleSuggest} disabled={suggesting} className="btn-ghost inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
           {suggesting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-          {suggesting ? 'Sugerindo…' : (proposal.length ? 'Re-sugerir públicos (IA)' : 'Sugerir públicos por IA')}
+          {suggesting ? 'Sugerindo…' : (proposal.length ? 'Re-sugerir públicos (IA)' : 'Sugerir públicos por IA (opcional)')}
         </button>
         {proposal.length > 0 && (
           <div className="mt-3 space-y-2">
