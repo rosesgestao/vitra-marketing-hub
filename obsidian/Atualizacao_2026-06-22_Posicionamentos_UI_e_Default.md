@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-22 — Posicionamentos: default seguro no build + UI "Plataformas" + re-build Murano
 
-> Frente 1 (default no build) + Frente 2 (UI editável) + comparação lado a lado da Murano. Na `main`. Commit: **<HASH>**.
+> Frente 1 (default no build) + Frente 2 (UI editável) + comparação lado a lado da Murano. Na `main`. Commit: **cc5d6a4**.
 
 ## Contexto (o gap que motivou)
 A campanha `Murano | Leads (formulario) 2026-06-19` foi lida na Meta e estava com **publisher_platforms = None**
