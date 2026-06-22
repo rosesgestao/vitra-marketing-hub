@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Produção visual (Conteúdo) · Fase 2: grade + drawer + versões
 
 > Reformula o board em grade thumbnail-first e unifica texto+arte num drawer "Prévia do post" (formato
-> feed/story, versões, ações do funil). Na `main`. Commit: **<HASH>**.
+> feed/story, versões, ações do funil). Na `main`. Commit: **8304ad6**.
 
 ## Entregue (Fase 2)
 ### Grade visual thumbnail-first
