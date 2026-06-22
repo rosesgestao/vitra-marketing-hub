@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Feed organico passa a 4:5 (vertical recomendado)
 
 > Troca o formato de feed de 1:1 para **4:5** (1080×1350) em todo o fluxo organico — geração, prévia,
-> edição, recorte e exportação. Story segue 9:16. Na `main`. Commit: **<HASH>**.
+> edição, recorte e exportação. Story segue 9:16. Na `main`. Commit: **854d3b5**.
 
 ## Mudança (fonte única + UI + IA)
 - **`postArt.js` `DIMS.feed`: [1080,1080] → [1080,1350]** (4:5). É a fonte única: render da arte branded,
