@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Direcionamento detalhado (referências) + presets + base backend
 
 > Análise do Direcionamento detalhado das campanhas de referência + 3 presets de interesses + base no
-> build_draft (interest_ids pré-resolvidos + Advantage configurável). Na `main`. Commit: **<HASH>**.
+> build_draft (interest_ids pré-resolvidos + Advantage configurável). Na `main`. Commit: **91bb642**.
 
 ## Configuração encontrada (lida via read_campaign_config estendido)
 **30.05 (`120240689084870221`) — 2 conjuntos · QUALITY_LEAD · Advantage=1:**
