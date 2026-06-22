@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-22 — "Anúncios com vários anunciantes" desmarcado por padrão
 
-> Todo novo anúncio do Tráfego Pago sobe com multi-advertiser OFF. Na `main`. Commit: **<HASH>**.
+> Todo novo anúncio do Tráfego Pago sobe com multi-advertiser OFF. Na `main`. Commit: **e2bb56e**.
 
 ## O que foi feito
 - **build_draft:** todo conjunto novo é criado com `is_multi_advertiser_ads_enabled: false`. Não altera
