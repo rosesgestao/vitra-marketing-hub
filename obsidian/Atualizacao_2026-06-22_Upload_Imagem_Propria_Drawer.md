@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Drawer "Prévia do post": upload manual de imagem
 
 > O operador pode usar a arte gerada OU enviar a própria imagem (substituir/remover), no mesmo fluxo do
-> drawer. Na `main`. Commit: **<HASH>**.
+> drawer. Na `main`. Commit: **1d2fb4c**.
 
 ## Diagnóstico
 O drawer (Fase 2) só permitia arte GERADA (Tipográfico / Com foto via URL pública). Não havia upload de
