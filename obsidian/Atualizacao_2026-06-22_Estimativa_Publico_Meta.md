@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Estimativa NUMÉRICA real de público (delivery_estimate da Meta)
 
 > Substitui a estimativa qualitativa por número real da Meta por conjunto, no painel de Tráfego.
-> Na `main`. Commit: **<HASH>**.
+> Na `main`. Commit: **004a764**.
 
 ## Entregue
 - **Edge `publish-meta-ads` — ação `estimate_audience`** (read-only, não gasta): recebe `{ad_account_id,
