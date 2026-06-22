@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     if (!metaCampaignId) return json({ error: "missing_meta_campaign_id", message: "Informe o meta_campaign_id da campanha de referencia." }, 400);
     try {
       const camp = await graphGet(metaCampaignId, "name,objective,buying_type,bid_strategy,daily_budget,lifetime_budget,status,effective_status");
-      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms,custom_audiences,excluded_custom_audiences,flexible_spec,exclusions,targeting_automation}").catch(() => ({ data: [] }));
+      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms,facebook_positions,instagram_positions,messenger_positions,audience_network_positions,custom_audiences,excluded_custom_audiences,flexible_spec,exclusions,targeting_automation}").catch(() => ({ data: [] }));
       const audList = (arr: any): any[] => Array.isArray(arr) ? arr.map((x: any) => ({ id: x.id ?? null, name: x.name ?? null })).filter((x: any) => x.id) : [];
       // Resume o Direcionamento detalhado (flexible_spec): por grupo (OR), lista interesses/comportamentos/
       // demograficos como {id,name,kind}. Vazio = segmentacao ABERTA (sem direcionamento detalhado).
@@ -160,7 +160,11 @@ Deno.serve(async (req) => {
         age_min: a.targeting?.age_min ?? null,
         age_max: a.targeting?.age_max ?? null,
         genders: a.targeting?.genders ?? null,            // [1]=masc, [2]=fem; ausente = todos
-        publisher_platforms: a.targeting?.publisher_platforms ?? null, // ausente = automatico
+        publisher_platforms: a.targeting?.publisher_platforms ?? null, // ausente = automatico (todas as plataformas)
+        facebook_positions: a.targeting?.facebook_positions ?? null,
+        instagram_positions: a.targeting?.instagram_positions ?? null,
+        messenger_positions: a.targeting?.messenger_positions ?? null,
+        audience_network_positions: a.targeting?.audience_network_positions ?? null,
         geo: summarizeGeo(a.targeting?.geo_locations),
         // Públicos personalizados aplicados no conjunto (incluídos/excluídos) — base do preset reutilizável.
         custom_audiences: audList(a.targeting?.custom_audiences),
@@ -440,16 +444,28 @@ Deno.serve(async (req) => {
         const seenI = new Set<string>(); const interests: any[] = [];
         for (const it of [...directInterests, ...searched]) { if (!seenI.has(it.id)) { seenI.add(it.id); interests.push(it.name ? { id: it.id, name: it.name } : { id: it.id }); } }
         if (interests.length && !spec.retargeting && !incIds.length) t.flexible_spec = [{ interests }];
-        const pl = String(spec.placements || "automatic").toLowerCase();
-        if (pl !== "automatic" && pl.trim()) {
-          const platforms = new Set<string>(); const fb: string[] = []; const ig: string[] = [];
-          for (const w of pl.split(",").map((s) => s.trim())) {
-            if (w.startsWith("facebook")) { platforms.add("facebook"); if (w.includes("feed")) fb.push("feed"); if (w.includes("reels")) fb.push("facebook_reels"); }
-            if (w.startsWith("instagram")) { platforms.add("instagram"); if (w.includes("feed")) ig.push("stream"); if (w.includes("stories")) ig.push("story"); if (w.includes("reels")) ig.push("reels"); }
+        // Posicionamentos manuais. Precedência: (1) ARRAYS explícitas (de um preset de plataformas — espelham
+        // a referência: FB+IG, sem Messenger/AN); (2) parser coarse do `placements` (keywords); (3) nada →
+        // omite = Advantage+ placements (a Meta escolhe todos os locais, incl. AN/Messenger).
+        const explicitPlatforms = Array.isArray(spec.publisher_platforms) ? spec.publisher_platforms.filter(Boolean) : null;
+        if (explicitPlatforms && explicitPlatforms.length) {
+          t.publisher_platforms = explicitPlatforms;
+          if (Array.isArray(spec.facebook_positions) && spec.facebook_positions.length) t.facebook_positions = spec.facebook_positions;
+          if (Array.isArray(spec.instagram_positions) && spec.instagram_positions.length) t.instagram_positions = spec.instagram_positions;
+          if (Array.isArray(spec.messenger_positions) && spec.messenger_positions.length) t.messenger_positions = spec.messenger_positions;
+          if (Array.isArray(spec.audience_network_positions) && spec.audience_network_positions.length) t.audience_network_positions = spec.audience_network_positions;
+        } else {
+          const pl = String(spec.placements || "automatic").toLowerCase();
+          if (pl !== "automatic" && pl.trim()) {
+            const platforms = new Set<string>(); const fb: string[] = []; const ig: string[] = [];
+            for (const w of pl.split(",").map((s) => s.trim())) {
+              if (w.startsWith("facebook")) { platforms.add("facebook"); if (w.includes("feed")) fb.push("feed"); if (w.includes("reels")) fb.push("facebook_reels"); }
+              if (w.startsWith("instagram")) { platforms.add("instagram"); if (w.includes("feed")) ig.push("stream"); if (w.includes("stories")) ig.push("story"); if (w.includes("reels")) ig.push("reels"); }
+            }
+            if (platforms.size) t.publisher_platforms = [...platforms];
+            if (fb.length) t.facebook_positions = fb;
+            if (ig.length) t.instagram_positions = ig;
           }
-          if (platforms.size) t.publisher_platforms = [...platforms];
-          if (fb.length) t.facebook_positions = fb;
-          if (ig.length) t.instagram_positions = ig;
         }
         // Advantage+ Audience (expansão): a Meta EXIGE a sinalização no targeting. Configurável por conjunto
         // (spec.advantage_audience): 1 = expandir além do direcionamento (as campanhas de referência usaram 1);
