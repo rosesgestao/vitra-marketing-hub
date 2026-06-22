@@ -5,9 +5,10 @@ import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandP
 import { validateCopyAngle } from '../../../supabase/functions/_shared/copyValidation.ts'
 import { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE } from '../../../supabase/functions/_shared/objectivePlaybook.ts'
 import { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE, CONTENT_STATUS_OPTIONS, CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel, contentTypeOffer } from '../../../supabase/functions/_shared/contentPlaybook.ts'
+import { DETAILED_TARGETING_PRESETS, detailedTargetingPreset } from '../../../supabase/functions/_shared/detailedTargetingPresets.ts'
 
-// Reexport para a UI (seletor de Objetivo) — fonte unica e o playbook compartilhado com a Edge.
-export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE }
+// Reexport para a UI (seletor de Objetivo / direcionamento detalhado) — fonte unica compartilhada com a Edge.
+export { META_OBJECTIVE_OPTIONS, DEFAULT_OBJECTIVE, DETAILED_TARGETING_PRESETS, detailedTargetingPreset }
 // Reexport do playbook EDITORIAL (aba Produção) — mesma fonte unica usada pela Edge generate-content.
 export { CONTENT_TYPE_OPTIONS, CONTENT_PILLAR_OPTIONS, CONTENT_FORMAT_OPTIONS, CONTENT_TONES, DEFAULT_CONTENT_TYPE }
 // Reexport do modelo de STATUS de conteudo (fonte unica) — board Conteúdos, Calendário e aba Produção.

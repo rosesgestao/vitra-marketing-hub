@@ -62,6 +62,8 @@ import {
   saveCampaignGeo,
   buildGeoAdSets,
   REGIONAL_RADIUS_MAX_KM,
+  DETAILED_TARGETING_PRESETS,
+  detailedTargetingPreset,
   listMetaAudiences,
   listMetaPixels,
   listMetaAdAccounts,
@@ -2822,6 +2824,29 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
     }).catch(() => { /* persistência best-effort */ })
   }
 
+  // Direcionamento detalhado (interesses) — padrão = preset "Intenção imobiliária (núcleo)", advantage 1.
+  const DT_DEFAULT = DETAILED_TARGETING_PRESETS[0]
+  const [dtPresetKey, setDtPresetKey] = useState(DT_DEFAULT.key)
+  const [dtInterests, setDtInterests] = useState(DT_DEFAULT.interests)         // [{id,name,tier}]
+  const [dtAdvantage, setDtAdvantage] = useState(DT_DEFAULT.advantage_audience) // 1 = expansão (referência)
+  const [dtExtra, setDtExtra] = useState('')                                    // interesses extras por nome (busca no build)
+  function applyDetailedPreset(key) {
+    const p = detailedTargetingPreset(key) || DT_DEFAULT
+    setDtPresetKey(p.key); setDtInterests(p.interests); setDtAdvantage(p.advantage_audience)
+  }
+  function removeDtInterest(id) {
+    if (detailedTargetingPreset(dtPresetKey)?.interests.find(i => i.id === id)?.tier === 'core') return // núcleo obrigatório
+    setDtInterests(prev => prev.filter(i => i.id !== id))
+  }
+  // Estimativa qualitativa de alcance (sem chamar reachestimate): combina expansão + nº de interesses + geo.
+  function audienceEstimate() {
+    if (dtAdvantage === 1) return { label: 'Amplo', cls: 'text-emerald-300', hint: 'Advantage ligado: a Meta expande além dos interesses (como a vencedora).' }
+    const n = dtInterests.length
+    if (n <= 3) return { label: 'Específico', cls: 'text-amber-300', hint: 'Poucos interesses e sem expansão — público mais estreito.' }
+    return { label: 'Médio', cls: 'text-white/70', hint: 'Sem expansão; o público é a soma dos interesses selecionados.' }
+  }
+  const dtExtraList = dtExtra.split(',').map(s => s.trim()).filter(Boolean)
+
   // Auto-descoberta das contas de anuncio acessiveis (sem digitar ID). Pre-seleciona a conta da marca.
   useEffect(() => {
     let alive = true
@@ -2909,7 +2934,13 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   async function handleBuild() {
     setLoading(true); setError(null)
     try {
-      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, pixelId: convPixelId, conversionEvent, adSets: proposal, objective, creativesPerAdset })
+      // Direcionamento detalhado: aplica os interesses (ids pré-resolvidos + extras por nome) e a expansão
+      // Advantage aos conjuntos por GEOGRAFIA (não a conjuntos de retarget/público custom, que já se definem).
+      const interestIds = dtInterests.map(i => ({ id: i.id, name: i.name }))
+      const adSets = proposal.map(s => (s.retargeting || s.custom_audience_id || (Array.isArray(s.custom_audience_ids) && s.custom_audience_ids.length))
+        ? s
+        : { ...s, interest_ids: interestIds, interest_keywords: [...(s.interest_keywords || []), ...dtExtraList], advantage_audience: dtAdvantage })
+      const data = await buildMetaDraft(campaign.id, { adAccountId, pageId, dailyBudgetCents: budgetCents, destinationUrl: destination, privacyPolicyUrl: privacyUrl, pixelId: convPixelId, conversionEvent, adSets, objective, creativesPerAdset })
       setResult(data)
     } catch (e) { setError(e) } finally { setLoading(false) }
   }
@@ -3072,6 +3103,41 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
         {!geoHasPoint && <p className="mt-1.5 text-[11px] text-amber-300">⚠ Sem coordenadas válidas, só o conjunto de Porto Alegre é criado. Localize o endereço ou informe lat/lng para o raio do imóvel.</p>}
         {geoMsg && <p className={`mt-1.5 text-[11px] ${geoMsg.kind === 'ok' ? 'text-emerald-300' : geoMsg.kind === 'warn' ? 'text-amber-300' : 'text-red-300'}`}>{geoMsg.text}</p>}
       </div>
+
+      {/* Direcionamento detalhado (interesses) — preset das campanhas de referência, editável. Aplicado aos conjuntos por geografia no build. */}
+      {(() => { const est = audienceEstimate(); return (
+      <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-200/80">Direcionamento detalhado</p>
+          <span className={`text-[10px] ${est.cls}`} title={est.hint}>Alcance estimado: {est.label}</span>
+        </div>
+        <p className="mt-0.5 text-[11px] leading-4 text-white/45">Interesses destilados das campanhas vencedoras. Aplicado aos conjuntos por geografia.</p>
+        <label className="mt-2 block">
+          <span className="form-label !mb-1 !text-[10px]">Preset (origem)</span>
+          <VitraSelect value={dtPresetKey} onChange={applyDetailedPreset} ariaLabel="Preset de direcionamento detalhado"
+            options={DETAILED_TARGETING_PRESETS.map(p => ({ value: p.key, label: `${p.label} — ${p.origin}` }))} />
+        </label>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {dtInterests.map(i => (
+            <span key={i.id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${i.tier === 'core' ? 'border-gold-500/40 text-gold-200' : i.tier === 'recommended' ? 'border-white/20 text-white/70' : 'border-white/10 text-white/45'}`} title={i.tier === 'core' ? 'Núcleo (obrigatório)' : i.tier === 'recommended' ? 'Recomendado' : 'Opcional'}>
+              {i.name}
+              {i.tier !== 'core' && <button type="button" onClick={() => removeDtInterest(i.id)} className="ml-0.5 text-white/40 hover:text-white" title="Remover">×</button>}
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+          <label className="block"><span className="form-label !mb-1 !text-[10px]">Interesses extras (por nome, separados por vírgula)</span>
+            <input className="form-input !py-1.5 text-xs" value={dtExtra} onChange={e => setDtExtra(e.target.value)} placeholder="ex.: financiamento imobiliário, mudança" /></label>
+          <button type="button" onClick={() => setDtAdvantage(v => (v === 1 ? 0 : 1))} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-left transition hover:border-white/20">
+            <span className="text-[11px] text-white/70">Advantage (expansão)</span>
+            <span className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition ${dtAdvantage === 1 ? 'bg-gold-500/70' : 'bg-white/15'}`}>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${dtAdvantage === 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </span>
+          </button>
+        </div>
+        <p className="mt-1.5 text-[10px] text-white/35">Núcleo (dourado) é obrigatório; recomendados/opcionais podem ser removidos. Advantage ligado = expansão (como a vencedora). Itens depreciados pela Meta são removidos automaticamente no envio.</p>
+      </div>
+      ) })()}
 
       <div className="mt-4">
         <button type="button" onClick={handleSuggest} disabled={suggesting} className="btn-ghost inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
