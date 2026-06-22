@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Fix UX: CTA longo vazava a arte do post
 
 > CTAs em frase (ex.: "Entre em contato com a Vitra e saiba mais…") estouravam o card e invadiam a
-> assinatura da marca. Agora o CTA é truncado dentro do pill. Na `main`. Commit: **<HASH>**.
+> assinatura da marca. Agora o CTA é truncado dentro do pill. Na `main`. Commit: **22406fd**.
 
 ## Problema (screenshot do usuário)
 Na grade de Produção, a prévia da arte de um post com CTA longo renderizava o texto do CTA em uma linha só,
