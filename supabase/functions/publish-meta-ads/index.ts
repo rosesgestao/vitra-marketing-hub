@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     if (!metaCampaignId) return json({ error: "missing_meta_campaign_id", message: "Informe o meta_campaign_id da campanha de referencia." }, 400);
     try {
       const camp = await graphGet(metaCampaignId, "name,objective,buying_type,bid_strategy,daily_budget,lifetime_budget,status,effective_status");
-      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms,facebook_positions,instagram_positions,messenger_positions,audience_network_positions,custom_audiences,excluded_custom_audiences,flexible_spec,exclusions,targeting_automation}").catch(() => ({ data: [] }));
+      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,is_multi_advertiser_ads_enabled,targeting{age_min,age_max,genders,geo_locations,publisher_platforms,facebook_positions,instagram_positions,messenger_positions,audience_network_positions,custom_audiences,excluded_custom_audiences,flexible_spec,exclusions,targeting_automation}").catch(() => ({ data: [] }));
       const audList = (arr: any): any[] => Array.isArray(arr) ? arr.map((x: any) => ({ id: x.id ?? null, name: x.name ?? null })).filter((x: any) => x.id) : [];
       // Resume o Direcionamento detalhado (flexible_spec): por grupo (OR), lista interesses/comportamentos/
       // demograficos como {id,name,kind}. Vazio = segmentacao ABERTA (sem direcionamento detalhado).
@@ -160,6 +160,7 @@ Deno.serve(async (req) => {
         age_min: a.targeting?.age_min ?? null,
         age_max: a.targeting?.age_max ?? null,
         genders: a.targeting?.genders ?? null,            // [1]=masc, [2]=fem; ausente = todos
+        multi_advertiser_ads_enabled: a.is_multi_advertiser_ads_enabled ?? null, // false = desmarcado (sem vários anunciantes)
         publisher_platforms: a.targeting?.publisher_platforms ?? null, // ausente = automatico (todas as plataformas)
         facebook_positions: a.targeting?.facebook_positions ?? null,
         instagram_positions: a.targeting?.instagram_positions ?? null,
@@ -520,7 +521,10 @@ Deno.serve(async (req) => {
         if (!valid.length) { built.push({ group_key: spec.group_key, label: spec.label, skipped: "sem criativo aprovado com copy valida" }); continue; }
 
         let targeting = await targetingFor(spec);
-        const adsetParams = (t: any) => ({
+        // "Anuncios com varios anunciantes" (is_multi_advertiser_ads_enabled): DESMARCADO por padrao em todo
+        // novo conjunto (false). Alguns objetivos nao expoem o campo na API — nesse caso o build remove o
+        // parametro e segue (registra o aviso); nunca falha o build por causa disso.
+        const adsetParams = (t: any, dropMultiAdv = false) => ({
           name: `${campaign.name} | ${spec.label || valid[0].asset.metadata?.ad_label || "Conjunto"}`.slice(0, 100),
           campaign_id: campRes.id, optimization_goal: obj.optimization_goal, billing_event: obj.billing_event,
           ...(obj.destination_type ? { destination_type: obj.destination_type } : {}),
@@ -528,37 +532,49 @@ Deno.serve(async (req) => {
             ? { promoted_object: { pixel_id: pixelId, custom_event_type: conversionEvent } }
             : (isLeadForm || isWhatsApp) ? { promoted_object: { page_id: pageId } } : {}),
           targeting: t, status: "PAUSED",
+          ...(dropMultiAdv ? {} : { is_multi_advertiser_ads_enabled: false }),
           ...(body.start_time ? { start_time: body.start_time } : {}),
           ...(body.end_time ? { end_time: body.end_time } : {}),
         });
         let adsetRes: any;
         let targetingNote: string | null = null;
-        try {
-          adsetRes = await graphPost(`act_${adAccountId}/adsets`, adsetParams(targeting));
-        } catch (e) {
-          // A Meta rejeita INTERESSES DEPRECIADOS no direcionamento ("Invalid parameter — Atualize a
-          // especificacao de direcionamento"). Interesses sao um REFORCO opcional sobre o geo (raio/cidade),
-          // que e o nucleo da segmentacao. Em vez de falhar o build, removemos os interesses depreciados
-          // (ou todos, se nao der pra identifica-los) e recriamos o conjunto so com geo. Retry unico.
-          const ge = (e as any).graphError || {};
-          const raw = JSON.stringify(ge);
-          const isTargeting = ge.error_subcode === 1487079 ||
-            /deprecated_interest_id/.test(raw) ||
-            /direcionamento|targeting|interest|Invalid parameter/i.test(String((e as any)?.message || ""));
-          if (isTargeting && targeting.flexible_spec) {
-            const deprecatedIds = new Set((raw.match(/"deprecated_interest_id":\s*"?(\d+)"?/g) || []).map((s) => s.replace(/\D/g, "")));
-            const cleaned: any = { ...targeting };
-            const kept = (targeting.flexible_spec?.[0]?.interests || []).filter((it: any) => !deprecatedIds.has(String(it.id)));
-            if (deprecatedIds.size && kept.length) {
-              cleaned.flexible_spec = [{ interests: kept }];
-              targetingNote = `interesses depreciados removidos (${[...deprecatedIds].join(", ")}); mantidos ${kept.length}`;
-            } else {
-              delete cleaned.flexible_spec;
-              targetingNote = "interesses removidos (direcionamento depreciado/invalido) — conjunto publicado so com geo";
+        let multiAdvNote: string | null = null;
+        let dropMultiAdv = false;
+        // Loop resiliente: tenta criar o conjunto e, a cada erro conhecido, retira o parametro problematico
+        // (campo multi-advertiser sem suporte / interesses depreciados) e tenta de novo. Maximo 3 tentativas.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            adsetRes = await graphPost(`act_${adAccountId}/adsets`, adsetParams(targeting, dropMultiAdv));
+            break;
+          } catch (e) {
+            const ge = (e as any).graphError || {};
+            const raw = JSON.stringify(ge);
+            const msg = String((e as any)?.message || "");
+            // (a) Meta nao aceita is_multi_advertiser_ads_enabled neste objetivo -> remove e segue.
+            if (!dropMultiAdv && /multi_advertiser|is_multi_advertiser/i.test(raw + msg)) {
+              dropMultiAdv = true;
+              multiAdvNote = 'A API nao permitiu desmarcar "varios anunciantes" neste objetivo — mantido o padrao da conta.';
+              continue;
             }
-            targeting = cleaned;
-            adsetRes = await graphPost(`act_${adAccountId}/adsets`, adsetParams(cleaned));
-          } else {
+            // (b) INTERESSES DEPRECIADOS no direcionamento ("Invalid parameter — Atualize a especificacao").
+            // Interesses sao reforco opcional sobre o geo (nucleo). Remove os depreciados (ou todos) e recria.
+            const isTargeting = (ge.error_subcode === 1487079 ||
+              /deprecated_interest_id/.test(raw) ||
+              /direcionamento|targeting|interest|Invalid parameter/i.test(msg)) && targeting.flexible_spec;
+            if (isTargeting) {
+              const deprecatedIds = new Set((raw.match(/"deprecated_interest_id":\s*"?(\d+)"?/g) || []).map((s) => s.replace(/\D/g, "")));
+              const cleaned: any = { ...targeting };
+              const kept = (targeting.flexible_spec?.[0]?.interests || []).filter((it: any) => !deprecatedIds.has(String(it.id)));
+              if (deprecatedIds.size && kept.length) {
+                cleaned.flexible_spec = [{ interests: kept }];
+                targetingNote = `interesses depreciados removidos (${[...deprecatedIds].join(", ")}); mantidos ${kept.length}`;
+              } else {
+                delete cleaned.flexible_spec;
+                targetingNote = "interesses removidos (direcionamento depreciado/invalido) — conjunto publicado so com geo";
+              }
+              targeting = cleaned;
+              continue;
+            }
             throw e;
           }
         }
@@ -589,7 +605,8 @@ Deno.serve(async (req) => {
         }
         totalAds += adIds.length;
         if (targetingNote) targetingAdjustments.push({ group_key: spec.group_key, label: spec.label, note: targetingNote });
-        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ads: adIds.length, ad_ids: adIds, targeting_note: targetingNote || undefined });
+        if (multiAdvNote) targetingAdjustments.push({ group_key: spec.group_key, label: spec.label, note: multiAdvNote });
+        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ads: adIds.length, ad_ids: adIds, targeting_note: targetingNote || undefined, multi_advertiser_off: !dropMultiAdv, multi_advertiser_note: multiAdvNote || undefined });
       }
 
       const okBuilt = built.filter((b) => b.adset_id);

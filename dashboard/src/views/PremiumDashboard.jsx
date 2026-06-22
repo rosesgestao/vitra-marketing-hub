@@ -3306,6 +3306,10 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
         {placementWarnings().map((w, i) => (
           <p key={i} className={`mt-1.5 text-[11px] ${w.kind === 'warn' ? 'text-amber-300' : 'text-white/40'}`}>{w.kind === 'warn' ? '⚠ ' : 'ℹ '}{w.text}</p>
         ))}
+        <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04] px-2.5 py-1.5">
+          <CheckCircle2 size={14} className="mt-0.5 flex-shrink-0 text-emerald-300/80" />
+          <span className="text-[11px] leading-4 text-white/70">Anúncios com vários anunciantes: <span className="font-medium text-emerald-300">Desativado</span> <span className="text-white/35">— enviado à Meta em todo anúncio novo (não altera anúncios existentes).</span></span>
+        </div>
         <button type="button" onClick={() => applyPlacementPreset('fb_ig_recomendado')} className="btn-ghost mt-2.5 inline-flex items-center gap-1.5 !py-1.5 text-xs"><RotateCcw size={13} />Restaurar recomendado</button>
       </div>
 
