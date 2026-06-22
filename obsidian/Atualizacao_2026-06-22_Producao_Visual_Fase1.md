@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Produção visual (Conteúdo) · Fase 1: prévia + arte integrada
 
 > A aba Produção deixa de ser text-only: prévia da arte nos cards de sugestão, "Gerar arte" em destaque
-> com status, e arte gerada automaticamente ao aprovar. Na `main`. Commit: **<HASH>**.
+> com status, e arte gerada automaticamente ao aprovar. Na `main`. Commit: **47e87e1**.
 
 ## Contexto (diagnóstico)
 A Produção gerava só texto; o usuário aprovava sem ver o resultado. "Gerar arte" era um link apagado
