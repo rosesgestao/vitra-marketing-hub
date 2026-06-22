@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-22 — Tráfego: análise de Públicos Personalizados (referência) + base backend
 
-> Análise das campanhas de referência + fundação de backend para o seletor de públicos. Na `main`. Commit: **<HASH>**.
+> Análise das campanhas de referência + fundação de backend para o seletor de públicos. Na `main`. Commit: **5dc3cd4**.
 
 ## Achado principal (gestor de tráfego)
 As campanhas de referência **TOM 30.05 (`120240689084870221`)** e **10.06 (`120252147584340221`)** —
