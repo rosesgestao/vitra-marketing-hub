@@ -139,8 +139,20 @@ Deno.serve(async (req) => {
     if (!metaCampaignId) return json({ error: "missing_meta_campaign_id", message: "Informe o meta_campaign_id da campanha de referencia." }, 400);
     try {
       const camp = await graphGet(metaCampaignId, "name,objective,buying_type,bid_strategy,daily_budget,lifetime_budget,status,effective_status");
-      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms,custom_audiences,excluded_custom_audiences,flexible_spec}").catch(() => ({ data: [] }));
+      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms,custom_audiences,excluded_custom_audiences,flexible_spec,exclusions,targeting_automation}").catch(() => ({ data: [] }));
       const audList = (arr: any): any[] => Array.isArray(arr) ? arr.map((x: any) => ({ id: x.id ?? null, name: x.name ?? null })).filter((x: any) => x.id) : [];
+      // Resume o Direcionamento detalhado (flexible_spec): por grupo (OR), lista interesses/comportamentos/
+      // demograficos como {id,name,kind}. Vazio = segmentacao ABERTA (sem direcionamento detalhado).
+      const detailList = (spec: any): any[] => {
+        if (!Array.isArray(spec)) return [];
+        const out: any[] = [];
+        for (const group of spec) {
+          for (const kind of ["interests", "behaviors", "life_events", "industries", "income", "family_statuses", "user_device", "education_statuses"]) {
+            for (const it of (group?.[kind] || [])) out.push({ id: it.id ?? null, name: it.name ?? null, kind });
+          }
+        }
+        return out;
+      };
       const adsets = (adsetsRes?.data || []).map((a: any) => ({
         name: a.name,
         optimization_goal: a.optimization_goal ?? null,
@@ -153,6 +165,10 @@ Deno.serve(async (req) => {
         // Públicos personalizados aplicados no conjunto (incluídos/excluídos) — base do preset reutilizável.
         custom_audiences: audList(a.targeting?.custom_audiences),
         excluded_custom_audiences: audList(a.targeting?.excluded_custom_audiences),
+        // Direcionamento detalhado (interesses/comportamentos/demográficos) + exclusões + Advantage Audience.
+        detailed_targeting: detailList(a.targeting?.flexible_spec),
+        detailed_exclusions: detailList(a.targeting?.exclusions ? [a.targeting.exclusions] : null),
+        advantage_audience: a.targeting?.targeting_automation?.advantage_audience ?? null, // 1=expansão ON, 0=OFF
         lead_gen_form_id: a.promoted_object?.lead_gen_form_id ?? null,
       }));
       // Formulario de Lead: tenta pelo promoted_object; senao, pelo 1o anuncio -> creative.
@@ -366,9 +382,17 @@ Deno.serve(async (req) => {
         const incIds = [...new Set(incRaw)].filter((id) => !excIds.includes(id));
         if (incIds.length) t.custom_audiences = incIds.map((id) => ({ id }));
         if (excIds.length) t.excluded_custom_audiences = excIds.map((id) => ({ id }));
+        // Direcionamento detalhado (interesses). Duas fontes: (a) interest_ids PRÉ-RESOLVIDOS — id+name de
+        // um preset/seleção (sem busca → sem surpresa de item depreciado/indisponível); (b) interest_keywords
+        // resolvidos por busca (fallback). Mescla e DEDUP por id. Com público incluído, não sobrepõe.
+        const directInterests = Array.isArray(spec.interest_ids)
+          ? spec.interest_ids.map((it: any) => ({ id: String(it?.id ?? it), name: it?.name })).filter((x: any) => x.id && x.id !== "undefined")
+          : [];
         const kws: string[] = Array.isArray(spec.interest_keywords) ? spec.interest_keywords.slice(0, 6) : [];
-        const interests: any[] = [];
-        for (const kw of kws) { const it = await searchGraph("adinterest", String(kw)); if (it?.id) interests.push({ id: it.id, name: it.name }); }
+        const searched: any[] = [];
+        for (const kw of kws) { const it = await searchGraph("adinterest", String(kw)); if (it?.id) searched.push({ id: String(it.id), name: it.name }); }
+        const seenI = new Set<string>(); const interests: any[] = [];
+        for (const it of [...directInterests, ...searched]) { if (!seenI.has(it.id)) { seenI.add(it.id); interests.push(it.name ? { id: it.id, name: it.name } : { id: it.id }); } }
         if (interests.length && !spec.retargeting && !incIds.length) t.flexible_spec = [{ interests }];
         const pl = String(spec.placements || "automatic").toLowerCase();
         if (pl !== "automatic" && pl.trim()) {
@@ -381,10 +405,11 @@ Deno.serve(async (req) => {
           if (fb.length) t.facebook_positions = fb;
           if (ig.length) t.instagram_positions = ig;
         }
-        // A Meta passou a EXIGIR a sinalizacao do Advantage+ Audience no targeting. Como enviamos
-        // publico explicito (geo/interesses/custom), declaramos 0 = NAO usar a expansao Advantage+
-        // (respeita o publico definido). Sem isso a criacao do conjunto falha com "Invalid parameter".
-        t.targeting_automation = { advantage_audience: 0 };
+        // Advantage+ Audience (expansão): a Meta EXIGE a sinalização no targeting. Configurável por conjunto
+        // (spec.advantage_audience): 1 = expandir além do direcionamento (as campanhas de referência usaram 1);
+        // 0 (default) = respeitar estritamente o público definido. Sem custom audience incluído, expandir
+        // (1) costuma performar melhor com direcionamento detalhado de interesses (caso da vencedora).
+        t.targeting_automation = { advantage_audience: spec.advantage_audience === 1 ? 1 : 0 };
         return t;
       }
 
