@@ -248,6 +248,9 @@ Navegue pelas seÃ§Ãµes do projeto utilizando os links abaixo:
 81. **[[Atualizacao_2026-06-19_Skill_Vitra_Trafego_e_QualityLead]]**
     Skill nova `vitra-trafego` (v1, LOCAL em .claude/) — estrategista de Meta Ads: analisa campanhas pagas, ranqueia VENCEDORAS por contexto (CPL/leads/maturidade), extrai o padrao e ADAPTA a um novo imovel (endereco→raio, ticket→form, publico, regiao, objetivo). So PROPOE: relatorio markdown + JSON do preset (forma de premium_meta_presets.blueprint, importavel/auto-seed). NAO executa/ativa — build do app, PAUSED, sob aprovacao. Espelha vitra-conteudo (organico). Regras: vencedora=CPL≤mediana+leads≥30+madura; score+proveniencia; TTL p/ depreciar; nunca fora dos guards. + Ajuste no objectivePlaybook: leads_form optimization_goal LEAD_GENERATION→QUALITY_LEAD (DEPOIS revertido — ver item 82). (.claude gitignored — skill nao versionada.)
 
+95. **[[Atualizacao_2026-06-22_CTA_Curto_Geracao_Conteudo]]**
+    Correção de raiz do CTA da arte: generate-content passa a gerar `cta` como rótulo CURTO de botão (≤22 chars, imperativo: "Agende sua visita", "Fale no WhatsApp") e manda a frase conversacional para o FINAL da legenda (regras 4/5 + schema). Combina com o truncamento do postArt.js (rede de segurança). Redeploy CLI. Verificado ao vivo: CTAs 16-17 chars + legenda terminando com o convite. Commit <HASH>.
+
 94. **[[Atualizacao_2026-06-22_Fix_CTA_Overflow_Arte]]**
     Fix UX: CTA longo (frase) vazava a arte do post e invadia a assinatura da marca. postArt.js passa a TRUNCAR o CTA (reticências) p/ caber no espaço livre (W - margens - largura da marca) e clampa o pill; CTAs curtos seguem inteiros. Vale p/ cards, drawer e PNG (um ponto só: renderPostArtToCanvas). lint+build OK; verificado no preview (card "Cristal"). Commit 22406fd.
 

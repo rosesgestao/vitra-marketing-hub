@@ -28,7 +28,7 @@ const POSTS_SCHEMA = {
           idea: { type: "string", description: "a ideia/tema do post em 1 frase" },
           headline: { type: "string", description: "chamada principal (1a linha do criativo/post)" },
           caption: { type: "string", description: "legenda pronta para a rede social, 2-5 frases, pt-BR" },
-          cta: { type: "string", description: "chamada para acao" },
+          cta: { type: "string", description: "rotulo CURTO de botao (<= 22 caracteres), imperativo, sem ponto final — ex.: 'Agende sua visita', 'Fale no WhatsApp', 'Saiba mais'. NAO e frase: a chamada conversacional (frase) vai no FINAL da caption." },
           hashtags: { type: "array", items: { type: "string" }, description: "5-10 hashtags relevantes, sem #" },
           script: { type: "string", description: "roteiro curto (so para reels/stories), cenas/falas; vazio se nao aplicavel" },
           visual: { type: "string", description: "direcao visual: o que mostrar na imagem/video" },
@@ -71,11 +71,12 @@ REGRAS OBRIGATORIAS:
 1. Escreva em portugues do Brasil.
 2. Cada ideia deve ser DISTINTA (gancho/abordagem diferente). Nada de variacoes da mesma coisa.
 3. Use SOMENTE os fatos/contexto fornecidos. NAO invente preco, metragem, bairro, dados nem promessas.
-4. A legenda (caption) deve ser pronta para postar: gancho na 1a linha, corpo util, e o CTA ao final.
-5. hashtags: 5 a 10, relevantes, sem o caractere '#'.
-6. script (roteiro): preencha SO quando o formato for reels/stories (cenas + falas curtas); senao deixe vazio.
-7. visual: descreva objetivamente o que mostrar (foto/cena), coerente com a identidade da marca.
-8. NUNCA use vocabulario fora da marca. Proibido aqui: ${bannedVocabForScope(scope).slice(0, 8).join(", ")}.
+4. A legenda (caption) deve ser pronta para postar: gancho na 1a linha, corpo util e, no FINAL, a chamada CONVERSACIONAL (frase) convidando a agir (ex.: "Fale com a gente no WhatsApp para conhecer as opcoes.").
+5. cta: e o texto do BOTAO da ARTE — rotulo CURTO (max ~22 caracteres), imperativo, SEM ponto final (ex.: "Agende sua visita", "Fale no WhatsApp", "Saiba mais"). NUNCA repita aqui a frase longa da legenda.
+6. hashtags: 5 a 10, relevantes, sem o caractere '#'.
+7. script (roteiro): preencha SO quando o formato for reels/stories (cenas + falas curtas); senao deixe vazio.
+8. visual: descreva objetivamente o que mostrar (foto/cena), coerente com a identidade da marca.
+9. NUNCA use vocabulario fora da marca. Proibido aqui: ${bannedVocabForScope(scope).slice(0, 8).join(", ")}.
 
 Devolva ESTRITAMENTE no formato JSON pedido (posts[]). Sem texto fora do JSON.`;
 }
