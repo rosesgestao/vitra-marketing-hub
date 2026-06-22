@@ -139,7 +139,8 @@ Deno.serve(async (req) => {
     if (!metaCampaignId) return json({ error: "missing_meta_campaign_id", message: "Informe o meta_campaign_id da campanha de referencia." }, 400);
     try {
       const camp = await graphGet(metaCampaignId, "name,objective,buying_type,bid_strategy,daily_budget,lifetime_budget,status,effective_status");
-      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms}").catch(() => ({ data: [] }));
+      const adsetsRes = await graphGet(`${metaCampaignId}/adsets`, "name,optimization_goal,billing_event,bid_strategy,daily_budget,destination_type,promoted_object,targeting{age_min,age_max,genders,geo_locations,publisher_platforms,custom_audiences,excluded_custom_audiences,flexible_spec}").catch(() => ({ data: [] }));
+      const audList = (arr: any): any[] => Array.isArray(arr) ? arr.map((x: any) => ({ id: x.id ?? null, name: x.name ?? null })).filter((x: any) => x.id) : [];
       const adsets = (adsetsRes?.data || []).map((a: any) => ({
         name: a.name,
         optimization_goal: a.optimization_goal ?? null,
@@ -149,6 +150,9 @@ Deno.serve(async (req) => {
         genders: a.targeting?.genders ?? null,            // [1]=masc, [2]=fem; ausente = todos
         publisher_platforms: a.targeting?.publisher_platforms ?? null, // ausente = automatico
         geo: summarizeGeo(a.targeting?.geo_locations),
+        // Públicos personalizados aplicados no conjunto (incluídos/excluídos) — base do preset reutilizável.
+        custom_audiences: audList(a.targeting?.custom_audiences),
+        excluded_custom_audiences: audList(a.targeting?.excluded_custom_audiences),
         lead_gen_form_id: a.promoted_object?.lead_gen_form_id ?? null,
       }));
       // Formulario de Lead: tenta pelo promoted_object; senao, pelo 1o anuncio -> creative.
@@ -350,13 +354,22 @@ Deno.serve(async (req) => {
         }
         if (spec.age_min) t.age_min = Math.max(18, Math.min(65, Number(spec.age_min)));
         if (spec.age_max) t.age_max = Math.max(18, Math.min(65, Number(spec.age_max)));
-        // 2c: conjunto de retargeting usa um publico custom (site/lookalike) escolhido pelo operador.
-        // Com publico custom, NAO sobrepoe interesses (o publico ja define quem ve).
-        if (spec.custom_audience_id) t.custom_audiences = [{ id: String(spec.custom_audience_id) }];
+        // Públicos personalizados: INCLUIR (1..N) e EXCLUIR (0..N). Aceita o legado custom_audience_id
+        // (string) + os arrays custom_audience_ids / excluded_custom_audience_ids. Dedup; o mesmo público
+        // não pode estar incluído e excluído (exclusão prevalece). Com público incluído, não sobrepõe
+        // interesses (o público já define quem vê).
+        const incRaw = [
+          ...(spec.custom_audience_id ? [String(spec.custom_audience_id)] : []),
+          ...(Array.isArray(spec.custom_audience_ids) ? spec.custom_audience_ids.map(String) : []),
+        ];
+        const excIds = Array.isArray(spec.excluded_custom_audience_ids) ? [...new Set(spec.excluded_custom_audience_ids.map(String))] : [];
+        const incIds = [...new Set(incRaw)].filter((id) => !excIds.includes(id));
+        if (incIds.length) t.custom_audiences = incIds.map((id) => ({ id }));
+        if (excIds.length) t.excluded_custom_audiences = excIds.map((id) => ({ id }));
         const kws: string[] = Array.isArray(spec.interest_keywords) ? spec.interest_keywords.slice(0, 6) : [];
         const interests: any[] = [];
         for (const kw of kws) { const it = await searchGraph("adinterest", String(kw)); if (it?.id) interests.push({ id: it.id, name: it.name }); }
-        if (interests.length && !spec.retargeting && !spec.custom_audience_id) t.flexible_spec = [{ interests }];
+        if (interests.length && !spec.retargeting && !incIds.length) t.flexible_spec = [{ interests }];
         const pl = String(spec.placements || "automatic").toLowerCase();
         if (pl !== "automatic" && pl.trim()) {
           const platforms = new Set<string>(); const fb: string[] = []; const ig: string[] = [];
