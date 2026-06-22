@@ -596,19 +596,25 @@ export async function importContentPlan(items, { brandScope, campaignId } = {}) 
 
 // Fase C: atualiza um conteudo (status / agendamento / link publicado). `patch` mescla em metadata
 // (ex.: published_url). status segue o CHECK do banco. Usado pelo acompanhamento na aba Produção.
-export async function updateContentPost(id, { status, scheduledFor, publishedUrl, metadata } = {}) {
+export async function updateContentPost(id, { status, scheduledFor, publishedUrl, metadata, title, hook, caption, cta, hashtags } = {}) {
   if (!id) throw new Error('Conteúdo inválido.')
   const patch = {}
   if (status) patch.status = status
   if (scheduledFor !== undefined) patch.scheduled_for = scheduledFor || null
   if (status === 'approved') patch.approved_at = new Date().toISOString()
-  let mergedMeta = metadata
-  if (publishedUrl !== undefined) {
-    // mescla published_url no metadata existente (sem sobrescrever o resto)
+  // Edição de texto no mesmo fluxo (Fase 2 do drawer): campos de conteúdo gravados direto nas colunas.
+  if (title !== undefined) patch.title = title
+  if (hook !== undefined) patch.hook = hook
+  if (caption !== undefined) patch.caption = caption
+  if (cta !== undefined) patch.cta = cta
+  if (hashtags !== undefined) patch.hashtags = Array.isArray(hashtags) ? hashtags : []
+  if (publishedUrl !== undefined || metadata !== undefined) {
+    // mescla no metadata existente (sem sobrescrever o resto)
     const { data: cur } = await supabase.from('premium_content_posts').select('metadata').eq('id', id).maybeSingle()
-    mergedMeta = { ...(cur?.metadata || {}), ...(metadata || {}), published_url: publishedUrl }
+    const merged = { ...(cur?.metadata || {}), ...(metadata || {}) }
+    if (publishedUrl !== undefined) merged.published_url = publishedUrl
+    patch.metadata = merged
   }
-  if (mergedMeta !== undefined) patch.metadata = mergedMeta
   const { data, error } = await supabase.from('premium_content_posts').update(patch).eq('id', id).select('*').single()
   if (error) throw new Error(error.message || 'Falha ao atualizar o conteúdo.')
   return data
@@ -627,14 +633,29 @@ export async function uploadPostArt({ postId, blob, brandScope, title } = {}) {
   if (upErr) throw new Error(upErr.message || 'Falha ao enviar a arte para o storage.')
   const { data: pub } = supabase.storage.from('cards').getPublicUrl(path)
   const url = pub?.publicUrl
-  // Mescla art_url no metadata existente (sem sobrescrever o resto).
+  // Mescla art_url no metadata existente + EMPILHA no histórico de versões (art_versions, cap 6). A versão
+  // recém-gerada vira a ativa (art_url). Fase 2: permite comparar/trocar versões no drawer.
   const { data: cur } = await supabase.from('premium_content_posts').select('metadata').eq('id', postId).maybeSingle()
-  const metadata = { ...(cur?.metadata || {}), art_url: url, art_path: path }
+  const prevVersions = Array.isArray(cur?.metadata?.art_versions) ? cur.metadata.art_versions : []
+  const art_versions = [{ url, path, at: new Date().toISOString() }, ...prevVersions.filter(v => v?.url !== url)].slice(0, 6)
+  const metadata = { ...(cur?.metadata || {}), art_url: url, art_path: path, art_versions }
   const { error } = await supabase.from('premium_content_posts').update({ metadata }).eq('id', postId)
   if (error) throw new Error(error.message || 'Falha ao vincular a arte ao conteúdo.')
   // Auto-registra a arte na Biblioteca (DAM) — best-effort, nao bloqueia o salvar.
   try { await registerMediaAsset({ brandScope: scope, kind: 'art', title: title || 'Arte do post', url, path }) } catch { /* ignore */ }
   return { url, path }
+}
+
+// Fase 2: define qual versão de arte (de metadata.art_versions) é a ativa (art_url) — sem re-render.
+export async function setActivePostArt(postId, url) {
+  if (!postId || !url) throw new Error('Versão de arte inválida.')
+  const { data: cur } = await supabase.from('premium_content_posts').select('metadata').eq('id', postId).maybeSingle()
+  const versions = Array.isArray(cur?.metadata?.art_versions) ? cur.metadata.art_versions : []
+  const v = versions.find(x => x?.url === url)
+  const metadata = { ...(cur?.metadata || {}), art_url: url, art_path: v?.path || cur?.metadata?.art_path || null }
+  const { error } = await supabase.from('premium_content_posts').update({ metadata }).eq('id', postId)
+  if (error) throw new Error(error.message || 'Falha ao definir a versão da arte.')
+  return { url }
 }
 
 // Biblioteca (DAM): midia organica reutilizavel por marca (premium_media_assets, bucket publico 'cards').

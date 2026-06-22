@@ -72,6 +72,7 @@ import {
   updateContentPost,
   publishContentPost,
   uploadPostArt,
+  setActivePostArt,
   loadEditorialSettings,
   saveEditorialSettings,
   readMetaCampaignConfig,
@@ -1477,7 +1478,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
   const [importResult, setImportResult] = useState(null)
   const [rowBusy, setRowBusy] = useState(null)
   const [schedulingId, setSchedulingId] = useState(null)
-  const [artPost, setArtPost] = useState(null)
+  const [detailPost, setDetailPost] = useState(null)   // Fase 2: drawer "Prévia do post" (texto + arte + versões)
   const [savedNotice, setSavedNotice] = useState(null)   // confirmacao "para onde foi"
   const [highlightId, setHighlightId] = useState(null)    // id do rascunho recem-salvo (rolar + destacar)
 
@@ -1812,56 +1813,40 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
         <div className="mt-6 border-t border-white/10 pt-4">
           <p className="form-label">Conteúdos em produção ({posts.length}) — avance pelo funil</p>
           <p className="mb-2 text-[10px] text-white/35">Rascunho → Aprovar → Agendar → Publicar. Acompanhe também em <span className="text-white/55">Conteúdos</span> (board) e <span className="text-white/55">Calendário</span>.</p>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {sortedPosts.slice(0, 15).map(p => {
               const stage = stageOf(p.status)
               const meta = STAGE[stage]
               const busy = rowBusy === p.id
               const isNew = p.id === highlightId
+              const hasArt = !!p.metadata?.art_url
               const scheduledLabel = p.scheduled_for ? new Date(p.scheduled_for).toLocaleDateString('pt-BR') : null
               return (
-                <div key={p.id} id={`post-row-${p.id}`} className={`rounded-md border px-3 py-2.5 transition-colors duration-500 ${isNew ? 'border-gold-500/60 bg-gold-500/[0.07]' : 'border-white/[0.08] bg-white/[0.02]'}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="flex min-w-0 items-center gap-2">
-                      {p.metadata?.art_url && <img src={p.metadata.art_url} alt="" className="h-8 w-8 flex-shrink-0 rounded border border-white/10 object-cover" />}
-                      <span className="truncate text-xs text-white/75">{p.title || (p.caption || '').slice(0, 50)}</span>
-                      {isNew && <span className="flex-shrink-0 rounded-full bg-gold-500/20 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-gold-200">novo</span>}
-                    </span>
-                    <div className="flex flex-shrink-0 items-center gap-2">
+                <div key={p.id} id={`post-row-${p.id}`} className={`flex flex-col overflow-hidden rounded-lg border transition ${isNew ? 'border-gold-500/60 bg-gold-500/[0.06]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'}`}>
+                  {/* Thumbnail-first: arte salva, ou prévia ao vivo do texto. Clicar abre o drawer "Prévia do post". */}
+                  <button type="button" onClick={() => setDetailPost(p)} className="relative block aspect-square w-full overflow-hidden bg-black/30 text-left" title="Abrir prévia do post">
+                    {hasArt
+                      ? <img src={p.metadata.art_url} alt="" className="h-full w-full object-cover" />
+                      : <PostArtPreview opts={artOptsFor({ format: 'feed', title: p.title || p.hook, caption: p.caption, cta: p.cta, pillarKey: p.editorial_pillar })} className="h-full w-full object-cover" fallback={<div className="flex h-full w-full items-center justify-center text-[10px] text-white/25">sem prévia</div>} />}
+                    {isNew && <span className="absolute left-2 top-2 rounded-full bg-gold-500/85 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-black">novo</span>}
+                    {busy && <span className="absolute inset-0 flex items-center justify-center bg-black/45"><Loader2 size={18} className="animate-spin text-gold-200" /></span>}
+                  </button>
+                  <div className="flex flex-1 flex-col gap-2 p-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${meta.cls}`}>{meta.label}</span>
                       <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-wide text-white/35">{p.campaign_id ? (campaignName(p.campaign_id) || 'Oferta') : 'Marca'}</span>
-                      <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${p.metadata?.art_url ? 'border-emerald-400/30 text-emerald-200/90' : 'border-amber-400/30 text-amber-200/90'}`}>{p.metadata?.art_url ? 'arte pronta' : 'sem arte'}</span>
-                      {busy && <Loader2 size={13} className="animate-spin text-gold-300" />}
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${hasArt ? 'border-emerald-400/30 text-emerald-200/90' : 'border-amber-400/30 text-amber-200/90'}`}>{hasArt ? 'arte pronta' : 'sem arte'}</span>
                     </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {stage === 'rascunho' && (
-                      <button type="button" disabled={busy} onClick={() => approve(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Check size={13} />Aprovar</button>
-                    )}
-                    {(stage === 'aprovado' || stage === 'agendado') && schedulingId !== p.id && (
-                      <button type="button" disabled={busy} onClick={() => setSchedulingId(p.id)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Clock size={13} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</button>
-                    )}
-                    {schedulingId === p.id && (
-                      <input type="date" autoFocus className="form-input !w-auto !py-1 text-[11px]"
-                        defaultValue={p.scheduled_for ? new Date(p.scheduled_for).toISOString().slice(0, 10) : ''}
-                        onChange={e => schedule(p, e.target.value)} onBlur={() => setSchedulingId(null)} title="Data da publicação" />
-                    )}
-                    {(stage === 'aprovado' || stage === 'agendado') && (
-                      <button type="button" disabled={busy} onClick={() => publish(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] text-emerald-200 disabled:opacity-50"><Send size={13} />Marcar publicado</button>
-                    )}
-                    {stage === 'agendado' && scheduledLabel && <span className="text-[10px] text-gold-200/80">para {scheduledLabel}</span>}
-                    {stage === 'publicado' && (
-                      <>
-                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><CheckCircle2 size={12} />Publicado</span>
-                        {p.metadata?.published_url && <a href={p.metadata.published_url} target="_blank" rel="noreferrer" className="text-[10px] text-gold-300 underline">ver post</a>}
-                      </>
-                    )}
-                    {stage !== 'rascunho' && stage !== 'publicado' && (
-                      <button type="button" disabled={busy} onClick={() => backToDraft(p)} className="text-[10px] text-white/35 hover:text-white/60">voltar a rascunho</button>
-                    )}
-                    <button type="button" onClick={() => setArtPost(p)} className={`ml-auto inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium transition ${p.metadata?.art_url ? 'border-white/15 text-white/70 hover:text-white' : 'border-gold-500/45 bg-gold-500/10 text-gold-200 hover:bg-gold-500/20'}`} title={p.metadata?.art_url ? 'Ver/editar a arte do post' : 'Gerar a arte (imagem) do post'}>
-                      <ImageIcon size={13} />{p.metadata?.art_url ? 'Ver/editar arte' : 'Gerar arte'}
-                    </button>
+                    <button type="button" onClick={() => setDetailPost(p)} className="line-clamp-2 text-left text-xs font-medium text-white/80 hover:text-white">{p.title || (p.caption || '').slice(0, 60) || 'Sem título'}</button>
+                    {stage === 'agendado' && scheduledLabel && <span className="text-[10px] text-gold-200/80">agendado para {scheduledLabel}</span>}
+                    <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+                      {stage === 'rascunho' && <button type="button" disabled={busy} onClick={() => approve(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Check size={13} />Aprovar</button>}
+                      {(stage === 'aprovado' || stage === 'agendado') && schedulingId !== p.id && <button type="button" disabled={busy} onClick={() => setSchedulingId(p.id)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Clock size={13} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</button>}
+                      {schedulingId === p.id && <input type="date" autoFocus className="form-input !w-auto !py-1 text-[11px]" defaultValue={p.scheduled_for ? new Date(p.scheduled_for).toISOString().slice(0, 10) : ''} onChange={e => schedule(p, e.target.value)} onBlur={() => setSchedulingId(null)} title="Data da publicação" />}
+                      {(stage === 'aprovado' || stage === 'agendado') && <button type="button" disabled={busy} onClick={() => publish(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] text-emerald-200 disabled:opacity-50"><Send size={13} />Publicado</button>}
+                      {stage === 'publicado' && <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><CheckCircle2 size={12} />Publicado</span>}
+                      <button type="button" onClick={() => setDetailPost(p)} className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-white/50 hover:text-gold-200" title="Abrir prévia (texto + arte)"><ImageIcon size={13} />Prévia</button>
+                    </div>
                   </div>
                 </div>
               )
@@ -1871,8 +1856,21 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
         </div>
       )}
 
-      {artPost && (
-        <PostArtModal post={artPost} brandProfile={brandProfile} onClose={() => setArtPost(null)} onSaved={() => { setArtPost(null); onSaved?.() }} />
+      {detailPost && (
+        <PostDetailDrawer
+          post={detailPost}
+          brandProfile={brandProfile}
+          stage={stageOf(detailPost.status)}
+          stageMeta={STAGE[stageOf(detailPost.status)]}
+          busy={rowBusy === detailPost.id}
+          artOptsFor={artOptsFor}
+          onClose={() => setDetailPost(null)}
+          onSaved={() => onSaved?.()}
+          onApprove={() => approve(detailPost)}
+          onPublish={() => publish(detailPost)}
+          onBackToDraft={() => backToDraft(detailPost)}
+          onSchedule={(dateStr) => schedule(detailPost, dateStr)}
+        />
       )}
     </div>
   )
@@ -1898,89 +1896,175 @@ function PostArtPreview({ opts, className = '', fallback = null }) {
   return <canvas ref={ref} className={className} aria-label="Prévia da arte do post" />
 }
 
-// Modal "Gerar arte do post": gera a imagem branded (Canvas 2D, postArt.js) a partir do texto do post.
-// Diferente do render pago — aqui e cartao tipografico organico. Baixa o PNG e/ou salva no post (Storage).
-function PostArtModal({ post, brandProfile = getBrandProfile(), onClose, onSaved }) {
+// Fase 2: drawer "Prévia do post" — unifica edição de TEXTO + ARTE (Canvas 2D), formato feed/story,
+// histórico de versões e as ações do funil, no mesmo fluxo. Substitui o antigo modal "Arte do post".
+function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stageMeta, busy, onClose, onSaved, onApprove, onPublish, onBackToDraft, onSchedule }) {
   const canvasRef = useRef(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
-  const [variant, setVariant] = useState('tipografico')   // 'tipografico' | 'foto'
-  const [photoUrl, setPhotoUrl] = useState('')
   const scope = post?.metadata?.brand_scope || brandProfile.scope
   const kicker = (CONTENT_PILLAR_OPTIONS.find(p => p.key === post?.editorial_pillar)?.label) || brandProfile.shortName
+  // Texto editável (mesmo fluxo).
+  const [title, setTitle] = useState(post?.title || '')
+  const [caption, setCaption] = useState(post?.caption || '')
+  const [cta, setCta] = useState(post?.cta || '')
+  const [hashtags, setHashtags] = useState(Array.isArray(post?.hashtags) ? post.hashtags.join(' ') : '')
+  // Arte.
+  const [variant, setVariant] = useState('tipografico')   // 'tipografico' | 'foto'
+  const [photoUrl, setPhotoUrl] = useState('')
+  const [fmt, setFmt] = useState(post?.format === 'stories' || post?.format === 'reels' ? 'stories' : 'feed')
+  const [activeArt, setActiveArt] = useState(post?.metadata?.art_url || '')
+  const [versions, setVersions] = useState(Array.isArray(post?.metadata?.art_versions) ? post.metadata.art_versions : [])
+  const [savingArt, setSavingArt] = useState(false)
+  const [savingText, setSavingText] = useState(false)
+  const [scheduling, setScheduling] = useState(false)
+  const [error, setError] = useState(null)
+
   const artOpts = {
-    brandScope: scope, format: post?.format || 'feed',
-    title: post?.title || post?.hook || (post?.caption || '').slice(0, 60),
-    caption: post?.caption || '', cta: post?.cta || '', kicker,
+    brandScope: scope, format: fmt,
+    title: title || post?.hook || (caption || '').slice(0, 60),
+    caption, cta, kicker,
     photoUrl: variant === 'foto' ? photoUrl.trim() : null,
   }
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      try { if (canvasRef.current) { await renderPostArtToCanvas(canvasRef.current, artOpts); if (!alive) return } }
-      catch (e) { setError(e) }
+      try { await ensureArtFonts(); if (alive && canvasRef.current) await renderPostArtToCanvas(canvasRef.current, artOpts) }
+      catch (e) { if (alive) setError(e) }
     })()
     return () => { alive = false }
-  }, [post?.id, variant, photoUrl])
+  }, [variant, photoUrl, fmt, title, caption, cta])
 
+  async function handleSaveArt() {
+    setSavingArt(true); setError(null)
+    try {
+      const blob = await postArtBlob(artOpts)
+      const { url } = await uploadPostArt({ postId: post.id, blob, brandScope: scope, title: artOpts.title })
+      setActiveArt(url)
+      setVersions(prev => [{ url, at: new Date().toISOString() }, ...prev.filter(v => v?.url !== url)].slice(0, 6))
+      onSaved?.()
+    } catch (e) { setError(e) } finally { setSavingArt(false) }
+  }
   async function handleDownload() {
-    setBusy(true); setError(null)
+    setError(null)
     try {
       const blob = await postArtBlob(artOpts)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = `arte-${(post?.title || 'post').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)}.png`
+      a.href = url; a.download = `arte-${(title || 'post').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)}.png`
       a.click(); URL.revokeObjectURL(url)
-    } catch (e) { setError(e) } finally { setBusy(false) }
+    } catch (e) { setError(e) }
   }
-
-  async function handleSave() {
-    setBusy(true); setError(null)
+  async function handleUseVersion(v) {
+    if (!v?.url || v.url === activeArt) return
+    setError(null)
+    try { await setActivePostArt(post.id, v.url); setActiveArt(v.url); onSaved?.() }
+    catch (e) { setError(e) }
+  }
+  async function handleSaveText() {
+    setSavingText(true); setError(null)
     try {
-      const blob = await postArtBlob(artOpts)
-      await uploadPostArt({ postId: post.id, blob, brandScope: scope, title: artOpts.title })
+      await updateContentPost(post.id, {
+        title, caption, cta,
+        hashtags: hashtags.split(/[,\s]+/).map(h => h.replace(/^#/, '')).filter(Boolean),
+      })
       onSaved?.()
-    } catch (e) { setError(e) } finally { setBusy(false) }
+    } catch (e) { setError(e) } finally { setSavingText(false) }
   }
+  async function runFunnel(fn) { try { await fn(); onClose?.() } catch (e) { setError(e) } }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-5" onClick={e => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-display text-lg font-semibold text-white">Arte do post</h3>
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onClick={onClose}>
+      <div className="flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-[color:var(--surface-1)]" onClick={e => e.stopPropagation()}>
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <h3 className="font-display text-base font-semibold text-white">Prévia do post</h3>
+            {stageMeta && <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${stageMeta.cls}`}>{stageMeta.label}</span>}
+          </div>
           <button type="button" onClick={onClose} className="text-white/40 hover:text-white"><X size={18} /></button>
         </div>
-        <p className="mb-3 text-[11px] leading-5 text-white/45">Imagem branded gerada do texto do post, na identidade da {brandProfile.shortName}. Baixe para postar ou salve no conteúdo.</p>
-        <div className="mb-3 inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
-          {[{ k: 'tipografico', label: 'Tipográfico' }, { k: 'foto', label: 'Com foto' }].map(({ k, label }) => (
-            <button key={k} type="button" onClick={() => { setVariant(k); setError(null) }}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${variant === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>
-              {label}
-            </button>
-          ))}
+
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          {/* ARTE */}
+          <section>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="form-label !mb-0">Arte</span>
+              <div className="flex items-center gap-1.5">
+                <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+                  {[{ k: 'tipografico', label: 'Tipográfico' }, { k: 'foto', label: 'Com foto' }].map(({ k, label }) => (
+                    <button key={k} type="button" onClick={() => { setVariant(k); setError(null) }} className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${variant === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>{label}</button>
+                  ))}
+                </div>
+                <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+                  {[{ k: 'feed', label: 'Feed 1:1' }, { k: 'stories', label: 'Story 9:16' }].map(({ k, label }) => (
+                    <button key={k} type="button" onClick={() => setFmt(k)} className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${fmt === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>{label}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {variant === 'foto' && (
+              <label className="mb-2 block">
+                <input className="form-input !py-1.5 text-xs" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="URL pública da foto do imóvel (https://…/foto.jpg)" />
+              </label>
+            )}
+            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
+              <canvas ref={canvasRef} className="mx-auto block h-auto w-full max-h-[40vh] object-contain" />
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={handleSaveArt} disabled={savingArt} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50">
+                {savingArt ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar arte
+              </button>
+              <button type="button" onClick={handleDownload} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs"><Download size={14} />Baixar PNG</button>
+            </div>
+            {/* Versões */}
+            {versions.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-[10px] uppercase tracking-wide text-white/35">Versões ({versions.length}) — clique para usar</p>
+                <div className="flex flex-wrap gap-2">
+                  {versions.map((v, i) => (
+                    <button key={i} type="button" onClick={() => handleUseVersion(v)} title={v.url === activeArt ? 'Versão ativa' : 'Usar esta versão'}
+                      className={`relative h-16 w-16 overflow-hidden rounded-md border transition ${v.url === activeArt ? 'border-gold-500/70 ring-1 ring-gold-500/40' : 'border-white/10 hover:border-white/30'}`}>
+                      <img src={v.url} alt="" className="h-full w-full object-cover" />
+                      {v.url === activeArt && <span className="absolute bottom-0 left-0 right-0 bg-gold-500/80 text-center text-[8px] font-semibold text-black">ativa</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* TEXTO */}
+          <section className="border-t border-white/10 pt-4">
+            <span className="form-label">Texto do post</span>
+            <div className="space-y-2">
+              <input className="form-input !py-1.5 text-sm" value={title} onChange={e => setTitle(e.target.value)} placeholder="Título" />
+              <textarea className="form-input min-h-[100px] text-xs leading-5" value={caption} onChange={e => setCaption(e.target.value)} placeholder="Legenda" />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input className="form-input !py-1.5 text-xs" value={cta} onChange={e => setCta(e.target.value)} placeholder="CTA" />
+                <input className="form-input !py-1.5 text-xs" value={hashtags} onChange={e => setHashtags(e.target.value)} placeholder="#hashtags separadas por espaço" />
+              </div>
+              <button type="button" onClick={handleSaveText} disabled={savingText} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50">
+                {savingText ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar texto
+              </button>
+              <p className="text-[10px] text-white/30">Editar o texto atualiza a prévia da arte acima. “Salvar arte” regenera a imagem com o texto atual.</p>
+            </div>
+          </section>
+
+          {error && <p className="text-xs text-red-300">{error.message || String(error)}</p>}
         </div>
-        {variant === 'foto' && (
-          <label className="mb-3 block">
-            <span className="form-label">URL da foto do imóvel (pública)</span>
-            <input className="form-input" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="https://…/foto.jpg" />
-            <span className="mt-1 block text-[10px] text-white/35">Use uma imagem pública (ex.: do site/galeria do imóvel). Se não aparecer, verifique a URL/CORS.</span>
-          </label>
-        )}
-        <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
-          <canvas ref={canvasRef} className="mx-auto block h-auto w-full max-h-[52vh] object-contain" />
-        </div>
-        {error && <p className="mt-2 text-xs text-red-300">{error.message || String(error)}</p>}
-        <div className="mt-4 flex items-center gap-2">
-          <button type="button" onClick={handleSave} disabled={busy} className="btn-gold inline-flex items-center gap-2 disabled:opacity-50">
-            {busy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}Salvar no post
-          </button>
-          <button type="button" onClick={handleDownload} disabled={busy} className="btn-ghost inline-flex items-center gap-2 text-sm disabled:opacity-50">
-            <Download size={15} />Baixar PNG
-          </button>
-          {post?.metadata?.art_url && (
-            <a href={post.metadata.art_url} target="_blank" rel="noreferrer" className="ml-auto text-[11px] text-gold-300 underline">arte salva</a>
+
+        {/* Rodapé: ações do funil */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-white/10 px-5 py-3">
+          {busy && <Loader2 size={15} className="animate-spin text-gold-300" />}
+          {stage === 'rascunho' && <button type="button" disabled={busy} onClick={() => runFunnel(onApprove)} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50"><Check size={14} />Aprovar</button>}
+          {(stage === 'aprovado' || stage === 'agendado') && !scheduling && <button type="button" disabled={busy} onClick={() => setScheduling(true)} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50"><Clock size={14} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</button>}
+          {scheduling && <input type="date" autoFocus className="form-input !w-auto !py-1 text-xs" defaultValue={post?.scheduled_for ? new Date(post.scheduled_for).toISOString().slice(0, 10) : ''} onChange={e => { if (e.target.value) runFunnel(() => onSchedule(e.target.value)) }} onBlur={() => setScheduling(false)} />}
+          {(stage === 'aprovado' || stage === 'agendado') && <button type="button" disabled={busy} onClick={() => runFunnel(onPublish)} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs text-emerald-200 disabled:opacity-50"><Send size={14} />Marcar publicado</button>}
+          {stage === 'publicado' && (
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-300"><CheckCircle2 size={14} />Publicado</span>
           )}
+          {stage !== 'rascunho' && stage !== 'publicado' && <button type="button" disabled={busy} onClick={() => runFunnel(onBackToDraft)} className="ml-auto text-[11px] text-white/35 hover:text-white/60">voltar a rascunho</button>}
+          {post?.metadata?.published_url && <a href={post.metadata.published_url} target="_blank" rel="noreferrer" className="text-[11px] text-gold-300 underline">ver post</a>}
         </div>
       </div>
     </div>
