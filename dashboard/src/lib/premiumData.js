@@ -688,7 +688,7 @@ export async function loadEditorialSettings(brandScope) {
   return data || null
 }
 
-export async function saveEditorialSettings(brandScope, { activePillars = [], defaultTone = 'padrao', cadencePerWeek = 5, guidelines = '' } = {}) {
+export async function saveEditorialSettings(brandScope, { activePillars = [], defaultTone = 'padrao', cadencePerWeek = 5, guidelines = '', autoArtOnApprove = true } = {}) {
   const scope = brandScope || getBrandProfile().scope
   const row = {
     brand_scope: scope,
@@ -696,6 +696,7 @@ export async function saveEditorialSettings(brandScope, { activePillars = [], de
     default_tone: defaultTone || 'padrao',
     cadence_per_week: Number(cadencePerWeek) || 5,
     guidelines: guidelines || '',
+    auto_art_on_approve: autoArtOnApprove !== false,   // gera a arte automaticamente ao aprovar o texto
     updated_at: new Date().toISOString(),
   }
   const { data, error } = await supabase

@@ -87,7 +87,7 @@ import {
   DEFAULT_CONTENT_TYPE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
-import { renderPostArtToCanvas, postArtBlob } from '../lib/postArt.js'
+import { renderPostArtToCanvas, postArtBlob, ensureArtFonts } from '../lib/postArt.js'
 import VitraSelect from '../components/VitraSelect.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import {
@@ -1514,6 +1514,15 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
   const blockedByOffer = offerRequired && !linkedCampaign
   const campaignName = id => campaigns.find(c => c.id === id)?.name || null
 
+  // Fase 1: arte do post integrada. Auto-arte ao aprovar (config editorial, padrão ligado).
+  const autoArtOnApprove = editorialSettings?.auto_art_on_approve !== false
+  // Monta o artOpts do postArt.js a partir de uma sugestão da IA OU de um post salvo (prévia + auto-arte).
+  function artOptsFor({ brandScope, format: fmt, title, caption, cta, pillarKey } = {}) {
+    const scope = brandScope || brandProfile.scope
+    const kicker = (CONTENT_PILLAR_OPTIONS.find(x => x.key === pillarKey)?.label) || brandProfile.shortName
+    return { brandScope: scope, format: fmt || 'feed', title: title || '', caption: caption || '', cta: cta || '', kicker, photoUrl: null }
+  }
+
   const PLATFORMS = [
     { value: 'instagram', label: 'Instagram' }, { value: 'facebook', label: 'Facebook' },
     { value: 'youtube', label: 'YouTube' }, { value: 'tiktok', label: 'TikTok' },
@@ -1605,7 +1614,21 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
     try { await fn(); onSaved?.() }
     catch (e) { setError(e) } finally { setRowBusy(null) }
   }
-  const approve = post => runAction(post.id, () => updateContentPost(post.id, { status: 'approved' }))
+  const approve = post => runAction(post.id, async () => {
+    await updateContentPost(post.id, { status: 'approved' })
+    // Auto-arte ao aprovar: se ligado e o post ainda não tem arte, gera e salva. Best-effort — a
+    // aprovação não falha se a arte falhar (o operador pode gerar manualmente depois).
+    if (autoArtOnApprove && !post.metadata?.art_url) {
+      try {
+        const blob = await postArtBlob(artOptsFor({
+          brandScope: post.metadata?.brand_scope, format: post.format,
+          title: post.title || post.hook || (post.caption || '').slice(0, 60),
+          caption: post.caption, cta: post.cta, pillarKey: post.editorial_pillar,
+        }))
+        await uploadPostArt({ postId: post.id, blob, brandScope: post.metadata?.brand_scope || brandProfile.scope, title: post.title || post.hook })
+      } catch { /* arte é best-effort; aprovação não bloqueia */ }
+    }
+  })
   const schedule = (post, dateStr) => { if (!dateStr) return; setSchedulingId(null); return runAction(post.id, () => updateContentPost(post.id, { scheduledFor: new Date(dateStr).toISOString(), status: 'scheduled' })) }
   const publish = post => {
     const url = window.prompt('Link do post publicado (opcional):', post.metadata?.published_url || '')
@@ -1745,6 +1768,13 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
             const saved = savedKeys.has(post.key)
             return (
               <div key={post.key} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+                <div className="flex flex-col gap-4 sm:flex-row">
+                  <PostArtPreview
+                    opts={artOptsFor({ format: post.format || format, title: post.headline || post.idea, caption: drafts[post.key] ?? post.caption, cta: post.cta, pillarKey: post.pillar || pillar })}
+                    className="w-full shrink-0 self-start rounded-md border border-white/10 bg-black/30 object-contain sm:w-32"
+                    fallback={<div className="flex w-full shrink-0 items-center justify-center self-start rounded-md border border-dashed border-white/10 bg-black/20 py-8 text-[10px] text-white/30 sm:w-32">sem prévia</div>}
+                  />
+                  <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-semibold text-white">{post.headline || post.idea}</p>
                   <span className="flex-shrink-0 text-[10px] uppercase tracking-wide text-gold-300/80">{post.format}</span>
@@ -1767,6 +1797,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
                     {savingKey === post.key ? <Loader2 size={14} className="animate-spin" /> : saved ? <CheckCircle2 size={14} className="text-emerald-300" /> : <Plus size={14} />}
                     {saved ? 'Salvo em rascunhos' : savingKey === post.key ? 'Salvando…' : 'Salvar rascunho'}
                   </button>
+                  {autoArtOnApprove && <p className="mt-1.5 text-[10px] text-white/35">A arte é gerada automaticamente ao aprovar — ou clique em “Gerar arte” no card abaixo.</p>}
+                </div>
+                  </div>
                 </div>
               </div>
             )
@@ -1797,6 +1830,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
                     <div className="flex flex-shrink-0 items-center gap-2">
                       <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${meta.cls}`}>{meta.label}</span>
                       <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-wide text-white/35">{p.campaign_id ? (campaignName(p.campaign_id) || 'Oferta') : 'Marca'}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wide ${p.metadata?.art_url ? 'border-emerald-400/30 text-emerald-200/90' : 'border-amber-400/30 text-amber-200/90'}`}>{p.metadata?.art_url ? 'arte pronta' : 'sem arte'}</span>
                       {busy && <Loader2 size={13} className="animate-spin text-gold-300" />}
                     </div>
                   </div>
@@ -1825,8 +1859,8 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
                     {stage !== 'rascunho' && stage !== 'publicado' && (
                       <button type="button" disabled={busy} onClick={() => backToDraft(p)} className="text-[10px] text-white/35 hover:text-white/60">voltar a rascunho</button>
                     )}
-                    <button type="button" onClick={() => setArtPost(p)} className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-white/45 hover:text-gold-200" title="Gerar a arte (imagem) do post">
-                      <ImageIcon size={13} />{p.metadata?.art_url ? 'Ver arte' : 'Gerar arte'}
+                    <button type="button" onClick={() => setArtPost(p)} className={`ml-auto inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium transition ${p.metadata?.art_url ? 'border-white/15 text-white/70 hover:text-white' : 'border-gold-500/45 bg-gold-500/10 text-gold-200 hover:bg-gold-500/20'}`} title={p.metadata?.art_url ? 'Ver/editar a arte do post' : 'Gerar a arte (imagem) do post'}>
+                      <ImageIcon size={13} />{p.metadata?.art_url ? 'Ver/editar arte' : 'Gerar arte'}
                     </button>
                   </div>
                 </div>
@@ -1842,6 +1876,26 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
       )}
     </div>
   )
+}
+
+// Fase 1 (Produção visual): prévia da arte renderizada inline (Canvas 2D do postArt.js), usada nos cards
+// de sugestão e na lista do funil. Best-effort: se falhar (ex.: foto sem CORS), mostra o fallback.
+function PostArtPreview({ opts, className = '', fallback = null }) {
+  const ref = useRef(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        await ensureArtFonts()
+        if (!alive || !ref.current) return
+        await renderPostArtToCanvas(ref.current, opts)
+      } catch { if (alive) setFailed(true) }
+    })()
+    return () => { alive = false }
+  }, [opts?.brandScope, opts?.format, opts?.title, opts?.caption, opts?.cta, opts?.kicker, opts?.photoUrl])
+  if (failed) return fallback
+  return <canvas ref={ref} className={className} aria-label="Prévia da arte do post" />
 }
 
 // Modal "Gerar arte do post": gera a imagem branded (Canvas 2D, postArt.js) a partir do texto do post.
@@ -1940,6 +1994,7 @@ function EditorialSettingsSection({ brandProfile = getBrandProfile(), settings, 
   const [tone, setTone] = useState(settings?.default_tone || 'padrao')
   const [cadence, setCadence] = useState(settings?.cadence_per_week ?? 5)
   const [guidelines, setGuidelines] = useState(settings?.guidelines || '')
+  const [autoArt, setAutoArt] = useState(settings?.auto_art_on_approve !== false)
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [error, setError] = useState(null)
@@ -1949,6 +2004,7 @@ function EditorialSettingsSection({ brandProfile = getBrandProfile(), settings, 
     setTone(settings?.default_tone || 'padrao')
     setCadence(settings?.cadence_per_week ?? 5)
     setGuidelines(settings?.guidelines || '')
+    setAutoArt(settings?.auto_art_on_approve !== false)
   }, [settings])
 
   function togglePillar(key) {
@@ -1959,7 +2015,7 @@ function EditorialSettingsSection({ brandProfile = getBrandProfile(), settings, 
     setSaving(true); setError(null); setSavedAt(null)
     try {
       const saved = await saveEditorialSettings(brandProfile.scope, {
-        activePillars: [...active], defaultTone: tone, cadencePerWeek: cadence, guidelines,
+        activePillars: [...active], defaultTone: tone, cadencePerWeek: cadence, guidelines, autoArtOnApprove: autoArt,
       })
       onSaved?.(saved); setSavedAt(Date.now())
     } catch (e) { setError(e) } finally { setSaving(false) }
@@ -2006,6 +2062,16 @@ function EditorialSettingsSection({ brandProfile = getBrandProfile(), settings, 
         <textarea className="form-input min-h-[110px] text-sm leading-5" value={guidelines}
           onChange={e => setGuidelines(e.target.value)}
           placeholder="ex.: priorize bairros da Zona Sul; evite jargão; sempre convidar para conversa no WhatsApp; tom consultivo, sem pressão." /></label>
+
+      <button type="button" onClick={() => setAutoArt(v => !v)} className="mt-4 flex w-full items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-3 text-left transition hover:border-white/20">
+        <span>
+          <span className="block text-sm font-medium text-white/85">Gerar arte ao aprovar</span>
+          <span className="mt-0.5 block text-[11px] leading-4 text-white/45">Ao aprovar um conteúdo sem arte, o sistema gera a imagem branded automaticamente. Você pode trocá-la depois.</span>
+        </span>
+        <span className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition ${autoArt ? 'bg-gold-500/70' : 'bg-white/15'}`}>
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${autoArt ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </span>
+      </button>
 
       {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
 
