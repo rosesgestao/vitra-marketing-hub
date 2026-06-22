@@ -161,14 +161,27 @@ export async function renderPostArtToCanvas(canvas, opts = {}) {
 
   // Rodapé: chip de CTA (se houver) + assinatura da marca.
   const footY = H - pad * 1.15
+  // Largura da assinatura da marca (à direita) — o chip de CTA não pode invadi-la.
+  ctx.font = '600 22px "Inter", Arial, sans-serif'
+  const markW = ctx.measureText(t.mark).width
   const cta = String(opts.cta || '').trim()
   if (cta) {
     ctx.font = '700 26px "Inter", Arial, sans-serif'
-    const cw = ctx.measureText(cta).width + 56
+    const chipPadX = 28
+    // O CTA é um BOTÃO, não um parágrafo: trunca para caber no espaço livre (sem invadir a marca nem
+    // estourar a margem). CTAs longos (frases) viram rótulo curto com reticências, em vez de vazar o card.
+    const maxChipW = Math.max(160, W - pad * 2 - markW - 28)
+    const maxTextW = maxChipW - chipPadX * 2
+    let label = cta
+    if (ctx.measureText(label).width > maxTextW) {
+      while (label.length > 1 && ctx.measureText(label + '…').width > maxTextW) label = label.slice(0, -1)
+      label = label.replace(/[\s.,;:!?]+$/, '') + '…'
+    }
+    const cw = Math.min(ctx.measureText(label).width + chipPadX * 2, maxChipW)
     ctx.strokeStyle = t.gold; ctx.lineWidth = 3
     roundRect(ctx, pad, footY - 44, cw, 60, 30); ctx.stroke()
     ctx.fillStyle = t.goldLight
-    ctx.fillText(cta, pad + 28, footY - 4)
+    ctx.fillText(label, pad + chipPadX, footY - 4)
   }
   // Assinatura da marca (direita).
   ctx.fillStyle = t.sub
