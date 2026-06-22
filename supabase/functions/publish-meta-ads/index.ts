@@ -206,6 +206,52 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Estimativa de público (alcance) de UM conjunto — via delivery_estimate da Meta (read-only, não gasta).
+  // Recebe { ad_account_id, objective, spec } e devolve o tamanho estimado (faixa mensal). Usa os mesmos
+  // campos do build (geo/idade/interesses pré-resolvidos/públicos/Advantage), sem busca por keyword.
+  if (action === "estimate_audience") {
+    const adAccountId = String(body.ad_account_id || "").replace(/^act_/, "");
+    if (!adAccountId) return json({ error: "missing_account", message: "Informe a conta de anúncio." }, 400);
+    const spec = body.spec && typeof body.spec === "object" ? body.spec : {};
+    const obj = objectiveSpec(body.objective || "leads_form");
+    // optimization_goal precisa ser válido p/ a conta; QUALITY_LEAD exige CRM -> use LEAD_GENERATION p/ estimar.
+    const og = obj.optimization_goal === "QUALITY_LEAD" ? "LEAD_GENERATION" : obj.optimization_goal;
+    const t: any = {};
+    if (spec.geo === "radius" && spec.lat != null && spec.lng != null) {
+      t.geo_locations = { custom_locations: [{ latitude: Number(spec.lat), longitude: Number(spec.lng), radius: Math.max(1, Math.min(80, Number(spec.radius_km) || 2)), distance_unit: "kilometer" }] };
+    } else if (spec.geo === "city" && spec.city_key) {
+      t.geo_locations = { cities: [{ key: String(spec.city_key) }] };
+    } else {
+      t.geo_locations = { countries: ["BR"] };
+    }
+    t.age_min = Math.max(18, Math.min(65, Number(spec.age_min) || 25));
+    t.age_max = Math.max(18, Math.min(65, Number(spec.age_max) || 65));
+    const inc = [...(spec.custom_audience_id ? [String(spec.custom_audience_id)] : []), ...(Array.isArray(spec.custom_audience_ids) ? spec.custom_audience_ids.map(String) : [])];
+    const exc = Array.isArray(spec.excluded_custom_audience_ids) ? [...new Set(spec.excluded_custom_audience_ids.map(String))] : [];
+    const incF = [...new Set(inc)].filter((id) => !exc.includes(id));
+    if (incF.length) t.custom_audiences = incF.map((id) => ({ id }));
+    if (exc.length) t.excluded_custom_audiences = exc.map((id) => ({ id }));
+    const ids = Array.isArray(spec.interest_ids) ? spec.interest_ids.map((x: any) => ({ id: String(x?.id ?? x) })).filter((x: any) => x.id && x.id !== "undefined") : [];
+    if (ids.length && !incF.length) t.flexible_spec = [{ interests: ids }];
+    t.publisher_platforms = Array.isArray(spec.publisher_platforms) && spec.publisher_platforms.length ? spec.publisher_platforms : ["facebook", "instagram"];
+    t.targeting_automation = { advantage_audience: spec.advantage_audience === 1 ? 1 : 0 };
+    try {
+      const url = `${GRAPH}/act_${adAccountId}/delivery_estimate?optimization_goal=${encodeURIComponent(og)}&targeting_spec=${encodeURIComponent(JSON.stringify(t))}&access_token=${encodeURIComponent(META_TOKEN)}`;
+      const r = await fetch(url);
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d?.error) return json({ error: "estimate_error", message: d?.error?.error_user_msg || d?.error?.message || `HTTP ${r.status}` }, 502);
+      const e = (d.data || [])[0] || {};
+      return json({
+        ok: true,
+        lower: e.estimate_mau_lower_bound ?? e.estimate_mau ?? null,
+        upper: e.estimate_mau_upper_bound ?? e.estimate_mau ?? null,
+        ready: e.estimate_ready ?? null,
+      });
+    } catch (e) {
+      return json({ error: "exception", message: String((e as Error)?.message || e) }, 500);
+    }
+  }
+
   const campaignId = body.campaign_id;
   if (!campaignId) return json({ error: "missing_campaign_id" }, 400);
 

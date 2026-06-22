@@ -887,6 +887,17 @@ export async function suggestMetaAudiences(campaignId, objective) {
   return Array.isArray(data?.ad_sets) ? data.ad_sets : []
 }
 
+// Estimativa de público (alcance) de UM conjunto via delivery_estimate da Meta (read-only). Recebe a conta,
+// o objetivo e o spec do conjunto (geo/idade/interest_ids/públicos/advantage); devolve {ok, lower, upper}.
+export async function estimateAudience({ adAccountId, objective, spec } = {}) {
+  const { data, error } = await supabase.functions.invoke('publish-meta-ads', {
+    headers: copilotGateHeaders(),
+    body: { action: 'estimate_audience', ad_account_id: adAccountId, objective: objective || undefined, spec: spec || {} },
+  })
+  if (error) throw await edgeError(error)
+  return data || { ok: false }
+}
+
 // Chave de geolocalizacao da Meta (adgeolocation) para Porto Alegre — validada nos builds PAUSED.
 // Usada no conjunto "Porto Alegre" (cidade inteira). cities:[{key}].
 export const META_POA_CITY_KEY = '264859'

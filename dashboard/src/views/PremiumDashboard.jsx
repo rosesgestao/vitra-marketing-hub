@@ -21,6 +21,7 @@ import {
   Loader2,
   Megaphone,
   MapPin,
+  Users,
   Pencil,
   Plus,
   Radio,
@@ -61,6 +62,7 @@ import {
   geocodeAddress,
   saveCampaignGeo,
   buildGeoAdSets,
+  estimateAudience,
   REGIONAL_RADIUS_MAX_KM,
   DETAILED_TARGETING_PRESETS,
   detailedTargetingPreset,
@@ -2846,6 +2848,25 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
     return { label: 'Médio', cls: 'text-white/70', hint: 'Sem expansão; o público é a soma dos interesses selecionados.' }
   }
   const dtExtraList = dtExtra.split(',').map(s => s.trim()).filter(Boolean)
+  // Estimativa NUMÉRICA real (delivery_estimate da Meta) por conjunto de geografia.
+  const [estimate, setEstimate] = useState({ loading: false, error: null, rows: null })
+  const fmtReach = (n) => n == null ? '—' : (n >= 1e6 ? `${(n / 1e6).toFixed(1)} mi` : n >= 1e3 ? `${Math.round(n / 1e3)} mil` : String(n))
+  async function handleEstimate() {
+    setEstimate({ loading: true, error: null, rows: null })
+    try {
+      const interestIds = dtInterests.map(i => ({ id: i.id }))
+      const base = proposal.length ? proposal : buildGeoAdSets({ lat: Number(geoLat), lng: Number(geoLng), radiusKm: Number(radiusKm) })
+      const specs = base
+        .filter(s => !s.retargeting && !s.custom_audience_id && !(Array.isArray(s.custom_audience_ids) && s.custom_audience_ids.length))
+        .map(s => ({ ...s, interest_ids: interestIds, advantage_audience: dtAdvantage }))
+      const rows = []
+      for (const s of specs) {
+        const r = await estimateAudience({ adAccountId, objective, spec: s })
+        rows.push({ label: s.label || (s.geo === 'radius' ? 'Região do imóvel' : 'Porto Alegre'), lower: r?.lower ?? null, upper: r?.upper ?? null, ok: !!r?.ok })
+      }
+      setEstimate({ loading: false, error: null, rows })
+    } catch (e) { setEstimate({ loading: false, error: errorMessage(e), rows: null }) }
+  }
 
   // Auto-descoberta das contas de anuncio acessiveis (sem digitar ID). Pre-seleciona a conta da marca.
   useEffect(() => {
@@ -3136,6 +3157,23 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
           </button>
         </div>
         <p className="mt-1.5 text-[10px] text-white/35">Núcleo (dourado) é obrigatório; recomendados/opcionais podem ser removidos. Advantage ligado = expansão (como a vencedora). Itens depreciados pela Meta são removidos automaticamente no envio.</p>
+        <div className="mt-2.5 border-t border-white/10 pt-2.5">
+          <button type="button" onClick={handleEstimate} disabled={estimate.loading || !adAccountId} className="btn-ghost inline-flex items-center gap-1.5 !py-1.5 text-xs disabled:opacity-50" title={!adAccountId ? 'Selecione a conta de anúncio' : 'Estimativa real da Meta por conjunto'}>
+            {estimate.loading ? <Loader2 size={13} className="animate-spin" /> : <Users size={13} />}Estimar alcance (Meta)
+          </button>
+          {estimate.error && <p className="mt-1.5 text-[11px] text-red-300">{estimate.error}</p>}
+          {Array.isArray(estimate.rows) && (
+            <div className="mt-2 space-y-1">
+              {estimate.rows.map((r, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="truncate text-white/60">{r.label}</span>
+                  <span className={r.ok ? 'text-white/85' : 'text-amber-300'}>{r.ok ? `~ ${fmtReach(r.lower)} – ${fmtReach(r.upper)} pessoas` : 'indisponível'}</span>
+                </div>
+              ))}
+              <p className="text-[10px] text-white/30">Tamanho estimado do público (mensal) por conjunto — números da Meta, aproximados.</p>
+            </div>
+          )}
+        </div>
       </div>
       ) })()}
 
