@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Cropper da imagem própria (reposicionar + zoom)
 
 > A aba "Imagem própria" do drawer ganha recorte interativo: arrastar para reposicionar + zoom, com o
-> enquadramento "baked" na arte salva, por formato. Na `main`. Commit: **<HASH>**.
+> enquadramento "baked" na arte salva, por formato. Na `main`. Commit: **6e1c929**.
 
 ## Contexto
 Fecha o "próximo passo opcional" do upload de imagem: antes o recorte era cover centralizado fixo. Agora o
