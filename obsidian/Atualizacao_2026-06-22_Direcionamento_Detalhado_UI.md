@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — UI do Direcionamento detalhado no painel de Tráfego
 
 > Campo "Direcionamento detalhado" no PublishMetaPanel: aplicar preset (origem visível) + chips editáveis
-> por tier + toggle Advantage + estimativa de público. Na `main`. Commit: **<HASH>**.
+> por tier + toggle Advantage + estimativa de público. Na `main`. Commit: **9d52426**.
 
 ## Entregue (front-end; backend e presets já no ar)
 - **Bloco "Direcionamento detalhado"** no `PublishMetaPanel`, abaixo de "Localização", padrão = preset
