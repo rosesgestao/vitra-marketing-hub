@@ -626,9 +626,12 @@ export async function updateContentPost(id, { status, scheduledFor, publishedUrl
 export async function uploadPostArt({ postId, blob, brandScope, title } = {}) {
   if (!postId || !blob) throw new Error('Arte inválida para salvar.')
   const scope = brandScope || getBrandProfile().scope
-  const path = `organic-art/${scope}/${postId}-${Date.now()}.png`
+  // Aceita arte gerada (PNG) OU imagem própria enviada pelo operador (JPG/PNG/WebP) — preserva o tipo real.
+  const type = (blob.type && blob.type.startsWith('image/')) ? blob.type : 'image/png'
+  const ext = (type.split('/')[1] || 'png').replace('jpeg', 'jpg')
+  const path = `organic-art/${scope}/${postId}-${Date.now()}.${ext}`
   const { error: upErr } = await supabase.storage.from('cards').upload(path, blob, {
-    contentType: 'image/png', upsert: true,
+    contentType: type, upsert: true,
   })
   if (upErr) throw new Error(upErr.message || 'Falha ao enviar a arte para o storage.')
   const { data: pub } = supabase.storage.from('cards').getPublicUrl(path)
@@ -647,15 +650,16 @@ export async function uploadPostArt({ postId, blob, brandScope, title } = {}) {
 }
 
 // Fase 2: define qual versão de arte (de metadata.art_versions) é a ativa (art_url) — sem re-render.
+// `url` nulo/'' REMOVE a arte ativa do post (art_url volta a null; as versões ficam no histórico).
 export async function setActivePostArt(postId, url) {
-  if (!postId || !url) throw new Error('Versão de arte inválida.')
+  if (!postId) throw new Error('Conteúdo inválido.')
   const { data: cur } = await supabase.from('premium_content_posts').select('metadata').eq('id', postId).maybeSingle()
   const versions = Array.isArray(cur?.metadata?.art_versions) ? cur.metadata.art_versions : []
-  const v = versions.find(x => x?.url === url)
-  const metadata = { ...(cur?.metadata || {}), art_url: url, art_path: v?.path || cur?.metadata?.art_path || null }
+  const v = url ? versions.find(x => x?.url === url) : null
+  const metadata = { ...(cur?.metadata || {}), art_url: url || null, art_path: url ? (v?.path || cur?.metadata?.art_path || null) : null }
   const { error } = await supabase.from('premium_content_posts').update({ metadata }).eq('id', postId)
   if (error) throw new Error(error.message || 'Falha ao definir a versão da arte.')
-  return { url }
+  return { url: url || null }
 }
 
 // Biblioteca (DAM): midia organica reutilizavel por marca (premium_media_assets, bucket publico 'cards').

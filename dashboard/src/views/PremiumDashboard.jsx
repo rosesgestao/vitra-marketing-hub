@@ -73,6 +73,7 @@ import {
   publishContentPost,
   uploadPostArt,
   setActivePostArt,
+  uploadMediaAsset,
   loadEditorialSettings,
   saveEditorialSettings,
   readMetaCampaignConfig,
@@ -1898,6 +1899,24 @@ function PostArtPreview({ opts, className = '', fallback = null }) {
 
 // Fase 2: drawer "Prévia do post" — unifica edição de TEXTO + ARTE (Canvas 2D), formato feed/story,
 // histórico de versões e as ações do funil, no mesmo fluxo. Substitui o antigo modal "Arte do post".
+// Upload manual de imagem (drawer): formatos e limite aceitos + validação no cliente.
+const POST_IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const POST_IMG_MAX_BYTES = 8 * 1024 * 1024   // 8 MB
+const POST_IMG_MIN_PX = 1080                  // resolução recomendada (lado menor); abaixo só AVISA
+// Valida tipo + tamanho e lê as dimensões reais (objectURL para preview). Resolve {url,w,h} ou rejeita.
+function validatePostImageFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('Nenhum arquivo selecionado.'))
+    if (!POST_IMG_TYPES.includes(file.type)) return reject(new Error('Formato não suportado. Envie JPG, PNG ou WebP.'))
+    if (file.size > POST_IMG_MAX_BYTES) return reject(new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Máximo 8 MB.`))
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => resolve({ url, w: img.naturalWidth, h: img.naturalHeight })
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem (arquivo corrompido?).')) }
+    img.src = url
+  })
+}
+
 function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stageMeta, busy, onClose, onSaved, onApprove, onPublish, onBackToDraft, onSchedule }) {
   const canvasRef = useRef(null)
   const scope = post?.metadata?.brand_scope || brandProfile.scope
@@ -1907,8 +1926,8 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
   const [caption, setCaption] = useState(post?.caption || '')
   const [cta, setCta] = useState(post?.cta || '')
   const [hashtags, setHashtags] = useState(Array.isArray(post?.hashtags) ? post.hashtags.join(' ') : '')
-  // Arte.
-  const [variant, setVariant] = useState('tipografico')   // 'tipografico' | 'foto'
+  // Arte. variant: 'tipografico' | 'foto' (card branded) | 'propria' (imagem enviada pelo operador, sem branding)
+  const [variant, setVariant] = useState('tipografico')
   const [photoUrl, setPhotoUrl] = useState('')
   const [fmt, setFmt] = useState(post?.format === 'stories' || post?.format === 'reels' ? 'stories' : 'feed')
   const [activeArt, setActiveArt] = useState(post?.metadata?.art_url || '')
@@ -1917,6 +1936,13 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
   const [savingText, setSavingText] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [error, setError] = useState(null)
+  // Upload manual de imagem.
+  const [uploadingImg, setUploadingImg] = useState(false)
+  const [ownFile, setOwnFile] = useState(null)       // arquivo pendente (preview antes de salvar)
+  const [ownPreview, setOwnPreview] = useState('')   // objectURL local da imagem pendente
+  const [imgWarn, setImgWarn] = useState(null)       // aviso de resolução baixa (não bloqueia)
+  const heroInputRef = useRef(null)
+  const ownInputRef = useRef(null)
 
   const artOpts = {
     brandScope: scope, format: fmt,
@@ -1934,15 +1960,49 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
     return () => { alive = false }
   }, [variant, photoUrl, fmt, title, caption, cta])
 
+  function pushVersion(url) {
+    setActiveArt(url)
+    setVersions(prev => [{ url, at: new Date().toISOString() }, ...prev.filter(v => v?.url !== url)].slice(0, 6))
+  }
   async function handleSaveArt() {
     setSavingArt(true); setError(null)
     try {
-      const blob = await postArtBlob(artOpts)
-      const { url } = await uploadPostArt({ postId: post.id, blob, brandScope: scope, title: artOpts.title })
-      setActiveArt(url)
-      setVersions(prev => [{ url, at: new Date().toISOString() }, ...prev.filter(v => v?.url !== url)].slice(0, 6))
+      // Imagem própria: salva o ARQUIVO enviado como arte do post (sem branding). Senão, gera o card branded.
+      const blob = variant === 'propria' && ownFile ? ownFile : await postArtBlob(artOpts)
+      if (variant === 'propria' && !ownFile) throw new Error('Envie uma imagem para salvar como arte do post.')
+      const { url } = await uploadPostArt({ postId: post.id, blob, brandScope: scope, title: title || 'Arte do post' })
+      pushVersion(url)
+      if (variant === 'propria') { if (ownPreview) URL.revokeObjectURL(ownPreview); setOwnFile(null); setOwnPreview(''); setImgWarn(null) }
       onSaved?.()
     } catch (e) { setError(e) } finally { setSavingArt(false) }
+  }
+  // Upload da FOTO do card branded ("Com foto"): vira o hero do cartão (precisa de URL pública).
+  async function handleHeroFile(file) {
+    setError(null); setUploadingImg(true)
+    try {
+      await validatePostImageFile(file)
+      const r = await uploadMediaAsset({ brandScope: scope, file, kind: 'photo', title: `Foto · ${title || 'post'}`.slice(0, 80) })
+      setPhotoUrl(r.url)
+    } catch (e) { setError(e) } finally { setUploadingImg(false); if (heroInputRef.current) heroInputRef.current.value = '' }
+  }
+  // Imagem PRÓPRIA: valida + mostra preview local (commit só no "Salvar como arte").
+  async function handleOwnFile(file) {
+    setError(null); setImgWarn(null)
+    try {
+      const { url, w, h } = await validatePostImageFile(file)
+      if (ownPreview) URL.revokeObjectURL(ownPreview)
+      setOwnFile(file); setOwnPreview(url)
+      if (Math.min(w, h) < POST_IMG_MIN_PX) setImgWarn(`Resolução baixa (${w}×${h}). Para qualidade ideal use ≥ ${POST_IMG_MIN_PX}px no lado menor.`)
+    } catch (e) { setError(e) } finally { if (ownInputRef.current) ownInputRef.current.value = '' }
+  }
+  function handleRemoveOwn() {
+    if (ownPreview) URL.revokeObjectURL(ownPreview)
+    setOwnFile(null); setOwnPreview(''); setImgWarn(null); setError(null)
+  }
+  async function handleRemoveActiveArt() {
+    setError(null); setSavingArt(true)
+    try { await setActivePostArt(post.id, null); setActiveArt(''); onSaved?.() }
+    catch (e) { setError(e) } finally { setSavingArt(false) }
   }
   async function handleDownload() {
     setError(null)
@@ -1991,7 +2051,7 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
               <span className="form-label !mb-0">Arte</span>
               <div className="flex items-center gap-1.5">
                 <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
-                  {[{ k: 'tipografico', label: 'Tipográfico' }, { k: 'foto', label: 'Com foto' }].map(({ k, label }) => (
+                  {[{ k: 'tipografico', label: 'Tipográfico' }, { k: 'foto', label: 'Com foto' }, { k: 'propria', label: 'Imagem própria' }].map(({ k, label }) => (
                     <button key={k} type="button" onClick={() => { setVariant(k); setError(null) }} className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${variant === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>{label}</button>
                   ))}
                 </div>
@@ -2003,18 +2063,54 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
               </div>
             </div>
             {variant === 'foto' && (
-              <label className="mb-2 block">
-                <input className="form-input !py-1.5 text-xs" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="URL pública da foto do imóvel (https://…/foto.jpg)" />
-              </label>
+              <div className="mb-2 flex items-center gap-2">
+                <input className="form-input !py-1.5 flex-1 text-xs" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="URL pública da foto (https://…/foto.jpg)" />
+                <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleHeroFile(f) }} />
+                <button type="button" onClick={() => heroInputRef.current?.click()} disabled={uploadingImg} className="btn-ghost inline-flex shrink-0 items-center gap-1.5 !py-1.5 text-xs disabled:opacity-50">
+                  {uploadingImg ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}Enviar arquivo
+                </button>
+              </div>
             )}
-            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
-              <canvas ref={canvasRef} className="mx-auto block h-auto w-full max-h-[40vh] object-contain" />
-            </div>
+            {/* Preview: canvas (branded) ou a imagem própria, no enquadramento do formato (feed/story) */}
+            {variant === 'propria' ? (
+              <div className="mx-auto overflow-hidden rounded-lg border border-white/10 bg-black/30" style={{ aspectRatio: fmt === 'stories' ? '9 / 16' : '1 / 1', maxHeight: '40vh' }}>
+                {(ownPreview || activeArt) ? (
+                  <img src={ownPreview || activeArt} alt="Prévia da imagem do post" className="h-full w-full object-cover" />
+                ) : (
+                  <button type="button" onClick={() => ownInputRef.current?.click()} className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/40 transition hover:text-white/70">
+                    <ImageIcon size={28} />
+                    <span className="text-xs font-medium">Fazer upload de imagem</span>
+                    <span className="text-[10px] text-white/30">JPG, PNG ou WebP · até 8 MB · ideal ≥ 1080px</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                <canvas ref={canvasRef} className="mx-auto block h-auto w-full max-h-[40vh] object-contain" />
+              </div>
+            )}
+            <input ref={ownInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleOwnFile(f) }} />
+            {imgWarn && <p className="mt-1.5 text-[11px] text-amber-300">⚠ {imgWarn}</p>}
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button type="button" onClick={handleSaveArt} disabled={savingArt} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50">
-                {savingArt ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar arte
-              </button>
-              <button type="button" onClick={handleDownload} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs"><Download size={14} />Baixar PNG</button>
+              {variant === 'propria' ? (
+                <>
+                  <button type="button" onClick={handleSaveArt} disabled={savingArt || !ownFile} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50" title={!ownFile ? 'Envie uma imagem primeiro' : ''}>
+                    {savingArt ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar como arte
+                  </button>
+                  {(ownPreview || activeArt) && (
+                    <button type="button" onClick={() => ownInputRef.current?.click()} className="btn-ghost inline-flex items-center gap-1.5 !py-1.5 text-xs"><ImageIcon size={14} />Substituir</button>
+                  )}
+                  {ownFile && <button type="button" onClick={handleRemoveOwn} className="text-[11px] text-white/40 hover:text-white/70">descartar envio</button>}
+                  {activeArt && !ownFile && <button type="button" onClick={handleRemoveActiveArt} disabled={savingArt} className="text-[11px] text-red-300/80 hover:text-red-200 disabled:opacity-50">remover arte do post</button>}
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={handleSaveArt} disabled={savingArt} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50">
+                    {savingArt ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar arte
+                  </button>
+                  <button type="button" onClick={handleDownload} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs"><Download size={14} />Baixar PNG</button>
+                </>
+              )}
             </div>
             {/* Versões */}
             {versions.length > 0 && (
