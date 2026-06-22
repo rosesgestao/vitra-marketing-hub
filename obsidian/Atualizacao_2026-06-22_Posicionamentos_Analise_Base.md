@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-22 — Posicionamentos manuais (referências) + presets + base backend
 
-> Análise dos posicionamentos das campanhas de referência + 3 presets + base no build_draft. Na `main`. Commit: **<HASH>**.
+> Análise dos posicionamentos das campanhas de referência + 3 presets + base no build_draft. Na `main`. Commit: **fba657f**.
 
 ## Configuração encontrada (read_campaign_config estendido)
 **Plataformas — TODOS os 3 conjuntos (30.05 ×2 + 10.06):** `['facebook','instagram']`.
