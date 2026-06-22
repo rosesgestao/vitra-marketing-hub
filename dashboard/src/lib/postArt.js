@@ -11,7 +11,7 @@ const THEME = {
 
 // Dimensões por formato (px). Cartão tipográfico cobre todos sem precisar de foto.
 const DIMS = {
-  feed: [1080, 1080], carrossel: [1080, 1350], reels: [1080, 1920], stories: [1080, 1920], legenda: [1080, 1080],
+  feed: [1080, 1350], carrossel: [1080, 1350], reels: [1080, 1920], stories: [1080, 1920], legenda: [1080, 1080],
 }
 
 export function postArtDims(format) {

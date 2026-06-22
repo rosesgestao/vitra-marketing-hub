@@ -65,7 +65,7 @@ export const CONTENT_TYPES: Record<string, ContentType> = {
 
 // ---- Formatos de entrega ----
 export const CONTENT_FORMATS: Record<string, ContentFormat> = {
-  feed:      { key: "feed",      label: "Post unico (feed)", spec: "1:1 1080x1080",        hasScript: false },
+  feed:      { key: "feed",      label: "Post unico (feed)", spec: "4:5 1080x1350 (vertical recomendado p/ feed)", hasScript: false },
   carrossel: { key: "carrossel", label: "Carrossel",         spec: "4:5 1080x1350, 3-8 cards", hasScript: false },
   reels:     { key: "reels",     label: "Reels",             spec: "9:16 1080x1920, com roteiro", hasScript: true },
   stories:   { key: "stories",   label: "Stories",           spec: "9:16 1080x1920, sequencia", hasScript: true },

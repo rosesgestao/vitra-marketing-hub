@@ -1825,7 +1825,7 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
               return (
                 <div key={p.id} id={`post-row-${p.id}`} className={`flex flex-col overflow-hidden rounded-lg border transition ${isNew ? 'border-gold-500/60 bg-gold-500/[0.06]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'}`}>
                   {/* Thumbnail-first: arte salva, ou prévia ao vivo do texto. Clicar abre o drawer "Prévia do post". */}
-                  <button type="button" onClick={() => setDetailPost(p)} className="relative block aspect-square w-full overflow-hidden bg-black/30 text-left" title="Abrir prévia do post">
+                  <button type="button" onClick={() => setDetailPost(p)} className="relative block aspect-[4/5] w-full overflow-hidden bg-black/30 text-left" title="Abrir prévia do post">
                     {hasArt
                       ? <img src={p.metadata.art_url} alt="" className="h-full w-full object-cover" />
                       : <PostArtPreview opts={artOptsFor({ format: 'feed', title: p.title || p.hook, caption: p.caption, cta: p.cta, pillarKey: p.editorial_pillar })} className="h-full w-full object-cover" fallback={<div className="flex h-full w-full items-center justify-center text-[10px] text-white/25">sem prévia</div>} />}
@@ -2103,7 +2103,7 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
                   ))}
                 </div>
                 <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
-                  {[{ k: 'feed', label: 'Feed 1:1' }, { k: 'stories', label: 'Story 9:16' }].map(({ k, label }) => (
+                  {[{ k: 'feed', label: 'Feed 4:5' }, { k: 'stories', label: 'Story 9:16' }].map(({ k, label }) => (
                     <button key={k} type="button" onClick={() => setFmt(k)} className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${fmt === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>{label}</button>
                   ))}
                 </div>
@@ -2121,7 +2121,7 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
             {/* Preview: canvas (branded) ou a imagem própria, no enquadramento do formato (feed/story) */}
             {variant === 'propria' ? (
               <div>
-                <div className="relative mx-auto overflow-hidden rounded-lg border border-white/10 bg-black/30" style={{ aspectRatio: fmt === 'stories' ? '9 / 16' : '1 / 1', maxHeight: '42vh' }}>
+                <div className="relative mx-auto overflow-hidden rounded-lg border border-white/10 bg-black/30" style={{ aspectRatio: fmt === 'stories' ? '9 / 16' : '4 / 5', maxHeight: '42vh' }}>
                   {ownImg ? (
                     <canvas ref={cropCanvasRef}
                       onPointerDown={onCropPointerDown} onPointerMove={onCropPointerMove} onPointerUp={onCropPointerUp} onPointerLeave={onCropPointerUp}
@@ -2143,7 +2143,7 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
                       <input type="range" min="1" max="3" step="0.05" value={crop.scale} onChange={e => setCrop(c => ({ ...c, scale: Number(e.target.value) }))} className="flex-1 accent-gold-500" aria-label="Zoom da imagem" />
                       <button type="button" onClick={() => setCrop({ scale: 1, fx: 0.5, fy: 0.5 })} className="text-[11px] text-white/45 hover:text-white/75">centralizar</button>
                     </div>
-                    <p className="mt-1 text-[10px] text-white/30">Arraste a imagem para reposicionar e use o zoom — o recorte respeita o formato ({fmt === 'stories' ? 'Story 9:16' : 'Feed 1:1'}).</p>
+                    <p className="mt-1 text-[10px] text-white/30">Arraste a imagem para reposicionar e use o zoom — o recorte respeita o formato ({fmt === 'stories' ? 'Story 9:16' : 'Feed 4:5'}).</p>
                   </>
                 )}
               </div>
