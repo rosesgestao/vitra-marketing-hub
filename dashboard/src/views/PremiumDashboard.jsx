@@ -89,7 +89,7 @@ import {
   DEFAULT_CONTENT_TYPE,
 } from '../lib/premiumData.js'
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
-import { renderPostArtToCanvas, postArtBlob, ensureArtFonts } from '../lib/postArt.js'
+import { renderPostArtToCanvas, postArtBlob, ensureArtFonts, postArtDims } from '../lib/postArt.js'
 import VitraSelect from '../components/VitraSelect.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import {
@@ -1911,10 +1911,25 @@ function validatePostImageFile(file) {
     if (file.size > POST_IMG_MAX_BYTES) return reject(new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Máximo 8 MB.`))
     const url = URL.createObjectURL(file)
     const img = new Image()
-    img.onload = () => resolve({ url, w: img.naturalWidth, h: img.naturalHeight })
+    img.onload = () => resolve({ url, w: img.naturalWidth, h: img.naturalHeight, img })
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem (arquivo corrompido?).')) }
     img.src = url
   })
+}
+
+// Desenha a imagem recortada (cover) no canvas alvo, com ZOOM (scale>=1) e PONTO FOCAL (fx,fy em 0..1).
+// Mesma função para a prévia e para o arquivo salvo — garante que o que o operador vê é o que é gravado.
+function drawCroppedImage(ctx, img, TW, TH, scale, fx, fy) {
+  const iw = img.naturalWidth, ih = img.naturalHeight
+  const frameAR = TW / TH, imgAR = iw / ih
+  let sw0, sh0
+  if (imgAR > frameAR) { sh0 = ih; sw0 = ih * frameAR } else { sw0 = iw; sh0 = iw / frameAR }
+  const s = Math.max(1, Number(scale) || 1)
+  const sw = sw0 / s, sh = sh0 / s
+  const sx = (iw - sw) * Math.min(1, Math.max(0, fx))
+  const sy = (ih - sh) * Math.min(1, Math.max(0, fy))
+  ctx.clearRect(0, 0, TW, TH)
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TW, TH)
 }
 
 function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stageMeta, busy, onClose, onSaved, onApprove, onPublish, onBackToDraft, onSchedule }) {
@@ -1940,9 +1955,13 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
   const [uploadingImg, setUploadingImg] = useState(false)
   const [ownFile, setOwnFile] = useState(null)       // arquivo pendente (preview antes de salvar)
   const [ownPreview, setOwnPreview] = useState('')   // objectURL local da imagem pendente
+  const [ownImg, setOwnImg] = useState(null)         // HTMLImageElement carregado (para recortar)
   const [imgWarn, setImgWarn] = useState(null)       // aviso de resolução baixa (não bloqueia)
+  const [crop, setCrop] = useState({ scale: 1, fx: 0.5, fy: 0.5 })   // zoom + ponto focal do recorte
   const heroInputRef = useRef(null)
   const ownInputRef = useRef(null)
+  const cropCanvasRef = useRef(null)
+  const dragRef = useRef(null)
 
   const artOpts = {
     brandScope: scope, format: fmt,
@@ -1960,6 +1979,15 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
     return () => { alive = false }
   }, [variant, photoUrl, fmt, title, caption, cta])
 
+  // Cropper da imagem própria: redesenha a prévia ao trocar imagem/zoom/foco/formato.
+  useEffect(() => {
+    if (variant !== 'propria' || !ownImg || !cropCanvasRef.current) return
+    const [TW, TH] = postArtDims(fmt === 'stories' ? 'stories' : 'feed')
+    const c = cropCanvasRef.current
+    c.width = TW; c.height = TH
+    drawCroppedImage(c.getContext('2d'), ownImg, TW, TH, crop.scale, crop.fx, crop.fy)
+  }, [variant, ownImg, fmt, crop])
+
   function pushVersion(url) {
     setActiveArt(url)
     setVersions(prev => [{ url, at: new Date().toISOString() }, ...prev.filter(v => v?.url !== url)].slice(0, 6))
@@ -1967,12 +1995,20 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
   async function handleSaveArt() {
     setSavingArt(true); setError(null)
     try {
-      // Imagem própria: salva o ARQUIVO enviado como arte do post (sem branding). Senão, gera o card branded.
-      const blob = variant === 'propria' && ownFile ? ownFile : await postArtBlob(artOpts)
-      if (variant === 'propria' && !ownFile) throw new Error('Envie uma imagem para salvar como arte do post.')
+      let blob
+      if (variant === 'propria') {
+        // Imagem própria: grava o RECORTE escolhido (zoom + ponto focal) no tamanho do formato — sem branding.
+        if (!ownImg) throw new Error('Envie uma imagem para salvar como arte do post.')
+        const [TW, TH] = postArtDims(fmt === 'stories' ? 'stories' : 'feed')
+        const c = document.createElement('canvas'); c.width = TW; c.height = TH
+        drawCroppedImage(c.getContext('2d'), ownImg, TW, TH, crop.scale, crop.fx, crop.fy)
+        blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.92))
+      } else {
+        blob = await postArtBlob(artOpts)   // card branded (Tipográfico / Com foto)
+      }
       const { url } = await uploadPostArt({ postId: post.id, blob, brandScope: scope, title: title || 'Arte do post' })
       pushVersion(url)
-      if (variant === 'propria') { if (ownPreview) URL.revokeObjectURL(ownPreview); setOwnFile(null); setOwnPreview(''); setImgWarn(null) }
+      if (variant === 'propria') { if (ownPreview) URL.revokeObjectURL(ownPreview); setOwnFile(null); setOwnPreview(''); setOwnImg(null); setImgWarn(null) }
       onSaved?.()
     } catch (e) { setError(e) } finally { setSavingArt(false) }
   }
@@ -1985,20 +2021,31 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
       setPhotoUrl(r.url)
     } catch (e) { setError(e) } finally { setUploadingImg(false); if (heroInputRef.current) heroInputRef.current.value = '' }
   }
-  // Imagem PRÓPRIA: valida + mostra preview local (commit só no "Salvar como arte").
+  // Imagem PRÓPRIA: valida + carrega para o cropper (preview com zoom/ponto focal). Commit só no "Salvar".
   async function handleOwnFile(file) {
     setError(null); setImgWarn(null)
     try {
-      const { url, w, h } = await validatePostImageFile(file)
+      const { url, w, h, img } = await validatePostImageFile(file)
       if (ownPreview) URL.revokeObjectURL(ownPreview)
-      setOwnFile(file); setOwnPreview(url)
+      setOwnFile(file); setOwnPreview(url); setOwnImg(img); setCrop({ scale: 1, fx: 0.5, fy: 0.5 })
       if (Math.min(w, h) < POST_IMG_MIN_PX) setImgWarn(`Resolução baixa (${w}×${h}). Para qualidade ideal use ≥ ${POST_IMG_MIN_PX}px no lado menor.`)
     } catch (e) { setError(e) } finally { if (ownInputRef.current) ownInputRef.current.value = '' }
   }
   function handleRemoveOwn() {
     if (ownPreview) URL.revokeObjectURL(ownPreview)
-    setOwnFile(null); setOwnPreview(''); setImgWarn(null); setError(null)
+    setOwnFile(null); setOwnPreview(''); setOwnImg(null); setImgWarn(null); setError(null); setCrop({ scale: 1, fx: 0.5, fy: 0.5 })
   }
+  // Arrastar para reposicionar (pan) o ponto focal do recorte.
+  function onCropPointerDown(e) { dragRef.current = { x: e.clientX, y: e.clientY }; e.currentTarget.setPointerCapture?.(e.pointerId) }
+  function onCropPointerMove(e) {
+    if (!dragRef.current) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const dx = (e.clientX - dragRef.current.x) / rect.width
+    const dy = (e.clientY - dragRef.current.y) / rect.height
+    dragRef.current = { x: e.clientX, y: e.clientY }
+    setCrop(c => ({ ...c, fx: Math.min(1, Math.max(0, c.fx - dx)), fy: Math.min(1, Math.max(0, c.fy - dy)) }))
+  }
+  function onCropPointerUp() { dragRef.current = null }
   async function handleRemoveActiveArt() {
     setError(null); setSavingArt(true)
     try { await setActivePostArt(post.id, null); setActiveArt(''); onSaved?.() }
@@ -2073,15 +2120,31 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
             )}
             {/* Preview: canvas (branded) ou a imagem própria, no enquadramento do formato (feed/story) */}
             {variant === 'propria' ? (
-              <div className="mx-auto overflow-hidden rounded-lg border border-white/10 bg-black/30" style={{ aspectRatio: fmt === 'stories' ? '9 / 16' : '1 / 1', maxHeight: '40vh' }}>
-                {(ownPreview || activeArt) ? (
-                  <img src={ownPreview || activeArt} alt="Prévia da imagem do post" className="h-full w-full object-cover" />
-                ) : (
-                  <button type="button" onClick={() => ownInputRef.current?.click()} className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/40 transition hover:text-white/70">
-                    <ImageIcon size={28} />
-                    <span className="text-xs font-medium">Fazer upload de imagem</span>
-                    <span className="text-[10px] text-white/30">JPG, PNG ou WebP · até 8 MB · ideal ≥ 1080px</span>
-                  </button>
+              <div>
+                <div className="relative mx-auto overflow-hidden rounded-lg border border-white/10 bg-black/30" style={{ aspectRatio: fmt === 'stories' ? '9 / 16' : '1 / 1', maxHeight: '42vh' }}>
+                  {ownImg ? (
+                    <canvas ref={cropCanvasRef}
+                      onPointerDown={onCropPointerDown} onPointerMove={onCropPointerMove} onPointerUp={onCropPointerUp} onPointerLeave={onCropPointerUp}
+                      className="h-full w-full cursor-move touch-none object-cover" />
+                  ) : activeArt ? (
+                    <img src={activeArt} alt="Arte atual do post" className="h-full w-full object-cover" />
+                  ) : (
+                    <button type="button" onClick={() => ownInputRef.current?.click()} className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/40 transition hover:text-white/70">
+                      <ImageIcon size={28} />
+                      <span className="text-xs font-medium">Fazer upload de imagem</span>
+                      <span className="text-[10px] text-white/30">JPG, PNG ou WebP · até 8 MB · ideal ≥ 1080px</span>
+                    </button>
+                  )}
+                </div>
+                {ownImg && (
+                  <>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="text-[10px] uppercase tracking-wide text-white/35">Zoom</span>
+                      <input type="range" min="1" max="3" step="0.05" value={crop.scale} onChange={e => setCrop(c => ({ ...c, scale: Number(e.target.value) }))} className="flex-1 accent-gold-500" aria-label="Zoom da imagem" />
+                      <button type="button" onClick={() => setCrop({ scale: 1, fx: 0.5, fy: 0.5 })} className="text-[11px] text-white/45 hover:text-white/75">centralizar</button>
+                    </div>
+                    <p className="mt-1 text-[10px] text-white/30">Arraste a imagem para reposicionar e use o zoom — o recorte respeita o formato ({fmt === 'stories' ? 'Story 9:16' : 'Feed 1:1'}).</p>
+                  </>
                 )}
               </div>
             ) : (
