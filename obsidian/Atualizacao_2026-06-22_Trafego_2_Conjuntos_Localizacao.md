@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Tráfego: 2 conjuntos por localização (PoA + raio do imóvel)
 
 > Regra do gestor: toda campanha sobe com 2 conjuntos — **Porto Alegre** (cidade inteira) + **Região do
-> imóvel** (raio ≤ 2 km do endereço geocodificado). Na `main`. Commit: **<HASH>**.
+> imóvel** (raio ≤ 2 km do endereço geocodificado). Na `main`. Commit: **ceffbe5**.
 
 ## Diagnóstico
 A estrutura de 2 conjuntos já existia no `build_draft` (raio `custom_locations` + cidade `cities`), mas o
