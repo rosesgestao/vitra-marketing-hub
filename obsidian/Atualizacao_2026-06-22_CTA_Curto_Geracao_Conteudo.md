@@ -1,7 +1,7 @@
 # Atualizacao 2026-06-22 — Geração de conteúdo: CTA curto (botão) + frase na legenda
 
 > A IA do "Gerar posts" passa a produzir `cta` como rótulo CURTO de botão (para a arte), e a chamada
-> conversacional vai no fim da legenda. Correção de raiz do CTA que vazava a arte. Na `main`. Commit: **<HASH>**.
+> conversacional vai no fim da legenda. Correção de raiz do CTA que vazava a arte. Na `main`. Commit: **a052569**.
 
 ## Contexto
 Complementa o fix visual do `postArt.js` (truncamento). Lá tratamos o sintoma; aqui, a raiz: o `cta`
