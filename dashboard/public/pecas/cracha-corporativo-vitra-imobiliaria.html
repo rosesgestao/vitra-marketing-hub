@@ -172,17 +172,17 @@
         <button onclick="exportAll()">⬇ Lote (frente+verso)</button>
       </div>
       <p class="status" id="status"></p>
-      <p class="hint" style="max-width:520px;text-align:center">Exporta em <b>1370 × 2102 px (~600 DPI · supersampling 2×)</b> = 5,8 × 8,9 cm com <b>sangria de 2 mm</b>. Corte final 5,4 × 8,5 cm (linha vermelha) · conteúdo dentro da área verde. No Canva: crie a página em 5,8 × 8,9 cm e cole o PNG em 100%. Use foto nítida (≥ 600 px) e evite zoom alto.</p>
+      <p class="hint" style="max-width:520px;text-align:center">Exporta em <b>2055 × 3153 px (~900 DPI · supersampling 3×)</b> = 5,8 × 8,9 cm com <b>sangria de 2 mm</b>. Corte final 5,4 × 8,5 cm (linha vermelha) · conteúdo dentro da área verde. No Canva: crie a página em 5,8 × 8,9 cm e cole o PNG em 100%. Use foto nítida (≥ 900 px) e evite zoom alto.</p>
     </div>
   </div>
 </div>
 
 <script>
   const DPI=300, MM=DPI/25.4; // px por mm
-  // Supersampling do export: o palco é 685×1051 (= 300 DPI no tamanho final com sangria). Capturar a 2×
-  // gera 1370×2102 (~600 DPI) — a foto é amostrada da fonte original em ~600px (nítida p/ PVC), sem mexer
-  // no layout/enquadramento. PNG é lossless (sem compressão). Ajustável aqui se quiser 3× (máxima nitidez).
-  const EXPORT_SS=2;
+  // Supersampling do export: o palco é 685×1051 (= 300 DPI no tamanho final com sangria). Capturar a 3×
+  // gera 2055×3153 (~900 DPI) — a foto é amostrada da fonte original em ~900px (nitidez máxima p/ PVC), sem
+  // mexer no layout/enquadramento. PNG é lossless (sem compressão). Baixe para 2× se quiser arquivos menores.
+  const EXPORT_SS=3;
   const crop={scale:1,x:50,y:50};
   let photoURL=null, face='frente', lote=[], loteIdx=-1;
 
@@ -256,7 +256,7 @@
     try{const canvas=await captureFace(f);const a=document.createElement('a');
       a.download='cracha-vitra-'+slug(document.getElementById('f-nome').value)+'-'+f+'-685x1051-300dpi.png';
       a.href=canvas.toDataURL('image/png');a.click();
-      status.textContent='PNG '+f+' '+canvas.width+'×'+canvas.height+' (~600dpi · supersampling '+EXPORT_SS+'× · com sangria) baixado ✓';}
+      status.textContent='PNG '+f+' '+canvas.width+'×'+canvas.height+' (~900dpi · supersampling '+EXPORT_SS+'× · com sangria) baixado ✓';}
     catch(e){status.textContent='Erro: '+e.message;}
   }
   async function exportAll(){
