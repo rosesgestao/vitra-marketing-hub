@@ -1,4 +1,4 @@
-import { Facebook, Linkedin, Youtube, Instagram, MessageCircle, Mail } from 'lucide-react'
+import { Facebook, Linkedin, Youtube, Instagram, MessageCircle, Mail, PartyPopper } from 'lucide-react'
 import { BRAND_SCOPES } from './brandProfiles.js'
 
 // Catálogo único e data-driven das peças (capas/banners) por plataforma.
@@ -12,6 +12,28 @@ export const PECA_STATUS = { available: 'available', soon: 'soon' }
 export const PECAS_ASSET_BASE = 'pecas/'
 
 export const PECAS_PLATFORMS = [
+  {
+    id: 'interno',
+    label: 'Comunicação Interna',
+    icon: PartyPopper,
+    status: PECA_STATUS.available,
+    summary: 'Endomarketing: convites de eventos, comunicados e cultura para fortalecer o time.',
+    formats: [
+      {
+        id: 'evento',
+        label: 'Convite de evento',
+        status: PECA_STATUS.available,
+        w: 1080,
+        h: 1350,
+        ratio: 'multi · 4:5 · 9:16 · 1:1',
+        safeArea: 'centro · escolha o formato dentro do gerador',
+        note: 'Multiformato: Feed 4:5, Stories/Status 9:16 e Post 1:1 num só gerador. Textos editáveis ao vivo; suba a foto do ambiente como fundo. WhatsApp = Stories/Status ou Post; Instagram = Feed ou Stories.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'evento-interno-vitra-imobiliaria.html',
+        },
+      },
+    ],
+  },
   {
     id: 'facebook',
     label: 'Facebook',
