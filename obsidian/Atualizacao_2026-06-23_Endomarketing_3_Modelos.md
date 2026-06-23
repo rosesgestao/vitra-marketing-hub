@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Endomarketing: +3 modelos (aniversariantes, comunicado, metas)
 
-> Amplia a categoria Comunicação Interna com 3 novos geradores. Na `main`. Commit: **<HASH>**.
+> Amplia a categoria Comunicação Interna com 3 novos geradores. Na `main`. Commit: **6d719c9**.
 
 ## Entregue
 Três novos geradores em `public/pecas`, registrados na categoria **Comunicação Interna** (`pecasCatalog`,
