@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Estúdio de Peças: categoria Comunicação Interna (endomarketing)
 
-> Nova funcionalidade de endomarketing + 1ª peça (evento Brasil × Escócia). Na `main`. Commit: **<HASH>**.
+> Nova funcionalidade de endomarketing + 1ª peça (evento Brasil × Escócia). Na `main`. Commit: **8bec85c**.
 
 ## Funcionalidade (data-driven, segue o padrão do Estúdio de Peças)
 - Nova categoria **"Comunicação Interna"** em `pecasCatalog.js` (ícone PartyPopper, disponível na Imobiliária)
