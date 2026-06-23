@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Crachá: nitidez da foto no export (supersampling 2× / ~600 DPI)
 
-> Foto saía mole no PNG vs. prévia. Corrigido com supersampling, sem mudar layout. Na `main`. Commit: **<HASH>**.
+> Foto saía mole no PNG vs. prévia. Corrigido com supersampling, sem mudar layout. Na `main`. Commit: **3f9a7db**.
 
 ## Causa raiz
 O palco do crachá é 685×1051 px (= 300 DPI no tamanho final 5,8×8,9 cm com sangria). O export chamava o
