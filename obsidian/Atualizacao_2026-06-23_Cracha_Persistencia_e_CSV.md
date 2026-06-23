@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Crachá: persistência local + lote por CSV
 
-> Próximo passo do crachá: salvar/reabrir registros e importar/exportar lote em CSV. Na `main`. Commit: **<HASH>**.
+> Próximo passo do crachá: salvar/reabrir registros e importar/exportar lote em CSV. Na `main`. Commit: **1ea6297**.
 
 ## Decisão de arquitetura (PO)
 O gerador do crachá é uma **página estática** (`public/pecas`, sem sessão/cliente Supabase). Em vez de
