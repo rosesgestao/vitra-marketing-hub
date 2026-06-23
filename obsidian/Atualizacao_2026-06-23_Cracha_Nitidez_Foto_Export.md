@@ -20,7 +20,7 @@ devicePixelRatio (sem supersampling).
 
 ## Dimensões recomendadas (impressão PVC)
 - Corte 5,4×8,5 cm = 638×1004 px @300 DPI; com sangria 5,8×8,9 cm = 685×1051 @300.
-- **Export atual: 1370×2102 px (≈600 DPI no tamanho final)** — folga sobre o mínimo de 300.
+- **Export atual: 2055×3153 px (≈900 DPI no tamanho final)** — `EXPORT_SS=3` (subiu de 2× a pedido); folga ampla sobre o mínimo de 300.
 
 ## Verificação
 Export real medido: **1370×2102 px**, **600 DPI** (no trim+sangria), 151 ms — layout idêntico. lint/build não
