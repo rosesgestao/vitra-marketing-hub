@@ -365,6 +365,12 @@ Deno.serve(async (req) => {
         const ok = (list?.data || []).some((p: any) => String(p.id) === pixelId);
         if (!ok) return json({ error: "pixel_invalid", message: `Pixel ${pixelId} nao pertence a esta conta de anuncio. Escolha um pixel da conta.` }, 422);
       }
+      // Conta Instagram vinculada a Pagina — necessaria para o asset_feed_spec exibir em posicoes do IG
+      // (o object_story_spec de imagem unica resolve sozinho; o asset_feed_spec exige o ator explicito).
+      const igActorId: string = await graphGet(pageId, "instagram_business_account{id}")
+        .then((p: any) => String(p?.instagram_business_account?.id || ""))
+        .catch(() => "");
+
       let leadFormId = "";
       if (isLeadForm) {
         const page = await graphGet(pageId, "name,leadgen_tos_accepted").catch(() => null);
@@ -658,7 +664,7 @@ Deno.serve(async (req) => {
           rules.push({ customization_spec: { publisher_platforms: ["facebook", "instagram"], facebook_positions: ["feed", "marketplace", "profile_feed"], instagram_positions: ["stream", "explore", "profile_feed"] }, image_label: { name: roleHash.feed ? "feed" : Object.keys(roleHash)[0] } });
           return graphPost(`act_${adAccountId}/adcreatives`, {
             name: `${campaign.name} | ${v.headline}`.slice(0, 100),
-            object_story_spec: { page_id: pageId },
+            object_story_spec: { page_id: pageId, ...(igActorId ? { instagram_user_id: igActorId } : {}) },
             asset_feed_spec: {
               images,
               bodies: [{ text: v.primaryText }],
