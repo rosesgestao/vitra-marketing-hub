@@ -38,6 +38,14 @@ const SCALE = clampScale(Number(Deno.env.get("PREMIUM_RENDER_SCALE") ?? "0.55"),
 // Teto do 9:16: 0.75 = 810x1440 (~1.16M px = a MESMA contagem do 1:1 a 1.0, que renderiza ok).
 const SCALE_TALL = clampScale(Number(Deno.env.get("PREMIUM_RENDER_SCALE_TALL") ?? "0.75"), 0.75);
 function premiumScale(isTall: boolean) { return isTall ? Math.min(SCALE, SCALE_TALL) : SCALE; }
+// Teto de RASTERIZACAO do 9:16 (formato alto) — vale para AMBOS os motores, inclusive o approved da
+// Imobiliaria (SVG direto em full 1080x1920, que e o que mais estoura o compute da Edge / OOM em isolate
+// frio). Reduz a largura de raster do resvg para cortar o pico de memoria sem mexer no viewBox/safe zone.
+// 0.85 => 918x1632 (~1.5M px vs 2.07M px do full, -28% memoria), ainda nitido p/ stories/reels.
+// Ajustavel por secret PREMIUM_RENDER_TALL_RASTER sem novo deploy.
+const TALL_RASTER = clampScale(Number(Deno.env.get("PREMIUM_RENDER_TALL_RASTER") ?? "0.85"), 0.85);
+const isTallAR = (w: number, h: number) => h > w * 1.25;
+const rasterWidth = (W: number, tall: boolean) => (tall ? Math.max(540, Math.round(W * TALL_RASTER)) : W);
 const PHASE_TAG: Record<string, string> = { "1": "FASE 1 - TEASER", "2": "FASE 2 - REVELACAO", "3": "FASE 3 - URGENCIA" };
 const VITRA_IMOBILIARIA_TEMPLATE_BASE = "vitra-imobiliaria-dual-photo-offer";
 const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
@@ -1328,7 +1336,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       step = "init_wasm";
       await ensureWasm();
       step = "resvg";
-      const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: resvgFonts, loadSystemFonts: false, defaultFontFamily: "Inter" } });
+      const resvg = new Resvg(svg, { fitTo: { mode: "width", value: rasterWidth(W, isTallAR(W, H)) }, font: { fontBuffers: resvgFonts, loadSystemFonts: false, defaultFontFamily: "Inter" } });
       const img = resvg.render();
       const png = img.asPng();
       try { img.free?.(); } catch (_) {}
@@ -1371,7 +1379,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
     step = "init_wasm";
     await ensureWasm();
     step = "resvg";
-    const resvg = new Resvg(svg, { fitTo: { mode: "width", value: W }, font: { fontBuffers: resvgFonts, loadSystemFonts: false, defaultFontFamily: "Inter" } });
+    const resvg = new Resvg(svg, { fitTo: { mode: "width", value: rasterWidth(W, isTallAR(W, H)) }, font: { fontBuffers: resvgFonts, loadSystemFonts: false, defaultFontFamily: "Inter" } });
     const img = resvg.render();
     const png = img.asPng();
     try { img.free?.(); } catch (_) {}
@@ -1421,21 +1429,29 @@ Deno.serve(async (req) => {
   // atomica (FOR UPDATE SKIP LOCKED na funcao SQL), evitando corrida entre cron,
   // dashboard e worker. Fallback defensivo para o fluxo legado enquanto a migration
   // do claim (migration-render-queue-claim.sql) ainda nao estiver aplicada.
-  const MAX_RENDER_ATTEMPTS = 3;
-  // Recicla orfaos 'rendering' travados (crash/OOM) ANTES de reivindicar, para que
-  // voltem a 'queued' e o fluxo termine mesmo com o navegador fechado. Best-effort:
-  // se a migration do reaper ainda nao foi aplicada, o rpc retorna erro e seguimos.
-  await svc.rpc("reap_stale_render_assets", { p_max_attempts: MAX_RENDER_ATTEMPTS, p_orphan_minutes: 10 });
+  const MAX_RENDER_ATTEMPTS = 4;
+  // Recicla orfaos 'rendering' travados (crash/OOM) ANTES de reivindicar, para que voltem a 'queued'
+  // e o fluxo termine SEM reenfileiramento manual. Janela curta (3 min) para o 9:16 que estourou em
+  // isolate frio se recuperar rapido. Best-effort: se a migration do reaper ainda nao foi aplicada, segue.
+  await svc.rpc("reap_stale_render_assets", { p_max_attempts: MAX_RENDER_ATTEMPTS, p_orphan_minutes: 3 });
   // Estabilidade (full-res): o caminho Premium (satori) estoura o compute da Edge se renderizar
   // varios full-res numa unica invocacao (OOM em lote, comprovado). Cap em 1 por chamada para
   // Premium; a Imobiliaria (SVG direto, leve) mantem ate 3. Probe barato do brand_scope do alvo;
   // na duvida (sem brand_scope) trata como Premium e cap em 1 (conservador).
   try {
-    let probeQ = svc.from("premium_campaign_assets").select("metadata").eq("channel", "meta_ads");
+    let probeQ = svc.from("premium_campaign_assets").select("metadata, aspect_ratio, status").eq("channel", "meta_ads");
     probeQ = campaignId ? probeQ.eq("campaign_id", campaignId) : probeQ.in("id", assetIds ?? []);
-    const probe = await probeQ.limit(1).maybeSingle();
-    const scope = probe.data?.metadata?.brand_scope || "vitra_premium";
+    const probe = await probeQ.limit(20);
+    const rows = probe.data || [];
+    const scope = rows[0]?.metadata?.brand_scope || "vitra_premium";
     if (scope !== "vitra_imobiliaria") limit = 1;
+    // 9:16 (formato alto) em full-res e o que mais estoura o compute -> processa 1 por invocacao,
+    // mesmo na Imobiliaria, para nunca empilhar dois 1080x1920 numa mesma chamada (causa de OOM).
+    const hasTallPending = rows.some((r: any) => {
+      const d = DIMS[(r.aspect_ratio || "1:1")] || DIMS["1:1"];
+      return isTallAR(d[0], d[1]) && ["queued", "rendering", "error", "generated"].includes(String(r.status));
+    });
+    if (hasTallPending) limit = 1;
   } catch (_) { /* probe best-effort: mantem o limit pedido */ }
   let assets: any[] | null = null;
   let aErr: any = null;

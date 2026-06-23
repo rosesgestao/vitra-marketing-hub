@@ -2426,19 +2426,34 @@ const waitForRenderRetry = (ms) => new Promise(resolve => setTimeout(resolve, ms
 function isTransientRenderInvokeError(error) {
   const status = Number(error?.context?.status || error?.status || 0)
   const message = String(error?.message || error || '').toLowerCase()
-  return status === 546 || status === 502 || status === 503 || status === 504 || message.includes('failed to fetch')
+  return status === 546 || status === 502 || status === 503 || status === 504 ||
+    message.includes('failed to fetch') ||
+    message.includes('worker_resource_limit') || message.includes('compute resources') ||
+    message.includes('resource limit')
+}
+
+// OOM do 9:16 (WORKER_RESOURCE_LIMIT) mata o isolate: o asset fica preso em 'rendering' e um retry
+// imediato nao o reclama. Reseta os cortes do chunk de volta para 'queued' para que a proxima
+// tentativa (isolate quente + raster reduzido no edge) os renderize — sem reenfileiramento manual.
+async function requeueStuckRenderingAssets(chunk) {
+  try {
+    await supabase.from('premium_campaign_assets')
+      .update({ status: 'queued', updated_at: new Date().toISOString() })
+      .in('id', chunk).eq('status', 'rendering')
+  } catch { /* best-effort: o reaper do edge recupera de qualquer forma */ }
 }
 
 async function invokeRenderAssetChunk(campaignId, chunk) {
   let lastError = null
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
     const { data, error } = await supabase.functions.invoke('render-asset', {
       body: { campaign_id: campaignId, asset_ids: chunk, limit: chunk.length },
     })
     if (!error) return data || { rendered: 0, failed: chunk.length, remaining: chunk.length }
     lastError = error
-    if (!isTransientRenderInvokeError(error) || attempt === 2) break
-    await waitForRenderRetry(1200 + attempt * 1800)
+    if (!isTransientRenderInvokeError(error) || attempt === 3) break
+    await requeueStuckRenderingAssets(chunk) // libera os 'rendering' presos por OOM antes de tentar de novo
+    await waitForRenderRetry(1500 + attempt * 2000)
   }
   throw lastError
 }
