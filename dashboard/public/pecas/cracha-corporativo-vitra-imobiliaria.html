@@ -102,6 +102,16 @@
         <textarea id="f-lote" rows="3" placeholder="Ana Paula;Consultora;Vendas;VIT-0002&#10;Carlos Lima;Gestor;Locação;VIT-0003"></textarea></label>
       <div class="seg"><button onclick="applyLote()">Aplicar lista</button><button id="bprev" onclick="navLote(-1)">‹</button><button id="bnext" onclick="navLote(1)">›</button></div>
       <p class="hint" id="loteInfo"></p>
+      <div class="seg"><button onclick="document.getElementById('csv').click()">📄 Importar CSV</button><button onclick="downloadCSVModelo()">Baixar modelo CSV</button></div>
+      <input id="csv" type="file" accept=".csv,text/csv,text/plain" style="display:none" onchange="importCSV(event)">
+      <p class="hint">CSV com cabeçalho <b>nome;cargo;setor;matricula;qr</b> (ou separado por vírgula). Vira a lista do lote.</p>
+
+      <h2 style="margin-top:6px">Registros salvos (neste navegador)</h2>
+      <div class="seg"><button class="primary" onclick="saveRegistro()">💾 Salvar registro</button><button onclick="saveLoteAsRegistros()">Salvar lote</button></div>
+      <label class="fld">Abrir registro salvo
+        <select id="saved" onchange="loadRegistro()"><option value="">— selecione —</option></select></label>
+      <div class="seg"><button onclick="deleteRegistro()">Excluir selecionado</button><button onclick="exportRegistrosCSV()">Exportar todos (CSV)</button></div>
+      <p class="hint">Salva os dados (texto) localmente para reabrir depois. A foto é reanexada ao reabrir (não fica salva no navegador).</p>
     </div>
 
     <!-- ===== PREVIEW ===== -->
@@ -245,6 +255,58 @@
       status.textContent='Lote concluído: '+lote.length+' crachá(s) × 2 faces baixados ✓';}
     else{await exportFace('frente');await exportFace('verso');}
   }
+  // ===== CSV (import/export de lote) =====
+  function parseCSV(text){
+    const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    if(!lines.length)return [];
+    const delim=(lines[0].match(/;/g)||[]).length>=(lines[0].match(/,/g)||[]).length?';':',';
+    const cells=l=>l.split(delim).map(s=>s.replace(/^"|"$/g,'').trim());
+    const head=cells(lines[0]).map(h=>h.toLowerCase());
+    const hasHeader=head.some(h=>/nome|cargo|setor|matr|qr/.test(h));
+    const col=name=>head.indexOf(name);
+    const idx=hasHeader?{nome:col('nome'),cargo:col('cargo'),setor:col('setor'),mat:head.findIndex(h=>/matr/.test(h)),qr:col('qr')}:{nome:0,cargo:1,setor:2,mat:3,qr:4};
+    const rows=hasHeader?lines.slice(1):lines;
+    return rows.map(l=>{const c=cells(l);const g=i=>i>=0&&i<c.length?c[i]:'';
+      return {nome:g(idx.nome),cargo:g(idx.cargo),setor:g(idx.setor),mat:g(idx.mat),qr:g(idx.qr)};}).filter(r=>r.nome);
+  }
+  function importCSV(ev){const f=ev.target.files&&ev.target.files[0];if(!f)return;
+    const rd=new FileReader();rd.onload=()=>{lote=parseCSV(String(rd.result));loteIdx=lote.length?0:-1;
+      document.getElementById('f-lote').value=lote.map(r=>[r.nome,r.cargo,r.setor,r.mat].join(';')).join('\n');
+      applyRecord();updateLoteInfo();
+      document.getElementById('status').textContent=lote.length?('CSV importado: '+lote.length+' registro(s) ✓'):'CSV vazio ou inválido';};
+    rd.readAsText(f,'utf-8');ev.target.value='';}
+  function downloadCSVModelo(){const csv='nome;cargo;setor;matricula;qr\nAna Paula;Consultora;Vendas;VIT-0002;https://vitraimobiliaria.com.br\nCarlos Lima;Gestor;Locação;VIT-0003;';
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='modelo-cracha-lote.csv';a.click();}
+  function exportRegistrosCSV(){const r=getRegistros();if(!r.length){document.getElementById('status').textContent='Nenhum registro salvo.';return;}
+    const csv='nome;cargo;setor;matricula;cidade;qr\n'+r.map(x=>[x.nome,x.cargo,x.setor,x.mat,x.org,x.qr].map(s=>(s||'').replace(/;/g,',')).join(';')).join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='cracha-registros-vitra.csv';a.click();}
+
+  // ===== Persistência local (localStorage) =====
+  const LS_KEY='vitra_cracha_imob_registros';
+  function getRegistros(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch(e){return [];}}
+  function setRegistros(arr){try{localStorage.setItem(LS_KEY,JSON.stringify(arr));}catch(e){}}
+  function curData(){const v=id=>document.getElementById(id).value;
+    return {nome:v('f-nome'),cargo:v('f-cargo'),setor:v('f-setor'),mat:v('f-mat'),org:v('f-org'),qr:v('f-qr')};}
+  function saveRegistro(){const d=curData();if(!d.nome.trim()){document.getElementById('status').textContent='Informe o nome para salvar.';return;}
+    const arr=getRegistros();const i=arr.findIndex(x=>x.nome===d.nome&&x.mat===d.mat);
+    if(i>=0)arr[i]=d;else arr.push(d);setRegistros(arr);refreshSaved();
+    document.getElementById('status').textContent='Registro "'+d.nome+'" salvo ✓';}
+  function saveLoteAsRegistros(){if(!lote.length){document.getElementById('status').textContent='Aplique uma lista/CSV primeiro.';return;}
+    const arr=getRegistros();lote.forEach(r=>{const d={nome:r.nome,cargo:r.cargo,setor:r.setor,mat:r.mat,org:document.getElementById('f-org').value,qr:r.qr||''};
+      const i=arr.findIndex(x=>x.nome===d.nome&&x.mat===d.mat);if(i>=0)arr[i]=d;else arr.push(d);});
+    setRegistros(arr);refreshSaved();document.getElementById('status').textContent=lote.length+' registro(s) do lote salvos ✓';}
+  function refreshSaved(){const sel=document.getElementById('saved');const arr=getRegistros();
+    sel.innerHTML='<option value="">— '+(arr.length?arr.length+' salvo(s)':'nenhum salvo')+' —</option>'+
+      arr.map((x,i)=>'<option value="'+i+'">'+(x.nome||'(sem nome)')+(x.mat?' · '+x.mat:'')+'</option>').join('');}
+  function loadRegistro(){const i=document.getElementById('saved').value;if(i==='')return;const x=getRegistros()[Number(i)];if(!x)return;
+    document.getElementById('f-nome').value=x.nome||'';document.getElementById('f-cargo').value=x.cargo||'';
+    document.getElementById('f-setor').value=x.setor||'';document.getElementById('f-mat').value=x.mat||'';
+    document.getElementById('f-org').value=x.org||'';document.getElementById('f-qr').value=x.qr||'';bind();
+    document.getElementById('status').textContent='Registro "'+(x.nome||'')+'" carregado (reanexe a foto).';}
+  function deleteRegistro(){const i=document.getElementById('saved').value;if(i==='')return;const arr=getRegistros();arr.splice(Number(i),1);setRegistros(arr);refreshSaved();
+    document.getElementById('status').textContent='Registro excluído.';}
+
+  refreshSaved();
   bind();setFace('frente');
 </script>
 </body>
