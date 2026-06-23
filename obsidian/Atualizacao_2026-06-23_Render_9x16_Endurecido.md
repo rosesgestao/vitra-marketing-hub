@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — render-asset endurecido para 9:16 (sem reenfileiramento manual)
 
-> O 9:16 deixa de estourar (WORKER_RESOURCE_LIMIT/OOM) e se recupera sozinho. Na `main`. Commit: **<HASH>**.
+> O 9:16 deixa de estourar (WORKER_RESOURCE_LIMIT/OOM) e se recupera sozinho. Na `main`. Commit: **9605900**.
 
 ## Causa raiz
 O 9:16 da Imobiliaria renderiza em **full 1080x1920** pelo motor SVG-direto (resvg) — o `SCALE_TALL` so
