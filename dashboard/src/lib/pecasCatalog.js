@@ -30,6 +30,7 @@ export const PECAS_PLATFORMS = [
         note: 'Prova social de venda concluída (sem dados do imóvel/cliente): selo VENDIDO + mensagem editável (presets) + complemento + imagem institucional opcional. Feed 4:5, Story 9:16, WhatsApp 1:1.',
         variants: {
           [BRAND_SCOPES.imobiliaria]: 'imovel-vendido-institucional-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'imovel-vendido-institucional-vitra-premium.html',
         },
       },
     ],

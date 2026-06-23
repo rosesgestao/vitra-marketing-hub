@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VITRA PREMIUM — Institucional · Imóvel Vendido</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--black:#000000;--ink:#0a0a0a;--gold:#C4942A;--gold-light:#F0C95C;
+    --white:#FFFFFF;--off:#F2EFE9;--font:'Inter',sans-serif;--serif:'Playfair Display',serif}
+  body{background:#0a0a0a;color:#fff;font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:18px;padding:26px 16px 60px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;max-width:1080px}
+  .toolbar .group{display:flex;gap:6px;align-items:center;background:#161310;border:1px solid #2c2418;border-radius:12px;padding:6px}
+  .toolbar label{font-size:11px;letter-spacing:.4px;color:#b6a98f;text-transform:uppercase;margin:0 4px}
+  select,button{font-family:var(--font);font-weight:600;font-size:13px;letter-spacing:.3px;border:1px solid #3a301f;border-radius:9px;padding:9px 12px;background:#1a160f;color:var(--off);cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--gold)}
+  button.on{background:var(--gold);color:var(--black);border-color:var(--gold)}
+  button.primary{background:var(--gold);color:var(--black);border-color:var(--gold);font-weight:700}
+  button.primary:hover{background:var(--gold-light)}
+  .hint{font-size:12px;color:#8c8270;max-width:1080px;text-align:center;line-height:1.5}
+  .status{font-size:12px;color:var(--gold-light);min-height:16px;text-align:center}
+
+  .frame{transform:scale(.40);transform-origin:top center;margin-bottom:-60%}
+  body.exporting .frame{transform:none;margin:0}
+  .stage{position:relative;width:1080px;height:1350px;overflow:hidden;background:var(--black);font-family:var(--font);color:#fff}
+  .stage.story{height:1920px}.stage.post{height:1080px}
+  .bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center;
+      background-image:radial-gradient(120% 80% at 50% 14%, #1d1206 0%, #0b0b0b 52%, #000000 100%)}
+  .scrim{position:absolute;top:0;left:0;width:100%;height:100%;background:
+      linear-gradient(180deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.30) 40%, rgba(0,0,0,.84) 100%)}
+  .glow{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(56% 40% at 50% 42%, rgba(196,148,42,.26), transparent 70%);pointer-events:none}
+  .ribbon{position:absolute;top:0;left:0;right:0;height:4px;background:var(--gold)}
+  .content{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:92px 86px 84px;text-align:center}
+  .top,.mid,.bottom{width:100%;display:flex;flex-direction:column;align-items:center}
+  .logo{width:300px;height:100px}.stage.post .logo{width:262px;height:88px}
+  .eyebrow{display:flex;align-items:center;gap:10px;font-size:17px;letter-spacing:7px;text-transform:uppercase;color:var(--gold-light);font-weight:600;white-space:nowrap;margin-top:24px}
+  .eyebrow .dot{width:9px;height:9px;border-radius:50%;background:var(--gold)}
+  /* selo VENDIDO */
+  .seal{width:300px;height:300px;border-radius:50%;border:2px solid rgba(196,148,42,.9);
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+        background:radial-gradient(circle at 50% 38%, rgba(196,148,42,.14), rgba(0,0,0,0) 70%)}
+  .seal .ring{position:absolute;width:264px;height:264px;border-radius:50%;border:1px solid rgba(196,148,42,.4)}
+  .seal .v{width:54px;height:54px;margin-bottom:2px}
+  .seal .word{font-size:46px;font-weight:800;letter-spacing:10px;color:var(--gold-light)}
+  .seal .org{font-size:13px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,.55)}
+  .stage.post .seal{width:248px;height:248px}.stage.post .seal .ring{width:216px;height:216px}.stage.post .seal .word{font-size:38px;letter-spacing:8px}
+  .mid .headline{font-family:var(--serif);font-weight:700;line-height:1.08;font-size:76px;color:#fff;margin-top:36px;max-width:92%;letter-spacing:-.5px}
+  .mid .headline em{font-style:italic;color:var(--gold-light)}
+  .stage.story .headline{font-size:84px}.stage.post .headline{font-size:56px;margin-top:24px}
+  .mid .sub{font-family:var(--serif);font-style:italic;font-size:32px;line-height:1.4;color:var(--off);font-weight:500;margin-top:22px;max-width:84%}
+  .mid .sub b{font-style:normal;color:var(--gold-light);font-weight:600}
+  .stage.post .sub{font-size:25px}
+  .bottom .line{width:120px;height:2px;background:var(--gold);margin-bottom:18px}
+  .bottom .org{font-size:19px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:600}
+  .bottom .slogan{font-size:16px;letter-spacing:5px;text-transform:uppercase;color:var(--gold);margin-top:8px}
+  [contenteditable]{outline:none}[contenteditable]:focus{box-shadow:0 0 0 2px rgba(240,201,92,.5);border-radius:6px}
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="group"><label>Formato</label>
+      <button id="b-feed" class="on" onclick="setFmt('feed')">Feed 4:5</button>
+      <button id="b-story" onclick="setFmt('story')">Story 9:16</button>
+      <button id="b-post" onclick="setFmt('post')">WhatsApp 1:1</button></div>
+    <div class="group"><label>Mensagem</label>
+      <select id="msg" onchange="applyMsg()">
+        <option>Mais um imóvel vendido</option>
+        <option>Vendido pela Vitra Premium</option>
+        <option>Mais uma negociação concluída</option>
+        <option>Mais um patrimônio realizado</option>
+        <option value="__edit">Outra… (editar no card)</option>
+      </select></div>
+    <div class="group"><label>Fundo</label>
+      <button onclick="document.getElementById('ph').click()">📷 Imagem</button>
+      <button onclick="clearPhoto()">Limpar</button>
+      <input id="ph" type="file" accept="image/*" style="display:none" onchange="loadPhoto(event)"></div>
+    <button class="primary" onclick="exportPeca()">⬇ Baixar PNG</button>
+  </div>
+  <p class="hint">Vitra Premium (preto + dourado, editorial). Prova social — <b>sem dados do imóvel ou do cliente</b>. Escolha/edite a mensagem, ajuste o complemento e (opcional) suba uma imagem de fundo. Feed 4:5 · Story 9:16 · WhatsApp 1:1.</p>
+  <p class="status" id="status"></p>
+
+  <div class="frame">
+    <div class="stage feed" id="stage">
+      <div class="bg" id="bg"></div><div class="scrim"></div><div class="glow"></div><div class="ribbon"></div>
+      <div class="content">
+        <div class="top">
+          <svg class="logo" width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(3,2) scale(0.87)">
+              <polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/>
+              <polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/>
+              <polygon points="25,37 39,37 32,54" fill="#FFE08A"/><polygon points="25,37 32,54 55,76" fill="#8B6914"/><polygon points="39,37 32,54 55,76" fill="#C4942A"/>
+              <polygon points="85,37 71,37 78,54" fill="#F0C95C"/><polygon points="85,37 78,54 55,76" fill="#7A5C10"/><polygon points="71,37 78,54 55,76" fill="#D4A84A"/></g>
+            <line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/>
+            <text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text>
+            <path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/>
+            <text x="122.50" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6" fill="#C4942A">PREMIUM</text>
+          </svg>
+          <div class="eyebrow"><span class="dot"></span><span contenteditable>Resultado</span></div>
+        </div>
+        <div class="mid">
+          <div class="seal">
+            <div class="ring"></div>
+            <svg class="v" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="none" stroke="#C4942A" stroke-width="3"/>
+              <polygon points="25,33 39,33 32,50" fill="#FFE08A"/><polygon points="25,33 32,50 50,72" fill="#8B6914"/><polygon points="39,33 32,50 50,72" fill="#C4942A"/>
+              <polygon points="75,33 61,33 68,50" fill="#F0C95C"/><polygon points="75,33 68,50 50,72" fill="#7A5C10"/><polygon points="61,33 68,50 50,72" fill="#D4A84A"/>
+            </svg>
+            <div class="word">VENDIDO</div>
+            <div class="org">Vitra Premium</div>
+          </div>
+          <div class="headline" id="headline" contenteditable>Mais um imóvel vendido</div>
+          <div class="sub" id="sub" contenteditable>A discrição e a excelência de quem negocia <b>alto padrão</b>.</div>
+        </div>
+        <div class="bottom">
+          <div class="line"></div>
+          <div class="org" contenteditable>Vitra Premium · Porto Alegre</div>
+          <div class="slogan" contenteditable>Curadoria de alto padrão</div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  const stage=document.getElementById('stage');
+  const DIMS={feed:[1080,1350],story:[1080,1920],post:[1080,1080]};let fmt='feed';
+  function setFmt(f){fmt=f;stage.classList.remove('feed','story','post');stage.classList.add(f);
+    ['feed','story','post'].forEach(k=>document.getElementById('b-'+k).classList.toggle('on',k===f));
+    document.querySelector('.frame').style.transform='scale('+(f==='story'?0.34:0.40)+')';}
+  function applyMsg(){const v=document.getElementById('msg').value;if(v==='__edit'){document.getElementById('headline').focus();return;}
+    document.getElementById('headline').textContent=v;}
+  function loadPhoto(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);
+    document.getElementById('bg').style.backgroundImage="linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,0,0,.62)), url('"+url+"')";}
+  function clearPhoto(){document.getElementById('bg').style.backgroundImage="radial-gradient(120% 80% at 50% 14%, #1d1206 0%, #0b0b0b 52%, #000000 100%)";}
+  async function exportPeca(){const status=document.getElementById('status');status.textContent='Gerando PNG…';
+    const frame=document.querySelector('.frame');const pT=frame.style.transform,pM=frame.style.marginBottom;
+    document.body.classList.add('exporting');frame.style.transform='none';frame.style.marginBottom='0';
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    try{const canvas=await html2canvas(stage,{backgroundColor:'#000000',scale:1,useCORS:true,logging:false});
+      const a=document.createElement('a');a.download='vitra-premium-imovel-vendido-'+fmt+'-'+canvas.width+'x'+canvas.height+'.png';
+      a.href=canvas.toDataURL('image/png');a.click();status.textContent='PNG '+canvas.width+'×'+canvas.height+' baixado ✓';}
+    catch(e){status.textContent='Erro ao gerar: '+e.message;}
+    finally{document.body.classList.remove('exporting');frame.style.transform=pT;frame.style.marginBottom=pM;}}
+  setFmt('feed');
+</script>
+</body>
+</html>
