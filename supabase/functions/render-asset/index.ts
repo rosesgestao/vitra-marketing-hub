@@ -56,6 +56,7 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-hero-checklist",
   "vitra-imobiliaria-duo-selos-offer",
   "vitra-imobiliaria-hero-panel-gallery",
+  "vitra-imobiliaria-lancamento",
 ];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
@@ -1144,6 +1145,95 @@ function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string 
 </svg>`;
 }
 
+// ===== Template 08: lançamento / em breve (teaser) =====
+// Foto hero full-bleed + selo (tag) dourado no topo + headline grande + localização + CTA pill.
+// Sem De/Por nem checklist — peça de expectativa/topo de funil. Safe zone do Meta por formato
+// (skill margem-seguranca-criativos): 1:1 [108..972]; 9:16 reels-safe y[250..1470]; 1.91:1 [89..1111]/[63..564].
+function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+  const hero = images[0] || null;
+
+  const tag = compactText((pd.tagline || "Lançamento").toString().toUpperCase(), 18);
+  const headlineSource = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString();
+  const lines = wrapText(headlineSource.toUpperCase(), isWide ? 18 : 16, 3);
+  const location = compactText((pd.location || pd.neighborhood || "").toString(), isWide ? 46 : 40);
+  const cta = compactText(asset.cta || "Seja o primeiro a saber", 46);
+
+  const L = isStory ? {
+    logo: [905, 276, 120], margin: 90,
+    tag: [90, 300, 56, 30], tagPad: 30,
+    headBase: 120, headGap: 128, headY: 940, headBudget: 820,
+    locY: 1150, locSize: 40,
+    cta: [90, 1340, 660, 100, 20], ctaSize: 30,
+  } : isWide ? {
+    logo: [990, 72, 110], margin: 90,
+    tag: [90, 84, 40, 20], tagPad: 20,
+    headBase: 58, headGap: 62, headY: 250, headBudget: 600,
+    locY: 392, locSize: 24,
+    cta: [90, 500, 480, 58, 14], ctaSize: 20,
+  } : {
+    logo: [852, 120, 120], margin: 108,
+    tag: [108, 132, 48, 26], tagPad: 26,
+    headBase: 100, headGap: 108, headY: 568, headBudget: 600,
+    locY: 740, locSize: 34,
+    cta: [108, 900, 560, 84, 18], ctaSize: 26,
+  };
+  const x = L.margin;
+  const photoLayer = hero
+    ? `<image href="${esc(hero)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+
+  // Selo/tag: pill dourado com texto navy (largura proporcional ao texto).
+  const [tagX, tagY, tagH, tagSize] = L.tag;
+  const tagW = Math.round(tag.length * tagSize * 0.64) + L.tagPad * 2;
+  const tagPill = `<rect x="${tagX}" y="${tagY}" width="${tagW}" height="${tagH}" rx="${Math.round(tagH / 2)}" fill="${GOLD}"/>
+  ${textLine(tagX + tagW / 2, tagY + tagH / 2 + Math.round(tagSize * 0.36), tag, { fill: HC_INK, family: "Poppins", size: tagSize, weight: 700, spacing: 2 })}`;
+
+  const headLines = lines.map((line, index) => {
+    const size = fitDisplaySize(line, L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79);
+    return textLine(x, L.headY + index * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size, weight: 400 });
+  }).join("");
+
+  const locLine = location
+    ? textLine(x, L.locY, location.toUpperCase(), { anchor: "start", fill: HC_GOLD_TEXT, family: "Poppins", size: L.locSize, weight: 600, spacing: 2 })
+    : "";
+
+  const [ctaX, ctaY, ctaW, ctaH, ctaRx] = L.cta;
+  const ctaSize = fitDisplaySize(cta, L.ctaSize, 16, ctaW - Math.round(ctaH * 0.9), 0.90);
+  const ctaTextY = ctaY + Math.round(ctaH / 2) + Math.round(ctaSize * 0.36);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs>
+    <radialGradient id="${idBase}-bg" cx="50%" cy="40%" r="72%">
+      <stop offset="0%" stop-color="#0A1B32"/><stop offset="66%" stop-color="#07111F"/><stop offset="100%" stop-color="#050C16"/>
+    </radialGradient>
+    <linearGradient id="${idBase}-veilY" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#07111F" stop-opacity="0.92"/>
+      <stop offset="38%" stop-color="#07111F" stop-opacity="0.55"/>
+      <stop offset="70%" stop-color="#07111F" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#07111F" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="${idBase}-veilTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#07111F" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#07111F" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  ${photoLayer}
+  <rect width="${W}" height="${H}" fill="#07111F" opacity="0.18"/>
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-veilTop)"/>
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-veilY)"/>
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+  <svg x="${L.logo[0]}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  ${tagPill}
+  ${headLines}
+  ${locLine}
+  ${ctaBlockForHeroChecklist(ctaX, ctaY, ctaW, ctaH, ctaRx, ctaTextY, ctaSize, cta)}
+</svg>`;
+}
+
 function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
@@ -1171,6 +1261,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-hero-checklist") return buildVitraHeroChecklistSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-duo-selos-offer") return buildVitraDuoSelosSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -1320,7 +1411,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       step = "load_template_images";
       const imageUrls = imageUrlsForApprovedTemplate(asset, campaign);
       const imageData: Array<string | null> = [];
-      const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist"
+      const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist" || templateFamily === "vitra-imobiliaria-lancamento"
         ? 1
         : templateFamily === "vitra-imobiliaria-financiamento-orla" || templateFamily === "vitra-imobiliaria-patios-gallery" || templateFamily === "vitra-imobiliaria-hero-panel-gallery"
           ? 3

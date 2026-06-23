@@ -165,6 +165,23 @@ const heroPanelFieldGroups = [
   },
 ]
 
+// Template 08 (Lançamento / Em breve): foto hero full-bleed + selo/tag dourado no topo + headline
+// grande + linha de localização + CTA pill. Peça de expectativa/topo de funil (sem De/Por nem checklist).
+// Safe zone do Meta aplicada desde o nascimento (skill margem-seguranca-criativos).
+const lancamentoFieldGroups = [
+  {
+    id: 'lancamento',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Residencial Aurora' },
+      { key: 'tagline', label: 'Selo / tag', type: 'text', required: true, maxLength: 18, helper: 'Texto do selo dourado — curto (ate 18 caracteres). Ex: Lançamento, Em breve, Pré-lançamento.', placeholder: 'Ex: Lançamento' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Quebra em ate 3 linhas brancas sobre a foto (ate 40 caracteres).', placeholder: 'Ex: Um novo marco na Zona Sul', colSpan: 'full' },
+      { key: 'location', label: 'Localizacao (linha dourada)', type: 'text', maxLength: 40, helper: 'Aparece em dourado abaixo da headline. Ex: Bairro Tristeza · Porto Alegre.', placeholder: 'Ex: Bairro Tristeza · Porto Alegre', colSpan: 'full' },
+      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Seja o primeiro a saber', colSpan: 'full' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -263,6 +280,19 @@ const templateVariationContracts = {
       { id: 'destaque-localizacao', label: 'Destaque de localizacao', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'A linha dourada destaca o argumento de localizacao; fotos e preco completam a leitura.', cta: 'Conhecer a localizacao' },
       { id: 'casa-condominio', label: 'Morar em condominio', phase: '2', angle: 'lifestyle', headline: 'Casa em condominio para a familia', copy: 'Espaco, seguranca e lazer no mesmo endereco. Veja fotos e condicoes com a Vitra.', cta: 'Ver a casa' },
       { id: 'visita-decisao', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Agende sua visita com a Vitra', copy: 'Imoveis com preco de oportunidade pedem decisao informada e rapida.', cta: 'Agendar visita' },
+    ],
+  },
+  lancamento: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem foto hero, selo dourado e CTA aprovados (com safe zone); varia selo, headline, localizacao e CTA. Peca de expectativa, sem preco.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'tag_pill', 'cta_button'],
+    mutableSlots: ['tag', 'headline', 'location', 'cta', 'photos'],
+    recipes: [
+      { id: 'lancamento', label: 'Lançamento', phase: '1', angle: 'lancamento', headline: '{headline_only}', copy: 'Um novo empreendimento chegando. Cadastre-se para ser o primeiro a saber.', cta: 'Seja o primeiro a saber' },
+      { id: 'em-breve', label: 'Em breve', phase: '1', angle: 'expectativa', headline: '{product}: em breve', copy: 'A novidade que o bairro esperava esta chegando. Garanta prioridade na lista.', cta: 'Quero prioridade' },
+      { id: 'pre-lancamento', label: 'Pré-lançamento', phase: '2', angle: 'escassez', headline: 'Pré-lançamento por tempo limitado', copy: 'Condicoes especiais de pre-lancamento para os primeiros interessados.', cta: 'Receber condicoes' },
+      { id: 'localizacao', label: 'Localização em destaque', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Um lancamento no endereco que valoriza. Cadastre-se e acompanhe.', cta: 'Conhecer a regiao' },
+      { id: 'lista-vip', label: 'Lista VIP', phase: '3', angle: 'escassez', headline: 'Entre na lista VIP do lancamento', copy: 'Vagas limitadas para a pre-venda. Garanta seu lugar na lista de prioridade da Vitra.', cta: 'Entrar na lista VIP' },
     ],
   },
   meninoDeus: {
@@ -488,6 +518,30 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // campanha San Clemente (criativos-aprovados-vitra-imobiliaria/1040ccb5 e 83b3c406), com o
       // painel na familia azul do brandbook e amarelo -> dourado (skill margem-seguranca-criativos).
       renderVersion: 'hero-panel-approved-v1',
+    },
+    {
+      id: 'vitra-imobiliaria-lancamento',
+      family: 'vitra-imobiliaria-lancamento',
+      mode: 'single_family',
+      name: 'Lançamento / Em breve',
+      shortName: 'Lançamento (teaser)',
+      bestFor: 'Teaser de expectativa / topo de funil: foto forte, selo (Lançamento/Em breve), headline e localizacao — sem preco nem checklist. Ideal para captar lista de interessados antes do lancamento.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-08-lancamento-1x1-sem-moldura.png',
+      fieldGroups: lancamentoFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto hero (única)', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.lancamento,
+      references: vitraImobiliariaReference('template-08-lancamento'),
+      variableFields: ['photos', 'tag', 'headline', 'location', 'cta'],
+      fixedBrandRules: ['navy_overlay_photo', 'approved_white_wordmark', 'gold_tag_pill', 'gold_cta', 'meta_safe_zone'],
+      // Arte nova (junho/2026), versionada desde o inicio. Peca de expectativa fiel ao brandbook
+      // (navy + dourado, wordmark branco) com safe zone do Meta nos 3 formatos.
+      renderVersion: 'lancamento-approved-v1',
     },
   ],
 }

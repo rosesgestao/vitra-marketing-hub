@@ -23,8 +23,8 @@ import {
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION as EDGE_RENDER_VERSION } from '../../../../supabase/functions/_shared/renderVersions.ts'
 
 describe('catalogo de templates por marca', () => {
-  it('Imobiliaria tem 7 templates aprovados e Premium tem 1', () => {
-    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(7)
+  it('Imobiliaria tem 8 templates aprovados e Premium tem 1', () => {
+    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(8)
     expect(creativeTemplatesForBrand(BRAND_SCOPES.premium)).toHaveLength(1)
   })
   it('marca desconhecida cai no catalogo Premium', () => {
@@ -33,12 +33,13 @@ describe('catalogo de templates por marca', () => {
 })
 
 describe('templates selecionaveis no modal (aposentados ocultos)', () => {
-  it('Imobiliaria oferece apenas os 3 templates aprovados na selecao, nesta ordem', () => {
+  it('Imobiliaria oferece os 4 templates aprovados na selecao, nesta ordem', () => {
     const selectable = selectableCreativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
     expect(selectable.map(t => t.id)).toEqual([
       'vitra-imobiliaria-hero-checklist',
       'vitra-imobiliaria-duo-selos-offer',
       'vitra-imobiliaria-hero-panel-gallery',
+      'vitra-imobiliaria-lancamento',
     ])
   })
   it('os 4 templates antigos seguem no catalogo (resolvem) mas marcados como hidden', () => {
