@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Guard de copy por limite de palavra + Murano finalizado
 
-> Corrige falso-positivo do guard de marca e completa a copy do Murano. Na `main`. Commit: **<HASH>**.
+> Corrige falso-positivo do guard de marca e completa a copy do Murano. Na `main`. Commit: **d0076b5**.
 
 ## Bug corrigido (copyValidation)
 O guard de vocabulário de marca casava por **substring cru** (`haystack.includes(w)`) — "curado" (léxico
