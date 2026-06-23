@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Boas-vindas + versões Premium do endomarketing
 
-> Novo modelo boas-vindas (2 marcas) + Premium (preto+dourado) de comunicado/metas/aniversariantes. Na `main`. Commit: **<HASH>**.
+> Novo modelo boas-vindas (2 marcas) + Premium (preto+dourado) de comunicado/metas/aniversariantes. Na `main`. Commit: **92aa42f**.
 
 ## Entregue (categoria Comunicação Interna)
 - **Boas-vindas a novo colaborador** — `boas-vindas-interno-vitra-imobiliaria.html` e
