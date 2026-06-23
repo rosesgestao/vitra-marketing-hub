@@ -86,7 +86,7 @@
       <label class="fld">Cargo<input id="f-cargo" type="text" value="Diretor Comercial" oninput="bind()"></label>
       <div class="row2">
         <label class="fld">Setor<input id="f-setor" type="text" value="Comercial" oninput="bind()"></label>
-        <label class="fld">Matrícula / ID<input id="f-mat" type="text" value="VIT-0001" oninput="bind()"></label>
+        <label class="fld">CPF<input id="f-mat" type="text" value="000.000.000-00" oninput="bind()"></label>
       </div>
       <label class="fld">Cidade (rodapé)<input id="f-org" type="text" value="Vitra Imobiliária · Porto Alegre" oninput="bind()"></label>
       <label class="fld">QR Code — link ou texto (verso)<input id="f-qr" type="text" value="https://vitraimobiliaria.com.br" oninput="bind()"></label>
@@ -98,13 +98,13 @@
       <p class="hint">Arraste sobre a foto no crachá para reposicionar (enquadramento). A moldura é circular, conforme o brandbook.</p>
 
       <h2 style="margin-top:6px">Lote (opcional)</h2>
-      <label class="fld">Um por linha — Nome;Cargo;Setor;Matrícula
-        <textarea id="f-lote" rows="3" placeholder="Ana Paula;Consultora;Vendas;VIT-0002&#10;Carlos Lima;Gestor;Locação;VIT-0003"></textarea></label>
+      <label class="fld">Um por linha — Nome;Cargo;Setor;CPF
+        <textarea id="f-lote" rows="3" placeholder="Ana Paula;Consultora;Vendas;111.111.111-11&#10;Carlos Lima;Gestor;Locação;222.222.222-22"></textarea></label>
       <div class="seg"><button onclick="applyLote()">Aplicar lista</button><button id="bprev" onclick="navLote(-1)">‹</button><button id="bnext" onclick="navLote(1)">›</button></div>
       <p class="hint" id="loteInfo"></p>
       <div class="seg"><button onclick="document.getElementById('csv').click()">📄 Importar CSV</button><button onclick="downloadCSVModelo()">Baixar modelo CSV</button></div>
       <input id="csv" type="file" accept=".csv,text/csv,text/plain" style="display:none" onchange="importCSV(event)">
-      <p class="hint">CSV com cabeçalho <b>nome;cargo;setor;matricula;qr</b> (ou separado por vírgula). Vira a lista do lote.</p>
+      <p class="hint">CSV com cabeçalho <b>nome;cargo;setor;cpf;qr</b> (ou separado por vírgula). Vira a lista do lote.</p>
 
       <h2 style="margin-top:6px">Registros salvos (neste navegador)</h2>
       <div class="seg"><button class="primary" onclick="saveRegistro()">💾 Salvar registro</button><button onclick="saveLoteAsRegistros()">Salvar lote</button></div>
@@ -151,8 +151,8 @@
               <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/>
             </svg>
             <div class="qrbox" id="qrbox"><div class="noqr">QR</div></div>
-            <div class="matlabel">Matrícula</div>
-            <div class="matricula" id="c-mat">VIT-0001</div>
+            <div class="matlabel">CPF</div>
+            <div class="matricula" id="c-mat">000.000.000-00</div>
             <div class="spacer"></div>
             <div class="slogan">Viva · Invista · Evolua</div>
             <div class="foot" style="margin-top:22px"><div class="org" id="c-org2">Vitra Imobiliária · Porto Alegre</div></div>
@@ -262,9 +262,9 @@
     const delim=(lines[0].match(/;/g)||[]).length>=(lines[0].match(/,/g)||[]).length?';':',';
     const cells=l=>l.split(delim).map(s=>s.replace(/^"|"$/g,'').trim());
     const head=cells(lines[0]).map(h=>h.toLowerCase());
-    const hasHeader=head.some(h=>/nome|cargo|setor|matr|qr/.test(h));
+    const hasHeader=head.some(h=>/nome|cargo|setor|matr|cpf|qr/.test(h));
     const col=name=>head.indexOf(name);
-    const idx=hasHeader?{nome:col('nome'),cargo:col('cargo'),setor:col('setor'),mat:head.findIndex(h=>/matr/.test(h)),qr:col('qr')}:{nome:0,cargo:1,setor:2,mat:3,qr:4};
+    const idx=hasHeader?{nome:col('nome'),cargo:col('cargo'),setor:col('setor'),mat:head.findIndex(h=>/cpf|matr/.test(h)),qr:col('qr')}:{nome:0,cargo:1,setor:2,mat:3,qr:4};
     const rows=hasHeader?lines.slice(1):lines;
     return rows.map(l=>{const c=cells(l);const g=i=>i>=0&&i<c.length?c[i]:'';
       return {nome:g(idx.nome),cargo:g(idx.cargo),setor:g(idx.setor),mat:g(idx.mat),qr:g(idx.qr)};}).filter(r=>r.nome);
@@ -275,10 +275,10 @@
       applyRecord();updateLoteInfo();
       document.getElementById('status').textContent=lote.length?('CSV importado: '+lote.length+' registro(s) ✓'):'CSV vazio ou inválido';};
     rd.readAsText(f,'utf-8');ev.target.value='';}
-  function downloadCSVModelo(){const csv='nome;cargo;setor;matricula;qr\nAna Paula;Consultora;Vendas;VIT-0002;https://vitraimobiliaria.com.br\nCarlos Lima;Gestor;Locação;VIT-0003;';
+  function downloadCSVModelo(){const csv='nome;cargo;setor;cpf;qr\nAna Paula;Consultora;Vendas;111.111.111-11;https://vitraimobiliaria.com.br\nCarlos Lima;Gestor;Locação;222.222.222-22;';
     const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='modelo-cracha-lote.csv';a.click();}
   function exportRegistrosCSV(){const r=getRegistros();if(!r.length){document.getElementById('status').textContent='Nenhum registro salvo.';return;}
-    const csv='nome;cargo;setor;matricula;cidade;qr\n'+r.map(x=>[x.nome,x.cargo,x.setor,x.mat,x.org,x.qr].map(s=>(s||'').replace(/;/g,',')).join(';')).join('\n');
+    const csv='nome;cargo;setor;cpf;cidade;qr\n'+r.map(x=>[x.nome,x.cargo,x.setor,x.mat,x.org,x.qr].map(s=>(s||'').replace(/;/g,',')).join(';')).join('\n');
     const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='cracha-registros-vitra.csv';a.click();}
 
   // ===== Persistência local (localStorage) =====
