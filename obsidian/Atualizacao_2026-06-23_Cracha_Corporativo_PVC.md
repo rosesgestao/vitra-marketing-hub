@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Estúdio de Peças: Crachá Corporativo (CR-80 PVC, fiel ao brandbook)
 
-> Nova categoria "Crachá Corporativo" gerando crachá vertical 5,4×8,5 cm p/ Canva + gráfica PVC. Na `main`. Commit: **<HASH>**.
+> Nova categoria "Crachá Corporativo" gerando crachá vertical 5,4×8,5 cm p/ Canva + gráfica PVC. Na `main`. Commit: **7f7dec8**.
 
 ## Fonte (brandbook — seção "Crachá Corporativo")
 Lido em `vitra-agentes-marketing/vitra_brand_assets/vitra-brandbook.html` (linhas 583-630). Padrão oficial:
