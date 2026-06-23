@@ -516,7 +516,9 @@ Deno.serve(async (req) => {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`falha ao baixar a arte (${resp.status})`);
         const buf = new Uint8Array(await resp.arrayBuffer());
-        let bin = ""; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+        // base64 em CHUNKS (evita concatenar string char-a-char de ~2MB — causa de OOM/CPU no edge com vários cortes).
+        let bin = ""; const CH = 0x8000;
+        for (let i = 0; i < buf.length; i += CH) bin += String.fromCharCode(...buf.subarray(i, i + CH));
         const res = await graphPost(`act_${adAccountId}/adimages`, { bytes: btoa(bin) });
         const first: any = Object.values(res.images || {})[0];
         if (!first?.hash) throw new Error("a Meta nao devolveu hash da imagem");
@@ -671,18 +673,23 @@ Deno.serve(async (req) => {
               titles: [{ text: v.headline }],
               descriptions: [{ text: v.descricao }],
               ad_formats: ["SINGLE_IMAGE"],
-              call_to_action_types: [obj.cta],
-              link_urls: [{ website_url: destinationUrl }],
               asset_customization_rules: rules,
+              // Personalizacao de ativos EXIGE link_urls (a Meta recusa o /ads sem link) — vale p/ todos os
+              // objetivos. Em leadgen, o formulario anexa via call_to_actions (lead_gen_form_id); nos demais,
+              // basta o tipo de CTA. O link continua sendo o destino/privacidade.
+              link_urls: [{ website_url: destinationUrl }],
+              ...(isLeadForm
+                ? { call_to_actions: [{ type: obj.cta, value: { lead_gen_form_id: leadFormId, link: destinationUrl } }] }
+                : { call_to_action_types: [obj.cta] }),
             },
           });
         };
         for (const v of valid) {
           const roles = Object.keys(v.byRole);
           let creativeRes: any; let usedPerPlacement = false;
-          // Per-placement via asset_feed_spec NAO suporta formulario instantaneo (o lead_gen_form so anexa no
-          // object_story_spec de imagem unica). Em leadgen, mantemos a imagem unica (que ja leva o form).
-          if (perPlacement && !isLeadForm && roles.length >= 2) {
+          // Per-placement (asset_feed_spec): cada formato no seu posicionamento. Vale p/ TODOS os objetivos,
+          // inclusive leadgen (o form anexa via call_to_actions). Precisa de >=2 formatos renderizados.
+          if (perPlacement && roles.length >= 2) {
             try { creativeRes = await placementCreative(v); usedPerPlacement = true; }
             catch (e) {
               // Fallback seguro: se a Meta recusar o asset_feed_spec, publica com a imagem feed unica — o
@@ -693,8 +700,7 @@ Deno.serve(async (req) => {
             }
           } else {
             creativeRes = await singleImageCreative(v);
-            if (perPlacement && isLeadForm && roles.length >= 2) placementNotes.push(`${v.headline.slice(0, 24)}: objetivo de formulário usa a arte feed (a Meta adapta para os demais posicionamentos)`);
-            else if (perPlacement && roles.length < 2) placementNotes.push(`${v.headline.slice(0, 24)}: só ${roles.length} formato(s) renderizado(s) — renderize 9:16 e 1.91:1 para arte por posicionamento`);
+            if (perPlacement && roles.length < 2) placementNotes.push(`${v.headline.slice(0, 24)}: só ${roles.length} formato(s) renderizado(s) — renderize 9:16 e 1.91:1 para arte por posicionamento`);
           }
           const adRes = await graphPost(`act_${adAccountId}/ads`, {
             name: `${campaign.name} | ${v.headline}`.slice(0, 100),
