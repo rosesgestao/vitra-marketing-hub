@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — P1 Criativo por posicionamento (asset_feed_spec)
 
-> O build passa a usar a ARTE CERTA por posicionamento (feed/story/wide) em vez de 1 imagem recortada. Na `main`. Commit: **<HASH>**.
+> O build passa a usar a ARTE CERTA por posicionamento (feed/story/wide) em vez de 1 imagem recortada. Na `main`. Commit: **43436a5**.
 
 ## Diagnóstico que originou
 O `build_draft` anexava **1 imagem por anúncio** (`link_data.picture`) e a Meta recortava sozinha para todos
