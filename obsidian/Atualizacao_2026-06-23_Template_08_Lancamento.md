@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Template 08 "Lançamento / Em breve" (Tráfego Pago, Imobiliária)
 
-> 8º template aprovado da Imobiliária, fiel ao último padrão (San Clemente). Na `main`. Commit: **<HASH>**.
+> 8º template aprovado da Imobiliária, fiel ao último padrão (San Clemente). Na `main`. Commit: **b59d566**.
 
 ## O que é
 Peça de **expectativa / topo de funil**: foto hero full-bleed + **selo dourado** (tag: Lançamento/Em breve)
