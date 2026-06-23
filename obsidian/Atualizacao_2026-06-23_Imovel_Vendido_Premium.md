@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — "Imóvel Vendido" versão Premium (preto + dourado)
 
-> Versão Premium editorial do modelo institucional de venda. Na `main`. Commit: **<HASH>**.
+> Versão Premium editorial do modelo institucional de venda. Na `main`. Commit: **1314018**.
 
 ## Entregue
 `imovel-vendido-institucional-vitra-premium.html` — mesma estrutura do modelo Imobiliária, na linguagem
