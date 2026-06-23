@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Per-placement habilitado no leadgen (3 formatos no anúncio)
 
-> Anúncios de formulário usavam só o 1:1; agora usam feed/story/wide por posicionamento. Na `main`. Commit: **<HASH>**.
+> Anúncios de formulário usavam só o 1:1; agora usam feed/story/wide por posicionamento. Na `main`. Commit: **6b2daf2**.
 
 ## Causa exata
 No P1 (item 108) eu **desabilitei o per-placement para o objetivo de formulário** (`isLeadForm`), porque a
