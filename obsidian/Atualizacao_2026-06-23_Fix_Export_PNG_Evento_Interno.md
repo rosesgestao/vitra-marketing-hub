@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Fix do PNG quebrado (evento-interno) no html2canvas
 
-> O preview ficava perfeito, mas o PNG exportado saía com o texto todo sobreposto. Na `main`. Commit: **<HASH>**.
+> O preview ficava perfeito, mas o PNG exportado saía com o texto todo sobreposto. Na `main`. Commit: **b1b95aa**.
 
 ## Sintoma
 PNG do `evento-interno-vitra-imobiliaria.html` com BRASIL/ESCÓCIA empilhando letra a letra e todas as seções
