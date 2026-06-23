@@ -73,8 +73,14 @@ export function validateCopyAngle(angle: CopyAngle, opts: ValidateOpts = {}): Va
   }
 
   // Vocabulario fora da marca (cross-contaminacao Premium <-> Imobiliaria).
+  // Casa por LIMITE DE PALAVRA (nao substring cru): evita falso-positivo como "curado" dentro de
+  // "proCURADOs". \p{L} trata letras acentuadas (á, ç, ã) como letra, entao o termo so casa quando nao
+  // estiver colado a outra letra. Frases multi-palavra ("alto padrao") seguem casando normalmente.
   const haystack = `${headline} ${body} ${cta}`.toLowerCase();
-  const hits = bannedVocabForScope(scope, channel).filter((w) => haystack.includes(w.toLowerCase()));
+  const hits = bannedVocabForScope(scope, channel).filter((w) => {
+    const esc = w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?<!\\p{L})${esc}(?!\\p{L})`, "iu").test(haystack);
+  });
   if (hits.length) {
     issues.push(`vocabulario fora da marca (${scope}): ${[...new Set(hits)].join(", ")}`);
   }

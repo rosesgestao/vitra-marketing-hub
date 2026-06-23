@@ -84,6 +84,22 @@ describe('validateCopyAngle', () => {
     expect(r.issues.join(' ')).toMatch(/vocabulario fora da marca/)
   })
 
+  it('nao da falso-positivo de substring: "procurados" nao casa com "curado"', () => {
+    const r = validateCopyAngle(
+      { ...ok, body: 'Um dos bairros mais procurados da zona sul, com acesso facil.' },
+      { headlineMax: 40, scope: 'vitra_imobiliaria', channel: 'paid' },
+    )
+    expect(r.issues.join(' ')).not.toMatch(/vocabulario fora da marca/)
+  })
+
+  it('palavra real banida (curado) entre pontuacao ainda e sinalizada', () => {
+    const r = validateCopyAngle(
+      { ...ok, body: 'Imovel curado, pensado para voce.' },
+      { headlineMax: 40, scope: 'vitra_imobiliaria', channel: 'paid' },
+    )
+    expect(r.issues.join(' ')).toMatch(/vocabulario fora da marca/)
+  })
+
   it('campos vazios sao sinalizados', () => {
     const r = validateCopyAngle({ headline: '', body: '', cta: '' }, {})
     expect(r.issues).toContain('headline vazia')
