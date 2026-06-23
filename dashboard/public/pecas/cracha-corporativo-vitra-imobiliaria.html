@@ -45,7 +45,12 @@
   .guide.trim{inset:24px;border-color:rgba(255,80,80,.6)}
   .guide.safe{inset:71px;border-color:rgba(120,200,120,.5)}
   body.exporting .guide{display:none}
-  .face{position:absolute;inset:71px;display:flex;flex-direction:column;align-items:center}
+  .face{position:absolute;inset:71px;display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+  .topgrp{display:flex;flex-direction:column;align-items:center;width:100%}
+  /* âncora de marca no centro — preenche o espaço sem competir com nome/cargo */
+  .tag{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
+  .tag .dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}
+  .tag .sl{font-size:19px;letter-spacing:6px;text-transform:uppercase;color:var(--gold);font-weight:600;text-align:center}
 
   /* slot oval superior */
   .slot{width:150px;height:20px;border-radius:999px;background:rgba(196,148,42,.4);margin-top:6px;margin-bottom:40px}
@@ -126,17 +131,19 @@
         <div class="card" id="card-frente">
           <div class="guide trim"></div><div class="guide safe"></div>
           <div class="face">
-            <div class="slot"></div>
-            <svg class="vic" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Ícone Vitra">
-              <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#0A1628" stroke="#C4942A" stroke-width="2.5"/>
-              <polygon points="20,33 34,33 27,50" fill="#8EC4F0"/><polygon points="20,33 27,50 50,72" fill="#1B3A6B"/><polygon points="34,33 27,50 50,72" fill="#2E6BB5"/>
-              <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/>
-            </svg>
-            <div class="photo" id="photo"><div class="ph" id="photoPh">GR</div></div>
-            <div class="nome" id="c-nome">Gabriel Roses</div>
-            <div class="cargo" id="c-cargo">Diretor Comercial</div>
-            <div class="setor" id="c-setor">Comercial</div>
-            <div class="spacer"></div>
+            <div class="topgrp">
+              <div class="slot"></div>
+              <svg class="vic" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Ícone Vitra">
+                <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#0A1628" stroke="#C4942A" stroke-width="2.5"/>
+                <polygon points="20,33 34,33 27,50" fill="#8EC4F0"/><polygon points="20,33 27,50 50,72" fill="#1B3A6B"/><polygon points="34,33 27,50 50,72" fill="#2E6BB5"/>
+                <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/>
+              </svg>
+              <div class="photo" id="photo"><div class="ph" id="photoPh">GR</div></div>
+              <div class="nome" id="c-nome">Gabriel Roses</div>
+              <div class="cargo" id="c-cargo">Diretor Comercial</div>
+              <div class="setor" id="c-setor">Comercial</div>
+            </div>
+            <div class="tag"><span class="dot"></span><div class="sl" id="c-tag" contenteditable>Viva · Invista · Evolua</div></div>
             <div class="foot"><div class="org" id="c-org">Vitra Imobiliária · Porto Alegre</div></div>
           </div>
         </div>
