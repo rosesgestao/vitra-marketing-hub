@@ -485,16 +485,51 @@ Deno.serve(async (req) => {
       });
       await svc.from("premium_campaigns").update({ meta_campaign_id: campRes.id }).eq("id", campaignId);
 
-      // Criativos por conjunto: 1 anuncio POR criativo aprovado (ate N) — espelha a estrutura "3x3" da
-      // vencedora (varios criativos no mesmo conjunto p/ teste). Prefere 1:1; dedup por id; cap em N.
+      // Criativos por conjunto: 1 anuncio POR CONCEITO (ate N). Cada conceito reune seus cortes por formato
+      // (feed 1:1/4:5, story 9:16, wide 1.91:1) e o anuncio usa a ARTE CERTA por posicionamento via
+      // asset_feed_spec (placement asset customization) — em vez de 1 imagem unica recortada pela Meta.
       const maxCreatives = Math.max(1, Math.min(10, Number(body.creatives_per_adset) || 3));
-      const feedsFor = (spec: any) => {
-        const pool = spec.group_key ? all.filter((a: any) => (a.metadata?.ad_group || "") === spec.group_key) : all;
-        const withUrl = pool.filter((a: any) => a.public_url);
-        const ordered = [...withUrl.filter((a: any) => a.aspect_ratio === "1:1"), ...withUrl.filter((a: any) => a.aspect_ratio !== "1:1")];
-        const seen = new Set<string>(); const out: any[] = [];
-        for (const a of ordered) { if (!seen.has(a.id)) { seen.add(a.id); out.push(a); } if (out.length >= maxCreatives) break; }
-        return out.length ? out : (anyFeed ? [anyFeed] : []);
+      const perPlacement = body.per_placement_creative !== false; // default ON; pode desligar via body
+      // Formato do corte -> papel de posicionamento.
+      const fmtRole = (ar: string): string | null => {
+        const a = String(ar || "").replace(/\s/g, "");
+        if (["1:1", "4:5", "1080x1080", "1080x1350"].includes(a)) return "feed";
+        if (["9:16", "1080x1920"].includes(a)) return "story";
+        if (["1.91:1", "1200x627", "1.9:1"].includes(a)) return "wide";
+        return null;
+      };
+      // Posicionamentos cobertos por cada arte (story/wide especificos; feed = default catch-all).
+      const ROLE_PLACEMENTS: Record<string, { facebook_positions?: string[]; instagram_positions?: string[] }> = {
+        story: { facebook_positions: ["story", "facebook_reels"], instagram_positions: ["story", "reels"] },
+        wide: { facebook_positions: ["right_hand_column", "search"] },
+      };
+      // Upload de imagem para a conta (hash p/ asset_feed_spec). Cache por URL evita re-upload.
+      const imgHashCache = new Map<string, string>();
+      const uploadAdImage = async (url: string): Promise<string> => {
+        if (imgHashCache.has(url)) return imgHashCache.get(url)!;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`falha ao baixar a arte (${resp.status})`);
+        const buf = new Uint8Array(await resp.arrayBuffer());
+        let bin = ""; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+        const res = await graphPost(`act_${adAccountId}/adimages`, { bytes: btoa(bin) });
+        const first: any = Object.values(res.images || {})[0];
+        if (!first?.hash) throw new Error("a Meta nao devolveu hash da imagem");
+        imgHashCache.set(url, first.hash);
+        return first.hash;
+      };
+      // Agrupa os cortes renderizados por CONCEITO (ad_label); cap em N conceitos (mais formatos primeiro).
+      const conceptsFor = (spec: any) => {
+        let pool = spec.group_key ? all.filter((a: any) => (a.metadata?.ad_group || "") === spec.group_key) : all;
+        pool = pool.filter((a: any) => a.public_url);
+        if (!pool.length) pool = all.filter((a: any) => a.public_url); // geo specs nao casam ad_group -> usa todos
+        const groups = new Map<string, any[]>();
+        for (const a of pool) {
+          const key = String(a.metadata?.ad_label || a.metadata?.ad_group || a.id);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(a);
+        }
+        const ordered = [...groups.entries()].sort((x, y) => y[1].length - x[1].length).slice(0, maxCreatives);
+        return ordered.length ? ordered.map(([key, assets]) => ({ key, assets })) : (anyFeed ? [{ key: anyFeed.id, assets: [anyFeed] }] : []);
       };
 
       // ---- Um conjunto por grupo; N anuncios (1 por criativo aprovado) — TUDO PAUSED ----
@@ -503,26 +538,33 @@ Deno.serve(async (req) => {
       const targetingAdjustments: any[] = []; // conjuntos cujo direcionamento foi ajustado (interesses depreciados)
       let totalAds = 0;
       for (const spec of specs) {
-        // Pre-valida a copy de cada criativo; so cria o conjunto se houver ao menos 1 criativo valido.
+        // Pre-valida a copy de CADA CONCEITO; so cria o conjunto se houver ao menos 1 conceito valido.
         const valid: any[] = [];
-        for (const asset of feedsFor(spec)) {
-          const m = asset.metadata?.meta_ad || {};
-          const headline = String(asset.headline || m.nome || campaign.product_name || "").slice(0, 40);
-          const primaryText = String(m.texto_principal || asset.copy || "");
+        for (const concept of conceptsFor(spec)) {
+          // Base da copy = corte feed (os cortes compartilham a mesma copy apos a aplicacao da IA).
+          const base = concept.assets.find((a: any) => fmtRole(a.aspect_ratio) === "feed") || concept.assets[0];
+          const m = base.metadata?.meta_ad || {};
+          const headline = String(base.headline || m.nome || campaign.product_name || "").slice(0, 40);
+          const primaryText = String(m.texto_principal || base.copy || "");
           const descricao = String(m.descricao || "").trim();
-          const cta = String(asset.cta || "Saiba mais");
+          const cta = String(base.cta || "Saiba mais");
           const issues = validateCopyAngle({ headline, body: primaryText, cta }, { scope, headlineMax: 40, productName: String(campaign.product_name || ""), channel: "paid" }).issues;
-          // Descricao do anuncio e OBRIGATORIA (campo enriquecido p/ a Meta) — sem ela, o criativo e pulado
+          // Descricao do anuncio e OBRIGATORIA (campo enriquecido p/ a Meta) — sem ela, o conceito e pulado
           // com motivo claro, em vez de publicar um anuncio incompleto (Descricao vazia no Gerenciador).
           if (!descricao) issues.push("descrição vazia (campo obrigatório do anúncio — use 'Gerar 3 ângulos')");
           if (issues.length) {
-            // Em vez de descartar em silencio, registra qual criativo foi pulado e por que (visivel ao operador).
-            skippedCreatives.push({ group_key: spec.group_key, asset_id: asset.id, headline, issues });
+            skippedCreatives.push({ group_key: spec.group_key, asset_id: base.id, headline, issues });
             continue;
           }
-          valid.push({ asset, headline, primaryText, descricao });
+          // Mapeia 1 arte por papel de formato (feed/story/wide) — a base do criativo por posicionamento.
+          const byRole: Record<string, string> = {};
+          for (const a of concept.assets) {
+            const r = fmtRole(a.aspect_ratio);
+            if (r && a.public_url && !byRole[r]) byRole[r] = String(a.public_url).split("?")[0];
+          }
+          valid.push({ base, headline, primaryText, descricao, byRole });
         }
-        if (!valid.length) { built.push({ group_key: spec.group_key, label: spec.label, skipped: "sem criativo aprovado com copy valida" }); continue; }
+        if (!valid.length) { built.push({ group_key: spec.group_key, label: spec.label, skipped: "sem conceito aprovado com copy valida" }); continue; }
 
         let targeting = await targetingFor(spec);
         // "Anuncios com varios anunciantes" (is_multi_advertiser_ads_enabled): DESMARCADO por padrao em todo
@@ -587,14 +629,67 @@ Deno.serve(async (req) => {
           ? { type: obj.cta, value: { lead_gen_form_id: leadFormId, link: destinationUrl } }
           : { type: obj.cta, value: { link: destinationUrl } };
         const adIds: string[] = [];
-        for (const v of valid) {
-          const creativeRes = await graphPost(`act_${adAccountId}/adcreatives`, {
+        const placementNotes: string[] = [];
+        // Criativo de imagem unica (corte feed) — comportamento base e fallback seguro.
+        const singleImageCreative = (v: any) => graphPost(`act_${adAccountId}/adcreatives`, {
+          name: `${campaign.name} | ${v.headline}`.slice(0, 100),
+          object_story_spec: { page_id: pageId, link_data: {
+            link: destinationUrl, message: v.primaryText, name: v.headline, description: v.descricao,
+            picture: v.byRole.feed || v.byRole.story || v.byRole.wide, call_to_action: callToAction,
+          } },
+        });
+        // Criativo POR POSICIONAMENTO (asset_feed_spec): cada arte (feed/story/wide) é exibida no seu local,
+        // sem recorte automatico. O corte feed é o default (catch-all); story/wide ganham regras especificas.
+        const placementCreative = async (v: any) => {
+          const roleHash: Record<string, string> = {};
+          for (const [role, url] of Object.entries(v.byRole)) roleHash[role] = await uploadAdImage(url as string);
+          const images = Object.entries(roleHash).map(([role, hash]) => ({ hash, adlabels: [{ name: role }] }));
+          const rules: any[] = [];
+          for (const role of ["story", "wide"]) {
+            if (!roleHash[role]) continue;
+            const p = ROLE_PLACEMENTS[role]; const pf: string[] = [];
+            const cs: any = {};
+            if (p.facebook_positions?.length) { cs.facebook_positions = p.facebook_positions; pf.push("facebook"); }
+            if (p.instagram_positions?.length) { cs.instagram_positions = p.instagram_positions; pf.push("instagram"); }
+            cs.publisher_platforms = pf;
+            rules.push({ customization_spec: cs, image_label: { name: role } });
+          }
+          // Regra do feed (default) — placements de feed/perfil; a Meta exige cobertura por regras (sem is_default).
+          rules.push({ customization_spec: { publisher_platforms: ["facebook", "instagram"], facebook_positions: ["feed", "marketplace", "profile_feed"], instagram_positions: ["stream", "explore", "profile_feed"] }, image_label: { name: roleHash.feed ? "feed" : Object.keys(roleHash)[0] } });
+          return graphPost(`act_${adAccountId}/adcreatives`, {
             name: `${campaign.name} | ${v.headline}`.slice(0, 100),
-            object_story_spec: { page_id: pageId, link_data: {
-              link: destinationUrl, message: v.primaryText, name: v.headline, description: v.descricao,
-              picture: String(v.asset.public_url).split("?")[0], call_to_action: callToAction,
-            } },
+            object_story_spec: { page_id: pageId },
+            asset_feed_spec: {
+              images,
+              bodies: [{ text: v.primaryText }],
+              titles: [{ text: v.headline }],
+              descriptions: [{ text: v.descricao }],
+              ad_formats: ["SINGLE_IMAGE"],
+              call_to_action_types: [obj.cta],
+              link_urls: [{ website_url: destinationUrl }],
+              asset_customization_rules: rules,
+            },
           });
+        };
+        for (const v of valid) {
+          const roles = Object.keys(v.byRole);
+          let creativeRes: any; let usedPerPlacement = false;
+          // Per-placement via asset_feed_spec NAO suporta formulario instantaneo (o lead_gen_form so anexa no
+          // object_story_spec de imagem unica). Em leadgen, mantemos a imagem unica (que ja leva o form).
+          if (perPlacement && !isLeadForm && roles.length >= 2) {
+            try { creativeRes = await placementCreative(v); usedPerPlacement = true; }
+            catch (e) {
+              // Fallback seguro: se a Meta recusar o asset_feed_spec, publica com a imagem feed unica — o
+              // build nunca quebra por causa do per-placement.
+              const ge = (e as any).graphError ? JSON.stringify((e as any).graphError) : String((e as any)?.message || "");
+              placementNotes.push(`${v.headline.slice(0, 24)}: per-placement indisponível (${ge.slice(0, 160)}) — usando imagem única`);
+              creativeRes = await singleImageCreative(v);
+            }
+          } else {
+            creativeRes = await singleImageCreative(v);
+            if (perPlacement && isLeadForm && roles.length >= 2) placementNotes.push(`${v.headline.slice(0, 24)}: objetivo de formulário usa a arte feed (a Meta adapta para os demais posicionamentos)`);
+            else if (perPlacement && roles.length < 2) placementNotes.push(`${v.headline.slice(0, 24)}: só ${roles.length} formato(s) renderizado(s) — renderize 9:16 e 1.91:1 para arte por posicionamento`);
+          }
           const adRes = await graphPost(`act_${adAccountId}/ads`, {
             name: `${campaign.name} | ${v.headline}`.slice(0, 100),
             adset_id: adsetRes.id, creative: { creative_id: creativeRes.id }, status: "PAUSED",
@@ -602,15 +697,15 @@ Deno.serve(async (req) => {
           await svc.from("premium_publications").insert({
             campaign_id: campaignId, platform: "facebook", publication_type: "paid", status: "scheduled",
             meta_campaign_id: campRes.id, meta_adset_id: adsetRes.id, meta_ad_id: adRes.id,
-            utm_url: destinationUrl, asset_id: v.asset.id,
-            metadata: { ad_account_id: adAccountId, page_id: pageId, daily_budget_cents: dailyBudgetCents, ad_group: spec.group_key, audience: spec, creative_id: creativeRes.id, created_via: "publish-meta-ads", paused: true },
+            utm_url: destinationUrl, asset_id: v.base.id,
+            metadata: { ad_account_id: adAccountId, page_id: pageId, daily_budget_cents: dailyBudgetCents, ad_group: spec.group_key, audience: spec, creative_id: creativeRes.id, per_placement: usedPerPlacement, formats: Object.keys(v.byRole), created_via: "publish-meta-ads", paused: true },
           });
           adIds.push(adRes.id);
         }
         totalAds += adIds.length;
         if (targetingNote) targetingAdjustments.push({ group_key: spec.group_key, label: spec.label, note: targetingNote });
         if (multiAdvNote) targetingAdjustments.push({ group_key: spec.group_key, label: spec.label, note: multiAdvNote });
-        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ads: adIds.length, ad_ids: adIds, targeting_note: targetingNote || undefined, multi_advertiser_off: !dropMultiAdv, multi_advertiser_note: multiAdvNote || undefined });
+        built.push({ group_key: spec.group_key, label: spec.label, adset_id: adsetRes.id, ads: adIds.length, ad_ids: adIds, targeting_note: targetingNote || undefined, multi_advertiser_off: !dropMultiAdv, multi_advertiser_note: multiAdvNote || undefined, placement_notes: placementNotes.length ? placementNotes : undefined });
       }
 
       const okBuilt = built.filter((b) => b.adset_id);
