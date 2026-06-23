@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — P0 Copy: descrição obrigatória + IA nos 3 formatos
 
-> Corrige a "Descrição" vazia nos anúncios (print do Murano) e fecha o fluxo vitra-copy. Na `main`. Commit: **<HASH>**.
+> Corrige a "Descrição" vazia nos anúncios (print do Murano) e fecha o fluxo vitra-copy. Na `main`. Commit: **631815d**.
 
 ## Diagnóstico que originou (Murano)
 Todos os anúncios pagos (`hero-panel-gallery-{feed,story,wide}`, 3 conceitos) com **`descricao` = null** → campo
