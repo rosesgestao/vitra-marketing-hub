@@ -1,4 +1,4 @@
-import { Facebook, Linkedin, Youtube, Instagram, MessageCircle, Mail, PartyPopper } from 'lucide-react'
+import { Facebook, Linkedin, Youtube, Instagram, MessageCircle, Mail, PartyPopper, Contact } from 'lucide-react'
 import { BRAND_SCOPES } from './brandProfiles.js'
 
 // Catálogo único e data-driven das peças (capas/banners) por plataforma.
@@ -12,6 +12,28 @@ export const PECA_STATUS = { available: 'available', soon: 'soon' }
 export const PECAS_ASSET_BASE = 'pecas/'
 
 export const PECAS_PLATFORMS = [
+  {
+    id: 'cracha',
+    label: 'Crachá Corporativo',
+    icon: Contact,
+    status: PECA_STATUS.available,
+    summary: 'Crachá em PVC (CR-80 vertical) fiel ao brandbook — frente + verso, pronto para Canva e gráfica.',
+    formats: [
+      {
+        id: 'corporativo',
+        label: 'Crachá (frente + verso)',
+        status: PECA_STATUS.available,
+        w: 638,
+        h: 1004,
+        ratio: '5,4 × 8,5 cm · CR-80 · PVC',
+        safeArea: 'sangria 2 mm · corte 5,4×8,5 cm · segurança 4 mm',
+        note: 'Padrão oficial do brandbook (navy + dourado, foto circular, slot oval). Foto com recorte/zoom, nome/cargo/setor/matrícula, QR no verso, geração em lote. Exporta PNG 685×1051 px @300 DPI (com sangria) para Canva e impressão PVC.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'cracha-corporativo-vitra-imobiliaria.html',
+        },
+      },
+    ],
+  },
   {
     id: 'interno',
     label: 'Comunicação Interna',
