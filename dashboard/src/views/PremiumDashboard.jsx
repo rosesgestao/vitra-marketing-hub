@@ -357,6 +357,7 @@ function evaluateMetaAdReadiness(ad) {
     { id: 'property_image', label: 'Foto do imovel', ok: hasPropertyImage },
     { id: 'render', label: 'Imagens renderizadas', ok: rendered },
     { id: 'texts', label: 'Textos + CTA', ok: Boolean(first.headline && (meta.texto_principal || first.copy) && first.cta) },
+    { id: 'description', label: 'Descrição', ok: Boolean((meta.descricao || '').trim()) },
     { id: 'destination', label: 'Destino / UTM', ok: hasDestination },
     { id: 'approval', label: 'Aprovacao humana', ok: approved },
   ]
@@ -3015,6 +3016,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
       !needsVitraImobiliariaApprovedTemplateRender(a) &&
       Boolean(a.headline) &&
       Boolean(a.metadata?.meta_ad?.texto_principal || a.copy) &&
+      Boolean((a.metadata?.meta_ad?.descricao || '').trim()) &&
       Boolean(a.cta),
     ).length
 
@@ -3025,7 +3027,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   if (!destination) missingToBuild.push('informe o destino (site ou WhatsApp)')
   if (budgetCents < 100) missingToBuild.push('defina o orçamento diário (mínimo R$ 1,00)')
   if (isSales && !convPixelId) missingToBuild.push('selecione o pixel de conversão (objetivo Vendas)')
-  if (publishableAssets < 1) missingToBuild.push('aprove ao menos 1 criativo renderizado com título, texto e CTA (use "Aprovar anúncio" no QA)')
+  if (publishableAssets < 1) missingToBuild.push('aprove ao menos 1 criativo renderizado com título, texto principal, descrição e CTA (use "Gerar 3 ângulos" no anúncio para preencher tudo)')
 
   const canBuild = missingToBuild.length === 0 && !loading
 
@@ -3929,8 +3931,10 @@ function AdEditModal({ ad, campaign = null, brandScope = BRAND_SCOPES.imobiliari
     setForm(f => ({ ...f, titulo: d.headline || f.titulo, texto_principal: d.body || f.texto_principal, descricao: d.description || f.descricao }))
   }
 
+  const descricaoMissing = !(form.descricao || '').trim()
   function submit(event) {
     event.preventDefault()
+    if (descricaoMissing) return // descrição é obrigatória — bloqueia salvar (campo enriquecido p/ a Meta)
     onSave(ad.assets, form)
   }
 
@@ -3996,8 +4000,9 @@ function AdEditModal({ ad, campaign = null, brandScope = BRAND_SCOPES.imobiliari
           <Field label="Título" labelClass={labelClass}>
             <input value={form.titulo} onChange={e => set('titulo', e.target.value)} className={inputClass} placeholder="Ex: Converse conosco" />
           </Field>
-          <Field label="Descrição" labelClass={labelClass}>
-            <input value={form.descricao} onChange={e => set('descricao', e.target.value)} className={inputClass} placeholder="Detalhes adicionais (opcional)" />
+          <Field label="Descrição (obrigatória)" labelClass={labelClass}>
+            <input value={form.descricao} onChange={e => set('descricao', e.target.value)} className={`${inputClass} ${descricaoMissing ? '!border-amber-400/50' : ''}`} placeholder="1 linha de reforço do texto (ex.: 3 dorm, 2 vagas, lazer completo — agende a visita)" />
+            {descricaoMissing && <p className="mt-1 text-[11px] text-amber-300">Campo obrigatório — preencha ou use "Gerar 3 ângulos" para a IA completar (entra na descrição do anúncio na Meta).</p>}
           </Field>
           <Field label="Chamada para ação (CTA)" labelClass={labelClass}>
             <VitraSelect value={form.cta} onChange={v => set('cta', v)} ariaLabel="CTA" options={CTA_OPTIONS} />
@@ -4010,7 +4015,7 @@ function AdEditModal({ ad, campaign = null, brandScope = BRAND_SCOPES.imobiliari
           </p>
           <div className="flex justify-end gap-3 pt-1">
             <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-white/65 transition hover:text-white">Cancelar</button>
-            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:opacity-60">
+            <button type="submit" disabled={saving || descricaoMissing} title={descricaoMissing ? 'Preencha a descrição (obrigatória) para salvar' : ''} className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-60">
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
               Salvar anúncio
             </button>

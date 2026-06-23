@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
 
     // Validacao no codigo (a prova do schema): tamanho, vocabulario de marca, nome duplicado.
     const angles = rawAngles.map((a: any) => ({
-      key: a.key, angle: a.angle, headline: a.headline, body: a.body, cta: a.cta,
+      key: a.key, angle: a.angle, headline: a.headline, body: a.body, description: a.description, cta: a.cta,
       issues: validateCopyAngle(a, { headlineMax, scope, productName, channel: "paid" }).issues,
     }));
     const flagged = angles.filter((a: any) => a.issues.length).length;

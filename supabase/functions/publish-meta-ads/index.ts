@@ -509,14 +509,18 @@ Deno.serve(async (req) => {
           const m = asset.metadata?.meta_ad || {};
           const headline = String(asset.headline || m.nome || campaign.product_name || "").slice(0, 40);
           const primaryText = String(m.texto_principal || asset.copy || "");
+          const descricao = String(m.descricao || "").trim();
           const cta = String(asset.cta || "Saiba mais");
           const issues = validateCopyAngle({ headline, body: primaryText, cta }, { scope, headlineMax: 40, productName: String(campaign.product_name || ""), channel: "paid" }).issues;
+          // Descricao do anuncio e OBRIGATORIA (campo enriquecido p/ a Meta) — sem ela, o criativo e pulado
+          // com motivo claro, em vez de publicar um anuncio incompleto (Descricao vazia no Gerenciador).
+          if (!descricao) issues.push("descrição vazia (campo obrigatório do anúncio — use 'Gerar 3 ângulos')");
           if (issues.length) {
             // Em vez de descartar em silencio, registra qual criativo foi pulado e por que (visivel ao operador).
             skippedCreatives.push({ group_key: spec.group_key, asset_id: asset.id, headline, issues });
             continue;
           }
-          valid.push({ asset, headline, primaryText, descricao: String(m.descricao || "") });
+          valid.push({ asset, headline, primaryText, descricao });
         }
         if (!valid.length) { built.push({ group_key: spec.group_key, label: spec.label, skipped: "sem criativo aprovado com copy valida" }); continue; }
 
