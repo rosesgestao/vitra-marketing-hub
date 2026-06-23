@@ -17,7 +17,7 @@ export const PECAS_PLATFORMS = [
     label: 'Comunicação Interna',
     icon: PartyPopper,
     status: PECA_STATUS.available,
-    summary: 'Endomarketing: convites de eventos, comunicados e cultura para fortalecer o time.',
+    summary: 'Endomarketing: convites de eventos, aniversariantes, comunicados e metas para fortalecer o time.',
     formats: [
       {
         id: 'evento',
@@ -30,6 +30,45 @@ export const PECAS_PLATFORMS = [
         note: 'Multiformato: Feed 4:5, Stories/Status 9:16 e Post 1:1 num só gerador. Textos editáveis ao vivo; suba a foto do ambiente como fundo. WhatsApp = Stories/Status ou Post; Instagram = Feed ou Stories.',
         variants: {
           [BRAND_SCOPES.imobiliaria]: 'evento-interno-vitra-imobiliaria.html',
+        },
+      },
+      {
+        id: 'aniversariantes',
+        label: 'Aniversariantes do mês',
+        status: PECA_STATUS.available,
+        w: 1080,
+        h: 1350,
+        ratio: 'multi · 4:5 · 9:16 · 1:1',
+        safeArea: 'centro · escolha o formato dentro do gerador',
+        note: 'Lista de aniversariantes (dia + nome) editável, com mês e mensagem de felicitação. Multiformato + foto opcional.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'aniversariantes-interno-vitra-imobiliaria.html',
+        },
+      },
+      {
+        id: 'comunicado',
+        label: 'Comunicado interno',
+        status: PECA_STATUS.available,
+        w: 1080,
+        h: 1350,
+        ratio: 'multi · 4:5 · 9:16 · 1:1',
+        safeArea: 'centro · escolha o formato dentro do gerador',
+        note: 'Aviso oficial: selo "Comunicado", título, mensagem e assinatura — tudo editável. Multiformato + foto opcional.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'comunicado-interno-vitra-imobiliaria.html',
+        },
+      },
+      {
+        id: 'metas',
+        label: 'Metas batidas',
+        status: PECA_STATUS.available,
+        w: 1080,
+        h: 1350,
+        ratio: 'multi · 4:5 · 9:16 · 1:1',
+        safeArea: 'centro · escolha o formato dentro do gerador',
+        note: 'Celebração de resultado: número/percentual da meta em destaque + parabéns ao time. Multiformato + foto opcional.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'metas-interno-vitra-imobiliaria.html',
         },
       },
     ],
