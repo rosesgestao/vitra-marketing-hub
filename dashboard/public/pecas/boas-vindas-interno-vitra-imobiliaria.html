@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VITRA IMOBILIÁRIA — Comunicação Interna · Boas-vindas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--navy:#0A1628;--deep-navy:#07111F;--gold:#C4942A;--gold-light:#F0C95C;
+    --white:#FFFFFF;--off-white:#F5F5F0;--font-sans:'Inter',sans-serif;--font-serif:'Playfair Display',serif}
+  body{background:#0c1422;color:var(--white);font-family:var(--font-sans);min-height:100vh;
+       display:flex;flex-direction:column;align-items:center;gap:18px;padding:26px 16px 60px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;max-width:1080px}
+  .toolbar .group{display:flex;gap:6px;align-items:center;background:#0f1c30;border:1px solid #20304a;border-radius:12px;padding:6px}
+  .toolbar label{font-size:11px;letter-spacing:.4px;color:#9fb0c8;text-transform:uppercase;margin:0 4px}
+  button{font-family:var(--font-sans);font-weight:600;font-size:13px;letter-spacing:.3px;border:1px solid #2a3c59;
+         border-radius:9px;padding:9px 13px;background:#11233d;color:var(--off-white);cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--gold)}
+  button.on{background:var(--gold);color:var(--deep-navy);border-color:var(--gold)}
+  button.primary{background:var(--gold);color:var(--deep-navy);border-color:var(--gold);font-weight:700}
+  button.primary:hover{background:var(--gold-light)}
+  .hint{font-size:12px;color:#8395ac;max-width:1080px;text-align:center;line-height:1.5}
+  .status{font-size:12px;color:var(--gold-light);min-height:16px;text-align:center}
+
+  .frame{transform:scale(.40);transform-origin:top center;margin-bottom:-60%}
+  body.exporting .frame{transform:none;margin:0}
+  .stage{position:relative;width:1080px;height:1350px;overflow:hidden;background:var(--navy);font-family:var(--font-sans);color:var(--white)}
+  .stage.story{height:1920px}.stage.post{height:1080px}
+  .bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center;
+      background-image:radial-gradient(120% 80% at 72% 10%, #16314f 0%, #0A1628 55%, #07111F 100%)}
+  .scrim{position:absolute;top:0;left:0;width:100%;height:100%;background:
+      linear-gradient(180deg, rgba(7,17,31,.60) 0%, rgba(7,17,31,.30) 38%, rgba(7,17,31,.78) 100%)}
+  .glow{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(54% 38% at 50% 40%, rgba(196,148,42,.20), transparent 70%);pointer-events:none}
+  .ribbon{position:absolute;top:0;left:0;right:0;height:7px;background:var(--gold);opacity:.85}
+  .content{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:84px 84px 78px}
+  .top,.mid,.bottom{width:100%}
+  .top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+  .logo{width:330px;height:110px}.stage.post .logo{width:280px;height:94px}
+  .eyebrow{display:flex;align-items:center;gap:10px;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--gold-light);font-weight:600;white-space:nowrap;margin-top:8px}
+  .eyebrow .dot{width:11px;height:11px;border-radius:50%;background:var(--gold)}
+  .mid{display:flex;flex-direction:column;gap:16px}
+  .kicker{font-size:24px;letter-spacing:6px;text-transform:uppercase;color:var(--gold-light);font-weight:700;white-space:nowrap}
+  .hello{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:46px;color:var(--off-white)}
+  .name{font-family:var(--font-serif);font-weight:700;line-height:1.02;font-size:104px;color:var(--white)}
+  .stage.story .name{font-size:112px}.stage.post .name{font-size:76px}
+  .role{display:inline-flex;align-self:flex-start;align-items:center;gap:12px;font-size:28px;font-weight:600;color:var(--white);
+        background:rgba(196,148,42,.14);border:1px solid rgba(196,148,42,.45);border-radius:999px;padding:12px 24px;margin-top:6px}
+  .role b{color:var(--gold-light);font-weight:800}
+  .stage.post .role{font-size:23px}
+  .bottom{display:flex;flex-direction:column;gap:22px}
+  .msg{font-size:30px;line-height:1.38;color:var(--off-white);font-weight:500;max-width:94%}
+  .msg b{color:var(--gold-light)}
+  .stage.post .msg{font-size:24px}
+  .signline{display:flex;align-items:center;justify-content:space-between;gap:20px}
+  .cta{display:inline-flex;align-items:center;gap:12px;background:var(--gold);color:var(--deep-navy);
+       font-weight:800;font-size:26px;padding:16px 30px;border-radius:999px;white-space:nowrap}
+  .stage.post .cta{font-size:22px;padding:13px 24px}
+  .sign{font-size:18px;letter-spacing:2px;text-transform:uppercase;color:#9fb0c8;font-weight:600;text-align:right;white-space:nowrap}
+  .sign b{color:var(--gold-light)}
+  [contenteditable]{outline:none}[contenteditable]:focus{box-shadow:0 0 0 2px rgba(240,201,92,.5);border-radius:6px}
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="group"><label>Formato</label>
+      <button id="b-feed" class="on" onclick="setFmt('feed')">Feed 4:5</button>
+      <button id="b-story" onclick="setFmt('story')">Stories / Status 9:16</button>
+      <button id="b-post" onclick="setFmt('post')">Post 1:1</button></div>
+    <div class="group"><label>Fundo</label>
+      <button onclick="document.getElementById('ph').click()">📷 Foto</button>
+      <button onclick="clearPhoto()">Limpar</button>
+      <input id="ph" type="file" accept="image/*" style="display:none" onchange="loadPhoto(event)"></div>
+    <button class="primary" onclick="exportPeca()">⬇ Baixar PNG</button>
+  </div>
+  <p class="hint">Clique nos textos para editar (nome, cargo/equipe e mensagem). Suba a foto do colaborador ou do ambiente como fundo. WhatsApp = Stories/Status ou Post; Instagram = Feed ou Stories.</p>
+  <p class="status" id="status"></p>
+
+  <div class="frame">
+    <div class="stage feed" id="stage">
+      <div class="bg" id="bg"></div><div class="scrim"></div><div class="glow"></div><div class="ribbon"></div>
+      <div class="content">
+        <div class="top">
+          <svg class="logo" width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(5,7) scale(0.78)">
+              <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#07111F" stroke="#C4942A" stroke-width="2.5"/>
+              <polygon points="50,9 86,29.5 86,70.5 50,91 14,70.5 14,29.5" fill="none" stroke="rgba(212,168,74,0.18)" stroke-width="0.8"/>
+              <polygon points="20,33 34,33 27,50" fill="#8EC4F0"/><polygon points="20,33 27,50 50,72" fill="#1B3A6B"/><polygon points="34,33 27,50 50,72" fill="#2E6BB5"/>
+              <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/></g>
+            <line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/>
+            <text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text>
+            <path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/>
+            <text x="123" y="71" font-family="Inter" font-weight="700" font-size="8.5" letter-spacing="11.1" fill="#C4942A">IMOBILIÁRIA</text>
+          </svg>
+          <div class="eyebrow"><span class="dot"></span><span contenteditable>Comunicação interna</span></div>
+        </div>
+        <div class="mid">
+          <div class="kicker" contenteditable>Bem-vindo(a) ao time</div>
+          <div class="hello" contenteditable>É uma alegria ter você com a gente</div>
+          <div class="name" contenteditable>Nome do colaborador</div>
+          <div class="role"><span contenteditable>Cargo</span> · <b contenteditable>Equipe</b></div>
+        </div>
+        <div class="bottom">
+          <div class="msg" contenteditable>Conte com todo mundo para começar com o pé direito. <b>Vamos juntos construir grandes resultados!</b></div>
+          <div class="signline">
+            <span class="cta" contenteditable>Seja bem-vindo(a)!</span>
+            <div class="sign"><span contenteditable>Vitra Imobiliária</span><br><b contenteditable>Time de Vendas</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  const stage=document.getElementById('stage');
+  const DIMS={feed:[1080,1350],story:[1080,1920],post:[1080,1080]};let fmt='feed';
+  function setFmt(f){fmt=f;stage.classList.remove('feed','story','post');stage.classList.add(f);
+    ['feed','story','post'].forEach(k=>document.getElementById('b-'+k).classList.toggle('on',k===f));
+    document.querySelector('.frame').style.transform='scale('+(f==='story'?0.34:0.40)+')';}
+  function loadPhoto(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);
+    document.getElementById('bg').style.backgroundImage="linear-gradient(180deg, rgba(7,17,31,.45), rgba(7,17,31,.5)), url('"+url+"')";}
+  function clearPhoto(){document.getElementById('bg').style.backgroundImage="radial-gradient(120% 80% at 72% 10%, #16314f 0%, #0A1628 55%, #07111F 100%)";}
+  async function exportPeca(){const status=document.getElementById('status');status.textContent='Gerando PNG…';
+    const frame=document.querySelector('.frame');const pT=frame.style.transform,pM=frame.style.marginBottom;
+    document.body.classList.add('exporting');frame.style.transform='none';frame.style.marginBottom='0';
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    try{const canvas=await html2canvas(stage,{backgroundColor:'#0A1628',scale:1,useCORS:true,logging:false});
+      const a=document.createElement('a');a.download='vitra-imobiliaria-boas-vindas-'+fmt+'-'+canvas.width+'x'+canvas.height+'.png';
+      a.href=canvas.toDataURL('image/png');a.click();status.textContent='PNG '+canvas.width+'×'+canvas.height+' baixado ✓';}
+    catch(e){status.textContent='Erro ao gerar: '+e.message;}
+    finally{document.body.classList.remove('exporting');frame.style.transform=pT;frame.style.marginBottom=pM;}}
+  setFmt('feed');
+</script>
+</body>
+</html>

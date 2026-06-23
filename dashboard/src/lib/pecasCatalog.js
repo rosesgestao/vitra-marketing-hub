@@ -43,6 +43,7 @@ export const PECAS_PLATFORMS = [
         note: 'Lista de aniversariantes (dia + nome) editável, com mês e mensagem de felicitação. Multiformato + foto opcional.',
         variants: {
           [BRAND_SCOPES.imobiliaria]: 'aniversariantes-interno-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'aniversariantes-interno-vitra-premium.html',
         },
       },
       {
@@ -56,6 +57,7 @@ export const PECAS_PLATFORMS = [
         note: 'Aviso oficial: selo "Comunicado", título, mensagem e assinatura — tudo editável. Multiformato + foto opcional.',
         variants: {
           [BRAND_SCOPES.imobiliaria]: 'comunicado-interno-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'comunicado-interno-vitra-premium.html',
         },
       },
       {
@@ -69,6 +71,21 @@ export const PECAS_PLATFORMS = [
         note: 'Celebração de resultado: número/percentual da meta em destaque + parabéns ao time. Multiformato + foto opcional.',
         variants: {
           [BRAND_SCOPES.imobiliaria]: 'metas-interno-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'metas-interno-vitra-premium.html',
+        },
+      },
+      {
+        id: 'boas-vindas',
+        label: 'Boas-vindas (novo colaborador)',
+        status: PECA_STATUS.available,
+        w: 1080,
+        h: 1350,
+        ratio: 'multi · 4:5 · 9:16 · 1:1',
+        safeArea: 'centro · escolha o formato dentro do gerador',
+        note: 'Apresenta o novo integrante: nome em destaque, cargo/equipe e mensagem de boas-vindas. Multiformato + foto do colaborador/ambiente.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'boas-vindas-interno-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'boas-vindas-interno-vitra-premium.html',
         },
       },
     ],
