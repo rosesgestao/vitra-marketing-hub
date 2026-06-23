@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Estúdio de Peças: "Imóvel Vendido" (Marketing Institucional)
 
-> Peça de prova social de venda concluída, sem dados do imóvel/cliente. Na `main`. Commit: **<HASH>**.
+> Peça de prova social de venda concluída, sem dados do imóvel/cliente. Na `main`. Commit: **1b5131c**.
 
 ## Decisão de PO
 "Imóvel Vendido" é peça **institucional/mercadológica** (autoridade + prova social externa) — não é
