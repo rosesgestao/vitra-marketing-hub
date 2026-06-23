@@ -1,4 +1,4 @@
-import { Facebook, Linkedin, Youtube, Instagram, MessageCircle, Mail, PartyPopper, Contact } from 'lucide-react'
+import { Facebook, Linkedin, Youtube, Instagram, MessageCircle, Mail, PartyPopper, Contact, BadgeCheck } from 'lucide-react'
 import { BRAND_SCOPES } from './brandProfiles.js'
 
 // Catálogo único e data-driven das peças (capas/banners) por plataforma.
@@ -12,6 +12,28 @@ export const PECA_STATUS = { available: 'available', soon: 'soon' }
 export const PECAS_ASSET_BASE = 'pecas/'
 
 export const PECAS_PLATFORMS = [
+  {
+    id: 'institucional',
+    label: 'Marketing Institucional',
+    icon: BadgeCheck,
+    status: PECA_STATUS.available,
+    summary: 'Peças de autoridade e prova social da Vitra (vendas, marcos, credibilidade) para o mercado.',
+    formats: [
+      {
+        id: 'imovel-vendido',
+        label: 'Imóvel Vendido',
+        status: PECA_STATUS.available,
+        w: 1080,
+        h: 1350,
+        ratio: 'multi · 4:5 · 9:16 · 1:1',
+        safeArea: 'centro · escolha o formato dentro do gerador',
+        note: 'Prova social de venda concluída (sem dados do imóvel/cliente): selo VENDIDO + mensagem editável (presets) + complemento + imagem institucional opcional. Feed 4:5, Story 9:16, WhatsApp 1:1.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'imovel-vendido-institucional-vitra-imobiliaria.html',
+        },
+      },
+    ],
+  },
   {
     id: 'cracha',
     label: 'Crachá Corporativo',
