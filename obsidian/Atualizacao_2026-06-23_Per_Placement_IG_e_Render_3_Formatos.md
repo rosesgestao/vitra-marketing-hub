@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Per-placement FUNCIONANDO: instagram_user_id + render dos 3 formatos
 
-> Fecha o P1: o anúncio por posicionamento (asset_feed_spec) passou a ser aceito pela Meta. Na `main`. Commit: **<HASH>**.
+> Fecha o P1: o anúncio por posicionamento (asset_feed_spec) passou a ser aceito pela Meta. Na `main`. Commit: **d00f20a**.
 
 ## Pendência #2 — instagram_user_id (resolvida)
 O `asset_feed_spec` exigia o ator do Instagram para posições IG. Implementado:
