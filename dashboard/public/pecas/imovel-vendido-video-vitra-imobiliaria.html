@@ -46,7 +46,7 @@
 </style>
 </head>
 <body>
-  <h1>Imóvel Vendido — <b>vídeo</b> · 9:16 (Reels · Stories · Status)</h1>
+  <h1>Imóvel Vendido — <b>vídeo</b> · 9:16 (Reels · Stories · Status) · 4:5 (Feed)</h1>
 
   <div class="wrap">
     <!-- ESQUERDA: preview -->
@@ -56,11 +56,18 @@
         <button class="play" id="play" onclick="togglePlay()" style="display:none">▶ Reproduzir</button>
       </div>
       <p class="status" id="status">Suba o vídeo do corretor tocando o sino 🔔</p>
-      <p class="hint">A máscara da marca é aplicada por cima e <b>não cobre o centro</b> (corretor/sino). Arraste no preview para reposicionar; use o zoom para enquadrar. Áreas de segurança do 9:16 respeitadas.</p>
+      <p class="hint">A máscara da marca é aplicada por cima e <b>não cobre o centro</b> (corretor/sino). Arraste no preview para reposicionar; use o zoom para enquadrar. Áreas de segurança do 9:16 e 4:5 respeitadas.</p>
     </div>
 
     <!-- DIREITA: controles -->
     <div class="panel">
+      <div class="group">
+        <h3>Formato</h3>
+        <div class="row">
+          <button id="bf-story" class="primary" onclick="setFmt('story')">9:16 (Reels/Stories)</button>
+          <button id="bf-feed" class="ghost" onclick="setFmt('feed')">4:5 (Feed)</button>
+        </div>
+      </div>
       <div class="group">
         <h3>1 · Vídeo</h3>
         <div class="drop" id="drop" onclick="document.getElementById('vf').click()">📹 Clique para enviar o vídeo<br><span style="font-size:11px;color:#6f819a">MP4/MOV/WebM · até 60s · até 150 MB</span></div>
@@ -121,7 +128,13 @@
   <audio id="mus" loop crossorigin="anonymous" style="display:none"></audio>
 
 <script>
-const W=1080,H=1920;
+let W=1080,H=1920,fmt='story';
+// Layout por formato (posições da máscara). 9:16 mantém as posições aprovadas; 4:5 é o novo formato.
+const LAYOUT={
+  story:{W:1080,H:1920,topGrad:540,botGrad:1060,brTop:256,brBot:1664,wmY:280,stampX:812,stampY:520,ruleY:1392,msgY:1490,msg2Y:1470,corOff:58,disp:304},
+  feed :{W:1080,H:1350,topGrad:360,botGrad:700, brTop:110,brBot:1240,wmY:150,stampX:812,stampY:350,ruleY:1130,msgY:1232,msg2Y:1208,corOff:54,disp:340},
+};
+let L=LAYOUT.story;
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 const vid=document.getElementById('vid'), mus=document.getElementById('mus');
 const els={};['status','play','tIn','tOut','tInLbl','tOutLbl','durLbl','selLbl','zoom','zLbl','msg','corretor','mvol','mvLbl','btnExp','btnCover','swOrig','drop'].forEach(id=>els[id]=document.getElementById(id));
@@ -149,48 +162,62 @@ function monogram(cx,cy,size){
 }
 function bracket(x,y,dx,dy,len,w){ctx.strokeStyle='#C4942A';ctx.lineWidth=w;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+dx*len,y);ctx.moveTo(x,y);ctx.lineTo(x,y+dy*len);ctx.stroke();}
+function rr(x,y,w,h,r){ctx.beginPath();if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);}else{ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}}
+function ls(v){try{ctx.letterSpacing=v}catch(e){}}
+
+// (1) Marca d'água oficial (lockup VITRA IMOBILIÁRIA) centralizada horizontalmente, leve transparência.
+function drawWatermark(cx,topY,alpha){
+  ctx.save();ctx.globalAlpha=alpha;ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  const mono=104,gap=22;
+  ctx.font='700 46px Inter';ls('7px');const w1=ctx.measureText('VITRA').width;
+  ctx.font='700 17px Inter';ls('8px');const w2=ctx.measureText('IMOBILIÁRIA').width;ls('0px');
+  const textW=Math.max(w1,w2),totalW=mono+gap+textW,sx=cx-totalW/2;
+  monogram(sx+mono/2,topY+mono/2,mono);
+  ctx.fillStyle='#FFFFFF';ctx.font='700 46px Inter';ls('7px');ctx.fillText('VITRA',sx+mono+gap,topY+mono/2-2);
+  ctx.fillStyle='#C4942A';ctx.font='700 17px Inter';ls('8px');ctx.fillText('IMOBILIÁRIA',sx+mono+gap,topY+mono/2+30);
+  ls('0px');ctx.restore();
+}
+// (2) Carimbo "VENDIDO" — só o texto + moldura de carimbo (sem selo), levemente inclinado e translúcido.
+function drawStamp(cx,cy,ang){
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);ctx.globalAlpha=.86;
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='800 60px Inter';ls('5px');
+  const tw=ctx.measureText('VENDIDO').width,padX=34,padY=18,bw=tw+padX*2,bh=60+padY*2;
+  ctx.strokeStyle='#C4942A';ctx.lineWidth=6;rr(-bw/2,-bh/2,bw,bh,12);ctx.stroke();
+  ctx.lineWidth=2;rr(-bw/2+10,-bh/2+10,bw-20,bh-20,7);ctx.stroke();
+  ctx.fillStyle='#C4942A';ctx.fillText('VENDIDO',3,4);ls('0px');ctx.restore();
+}
 
 function drawMask(){
-  // faixa superior (navy -> transparente)
-  let g=ctx.createLinearGradient(0,0,0,540);g.addColorStop(0,'rgba(7,17,31,.92)');g.addColorStop(1,'rgba(7,17,31,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,540);
-  // faixa inferior (transparente -> navy)
-  g=ctx.createLinearGradient(0,1340,0,H);g.addColorStop(0,'rgba(7,17,31,0)');g.addColorStop(1,'rgba(7,17,31,.96)');
-  ctx.fillStyle=g;ctx.fillRect(0,1340,W,H-1340);
-  // régua dourada topo
+  const cx=W/2;
+  // faixa superior (navy -> transparente) + régua dourada (mantidas)
+  let g=ctx.createLinearGradient(0,0,0,L.topGrad);g.addColorStop(0,'rgba(7,17,31,.80)');g.addColorStop(1,'rgba(7,17,31,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,L.topGrad);
   ctx.fillStyle='rgba(196,148,42,.85)';ctx.fillRect(0,0,W,8);
-  // cantos (dentro da área segura)
-  bracket(70,256,1,1,70,4);bracket(1010,256,-1,1,70,4);bracket(70,1664,1,-1,70,4);bracket(1010,1664,-1,-1,70,4);
+  // (3) degradê inferior ESCURO e SUAVE atrás da headline (fade longo, sem faixa rígida)
+  g=ctx.createLinearGradient(0,L.botGrad,0,H);
+  g.addColorStop(0,'rgba(5,11,20,0)');g.addColorStop(.45,'rgba(5,11,20,.26)');g.addColorStop(.78,'rgba(5,11,20,.58)');g.addColorStop(1,'rgba(5,11,20,.82)');
+  ctx.fillStyle=g;ctx.fillRect(0,L.botGrad,W,H-L.botGrad);
+  // colchetes (mantidos)
+  bracket(70,L.brTop,1,1,70,4);bracket(W-70,L.brTop,-1,1,70,4);bracket(70,L.brBot,1,-1,70,4);bracket(W-70,L.brBot,-1,-1,70,4);
 
-  // logo (monograma + wordmark) topo-esquerda
-  monogram(150,330,118);
-  ctx.textAlign='left';ctx.textBaseline='alphabetic';
-  ctx.fillStyle='#FFFFFF';ctx.font='700 50px Inter';try{ctx.letterSpacing='7px'}catch(e){}
-  ctx.fillText('VITRA',228,346);
-  ctx.fillStyle='#C4942A';ctx.font='700 18px Inter';try{ctx.letterSpacing='8px'}catch(e){}
-  ctx.fillText('IMOBILIÁRIA',230,384);
-  try{ctx.letterSpacing='0px'}catch(e){}
+  drawWatermark(cx,L.wmY,0.9);              // (1)
+  drawStamp(L.stampX,L.stampY,-8*Math.PI/180); // (2)
 
-  // selo VENDIDO topo-direita
-  const sx=900,sy=372,r=110;
-  ctx.strokeStyle='rgba(196,148,42,.9)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(sx,sy,r,0,7);ctx.stroke();
-  ctx.strokeStyle='rgba(196,148,42,.4)';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(sx,sy,r-16,0,7);ctx.stroke();
-  monogram(sx,sy-30,52);
-  ctx.textAlign='center';ctx.fillStyle='#F0C95C';ctx.font='800 30px Inter';try{ctx.letterSpacing='5px'}catch(e){}
-  ctx.fillText('VENDIDO',sx+2,sy+40);
-  ctx.fillStyle='rgba(255,255,255,.6)';ctx.font='600 12px Inter';try{ctx.letterSpacing='3px'}catch(e){}
-  ctx.fillText('VITRA IMOBILIÁRIA',sx,sy+66);try{ctx.letterSpacing='0px'}catch(e){}
-
-  // bloco inferior: régua + mensagem + corretor (centralizado, dentro da safe)
-  ctx.fillStyle='#C4942A';ctx.fillRect(W/2-60,1392,120,3);
+  // bloco inferior: régua + mensagem + corretor (posições aprovadas, inalteradas)
+  ctx.fillStyle='#C4942A';ctx.fillRect(cx-60,L.ruleY,120,3);
   ctx.textAlign='center';ctx.fillStyle='#FFFFFF';
-  const lines=wrap(msg,18);
-  let fs=lines.length>1?58:66;ctx.font='800 '+fs+'px Inter';
-  let y=lines.length>1?1470:1490;
-  lines.forEach((ln,i)=>ctx.fillText(ln,W/2,y+i*(fs+8)));
-  let by=y+(lines.length-1)*(fs+8)+58;
-  if(corretor.trim()){ctx.fillStyle='#F0C95C';ctx.font='600 30px Inter';try{ctx.letterSpacing='1px'}catch(e){}
-    ctx.fillText('Vendido por '+corretor.trim(),W/2,by);try{ctx.letterSpacing='0px'}catch(e){}}
+  const lines=wrap(msg,18),fs=lines.length>1?58:66,y=lines.length>1?L.msg2Y:L.msgY;
+  ctx.font='800 '+fs+'px Inter';lines.forEach((ln,i)=>ctx.fillText(ln,cx,y+i*(fs+8)));
+  const by=y+(lines.length-1)*(fs+8)+L.corOff;
+  if(corretor.trim()){ctx.fillStyle='#F0C95C';ctx.font='600 30px Inter';ls('1px');
+    ctx.fillText('Vendido por '+corretor.trim(),cx,by);ls('0px');}
+}
+function setFmt(f){
+  if(exporting)return;fmt=f;L=LAYOUT[f];W=L.W;H=L.H;cv.width=W;cv.height=H;
+  const dw=L.disp,dh=Math.round(dw*H/W);cv.style.width=dw+'px';cv.style.height=dh+'px';
+  const shell=document.querySelector('.canvas-shell');shell.style.width=dw+'px';shell.style.height=dh+'px';
+  document.getElementById('bf-story').className=f==='story'?'primary':'ghost';
+  document.getElementById('bf-feed').className=f==='feed'?'primary':'ghost';
 }
 function wrap(t,max){const w=t.split(/\s+/);const out=[];let l='';for(const x of w){if((l+' '+x).trim().length>max&&l){out.push(l);l=x;}else l=(l?l+' ':'')+x;}if(l)out.push(l);return out.slice(0,2);}
 
@@ -207,8 +234,8 @@ function drawVideo(){
     const g=ctx.createRadialGradient(W/2,820,80,W/2,820,900);g.addColorStop(0,'#16314f');g.addColorStop(1,'#0A1628');
     ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
     ctx.fillStyle='rgba(255,255,255,.22)';ctx.textAlign='center';ctx.font='600 38px Inter';
-    ctx.fillText('🔔 prévia da máscara', W/2, 900);
-    ctx.font='400 24px Inter';ctx.fillText('suba o vídeo para ver o resultado', W/2, 950);
+    ctx.fillText('🔔 prévia da máscara', W/2, H*0.47);
+    ctx.font='400 24px Inter';ctx.fillText('suba o vídeo para ver o resultado', W/2, H*0.47+48);
   }
 }
 function render(){
@@ -289,7 +316,7 @@ async function exportVideo(){
       const type=(rec.mimeType||mime||'video/webm');
       const ext=type.indexOf('mp4')>=0?'mp4':'webm';
       const blob=new Blob(chunks,{type});const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);a.download='vitra-imobiliaria-imovel-vendido-9x16-'+Date.now()+'.'+ext;a.click();
+      a.href=URL.createObjectURL(blob);a.download='vitra-imobiliaria-imovel-vendido-'+(fmt==='feed'?'4x5':'9x16')+'-'+Date.now()+'.'+ext;a.click();
       setStatus('Vídeo '+ext.toUpperCase()+' baixado ✓ ('+(blob.size/1048576).toFixed(1)+' MB · '+fmtT(tOut-tIn)+')','ok');
       els.btnExp.disabled=false;els.btnCover.disabled=false;
     };
@@ -305,10 +332,10 @@ function stopExport(){if(!exporting)return;exporting=false;playing=false;els.pla
 // ---------- capa PNG ----------
 function exportCover(){if(!loaded)return setStatus('Suba um vídeo primeiro.','err');
   drawVideo();drawMask();
-  cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='vitra-imobiliaria-imovel-vendido-capa-9x16-'+Date.now()+'.png';a.click();setStatus('Capa PNG baixada ✓','ok');},'image/png');}
+  cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='vitra-imobiliaria-imovel-vendido-capa-'+(fmt==='feed'?'4x5':'9x16')+'-'+Date.now()+'.png';a.click();setStatus('Capa PNG baixada ✓','ok');},'image/png');}
 
 // ---------- boot ----------
-(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{syncLbls();render();});
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{setFmt('story');syncLbls();render();});
 </script>
 </body>
 </html>
