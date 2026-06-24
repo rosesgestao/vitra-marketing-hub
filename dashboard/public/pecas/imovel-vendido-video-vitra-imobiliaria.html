@@ -101,6 +101,11 @@
         </select>
         <label style="margin-top:9px">Nome do corretor (opcional)</label>
         <input type="text" id="corretor" placeholder="Ex: João Silva" oninput="onText()">
+        <label style="margin-top:9px">Marca d'água (modelo)</label>
+        <div class="row">
+          <button id="wms-horizontal" class="primary" onclick="setWmStyle('horizontal')">Horizontal (V+VITRA)</button>
+          <button id="wms-texto" class="ghost" onclick="setWmStyle('texto')">Texto (VITRA)</button>
+        </div>
         <label style="margin-top:9px">Marca d'água (opacidade) — fundos claros: 15% · médios: 25% · padrão: 40%</label>
         <div class="row">
           <button id="wm15" class="ghost" onclick="loadWm('15')">15%</button>
@@ -171,12 +176,16 @@ function bracket(x,y,dx,dy,len,w){ctx.strokeStyle='#C4942A';ctx.lineWidth=w;ctx.
 function rr(x,y,w,h,r){ctx.beginPath();if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);}else{ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}}
 function ls(v){try{ctx.letterSpacing=v}catch(e){}}
 
-// (1) Marca d'água OFICIAL: master horizontal aprovada branca (brand/watermark/horizontal-aprovada-branca,
-// vitra-mae-watermark-horizontal-branca-op15/25/40, 6601x1480). Regra: não redesenhar glifos nem aplicar
-// sombra/contorno/filtro; opacidade já embutida no PNG.
-let wmImg=new Image(),wmOp='40';
-function loadWm(op){wmOp=op;wmImg=new Image();wmImg.src='wm-vitra-h-branca-op'+op+'.png';
-  ['15','25','40'].forEach(o=>{const b=document.getElementById('wm'+o);if(b)b.className=o===op?'primary':'ghost';});}
+// (1) Marca d'água OFICIAL aprovada (opacidade embutida; regra: não redesenhar glifo nem aplicar filtro):
+//   horizontal = master horizontal-aprovada-branca (V+VITRA, 6601x1480)
+//   texto      = video-aprovadas/texto-vitra (só o wordmark VITRA, 1600x420)
+const WM_FILES={horizontal:'wm-vitra-h-branca',texto:'wm-vitra-texto'};
+let wmImg=new Image(),wmOp='40',wmStyle='horizontal';
+function applyWm(){wmImg=new Image();wmImg.src=WM_FILES[wmStyle]+'-op'+wmOp+'.png';
+  ['15','25','40'].forEach(o=>{const b=document.getElementById('wm'+o);if(b)b.className=o===wmOp?'primary':'ghost';});
+  ['horizontal','texto'].forEach(s=>{const b=document.getElementById('wms-'+s);if(b)b.className=s===wmStyle?'primary':'ghost';});}
+function loadWm(op){wmOp=op;applyWm();}
+function setWmStyle(s){wmStyle=s;applyWm();}
 function drawWatermark(cx,topY,w){
   if(!wmImg||!wmImg.complete||!wmImg.naturalWidth)return;
   const h=w*wmImg.naturalHeight/wmImg.naturalWidth;
