@@ -101,11 +101,11 @@
         </select>
         <label style="margin-top:9px">Nome do corretor (opcional)</label>
         <input type="text" id="corretor" placeholder="Ex: João Silva" oninput="onText()">
-        <label style="margin-top:9px">Marca d'água (opacidade) — fundos claros: 15% · padrão: 25% · destaque: 40%</label>
+        <label style="margin-top:9px">Marca d'água (opacidade) — fundos claros: 15% · médios: 25% · padrão: 40%</label>
         <div class="row">
           <button id="wm15" class="ghost" onclick="loadWm('15')">15%</button>
-          <button id="wm25" class="primary" onclick="loadWm('25')">25%</button>
-          <button id="wm40" class="ghost" onclick="loadWm('40')">40%</button>
+          <button id="wm25" class="ghost" onclick="loadWm('25')">25%</button>
+          <button id="wm40" class="primary" onclick="loadWm('40')">40%</button>
         </div>
       </div>
 
@@ -171,10 +171,11 @@ function bracket(x,y,dx,dy,len,w){ctx.strokeStyle='#C4942A';ctx.lineWidth=w;ctx.
 function rr(x,y,w,h,r){ctx.beginPath();if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);}else{ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}}
 function ls(v){try{ctx.letterSpacing=v}catch(e){}}
 
-// (1) Marca d'água OFICIAL aprovada para vídeo (PNG V+VITRA horizontal, branco, opacidade já embutida).
-// Fonte: brand/watermark/video-aprovadas (regra: não redesenhar glifos nem aplicar sombra/contorno/filtro).
-let wmImg=new Image(),wmOp='25';
-function loadWm(op){wmOp=op;wmImg=new Image();wmImg.src='wm-vitra-video-h-op'+op+'.png';
+// (1) Marca d'água OFICIAL: master horizontal aprovada branca (brand/watermark/horizontal-aprovada-branca,
+// vitra-mae-watermark-horizontal-branca-op15/25/40, 6601x1480). Regra: não redesenhar glifos nem aplicar
+// sombra/contorno/filtro; opacidade já embutida no PNG.
+let wmImg=new Image(),wmOp='40';
+function loadWm(op){wmOp=op;wmImg=new Image();wmImg.src='wm-vitra-h-branca-op'+op+'.png';
   ['15','25','40'].forEach(o=>{const b=document.getElementById('wm'+o);if(b)b.className=o===op?'primary':'ghost';});}
 function drawWatermark(cx,topY,w){
   if(!wmImg||!wmImg.complete||!wmImg.naturalWidth)return;
@@ -339,7 +340,7 @@ function exportCover(){if(!loaded)return setStatus('Suba um vídeo primeiro.','e
   cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='vitra-imobiliaria-imovel-vendido-capa-'+(fmt==='feed'?'4x5':'9x16')+'-'+Date.now()+'.png';a.click();setStatus('Capa PNG baixada ✓','ok');},'image/png');}
 
 // ---------- boot ----------
-(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{loadWm('25');setFmt('story');syncLbls();render();});
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{loadWm('40');setFmt('story');syncLbls();render();});
 </script>
 </body>
 </html>
