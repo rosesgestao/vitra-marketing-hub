@@ -58,6 +58,7 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-hero-panel-gallery",
   "vitra-imobiliaria-lancamento",
   "vitra-imobiliaria-vitrine-gallery",
+  "vitra-imobiliaria-oportunidade-bairro",
 ];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
@@ -1351,6 +1352,102 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
 </svg>`;
 }
 
+// ===== Template 10: Oportunidade no bairro (foto aérea + blocos navy + galeria emoldurada) =====
+// Conceito (referência do cliente): foto full-bleed + coluna de blocos navy à esquerda (eyebrow + headline
+// do bairro + caixa de preço + barra de subtítulo + painel de checklist com selos) e, à direita, galeria de
+// 3 fotos em moldura navy + wordmark em caixa navy no topo. Checks adaptados ao dourado do brandbook (a
+// referência usa verde, fora da paleta). Composição própria por formato + safe zone do Meta.
+function buildVitraOportunidadeSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+
+  const eyebrow = compactText((pd.tagline || "Oportunidade").toString().toUpperCase(), 22);
+  const headline = (asset.headline || pd.suggested_headline || campaign?.neighborhood || brandProfile.fallbackHeadline).toString().toUpperCase();
+  const price = (formatMoneyLike(pd.price || campaign?.offer || "") || "CONSULTE").toUpperCase();
+  const subtitle = compactText((pd.area || pd.suites || "").toString().toUpperCase(), 34);
+  const bullets = heroChecklistBullets(pd, campaign, isWide ? 4 : 6);
+
+  const L = isStory ? {
+    wmBox: [770, 296, 250, 78], gallery: [636, 360, [430, 754, 1078], 300, 16], frameOff: 22,
+    eyeX: 90, eyeY: 322, eyeSize: 28,
+    headX: 90, headY: 430, headGap: 96, headSize: 104, headBudget: 600,
+    priceBox: [74, 654, 470, 112, 6], priceX: 100, priceY: 730, priceSize: 70,
+    subBox: [74, 786, 580, 76, 6], subX: 100, subY: 838, subSize: 36,
+    listBox: [74, 884, 470, 470, 8], listX: 156, listY: 952, listStep: 74, listSize: 36, badge: 38,
+  } : isWide ? {
+    wmBox: [902, 70, 210, 64], gallery: [858, 238, [70, 258, 446], 168, 12], frameOff: 16,
+    eyeX: 92, eyeY: 100, eyeSize: 16,
+    headX: 92, headY: 156, headGap: 50, headSize: 46, headBudget: 560,
+    priceBox: [90, 252, 280, 66, 5], priceX: 110, priceY: 296, priceSize: 40,
+    subBox: [90, 328, 400, 48, 5], subX: 108, subY: 360, subSize: 22,
+    listBox: [90, 386, 380, 180, 6], listX: 144, listY: 420, listStep: 40, listSize: 18, badge: 22,
+  } : {
+    wmBox: [792, 72, 226, 74], gallery: [640, 366, [160, 452, 744], 276, 16], frameOff: 20,
+    eyeX: 82, eyeY: 130, eyeSize: 28,
+    headX: 82, headY: 214, headGap: 86, headSize: 92, headBudget: 500,
+    priceBox: [64, 382, 432, 98, 6], priceX: 90, priceY: 450, priceSize: 64,
+    subBox: [64, 498, 540, 68, 6], subX: 90, subY: 543, subSize: 32,
+    listBox: [64, 584, 432, 388, 8], listX: 132, listY: 646, listStep: 56, listSize: 31, badge: 34,
+  };
+
+  const [gx, gw, gysAny, gh, grx] = L.gallery as [number, number, number[], number, number];
+  const gys = gysAny as unknown as number[];
+  const galClips = gys.map((gy, i) => `<clipPath id="${idBase}-g${i}"><rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="${grx}" ry="${grx}"/></clipPath>`).join("");
+  const photoDefs = `<linearGradient id="${idBase}-nb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#13294C"/><stop offset="100%" stop-color="#0A1628"/></linearGradient>` + galClips;
+
+  const heroLayer = images[0]
+    ? `<image href="${esc(images[0])}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+
+  // Galeria emoldurada à direita: moldura navy (offset) + 3 fotos por cima + caixa navy do wordmark.
+  const frameRect = `<rect x="${gx + L.frameOff}" y="${gys[0] + L.frameOff}" width="${gw}" height="${gys[gys.length - 1] + gh - gys[0]}" fill="url(#${idBase}-nb)"/>`;
+  const gallery = gys.map((gy, i) => duoSelosPhoto(images[i + 1] || images[0], `${idBase}-g${i}`, gx, gy, gw, gh, grx)).join("");
+  const [wmbX, wmbY, wmbW, wmbH] = L.wmBox;
+  const wmInner = Math.round(wmbW * 0.62);
+  const wmBox = `<rect x="${wmbX}" y="${wmbY}" width="${wmbW}" height="${wmbH}" fill="url(#${idBase}-nb)"/>
+    <svg x="${wmbX + Math.round((wmbW - wmInner) / 2)}" y="${wmbY + Math.round((wmbH - wmInner * 25 / 136) / 2)}" width="${wmInner}" height="${Math.round(wmInner * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>`;
+
+  // Coluna de blocos navy à esquerda.
+  const eyebrowLine = textLine(L.eyeX, L.eyeY, eyebrow, { anchor: "start", fill: "#FFFFFF", family: "Inter, Arial, sans-serif", size: L.eyeSize, weight: 700, spacing: Math.round(L.eyeSize * 0.42) });
+  const lines = wrapText(headline, isWide ? 14 : 9, 2);
+  const headLines = lines.map((line, i) => textLine(L.headX, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 34, L.headBudget, 0.79), weight: 400 })).join("");
+
+  const [pbx, pby, pbw, pbh, pbrx] = L.priceBox;
+  const priceBlock = `<rect x="${pbx}" y="${pby}" width="${pbw}" height="${pbh}" rx="${pbrx}" fill="url(#${idBase}-nb)"/>
+    ${textLine(L.priceX, L.priceY, price, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(price, L.priceSize, 30, pbw - 48, 0.79), weight: 400 })}`;
+
+  const [sbx, sby, sbw, sbh, sbrx] = L.subBox;
+  const subBlock = subtitle
+    ? `<rect x="${sbx}" y="${sby}" width="${sbw}" height="${sbh}" rx="${sbrx}" fill="url(#${idBase}-nb)"/>
+       ${textLine(L.subX, L.subY, subtitle, { anchor: "start", fill: "#FFFFFF", family: "Inter, Arial, sans-serif", size: fitDisplaySize(subtitle, L.subSize, 16, sbw - 48, 0.84), weight: 800, spacing: 1 })}`
+    : "";
+
+  const [lbx, lby, lbw, lbh, lbrx] = L.listBox;
+  const listBlock = `<rect x="${lbx}" y="${lby}" width="${lbw}" height="${lbh}" rx="${lbrx}" fill="url(#${idBase}-nb)"/>
+    ${bullets.map((item, i) => {
+      const by = L.listY + i * L.listStep;
+      return `${heroChecklistBadge(lbx + Math.round(L.listSize * 0.5), by - Math.round(L.listSize * 0.35 + L.badge / 2), L.badge)}
+      ${textLine(L.listX, by, compactText(item, isWide ? 22 : 18), { anchor: "start", fill: "#FAFAF8", family: "Inter, Arial, sans-serif", size: L.listSize, weight: 600 })}`;
+    }).join("")}`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${baseDefs(idBase, photoDefs)}
+  ${heroLayer}
+  <rect width="${W}" height="${H}" fill="#07111F" opacity="0.18"/>
+  ${frameRect}
+  ${gallery}
+  ${wmBox}
+  ${eyebrowLine}
+  ${headLines}
+  ${priceBlock}
+  ${subBlock}
+  ${listBlock}
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+</svg>`;
+}
+
 function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
@@ -1380,6 +1477,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-vitrine-gallery") return buildVitraVitrineSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-oportunidade-bairro") return buildVitraOportunidadeSvg(asset, campaign, images, W, H, brandProfile, idBase);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -1531,7 +1629,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       const imageData: Array<string | null> = [];
       const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist" || templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento"
         ? 1
-        : templateFamily === "vitra-imobiliaria-vitrine-gallery"
+        : templateFamily === "vitra-imobiliaria-vitrine-gallery" || templateFamily === "vitra-imobiliaria-oportunidade-bairro"
           ? 4
         : templateFamily === "vitra-imobiliaria-financiamento-orla" || templateFamily === "vitra-imobiliaria-patios-gallery" || templateFamily === "vitra-imobiliaria-hero-panel-gallery"
           ? 3

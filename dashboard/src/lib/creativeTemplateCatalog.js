@@ -202,6 +202,23 @@ const vitrineFieldGroups = [
   },
 ]
 
+// Template 10 (Oportunidade no bairro): foto aérea full-bleed + coluna de blocos navy à esquerda (eyebrow +
+// headline do bairro + caixa de preço + barra de subtítulo + painel de checklist de selos) e galeria de 3
+// fotos em moldura navy à direita. Referência visual do cliente (estrutura/conceito; sem copiar textos/logos).
+const oportunidadeFieldGroups = [
+  {
+    id: 'oportunidade',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'tagline', label: 'Eyebrow / selo', type: 'text', maxLength: 22, helper: 'Linha pequena acima da headline. Ex: Oportunidade, Lançamento.', placeholder: 'Ex: Oportunidade' },
+      { key: 'suggested_headline', label: 'Headline (bairro / chamada)', type: 'text', required: true, maxLength: 28, helper: 'Texto grande do painel (Anton), ate 2 linhas. Ex: Menino Deus.', placeholder: 'Ex: Menino Deus' },
+      { key: 'price', label: 'Valor (caixa navy)', type: 'text', required: true, maxLength: 18, helper: 'Aceita formato curto. Ex: R$ 539 mil ou R$ 539.000,00.', placeholder: 'Ex: R$ 539 mil' },
+      { key: 'area', label: 'Subtítulo (barra navy)', type: 'text', maxLength: 34, helper: 'Resumo de tipologia. Ex: 2 dorm. c/ suíte e sacada.', placeholder: 'Ex: 2 dorm. c/ suíte e sacada', colSpan: 'full' },
+      { key: 'differentials', label: 'Checklist (selos-check)', type: 'list', required: true, placeholder: '61 m² privativos\nChurrasqueira\nSol da manhã\nAndar alto\nVista livre\nGaragem coberta', helper: 'Ate 6 itens — diferenciais/atributos. Cada um vira linha com selo-check dourado no painel navy.', colSpan: 'full' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -326,6 +343,19 @@ const templateVariationContracts = {
       { id: 'localizacao-nobre', label: 'Localização nobre', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Endereco de referencia e infraestrutura completa. Veja a galeria e as condicoes com a Vitra.', cta: 'Conhecer a localizacao' },
       { id: 'oportunidade', label: 'Oportunidade De/Por', phase: '2', angle: 'investimento', headline: 'Oportunidade por tempo limitado', copy: 'O comparativo De/Por deixa a vantagem explicita. Confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
       { id: 'visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Agende sua visita ao decorado', copy: 'Imoveis de alto padrao com preco de oportunidade pedem decisao informada. Fale com a Vitra.', cta: 'Agendar visita' },
+    ],
+  },
+  oportunidadeBairro: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem foto aérea, blocos navy (eyebrow/headline/preco/subtitulo/checklist) e galeria emoldurada; varia bairro, preco, atributos e fotos.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'navy_blocks', 'check_seals', 'framed_gallery'],
+    mutableSlots: ['eyebrow', 'headline', 'price', 'subtitle', 'differentials', 'photos'],
+    recipes: [
+      { id: 'oportunidade-bairro', label: 'Oportunidade no bairro', phase: '1', angle: 'localizacao', headline: '{neighborhood}', copy: 'Bairro de referencia, preco objetivo e atributos num quadro direto. Galeria do empreendimento ao lado.', cta: 'Fale com a Vitra' },
+      { id: 'preco-ancora', label: 'Preço-âncora', phase: '1', angle: 'investimento', headline: '{neighborhood}', copy: 'O valor em destaque + tipologia + checklist de atributos. Decisao informada com a Vitra.', cta: 'Simular condicoes' },
+      { id: 'atributos', label: 'Atributos completos', phase: '2', angle: 'diferenciais', headline: '{neighborhood}', copy: '{details}. Infraestrutura e diferenciais reunidos, com a galeria do empreendimento.', cta: 'Receber detalhes' },
+      { id: 'tipologia', label: 'Tipologia certa', phase: '2', angle: 'publico', headline: '{neighborhood}', copy: 'Subtitulo de tipologia + atributos para quem ja sabe o que procura. Fale com a Vitra.', cta: 'Quero conhecer' },
+      { id: 'visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: '{neighborhood}', copy: 'Oportunidade de bairro com preco objetivo pede agilidade. Agende a visita com a Vitra.', cta: 'Agendar visita' },
     ],
   },
   meninoDeus: {
@@ -635,6 +665,33 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026), versionada desde o inicio. Referencia visual do cliente (estrutura/conceito),
       // adaptada ao brandbook (navy + dourado, wordmark branco) e as safe zones do Meta nos 3 formatos.
       renderVersion: 'vitrine-gallery-approved-v1',
+    },
+    {
+      id: 'vitra-imobiliaria-oportunidade-bairro',
+      family: 'vitra-imobiliaria-oportunidade-bairro',
+      mode: 'single_family',
+      name: 'Oportunidade no bairro',
+      shortName: 'Oportunidade (aérea + blocos)',
+      bestFor: 'Oferta com foto aérea/hero e coluna de blocos navy (eyebrow + bairro em destaque + caixa de preço + tipologia + checklist de atributos) e galeria de 3 fotos emolduradas. Forte para localização + preço-âncora + atributos.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-10-oportunidade-1x1-sem-moldura.png',
+      fieldGroups: oportunidadeFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto aérea / hero (fundo)', multiple: false, required: true },
+        { id: 'living', label: 'Galeria 1 / lazer', multiple: false, required: true },
+        { id: 'infraestrutura', label: 'Galeria 2 / área comum', multiple: false, required: true },
+        { id: 'varanda', label: 'Galeria 3 / interior', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.oportunidadeBairro,
+      references: vitraImobiliariaReference('template-10-oportunidade'),
+      variableFields: ['photos', 'tag', 'headline', 'price', 'area', 'differentials'],
+      fixedBrandRules: ['aerial_hero', 'navy_blocks_column', 'approved_white_wordmark', 'gold_check_seals', 'framed_photo_gallery', 'meta_safe_zone'],
+      // Arte nova (junho/2026). Referencia visual do cliente (estrutura/conceito); checks adaptados ao dourado
+      // do brandbook (a referencia usa verde, fora da paleta). Versionada desde o inicio.
+      renderVersion: 'oportunidade-bairro-approved-v1',
     },
   ],
 }
