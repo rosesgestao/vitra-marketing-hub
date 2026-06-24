@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Template 09 "Vitrine alto padrão" (referência do cliente)
 
-> 9º template aprovado da Imobiliária, fiel ao conceito de uma referência visual fornecida. Na `main`. Commit: **<HASH>**.
+> 9º template aprovado da Imobiliária, fiel ao conceito de uma referência visual fornecida. Na `main`. Commit: **25f9061**.
 
 ## Conceito (da referência)
 Painel **navy com corte DIAGONAL à esquerda** (foto do prédio atrás) com wordmark + headline (Anton) +
