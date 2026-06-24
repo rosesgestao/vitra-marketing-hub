@@ -142,8 +142,8 @@
 let W=1080,H=1920,fmt='story';
 // Layout por formato (posições da máscara). 9:16 mantém as posições aprovadas; 4:5 é o novo formato.
 const LAYOUT={
-  story:{W:1080,H:1920,topGrad:540,botGrad:1060,brTop:256,brBot:1664,wmY:286,wmW:560,stampX:812,stampY:540,ruleY:1392,msgY:1490,msg2Y:1470,corOff:58,disp:304},
-  feed :{W:1080,H:1350,topGrad:360,botGrad:700, brTop:110,brBot:1240,wmY:150,wmW:540,stampX:812,stampY:352,ruleY:1130,msgY:1232,msg2Y:1208,corOff:54,disp:340},
+  story:{W:1080,H:1920,topGrad:540,botGrad:1000,brTop:256,brBot:1664,wmY:286,wmW:560,stampX:812,stampY:540,ruleY:1392,msgY:1490,msg2Y:1470,corOff:58,disp:304},
+  feed :{W:1080,H:1350,topGrad:360,botGrad:640, brTop:110,brBot:1240,wmY:150,wmW:540,stampX:812,stampY:352,ruleY:1130,msgY:1232,msg2Y:1208,corOff:54,disp:340},
 };
 let L=LAYOUT.story;
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
@@ -207,9 +207,10 @@ function drawMask(){
   let g=ctx.createLinearGradient(0,0,0,L.topGrad);g.addColorStop(0,'rgba(7,17,31,.80)');g.addColorStop(1,'rgba(7,17,31,0)');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,L.topGrad);
   ctx.fillStyle='rgba(196,148,42,.85)';ctx.fillRect(0,0,W,8);
-  // (3) degradê inferior ESCURO e SUAVE atrás da headline (fade longo, sem faixa rígida)
+  // (3) degradê inferior ESCURO atrás da headline — mais presente na faixa do texto p/ contraste, mas com
+  // fade longo e progressivo (sem faixa rígida). Começa mais cedo p/ já estar denso onde a headline fica.
   g=ctx.createLinearGradient(0,L.botGrad,0,H);
-  g.addColorStop(0,'rgba(5,11,20,0)');g.addColorStop(.45,'rgba(5,11,20,.26)');g.addColorStop(.78,'rgba(5,11,20,.58)');g.addColorStop(1,'rgba(5,11,20,.82)');
+  g.addColorStop(0,'rgba(5,11,20,0)');g.addColorStop(.30,'rgba(5,11,20,.40)');g.addColorStop(.55,'rgba(5,11,20,.70)');g.addColorStop(.80,'rgba(5,11,20,.88)');g.addColorStop(1,'rgba(5,11,20,.94)');
   ctx.fillStyle=g;ctx.fillRect(0,L.botGrad,W,H-L.botGrad);
   // colchetes (mantidos)
   bracket(70,L.brTop,1,1,70,4);bracket(W-70,L.brTop,-1,1,70,4);bracket(70,L.brBot,1,-1,70,4);bracket(W-70,L.brBot,-1,-1,70,4);
