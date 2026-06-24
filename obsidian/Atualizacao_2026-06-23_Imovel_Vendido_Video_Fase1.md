@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — "Imóvel Vendido" em VÍDEO (Fase 1, 9:16)
 
-> Versão em vídeo da prova social, processada no navegador. Na `main`. Commit: **<HASH>**.
+> Versão em vídeo da prova social, processada no navegador. Na `main`. Commit: **c611811**.
 > Base de decisão: [[Analise_Imovel_Vendido_Video]].
 
 ## Entregue
