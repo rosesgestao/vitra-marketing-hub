@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Template 10 "Oportunidade no bairro" (referência do cliente)
 
-> 10º template aprovado da Imobiliária, fiel ao conceito de uma referência visual fornecida. Na `main`. Commit: **<HASH>**.
+> 10º template aprovado da Imobiliária, fiel ao conceito de uma referência visual fornecida. Na `main`. Commit: **6f88e67**.
 
 ## Conceito (da referência)
 **Foto aérea/hero full-bleed** + **coluna de blocos navy à esquerda** (eyebrow "OPORTUNIDADE" + headline do
