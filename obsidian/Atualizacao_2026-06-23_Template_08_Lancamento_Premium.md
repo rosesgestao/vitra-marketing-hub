@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Lançamento Premium (preto+dourado), só na marca Vitra Premium
 
-> Versão Premium do Template 08, com a mesma densidade da v2 Imobiliária. Na `main`. Commit: **<HASH>**.
+> Versão Premium do Template 08, com a mesma densidade da v2 Imobiliária. Na `main`. Commit: **d200ad4**.
 
 ## Entregue
 Família **`vitra-premium-lancamento`** (single_family) **no array Premium do catálogo** → aparece **apenas
