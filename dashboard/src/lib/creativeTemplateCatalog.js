@@ -184,6 +184,24 @@ const lancamentoFieldGroups = [
   },
 ]
 
+// Template 09 (Vitrine alto padrão): painel navy diagonal à esquerda (foto do prédio atrás) com headline +
+// De/Por + checklist de selos-check + CTA pill clara; coluna de 3 fotos arredondadas à direita. Referência
+// visual fornecida pelo cliente (estrutura/conceito; sem copiar textos/logos). Safe zone do Meta.
+const vitrineFieldGroups = [
+  {
+    id: 'vitrine',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Edifício Aurora' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Quebra em ate 3 linhas brancas no painel. Ex: Alto padrão com 3 suítes.', placeholder: 'Ex: Alto padrão com 3 suítes', colSpan: 'full' },
+      { key: 'price_from', label: 'Valor de (riscado)', type: 'money', placeholder: 'Ex: R$ 990.000,00' },
+      { key: 'price', label: 'Valor por', type: 'money', required: true, placeholder: 'Ex: R$ 829.000,00' },
+      { key: 'differentials', label: 'Checklist (selos-check)', type: 'list', required: true, placeholder: 'À 5 min do Bourbon Wallig\nInfraestrutura completa\n117m² privativos\nEntrega em 2027\nCloset / 2 vagas / churrasqueira', helper: 'Ate 5 itens — incluir localização como um item. Cada um vira linha com selo-check dourado.', colSpan: 'full' },
+      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Clique abaixo e saiba mais', colSpan: 'full' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -295,6 +313,19 @@ const templateVariationContracts = {
       { id: 'condicoes', label: 'Condições de lançamento', phase: '2', angle: 'investimento', headline: '{product}: condições de lançamento', copy: 'Valores e condições de entrada exclusivos da fase de lancamento. Fale com a Vitra e simule.', cta: 'Receber condições' },
       { id: 'localizacao', label: 'Endereço em destaque', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Um lancamento no endereco que mais valoriza da regiao. Cadastre-se e acompanhe cada etapa.', cta: 'Conhecer a regiao' },
       { id: 'lista-vip', label: 'Lista VIP', phase: '3', angle: 'escassez', headline: 'Entre na lista VIP do lançamento', copy: 'Vagas limitadas: a lista VIP tem acesso antecipado a plantas, condicoes e melhores unidades.', cta: 'Entrar na lista VIP' },
+    ],
+  },
+  vitrineGallery: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem painel diagonal, De/Por, checklist de selos e galeria de 3 fotos; varia headline, preco, itens e fotos.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'diagonal_panel', 'check_seals', 'photo_gallery', 'cta_pill'],
+    mutableSlots: ['headline', 'tag', 'price', 'differentials', 'photos', 'cta'],
+    recipes: [
+      { id: 'alto-padrao', label: 'Alto padrão De/Por', phase: '1', angle: 'investimento', headline: '{headline_only}', copy: 'Preco de tabela e preco de oportunidade com os atributos de alto padrao que sustentam o valor.', cta: 'Clique abaixo e saiba mais' },
+      { id: 'checklist-completo', label: 'Checklist de atributos', phase: '2', angle: 'diferenciais', headline: '{headline_only}', copy: '{details}. Atributos e infraestrutura num quadro objetivo, com galeria do empreendimento.', cta: 'Receber mais informacoes' },
+      { id: 'localizacao-nobre', label: 'Localização nobre', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Endereco de referencia e infraestrutura completa. Veja a galeria e as condicoes com a Vitra.', cta: 'Conhecer a localizacao' },
+      { id: 'oportunidade', label: 'Oportunidade De/Por', phase: '2', angle: 'investimento', headline: 'Oportunidade por tempo limitado', copy: 'O comparativo De/Por deixa a vantagem explicita. Confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
+      { id: 'visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Agende sua visita ao decorado', copy: 'Imoveis de alto padrao com preco de oportunidade pedem decisao informada. Fale com a Vitra.', cta: 'Agendar visita' },
     ],
   },
   meninoDeus: {
@@ -577,6 +608,33 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // institucional + selo de lancamento + diferenciais com setas + "a partir de"/preco + CTA Lista VIP.
       // O bump forca o re-render dos PNGs ja em storage com a arte nova.
       renderVersion: 'lancamento-approved-v2',
+    },
+    {
+      id: 'vitra-imobiliaria-vitrine-gallery',
+      family: 'vitra-imobiliaria-vitrine-gallery',
+      mode: 'single_family',
+      name: 'Vitrine alto padrão',
+      shortName: 'Vitrine (painel + galeria)',
+      bestFor: 'Oferta de alto padrão com painel navy diagonal (headline + De/Por + checklist de selos + CTA) e galeria de 3 fotos do empreendimento à direita. Densa e moderna, para mostrar produto + diferenciais + preço de uma vez.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-09-vitrine-1x1-sem-moldura.png',
+      fieldGroups: vitrineFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto do prédio (painel)', multiple: false, required: true },
+        { id: 'living', label: 'Galeria 1 / lazer', multiple: false, required: true },
+        { id: 'infraestrutura', label: 'Galeria 2 / interior', multiple: false, required: true },
+        { id: 'varanda', label: 'Galeria 3 / suíte', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.vitrineGallery,
+      references: vitraImobiliariaReference('template-09-vitrine'),
+      variableFields: ['photos', 'headline', 'price_from', 'price', 'differentials', 'cta'],
+      fixedBrandRules: ['navy_diagonal_panel', 'approved_white_wordmark', 'gold_check_seals', 'price_de_por', 'photo_gallery_3', 'clear_cta_pill', 'meta_safe_zone'],
+      // Arte nova (junho/2026), versionada desde o inicio. Referencia visual do cliente (estrutura/conceito),
+      // adaptada ao brandbook (navy + dourado, wordmark branco) e as safe zones do Meta nos 3 formatos.
+      renderVersion: 'vitrine-gallery-approved-v1',
     },
   ],
 }

@@ -57,6 +57,7 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-duo-selos-offer",
   "vitra-imobiliaria-hero-panel-gallery",
   "vitra-imobiliaria-lancamento",
+  "vitra-imobiliaria-vitrine-gallery",
 ];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
@@ -1254,6 +1255,102 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
 </svg>`;
 }
 
+// ===== Template 09: Vitrine alto padrão (painel diagonal + De/Por + checklist + galeria 3 fotos) =====
+// Conceito (referência fornecida): painel navy com CORTE DIAGONAL à esquerda (foto do prédio atrás) com
+// wordmark + headline + De/Por + checklist de selos-check + CTA pill clara; à direita, coluna de 3 fotos
+// arredondadas sobre fundo off-white. Composição própria por formato. Safe zone do Meta aplicada.
+function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+
+  const headline = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
+  const parts = priceParts(pd.price || campaign?.offer || "");
+  const priceFrom = String(pd.price_from || parts.from || "").replace(/^de\s*:?\s*/i, "").trim();
+  const priceTo = formatMoneyLike(parts.to || pd.price || "") || "Consulte";
+  const bullets = heroChecklistBullets(pd, campaign, isWide ? 4 : 5);
+
+  const L = isStory ? {
+    split: [720, 640], gallery: [716, 300, 300, [300, 676, 1052], 360, 18],
+    wm: [88, 300, 150], headX: 88, headY: 470, headGap: 92, headSize: 86, headBudget: 540,
+    tagY: 400, tagSize: 22,
+    deY: 660, deSize: 32, porY: 730, porSize: 60,
+    bulletsY: 858, bulletStep: 78, bulletSize: 31, badge: 38, bulletX: 150, bulletChars: 32,
+    cta: [88, 1320, 540, 96, 48], ctaSize: 31,
+  } : isWide ? {
+    split: [806, 770], gallery: [820, 292, 64, [64, 248, 432], 168, 14],
+    wm: [96, 70, 140], headX: 96, headY: 150, headGap: 56, headSize: 50, headBudget: 600,
+    tagY: 116, tagSize: 16,
+    deY: 244, deSize: 19, porY: 286, porSize: 36,
+    bulletsY: 346, bulletStep: 42, bulletSize: 18, badge: 24, bulletX: 150, bulletChars: 30,
+    cta: [96, 500, 380, 54, 27], ctaSize: 19,
+  } : {
+    split: [668, 600], gallery: [694, 312, 694, [104, 392, 680], 280, 20],
+    wm: [82, 90, 158], headX: 82, headY: 206, headGap: 80, headSize: 80, headBudget: 500,
+    tagY: 150, tagSize: 20,
+    deY: 372, deSize: 30, porY: 436, porSize: 56,
+    bulletsY: 540, bulletStep: 62, bulletSize: 27, badge: 32, bulletX: 138, bulletChars: 34,
+    cta: [82, 812, 470, 76, 38], ctaSize: 27,
+  };
+
+  const [splitTop, splitBot] = L.split;
+  const [gx, gw, , gys, gh, grx] = L.gallery as [number, number, number, number[], number, number];
+  const x = L.headX;
+
+  // Defs: painel navy + clip do painel diagonal (esquerda) + clips das fotos da galeria.
+  const galClips = (gys as number[]).map((gy, i) => `<clipPath id="${idBase}-g${i}"><rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="${grx}" ry="${grx}"/></clipPath>`).join("");
+  const photoDefs = `<clipPath id="${idBase}-panel"><polygon points="0,0 ${splitTop},0 ${splitBot},${H} 0,${H}"/></clipPath>`
+    + `<linearGradient id="${idBase}-panel-grad" x1="0" y1="0" x2="0.8" y2="1"><stop offset="0%" stop-color="#13294C"/><stop offset="55%" stop-color="#0A1628"/><stop offset="100%" stop-color="#07111F"/></linearGradient>`
+    + galClips;
+
+  // Painel: foto do prédio (atrás, sutil) clipada ao polígono + véu navy por cima.
+  const heroBehind = images[0]
+    ? `<image href="${esc(images[0])}" x="0" y="0" width="${Math.round(W * 0.7)}" height="${H}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${idBase}-panel)"/>`
+    : "";
+  const panel = `${heroBehind}<polygon points="0,0 ${splitTop},0 ${splitBot},${H} 0,${H}" fill="url(#${idBase}-panel-grad)" opacity="0.9"/>`;
+
+  // Galeria à direita (3 fotos arredondadas; usa images[1..3], fallback hero).
+  const gallery = (gys as number[]).map((gy, i) => duoSelosPhoto(images[i + 1] || images[0], `${idBase}-g${i}`, gx, gy, gw, gh, grx)).join("");
+
+  // Conteúdo (esquerda).
+  const lines = wrapText(headline, isWide ? 22 : 16, 3);
+  const headLines = lines.map((line, i) => textLine(x, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 30, L.headBudget, 0.79), weight: 400 })).join("");
+
+  const deLine = priceFrom
+    ? textLine(x, L.deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: GOLD_LIGHT, family: "Poppins", size: L.deSize, weight: 600, decoration: "line-through" })
+    : "";
+  const porSize = fitDisplaySize(`Por ${priceTo}`, L.porSize, Math.round(L.porSize * 0.6), L.cta[2] + 80, 0.84);
+  const porLine = `<text x="${x}" y="${L.porY}" text-anchor="start" font-family="Poppins" font-size="${porSize}" font-weight="800"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${GOLD_LIGHT}">${esc(priceTo)}</tspan></text>`;
+
+  const bulletRows = bullets.map((item, i) => {
+    const by = L.bulletsY + i * L.bulletStep;
+    return `${heroChecklistBadge(x, by - Math.round(L.bulletSize * 0.35 + L.badge / 2), L.badge)}
+    ${textLine(L.bulletX, by, compactText(item, L.bulletChars), { anchor: "start", fill: "#FAFAF8", family: "Poppins", size: L.bulletSize, weight: 500 })}`;
+  }).join("");
+
+  // CTA pill CLARA (fundo off-white, texto navy) — fiel à referência.
+  const [ctaX, ctaY, ctaW, ctaH, ctaRx] = L.cta;
+  const ctaSize = fitDisplaySize(compactText(asset.cta || "Clique abaixo e saiba mais", 40), L.ctaSize, 14, ctaW - Math.round(ctaH * 0.9), 0.90);
+  const ctaText = compactText(asset.cta || "Clique abaixo e saiba mais", 40);
+  const ctaBlock = `<rect x="${ctaX}" y="${ctaY}" width="${ctaW}" height="${ctaH}" rx="${ctaRx}" fill="${OFF_WHITE}"/>
+  ${textLine(ctaX + ctaW / 2, ctaY + ctaH / 2 + Math.round(ctaSize * 0.36), ctaText, { fill: "#0A1628", family: "Poppins", size: ctaSize, weight: 700 })}`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${baseDefs(idBase, photoDefs)}
+  <rect width="${W}" height="${H}" fill="${OFF_WHITE}"/>
+  ${panel}
+  ${gallery}
+  <svg x="${L.wm[0]}" y="${L.wm[1]}" width="${L.wm[2]}" height="${Math.round(L.wm[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  ${headLines}
+  ${deLine}
+  ${porLine}
+  ${bulletRows}
+  ${ctaBlock}
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+</svg>`;
+}
+
 function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
@@ -1282,6 +1379,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-duo-selos-offer") return buildVitraDuoSelosSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-vitrine-gallery") return buildVitraVitrineSvg(asset, campaign, images, W, H, brandProfile, idBase);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -1433,6 +1531,8 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       const imageData: Array<string | null> = [];
       const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist" || templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento"
         ? 1
+        : templateFamily === "vitra-imobiliaria-vitrine-gallery"
+          ? 4
         : templateFamily === "vitra-imobiliaria-financiamento-orla" || templateFamily === "vitra-imobiliaria-patios-gallery" || templateFamily === "vitra-imobiliaria-hero-panel-gallery"
           ? 3
           : 2;
