@@ -330,6 +330,38 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       variableFields: ['photos', 'headline', 'copy', 'differentials', 'cta'],
       fixedBrandRules: ['black_gold', 'premium_positioning', 'editorial_hierarchy'],
     },
+    {
+      id: 'vitra-premium-lancamento',
+      family: 'vitra-premium-lancamento',
+      mode: 'single_family',
+      name: 'Lançamento / Pré-lançamento',
+      shortName: 'Lançamento Premium (teaser)',
+      bestFor: 'Teaser editorial de lançamento de alto padrão (preto + dourado): foto hero + painel preto institucional com selo de lançamento, headline + destaque dourado, diferenciais com setas, "a partir de" e CTA Lista VIP. Topo de funil com exclusividade — capta interessados antes do lancamento.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-premium/template-08-lancamento-premium-1x1-sem-moldura.png',
+      fieldGroups: lancamentoFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto hero (única)', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.lancamento,
+      references: {
+        [TEMPLATE_FRAME_VARIANTS.noFrame]: [
+          '/generated/vitra-premium/template-08-lancamento-premium-1x1-sem-moldura.png',
+          '/generated/vitra-premium/template-08-lancamento-premium-9x16-sem-moldura.png',
+          '/generated/vitra-premium/template-08-lancamento-premium-1-91x1-sem-moldura.png',
+        ],
+        [TEMPLATE_FRAME_VARIANTS.goldFrame]: [
+          '/generated/vitra-premium/template-08-lancamento-premium-1x1-com-moldura.png',
+          '/generated/vitra-premium/template-08-lancamento-premium-9x16-com-moldura.png',
+          '/generated/vitra-premium/template-08-lancamento-premium-1-91x1-com-moldura.png',
+        ],
+      },
+      variableFields: ['photos', 'tag', 'headline', 'destaque', 'differentials', 'price', 'cta'],
+      fixedBrandRules: ['black_gold', 'premium_institutional_panel', 'gold_launch_seal', 'gold_arrow_list', 'gold_cta_pill', 'meta_safe_zone'],
+    },
   ],
   [BRAND_SCOPES.imobiliaria]: [
     {

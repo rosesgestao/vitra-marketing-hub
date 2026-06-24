@@ -23,12 +23,12 @@ import {
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION as EDGE_RENDER_VERSION } from '../../../../supabase/functions/_shared/renderVersions.ts'
 
 describe('catalogo de templates por marca', () => {
-  it('Imobiliaria tem 8 templates aprovados e Premium tem 1', () => {
+  it('Imobiliaria tem 8 templates aprovados e Premium tem 2', () => {
     expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(8)
-    expect(creativeTemplatesForBrand(BRAND_SCOPES.premium)).toHaveLength(1)
+    expect(creativeTemplatesForBrand(BRAND_SCOPES.premium)).toHaveLength(2)
   })
   it('marca desconhecida cai no catalogo Premium', () => {
-    expect(creativeTemplatesForBrand('marca-inexistente')).toHaveLength(1)
+    expect(creativeTemplatesForBrand('marca-inexistente')).toHaveLength(2)
   })
 })
 

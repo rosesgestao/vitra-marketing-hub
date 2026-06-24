@@ -259,6 +259,17 @@ function isVitraImobiliariaTemplate(key: string, brandProfile: ReturnType<typeof
   return brandProfile.scope === "vitra_imobiliaria" && isVitraImobiliariaTemplateKey(key);
 }
 
+// Famílias Premium que usam o motor SVG-direto (mesma densidade dos aprovados da Imob, paleta preto+dourado).
+// Ficam fora de VITRA_IMOBILIARIA_TEMPLATE_FAMILIES (que infere escopo imobiliaria); o palette vem do
+// brandProfile (escopo da campanha/asset = premium).
+const PREMIUM_DIRECT_SVG_FAMILIES = ["vitra-premium-lancamento"];
+function isDirectSvgTemplateKey(key: string) {
+  return isVitraImobiliariaTemplateKey(key) || PREMIUM_DIRECT_SVG_FAMILIES.includes(templateFamilyFromKey(key));
+}
+function usesDirectSvgTemplate(key: string, brandProfile: ReturnType<typeof brandRenderProfile>) {
+  return isVitraImobiliariaTemplate(key, brandProfile) || PREMIUM_DIRECT_SVG_FAMILIES.includes(templateFamilyFromKey(key));
+}
+
 function esc(value: unknown) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -387,7 +398,7 @@ function approvedDescription(pd: any, asset: any) {
 
 function modelKey(asset: any): string {
   const key = asset?.metadata?.visual_template?.key || asset?.template_key || "premium-editorial-panel";
-  return MODEL_LABEL[key] || isVitraImobiliariaTemplateKey(key) ? key : "premium-editorial-panel";
+  return MODEL_LABEL[key] || isDirectSvgTemplateKey(key) ? key : "premium-editorial-panel";
 }
 
 function productFeatures(productData: any, campaign: any, max = 4): string[] {
@@ -956,6 +967,9 @@ function ctaBlockForHeroChecklist(x: number, y: number, w: number, h: number, rx
 // Wordmark VITRA so com o texto branco (sem hexagono), para o topo direito do hero-checklist.
 // Usado lazy dentro de buildVitraHeroChecklistSvg (declaracao apos a funcao e segura em runtime).
 const VITRA_WORDMARK_WHITE = `<text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/>`;
+// Wordmark Premium (VITR▲ branco + "PREMIUM" dourado embaixo), sem hexagono — para o topo das pecas Premium
+// renderizadas pelo motor SVG-direto. viewBox alto o suficiente para incluir a linha PREMIUM (y~71).
+const VITRA_WORDMARK_PREMIUM = `${VITRA_WORDMARK_WHITE}<text x="122.5" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6" fill="#C4942A">PREMIUM</text>`;
 
 // ===== Template 06: duo-selos (Zona Norte / Isla) =====
 // Referencia aprovada: criativos-aprovados-vitra-imobiliaria/2fe17ff8 (feed) e f38e4f2b (story).
@@ -1155,6 +1169,15 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
   const isWide = W > H * 1.35;
+  // Brand-aware: Imobiliária = painel azul→navy + wordmark VITRA; Premium = preto+dourado + wordmark PREMIUM.
+  const isPrem = brandProfile.scope === "vitra_premium";
+  const wm = isPrem ? VITRA_WORDMARK_PREMIUM : VITRA_WORDMARK_WHITE;
+  const wmVB = isPrem ? "118 24 184 52" : "133 26 136 25";
+  const wmAR = isPrem ? 52 / 184 : 25 / 136;
+  const bgFill = isPrem ? "#050505" : `url(#${idBase}-bg)`;
+  const panelStops = isPrem
+    ? `<stop offset="0%" stop-color="#241803"/><stop offset="55%" stop-color="#0B0B0B"/><stop offset="100%" stop-color="#000000"/>`
+    : `<stop offset="0%" stop-color="#0F2140"/><stop offset="55%" stop-color="#0A1628"/><stop offset="100%" stop-color="#07111F"/>`;
 
   const selo = compactText((pd.tagline || "Lançamento").toString().toUpperCase(), 16);
   const headline = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
@@ -1185,10 +1208,10 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
   };
 
   const x = L.headX;
-  const [wmX, wmY, wmW] = L.wordmark; const wmH = Math.round(wmW * 25 / 136);
+  const [wmX, wmY, wmW] = L.wordmark; const wmH = Math.round(wmW * wmAR);
   const [px, py, pw, ph] = L.panel;
   const photoDefs = `<clipPath id="${idBase}-hero"><rect x="${L.hero[0]}" y="${L.hero[1]}" width="${L.hero[2]}" height="${L.hero[3]}"/></clipPath>`
-    + `<linearGradient id="${idBase}-panel" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#0F2140"/><stop offset="55%" stop-color="#0A1628"/><stop offset="100%" stop-color="#07111F"/></linearGradient>`;
+    + `<linearGradient id="${idBase}-panel" x1="0" y1="0" x2="0.6" y2="1">${panelStops}</linearGradient>`;
 
   // Selo de lançamento (pill dourado + texto navy).
   const [seloX, seloY, seloH, seloSize] = L.selo;
@@ -1217,10 +1240,10 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
-  <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
+  <rect width="${W}" height="${H}" fill="${bgFill}"/>
   ${duoSelosPhoto(images[0], `${idBase}-hero`, L.hero[0], L.hero[1], L.hero[2], L.hero[3], 0)}
   <rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="url(#${idBase}-panel)"/>
-  <svg x="${wmX}" y="${wmY}" width="${wmW}" height="${wmH}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  <svg x="${wmX}" y="${wmY}" width="${wmW}" height="${wmH}" viewBox="${wmVB}">${wm}</svg>
   ${seloPill}
   ${headLines}
   ${destaqueLine}
@@ -1258,7 +1281,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-hero-checklist") return buildVitraHeroChecklistSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-duo-selos-offer") return buildVitraDuoSelosSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -1396,7 +1419,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
   const templateFamily = templateFamilyFromKey(model);
   const ar = (asset.aspect_ratio || "1:1").toString();
   const base = DIMS[ar] || DIMS["1:1"];
-  const useApprovedVitraTemplate = isVitraImobiliariaTemplate(model, brandProfile);
+  const useApprovedVitraTemplate = usesDirectSvgTemplate(model, brandProfile);
   const premiumS = premiumScale(base[1] > base[0] * 1.25); // 9:16 (tall) usa o teto SCALE_TALL
   const W = useApprovedVitraTemplate ? base[0] : Math.round(base[0] * premiumS);
   const H = useApprovedVitraTemplate ? base[1] : Math.round(base[1] * premiumS);
@@ -1408,7 +1431,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       step = "load_template_images";
       const imageUrls = imageUrlsForApprovedTemplate(asset, campaign);
       const imageData: Array<string | null> = [];
-      const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist" || templateFamily === "vitra-imobiliaria-lancamento"
+      const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist" || templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento"
         ? 1
         : templateFamily === "vitra-imobiliaria-financiamento-orla" || templateFamily === "vitra-imobiliaria-patios-gallery" || templateFamily === "vitra-imobiliaria-hero-panel-gallery"
           ? 3
