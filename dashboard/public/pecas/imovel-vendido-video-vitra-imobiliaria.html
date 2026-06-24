@@ -98,6 +98,7 @@
           <option>Vendido pela Vitra Imobiliária</option>
           <option>Mais uma negociação concluída</option>
           <option>Mais um sonho realizado</option>
+          <option>Temos essa mania de realizar sonhos</option>
         </select>
         <label style="margin-top:9px">Nome do corretor (opcional)</label>
         <input type="text" id="corretor" placeholder="Ex: João Silva" oninput="onText()">
@@ -225,7 +226,7 @@ function drawMask(){
   ctx.font='800 '+fs+'px Inter';lines.forEach((ln,i)=>ctx.fillText(ln,cx,y+i*(fs+8)));
   const by=y+(lines.length-1)*(fs+8)+L.corOff;
   if(corretor.trim()){ctx.fillStyle='#F0C95C';ctx.font='600 30px Inter';ls('1px');
-    ctx.fillText('Vendido por '+corretor.trim(),cx,by);ls('0px');}
+    ctx.fillText('Mais um por '+corretor.trim(),cx,by);ls('0px');}
 }
 function setFmt(f){
   if(exporting)return;fmt=f;L=LAYOUT[f];W=L.W;H=L.H;cv.width=W;cv.height=H;
