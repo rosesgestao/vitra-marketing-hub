@@ -1551,9 +1551,11 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
       ${txt}`;
   }).join("");
 
-  // Card de preço (branco, valor em dourado) — ocupa a largura da coluna; o valor preenche o card.
+  // Card de preço (branco, valor em dourado) — ocupa a largura da coluna; o valor preenche o card sem
+  // estourar. Fator conservador (1.0) + padding maior: o estimador (Inter caixa-alta) subdimensiona o
+  // Poppins nesse corpo grande, entao orçamos com folga para o valor caber dentro do retângulo.
   const [pX, pY, pW, pH, pRx, pSize] = L.price;
-  const pFit = fitDisplaySize(price, pSize, 24, pW - 48, 0.84);
+  const pFit = fitDisplaySize(price, pSize, 24, pW - 72, 1.0);
   const priceCard = `<rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" rx="${pRx}" fill="#FFFFFF"/>
     ${textLine(pX + Math.round(pW * 0.5), pY + pH / 2 + Math.round(pFit * 0.34), price, { fill: GOLD, family: "Poppins", size: pFit, weight: 700 })}`;
 
