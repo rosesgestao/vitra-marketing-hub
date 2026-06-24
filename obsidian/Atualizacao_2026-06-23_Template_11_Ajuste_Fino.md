@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Template 11: ajuste fino (preço full-width + remoção de telefone/site)
 
-> Ajustes visuais a partir das marcações do cliente. Na `main`. Commit: **<HASH>**.
+> Ajustes visuais a partir das marcações do cliente. Na `main`. Commit: **5ba6897**.
 
 ## Ajustes (só os elementos marcados)
 - **Card de preço → largura total da coluna**, com o valor preenchendo o card (fit pelo tamanho real):
