@@ -33,6 +33,19 @@ export const PECAS_PLATFORMS = [
           [BRAND_SCOPES.premium]: 'imovel-vendido-institucional-vitra-premium.html',
         },
       },
+      {
+        id: 'imovel-vendido-video',
+        label: 'Imóvel Vendido (vídeo)',
+        status: PECA_STATUS.available,
+        w: 1080,
+        h: 1920,
+        ratio: '9:16 · vídeo',
+        safeArea: 'topo ~250px · base ~420px (UI de Reels/Stories)',
+        note: 'Versão em VÍDEO: suba o clipe do corretor tocando o sino e a máscara navy+dourado é aplicada por cima sem cobrir o centro. Corte início/fim, enquadramento (zoom/arraste), áudio original + trilha opcional, capa PNG e export 9:16 (Reels · Stories · WhatsApp Status). Processamento no navegador. Imobiliária.',
+        variants: {
+          [BRAND_SCOPES.imobiliaria]: 'imovel-vendido-video-vitra-imobiliaria.html',
+        },
+      },
     ],
   },
   {

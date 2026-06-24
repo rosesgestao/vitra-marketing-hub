@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VITRA IMOBILIÁRIA — Imóvel Vendido (vídeo) · 9:16</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--navy:#0A1628;--navy2:#0F2140;--gold:#C4942A;--gold-light:#F0C95C;
+    --white:#FFFFFF;--off:#F5F5F0;--font:'Inter',sans-serif}
+  body{background:#0c1422;color:#fff;font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px 16px 60px}
+  h1{font-size:16px;font-weight:700;letter-spacing:.3px}
+  h1 b{color:var(--gold-light)}
+  .wrap{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;align-items:flex-start;max-width:1080px;width:100%}
+  .panel{display:flex;flex-direction:column;gap:12px;width:340px}
+  .group{background:#0f1c30;border:1px solid #20304a;border-radius:12px;padding:12px}
+  .group h3{font-size:11px;letter-spacing:.5px;color:#9fb0c8;text-transform:uppercase;margin-bottom:9px;font-weight:700}
+  label{font-size:11px;color:#9fb0c8;display:block;margin-bottom:4px}
+  select,button,input[type=text]{font-family:var(--font);font-weight:600;font-size:13px;border:1px solid #2a3c59;border-radius:9px;padding:9px 11px;background:#11233d;color:var(--off);cursor:pointer;transition:.15s;width:100%}
+  input[type=text]{cursor:text}
+  button:hover{border-color:var(--gold)}
+  button.primary{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
+  button.primary:hover{background:var(--gold-light)}
+  button.ghost{background:#11233d}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#11233d;border:1px solid #2a3c59;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:600}
+  .sw{width:42px;height:24px;border-radius:13px;background:#2a3c59;position:relative;transition:.15s;flex:0 0 auto;cursor:pointer}
+  .sw.on{background:var(--gold)}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+  .sw.on::after{left:21px}
+  input[type=range]{width:100%;accent-color:var(--gold);cursor:pointer}
+  .times{display:flex;justify-content:space-between;font-size:11px;color:#9fb0c8;margin-top:2px}
+  .stagewrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .canvas-shell{position:relative;width:304px;height:540px;border-radius:14px;overflow:hidden;border:1px solid #20304a;background:#07111F;box-shadow:0 16px 50px rgba(0,0,0,.45)}
+  #cv{width:304px;height:540px;display:block;touch-action:none;cursor:grab}
+  #cv.drag{cursor:grabbing}
+  .play{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(10,22,40,.82);border:1px solid var(--gold);border-radius:30px;padding:8px 18px;font-size:12px;font-weight:700;color:var(--gold-light)}
+  .hint{font-size:11.5px;color:#8395ac;max-width:340px;line-height:1.5;text-align:center}
+  .status{font-size:12px;min-height:18px;text-align:center;font-weight:600}
+  .status.ok{color:#6ee7a8}.status.err{color:#ff8585}.status.busy{color:var(--gold-light)}
+  .drop{border:1.5px dashed #2a3c59;border-radius:12px;padding:22px 12px;text-align:center;font-size:13px;color:#9fb0c8;cursor:pointer}
+  .drop:hover{border-color:var(--gold)}
+</style>
+</head>
+<body>
+  <h1>Imóvel Vendido — <b>vídeo</b> · 9:16 (Reels · Stories · Status)</h1>
+
+  <div class="wrap">
+    <!-- ESQUERDA: preview -->
+    <div class="stagewrap">
+      <div class="canvas-shell">
+        <canvas id="cv" width="1080" height="1920"></canvas>
+        <button class="play" id="play" onclick="togglePlay()" style="display:none">▶ Reproduzir</button>
+      </div>
+      <p class="status" id="status">Suba o vídeo do corretor tocando o sino 🔔</p>
+      <p class="hint">A máscara da marca é aplicada por cima e <b>não cobre o centro</b> (corretor/sino). Arraste no preview para reposicionar; use o zoom para enquadrar. Áreas de segurança do 9:16 respeitadas.</p>
+    </div>
+
+    <!-- DIREITA: controles -->
+    <div class="panel">
+      <div class="group">
+        <h3>1 · Vídeo</h3>
+        <div class="drop" id="drop" onclick="document.getElementById('vf').click()">📹 Clique para enviar o vídeo<br><span style="font-size:11px;color:#6f819a">MP4/MOV/WebM · até 60s · até 150 MB</span></div>
+        <input id="vf" type="file" accept="video/*" style="display:none" onchange="loadVideo(event)">
+      </div>
+
+      <div class="group">
+        <h3>2 · Cortar (início e fim)</h3>
+        <label>Início: <b id="tInLbl">0,0s</b></label>
+        <input type="range" id="tIn" min="0" max="60" step="0.05" value="0" oninput="onTrim()">
+        <label style="margin-top:8px">Fim: <b id="tOutLbl">0,0s</b></label>
+        <input type="range" id="tOut" min="0" max="60" step="0.05" value="0" oninput="onTrim()">
+        <div class="times"><span id="durLbl">—</span><span id="selLbl">seleção: 0,0s</span></div>
+      </div>
+
+      <div class="group">
+        <h3>3 · Enquadramento</h3>
+        <label>Zoom: <b id="zLbl">100%</b></label>
+        <input type="range" id="zoom" min="1" max="2.5" step="0.01" value="1" oninput="onZoom()">
+        <div class="row" style="margin-top:8px"><button class="ghost" onclick="resetFrame()">↺ Centralizar</button></div>
+      </div>
+
+      <div class="group">
+        <h3>4 · Marca & textos</h3>
+        <label>Mensagem</label>
+        <select id="msg" onchange="onMsg()">
+          <option>Mais um imóvel vendido</option>
+          <option>Vendido pela Vitra Imobiliária</option>
+          <option>Mais uma negociação concluída</option>
+          <option>Mais um sonho realizado</option>
+        </select>
+        <label style="margin-top:9px">Nome do corretor (opcional)</label>
+        <input type="text" id="corretor" placeholder="Ex: João Silva" oninput="onText()">
+      </div>
+
+      <div class="group">
+        <h3>5 · Áudio</h3>
+        <div class="toggle">Áudio original<div class="sw on" id="swOrig" onclick="toggleOrig()"></div></div>
+        <div style="margin-top:8px">
+          <div class="row"><button class="ghost" onclick="document.getElementById('mf').click()">🎵 Trilha</button><button class="ghost" onclick="clearMusic()">Remover</button></div>
+          <input id="mf" type="file" accept="audio/*" style="display:none" onchange="loadMusic(event)">
+          <label style="margin-top:8px">Volume da trilha: <b id="mvLbl">60%</b></label>
+          <input type="range" id="mvol" min="0" max="1" step="0.01" value="0.6" oninput="onMvol()" disabled>
+          <p class="hint" style="margin-top:6px;text-align:left">Use trilha livre de direitos. A trilha é <b>mixada</b> com o áudio original.</p>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>6 · Exportar</h3>
+        <button class="primary" id="btnExp" onclick="exportVideo()" disabled>⬇ Baixar vídeo 9:16</button>
+        <div class="row" style="margin-top:8px"><button class="ghost" id="btnCover" onclick="exportCover()" disabled>🖼 Baixar capa (PNG)</button></div>
+        <p class="hint" style="margin-top:8px;text-align:left">A gravação roda em tempo real (a duração da seleção). Para <b>WhatsApp Status</b> mantenha ≤ 30s. O container preferido é MP4; se o navegador não suportar, sai WebM.</p>
+      </div>
+    </div>
+  </div>
+
+  <video id="vid" playsinline crossorigin="anonymous" style="display:none"></video>
+  <audio id="mus" loop crossorigin="anonymous" style="display:none"></audio>
+
+<script>
+const W=1080,H=1920;
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const vid=document.getElementById('vid'), mus=document.getElementById('mus');
+const els={};['status','play','tIn','tOut','tInLbl','tOutLbl','durLbl','selLbl','zoom','zLbl','msg','corretor','mvol','mvLbl','btnExp','btnCover','swOrig','drop'].forEach(id=>els[id]=document.getElementById(id));
+
+let loaded=false, playing=false, exporting=false;
+let dur=0, tIn=0, tOut=0, zoom=1, panX=0, panY=0;
+let origOn=true, musicOn=false, musicVol=0.6, hasMusic=false;
+let msg='Mais um imóvel vendido', corretor='';
+
+// ---------- util ----------
+const fmtT=s=>s.toFixed(1).replace('.',',')+'s';
+function setStatus(t,k){els.status.textContent=t;els.status.className='status'+(k?' '+k:'');}
+function poly(p,fill,stroke,sw){ctx.beginPath();p.forEach((pt,i)=>i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]));ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();}}
+
+// ---------- monograma + selo + máscara (canvas nativo p/ usar as fontes da marca) ----------
+function monogram(cx,cy,size){
+  const s=size/100, ox=cx-50*s, oy=cy-50*s, M=(px,py)=>[ox+px*s,oy+py*s];
+  poly([[50,4],[90,27],[90,73],[50,96],[10,73],[10,27]].map(p=>M(p[0],p[1])),null,'#C4942A',3*s);
+  poly([[20,33],[34,33],[27,50]].map(p=>M(p[0],p[1])),'#8EC4F0');
+  poly([[20,33],[27,50],[50,72]].map(p=>M(p[0],p[1])),'#1B3A6B');
+  poly([[34,33],[27,50],[50,72]].map(p=>M(p[0],p[1])),'#2E6BB5');
+  poly([[80,33],[66,33],[73,50]].map(p=>M(p[0],p[1])),'#F0C95C');
+  poly([[80,33],[73,50],[50,72]].map(p=>M(p[0],p[1])),'#9B7A1C');
+  poly([[66,33],[73,50],[50,72]].map(p=>M(p[0],p[1])),'#D4A84A');
+}
+function bracket(x,y,dx,dy,len,w){ctx.strokeStyle='#C4942A';ctx.lineWidth=w;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+dx*len,y);ctx.moveTo(x,y);ctx.lineTo(x,y+dy*len);ctx.stroke();}
+
+function drawMask(){
+  // faixa superior (navy -> transparente)
+  let g=ctx.createLinearGradient(0,0,0,540);g.addColorStop(0,'rgba(7,17,31,.92)');g.addColorStop(1,'rgba(7,17,31,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,540);
+  // faixa inferior (transparente -> navy)
+  g=ctx.createLinearGradient(0,1340,0,H);g.addColorStop(0,'rgba(7,17,31,0)');g.addColorStop(1,'rgba(7,17,31,.96)');
+  ctx.fillStyle=g;ctx.fillRect(0,1340,W,H-1340);
+  // régua dourada topo
+  ctx.fillStyle='rgba(196,148,42,.85)';ctx.fillRect(0,0,W,8);
+  // cantos (dentro da área segura)
+  bracket(70,256,1,1,70,4);bracket(1010,256,-1,1,70,4);bracket(70,1664,1,-1,70,4);bracket(1010,1664,-1,-1,70,4);
+
+  // logo (monograma + wordmark) topo-esquerda
+  monogram(150,330,118);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#FFFFFF';ctx.font='700 50px Inter';try{ctx.letterSpacing='7px'}catch(e){}
+  ctx.fillText('VITRA',228,346);
+  ctx.fillStyle='#C4942A';ctx.font='700 18px Inter';try{ctx.letterSpacing='8px'}catch(e){}
+  ctx.fillText('IMOBILIÁRIA',230,384);
+  try{ctx.letterSpacing='0px'}catch(e){}
+
+  // selo VENDIDO topo-direita
+  const sx=900,sy=372,r=110;
+  ctx.strokeStyle='rgba(196,148,42,.9)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(sx,sy,r,0,7);ctx.stroke();
+  ctx.strokeStyle='rgba(196,148,42,.4)';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(sx,sy,r-16,0,7);ctx.stroke();
+  monogram(sx,sy-30,52);
+  ctx.textAlign='center';ctx.fillStyle='#F0C95C';ctx.font='800 30px Inter';try{ctx.letterSpacing='5px'}catch(e){}
+  ctx.fillText('VENDIDO',sx+2,sy+40);
+  ctx.fillStyle='rgba(255,255,255,.6)';ctx.font='600 12px Inter';try{ctx.letterSpacing='3px'}catch(e){}
+  ctx.fillText('VITRA IMOBILIÁRIA',sx,sy+66);try{ctx.letterSpacing='0px'}catch(e){}
+
+  // bloco inferior: régua + mensagem + corretor (centralizado, dentro da safe)
+  ctx.fillStyle='#C4942A';ctx.fillRect(W/2-60,1392,120,3);
+  ctx.textAlign='center';ctx.fillStyle='#FFFFFF';
+  const lines=wrap(msg,18);
+  let fs=lines.length>1?58:66;ctx.font='800 '+fs+'px Inter';
+  let y=lines.length>1?1470:1490;
+  lines.forEach((ln,i)=>ctx.fillText(ln,W/2,y+i*(fs+8)));
+  let by=y+(lines.length-1)*(fs+8)+58;
+  if(corretor.trim()){ctx.fillStyle='#F0C95C';ctx.font='600 30px Inter';try{ctx.letterSpacing='1px'}catch(e){}
+    ctx.fillText('Vendido por '+corretor.trim(),W/2,by);try{ctx.letterSpacing='0px'}catch(e){}}
+}
+function wrap(t,max){const w=t.split(/\s+/);const out=[];let l='';for(const x of w){if((l+' '+x).trim().length>max&&l){out.push(l);l=x;}else l=(l?l+' ':'')+x;}if(l)out.push(l);return out.slice(0,2);}
+
+// ---------- desenho do frame de vídeo (cover + zoom + pan) ----------
+function drawVideo(){
+  ctx.fillStyle='#07111F';ctx.fillRect(0,0,W,H);
+  if(loaded&&vid.videoWidth){
+    const base=Math.max(W/vid.videoWidth,H/vid.videoHeight),s=base*zoom;
+    const dw=vid.videoWidth*s,dh=vid.videoHeight*s;
+    const dx=(W-dw)/2+panX,dy=(H-dh)/2+panY;
+    try{ctx.drawImage(vid,dx,dy,dw,dh);}catch(e){}
+  } else {
+    // placeholder p/ pré-visualizar a máscara sem vídeo
+    const g=ctx.createRadialGradient(W/2,820,80,W/2,820,900);g.addColorStop(0,'#16314f');g.addColorStop(1,'#0A1628');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,.22)';ctx.textAlign='center';ctx.font='600 38px Inter';
+    ctx.fillText('🔔 prévia da máscara', W/2, 900);
+    ctx.font='400 24px Inter';ctx.fillText('suba o vídeo para ver o resultado', W/2, 950);
+  }
+}
+function render(){
+  drawVideo();drawMask();
+  if(playing&&!vid.paused&&vid.currentTime>=tOut){ if(exporting){stopExport();} else {vid.currentTime=tIn;} }
+  requestAnimationFrame(render);
+}
+
+// ---------- upload / validação ----------
+function loadVideo(ev){
+  const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  if(f.size>150*1024*1024){setStatus('Vídeo de '+(f.size/1048576|0)+' MB — o limite é 150 MB. Reduza o arquivo.','err');return;}
+  const url=URL.createObjectURL(f);vid.src=url;vid.muted=true;
+  setStatus('Carregando vídeo…','busy');
+  vid.onloadedmetadata=()=>{
+    dur=vid.duration||0;
+    if(dur>60.5){setStatus('Vídeo tem '+fmtT(dur)+' — o limite é 60s. Corte a seleção para até 60s.','err');}
+    const cap=Math.min(dur,60);
+    tIn=0;tOut=cap;zoom=1;panX=0;panY=0;
+    els.tIn.max=dur;els.tOut.max=dur;els.tIn.value=0;els.tOut.value=cap;els.zoom.value=1;
+    els.durLbl.textContent='duração: '+fmtT(dur);
+    loaded=true;els.play.style.display='block';els.btnExp.disabled=false;els.btnCover.disabled=false;
+    syncLbls();vid.currentTime=0;
+    setStatus('Vídeo pronto. Ajuste corte, enquadramento e textos.','ok');
+  };
+  vid.onerror=()=>setStatus('Não consegui ler esse vídeo. Tente MP4/MOV/WebM.','err');
+}
+function syncLbls(){els.tInLbl.textContent=fmtT(tIn);els.tOutLbl.textContent=fmtT(tOut);els.selLbl.textContent='seleção: '+fmtT(Math.max(0,tOut-tIn));els.zLbl.textContent=Math.round(zoom*100)+'%';els.mvLbl.textContent=Math.round(musicVol*100)+'%';}
+
+// ---------- controles ----------
+function onTrim(){tIn=+els.tIn.value;tOut=+els.tOut.value;if(tIn>tOut-0.3){if(event&&event.target.id==='tIn')tIn=Math.max(0,tOut-0.3);else tOut=Math.min(dur,tIn+0.3);els.tIn.value=tIn;els.tOut.value=tOut;}if(tOut-tIn>60){tOut=tIn+60;els.tOut.value=tOut;setStatus('Seleção limitada a 60s.','busy');}if(!playing){vid.currentTime=tIn;}syncLbls();}
+function onZoom(){zoom=+els.zoom.value;syncLbls();}
+function resetFrame(){zoom=1;panX=0;panY=0;els.zoom.value=1;syncLbls();}
+function onMsg(){msg=els.msg.value;}
+function onText(){corretor=els.corretor.value;}
+function togglePlay(){if(!loaded)return;if(playing){vid.pause();playing=false;els.play.textContent='▶ Reproduzir';}else{if(vid.currentTime<tIn||vid.currentTime>=tOut)vid.currentTime=tIn;vid.play();playing=true;els.play.textContent='⏸ Pausar';}}
+function toggleOrig(){origOn=!origOn;els.swOrig.classList.toggle('on',origOn);if(vGain)vGain.gain.value=origOn?1:0;}
+function loadMusic(ev){const f=ev.target.files&&ev.target.files[0];if(!f)return;mus.src=URL.createObjectURL(f);hasMusic=true;musicOn=true;els.mvol.disabled=false;setStatus('Trilha adicionada.','ok');}
+function clearMusic(){mus.removeAttribute('src');hasMusic=false;musicOn=false;els.mvol.disabled=true;if(mGain)mGain.gain.value=0;setStatus('Trilha removida.','busy');}
+function onMvol(){musicVol=+els.mvol.value;if(mGain)mGain.gain.value=musicOn?musicVol:0;syncLbls();}
+
+// arrastar p/ reposicionar
+let drag=false,lx=0,ly=0;
+cv.addEventListener('pointerdown',e=>{if(!loaded)return;drag=true;cv.classList.add('drag');lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(!drag)return;const k=W/cv.clientWidth;panX+=(e.clientX-lx)*k;panY+=(e.clientY-ly)*k;lx=e.clientX;ly=e.clientY;});
+cv.addEventListener('pointerup',e=>{drag=false;cv.classList.remove('drag');});
+
+// ---------- áudio (WebAudio, montado sob demanda) ----------
+let audioCtx,vSrc,vGain,mSrc,mGain,dest;
+function buildAudio(){
+  if(!audioCtx){audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    vSrc=audioCtx.createMediaElementSource(vid);vGain=audioCtx.createGain();vSrc.connect(vGain);
+    dest=audioCtx.createMediaStreamDestination();
+    vGain.connect(dest);vGain.connect(audioCtx.destination);
+    mGain=audioCtx.createGain();mGain.connect(dest);mGain.connect(audioCtx.destination);}
+  if(hasMusic&&!mSrc){try{mSrc=audioCtx.createMediaElementSource(mus);mSrc.connect(mGain);}catch(e){}}
+  vGain.gain.value=origOn?1:0;mGain.gain.value=(hasMusic&&musicOn)?musicVol:0;
+}
+
+// ---------- exportar vídeo ----------
+function pickMime(){const c=['video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];for(const m of c){if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m))return m;}return '';}
+let rec,chunks=[];
+async function exportVideo(){
+  if(!loaded)return setStatus('Suba um vídeo primeiro.','err');
+  if(exporting)return;
+  try{
+    setStatus('Processando vídeo… (gravação em tempo real)','busy');
+    els.btnExp.disabled=true;els.btnCover.disabled=true;
+    buildAudio();if(audioCtx.state==='suspended')await audioCtx.resume();
+    vid.muted=false;
+    const stream=cv.captureStream(30);
+    const at=dest.stream.getAudioTracks()[0];if(at)stream.addTrack(at);
+    const mime=pickMime();
+    rec=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:9000000}:undefined);
+    chunks=[];
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+    rec.onstop=()=>{
+      const type=(rec.mimeType||mime||'video/webm');
+      const ext=type.indexOf('mp4')>=0?'mp4':'webm';
+      const blob=new Blob(chunks,{type});const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download='vitra-imobiliaria-imovel-vendido-9x16-'+Date.now()+'.'+ext;a.click();
+      setStatus('Vídeo '+ext.toUpperCase()+' baixado ✓ ('+(blob.size/1048576).toFixed(1)+' MB · '+fmtT(tOut-tIn)+')','ok');
+      els.btnExp.disabled=false;els.btnCover.disabled=false;
+    };
+    vid.currentTime=tIn;await new Promise(r=>{vid.onseeked=r;});
+    playing=true;exporting=true;els.play.textContent='⏸ Pausar';
+    await vid.play();
+    if(hasMusic&&musicOn){mus.currentTime=0;try{await mus.play();}catch(e){}}
+    rec.start(120);
+  }catch(e){setStatus('Erro ao exportar: '+e.message,'err');exporting=false;els.btnExp.disabled=false;els.btnCover.disabled=false;}
+}
+function stopExport(){if(!exporting)return;exporting=false;playing=false;els.play.textContent='▶ Reproduzir';try{rec.stop();}catch(e){}vid.pause();if(hasMusic)mus.pause();}
+
+// ---------- capa PNG ----------
+function exportCover(){if(!loaded)return setStatus('Suba um vídeo primeiro.','err');
+  drawVideo();drawMask();
+  cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='vitra-imobiliaria-imovel-vendido-capa-9x16-'+Date.now()+'.png';a.click();setStatus('Capa PNG baixada ✓','ok');},'image/png');}
+
+// ---------- boot ----------
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{syncLbls();render();});
+</script>
+</body>
+</html>
