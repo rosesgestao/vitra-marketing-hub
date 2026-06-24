@@ -174,10 +174,12 @@ const lancamentoFieldGroups = [
     title: 'Campos do Template',
     fields: [
       { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Residencial Aurora' },
-      { key: 'tagline', label: 'Selo / tag', type: 'text', required: true, maxLength: 18, helper: 'Texto do selo dourado — curto (ate 18 caracteres). Ex: Lançamento, Em breve, Pré-lançamento.', placeholder: 'Ex: Lançamento' },
-      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Quebra em ate 3 linhas brancas sobre a foto (ate 40 caracteres).', placeholder: 'Ex: Um novo marco na Zona Sul', colSpan: 'full' },
-      { key: 'location', label: 'Localizacao (linha dourada)', type: 'text', maxLength: 40, helper: 'Aparece em dourado abaixo da headline. Ex: Bairro Tristeza · Porto Alegre.', placeholder: 'Ex: Bairro Tristeza · Porto Alegre', colSpan: 'full' },
-      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Seja o primeiro a saber', colSpan: 'full' },
+      { key: 'tagline', label: 'Selo de lançamento', type: 'text', required: true, maxLength: 16, helper: 'Texto do selo dourado — curto (ate 16 caracteres). Ex: Lançamento, Pré-lançamento, Em breve.', placeholder: 'Ex: Lançamento' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Quebra em ate 2 linhas brancas no painel (ate 40 caracteres). Foque no conceito/aspiração.', placeholder: 'Ex: O novo marco da Zona Sul', colSpan: 'full' },
+      { key: 'location', label: 'Destaque (linha dourada)', type: 'text', required: true, maxLength: 30, helper: 'Bairro/região em dourado abaixo da headline (ate 30 caracteres). Ex: Bairro Tristeza · Porto Alegre.', placeholder: 'Ex: Bairro Tristeza · Porto Alegre', colSpan: 'full' },
+      { key: 'differentials', label: 'Diferenciais (setas)', type: 'list', required: true, placeholder: '2 a 4 dormitórios\nLazer completo de clube\nEntrega prevista 2027', helper: 'Ate 3 itens — viram linhas com seta dourada. Mostre o que torna o lançamento desejável.', colSpan: 'full' },
+      { key: 'price', label: 'Valor "a partir de"', type: 'money', helper: 'Opcional. Sem valor, a peça mostra "Pré-venda exclusiva".', placeholder: 'Ex: R$ 590.000,00' },
+      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Entrar na lista VIP', colSpan: 'full' },
     ],
   },
 ]
@@ -288,11 +290,11 @@ const templateVariationContracts = {
     lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'tag_pill', 'cta_button'],
     mutableSlots: ['tag', 'headline', 'location', 'cta', 'photos'],
     recipes: [
-      { id: 'lancamento', label: 'Lançamento', phase: '1', angle: 'lancamento', headline: '{headline_only}', copy: 'Um novo empreendimento chegando. Cadastre-se para ser o primeiro a saber.', cta: 'Seja o primeiro a saber' },
-      { id: 'em-breve', label: 'Em breve', phase: '1', angle: 'expectativa', headline: '{product}: em breve', copy: 'A novidade que o bairro esperava esta chegando. Garanta prioridade na lista.', cta: 'Quero prioridade' },
-      { id: 'pre-lancamento', label: 'Pré-lançamento', phase: '2', angle: 'escassez', headline: 'Pré-lançamento por tempo limitado', copy: 'Condicoes especiais de pre-lancamento para os primeiros interessados.', cta: 'Receber condicoes' },
-      { id: 'localizacao', label: 'Localização em destaque', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Um lancamento no endereco que valoriza. Cadastre-se e acompanhe.', cta: 'Conhecer a regiao' },
-      { id: 'lista-vip', label: 'Lista VIP', phase: '3', angle: 'escassez', headline: 'Entre na lista VIP do lancamento', copy: 'Vagas limitadas para a pre-venda. Garanta seu lugar na lista de prioridade da Vitra.', cta: 'Entrar na lista VIP' },
+      { id: 'lancamento', label: 'Lançamento', phase: '1', angle: 'lancamento', headline: '{headline_only}', copy: 'Acaba de chegar ao mercado. Conheça em primeira mão os diferenciais e as condições de lançamento com a Vitra.', cta: 'Entrar na lista VIP' },
+      { id: 'pre-venda', label: 'Pré-venda exclusiva', phase: '2', angle: 'escassez', headline: 'Pré-venda exclusiva, por tempo limitado', copy: 'As melhores unidades saem primeiro. Garanta prioridade na pré-venda antes do lancamento oficial.', cta: 'Quero prioridade' },
+      { id: 'condicoes', label: 'Condições de lançamento', phase: '2', angle: 'investimento', headline: '{product}: condições de lançamento', copy: 'Valores e condições de entrada exclusivos da fase de lancamento. Fale com a Vitra e simule.', cta: 'Receber condições' },
+      { id: 'localizacao', label: 'Endereço em destaque', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Um lancamento no endereco que mais valoriza da regiao. Cadastre-se e acompanhe cada etapa.', cta: 'Conhecer a regiao' },
+      { id: 'lista-vip', label: 'Lista VIP', phase: '3', angle: 'escassez', headline: 'Entre na lista VIP do lançamento', copy: 'Vagas limitadas: a lista VIP tem acesso antecipado a plantas, condicoes e melhores unidades.', cta: 'Entrar na lista VIP' },
     ],
   },
   meninoDeus: {
@@ -525,7 +527,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       mode: 'single_family',
       name: 'Lançamento / Em breve',
       shortName: 'Lançamento (teaser)',
-      bestFor: 'Teaser de expectativa / topo de funil: foto forte, selo (Lançamento/Em breve), headline e localizacao — sem preco nem checklist. Ideal para captar lista de interessados antes do lancamento.',
+      bestFor: 'Teaser editorial de lançamento/pré-lançamento: foto hero + painel navy institucional com selo dourado, headline + destaque, diferenciais com setas, "a partir de" e CTA Lista VIP. Topo de funil com escassez/exclusividade — capta interessados antes do lancamento.',
       formats: ['1:1', '9:16', '1.91:1'],
       defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
       variants: variantOptions,
@@ -537,11 +539,12 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       ],
       variationContract: templateVariationContracts.lancamento,
       references: vitraImobiliariaReference('template-08-lancamento'),
-      variableFields: ['photos', 'tag', 'headline', 'location', 'cta'],
-      fixedBrandRules: ['navy_overlay_photo', 'approved_white_wordmark', 'gold_tag_pill', 'gold_cta', 'meta_safe_zone'],
-      // Arte nova (junho/2026), versionada desde o inicio. Peca de expectativa fiel ao brandbook
-      // (navy + dourado, wordmark branco) com safe zone do Meta nos 3 formatos.
-      renderVersion: 'lancamento-approved-v1',
+      variableFields: ['photos', 'tag', 'headline', 'destaque', 'differentials', 'price', 'cta'],
+      fixedBrandRules: ['navy_institutional_panel', 'approved_white_wordmark', 'gold_launch_seal', 'gold_arrow_list', 'gold_cta_pill', 'meta_safe_zone'],
+      // v2 (junho/2026): redesenho para densidade estrategica no nivel do San Clemente — painel navy
+      // institucional + selo de lancamento + diferenciais com setas + "a partir de"/preco + CTA Lista VIP.
+      // O bump forca o re-render dos PNGs ja em storage com a arte nova.
+      renderVersion: 'lancamento-approved-v2',
     },
   ],
 }

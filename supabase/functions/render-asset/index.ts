@@ -1145,92 +1145,89 @@ function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string 
 </svg>`;
 }
 
-// ===== Template 08: lançamento / em breve (teaser) =====
-// Foto hero full-bleed + selo (tag) dourado no topo + headline grande + localização + CTA pill.
-// Sem De/Por nem checklist — peça de expectativa/topo de funil. Safe zone do Meta por formato
-// (skill margem-seguranca-criativos): 1:1 [108..972]; 9:16 reels-safe y[250..1470]; 1.91:1 [89..1111]/[63..564].
+// ===== Template 08: Lançamento / Pré-lançamento (teaser editorial) =====
+// Conceito proprio: foto hero no topo + PAINEL navy institucional embaixo (familia azul->navy do
+// brandbook) com SELO de lançamento (dourado), headline (Anton) + destaque dourado (bairro), lista de
+// diferenciais com setas, condicao "A partir de" + preco e CTA pill "Lista VIP". Densidade e hierarquia
+// no nivel do San Clemente, com finalidade de expectativa/escassez. Safe zone do Meta por formato.
 function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
   const isWide = W > H * 1.35;
-  const hero = images[0] || null;
 
-  const tag = compactText((pd.tagline || "Lançamento").toString().toUpperCase(), 18);
-  const headlineSource = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString();
-  const lines = wrapText(headlineSource.toUpperCase(), isWide ? 18 : 16, 3);
-  const location = compactText((pd.location || pd.neighborhood || "").toString(), isWide ? 46 : 40);
-  const cta = compactText(asset.cta || "Seja o primeiro a saber", 46);
+  const selo = compactText((pd.tagline || "Lançamento").toString().toUpperCase(), 16);
+  const headline = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString().toUpperCase();
+  const lines = wrapText(headline, 24, 2);
+  const destaque = compactText((pd.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(", ") || "").toString().toUpperCase(), 30);
+  const bullets = heroChecklistBullets(pd, campaign, 3);
+  const price = formatMoneyLike(pd.price || pd.price_from || campaign?.offer || "");
+  const cta = compactText(asset.cta || "Entrar na lista VIP", 28);
 
   const L = isStory ? {
-    logo: [905, 276, 120], margin: 90,
-    tag: [90, 300, 56, 30], tagPad: 30,
-    headBase: 120, headGap: 128, headY: 940, headBudget: 820,
-    locY: 1150, locSize: 40,
-    cta: [90, 1340, 660, 100, 20], ctaSize: 30,
+    hero: [0, 0, 1080, 820], panel: [0, 760, 1080, 1160], wordmark: [830, 272, 150],
+    selo: [90, 300, 58, 30], headX: 110, headY: 900, headGap: 74, headSize: 60, headBudget: 560,
+    bulletsY: 1118, bulletStep: 54, bulletSize: 26,
+    labelY: 1322, labelSize: 24, priceY: 1392, priceSize: 60,
+    cta: [560, 1316, 410, 92, 46], ctaSize: 30,
   } : isWide ? {
-    logo: [990, 72, 110], margin: 90,
-    tag: [90, 84, 40, 20], tagPad: 20,
-    headBase: 58, headGap: 62, headY: 250, headBudget: 600,
-    locY: 392, locSize: 24,
-    cta: [90, 500, 480, 58, 14], ctaSize: 20,
+    hero: [664, 0, 536, 628], panel: [0, 0, 664, 628], wordmark: [968, 68, 140],
+    selo: [100, 84, 40, 20], headX: 100, headY: 152, headGap: 46, headSize: 36, headBudget: 500,
+    bulletsY: 300, bulletStep: 40, bulletSize: 16,
+    labelY: 452, labelSize: 15, priceY: 500, priceSize: 38,
+    cta: [372, 470, 270, 56, 28], ctaSize: 19,
   } : {
-    logo: [852, 120, 120], margin: 108,
-    tag: [108, 132, 48, 26], tagPad: 26,
-    headBase: 100, headGap: 108, headY: 568, headBudget: 600,
-    locY: 740, locSize: 34,
-    cta: [108, 900, 560, 84, 18], ctaSize: 26,
+    hero: [0, 0, 1080, 540], panel: [0, 490, 1080, 590], wordmark: [828, 120, 150],
+    selo: [108, 124, 52, 26], headX: 110, headY: 604, headGap: 58, headSize: 50, headBudget: 540,
+    bulletsY: 772, bulletStep: 46, bulletSize: 22,
+    labelY: 902, labelSize: 22, priceY: 958, priceSize: 52,
+    cta: [600, 900, 372, 64, 32], ctaSize: 25,
   };
-  const x = L.margin;
-  const photoLayer = hero
-    ? `<image href="${esc(hero)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
 
-  // Selo/tag: pill dourado com texto navy (largura proporcional ao texto).
-  const [tagX, tagY, tagH, tagSize] = L.tag;
-  const tagW = Math.round(tag.length * tagSize * 0.64) + L.tagPad * 2;
-  const tagPill = `<rect x="${tagX}" y="${tagY}" width="${tagW}" height="${tagH}" rx="${Math.round(tagH / 2)}" fill="${GOLD}"/>
-  ${textLine(tagX + tagW / 2, tagY + tagH / 2 + Math.round(tagSize * 0.36), tag, { fill: HC_INK, family: "Poppins", size: tagSize, weight: 700, spacing: 2 })}`;
+  const x = L.headX;
+  const [wmX, wmY, wmW] = L.wordmark; const wmH = Math.round(wmW * 25 / 136);
+  const [px, py, pw, ph] = L.panel;
+  const photoDefs = `<clipPath id="${idBase}-hero"><rect x="${L.hero[0]}" y="${L.hero[1]}" width="${L.hero[2]}" height="${L.hero[3]}"/></clipPath>`
+    + `<linearGradient id="${idBase}-panel" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#0F2140"/><stop offset="55%" stop-color="#0A1628"/><stop offset="100%" stop-color="#07111F"/></linearGradient>`;
 
-  const headLines = lines.map((line, index) => {
-    const size = fitDisplaySize(line, L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79);
-    return textLine(x, L.headY + index * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size, weight: 400 });
-  }).join("");
+  // Selo de lançamento (pill dourado + texto navy).
+  const [seloX, seloY, seloH, seloSize] = L.selo;
+  const seloW = Math.round(selo.length * seloSize * 0.64) + Math.round(seloH * 1.3);
+  const seloPill = `<rect x="${seloX}" y="${seloY}" width="${seloW}" height="${seloH}" rx="${Math.round(seloH / 2)}" fill="${GOLD}"/>
+  ${textLine(seloX + seloW / 2, seloY + seloH / 2 + Math.round(seloSize * 0.36), selo, { fill: HC_INK, family: "Poppins", size: seloSize, weight: 700, spacing: 2 })}`;
 
-  const locLine = location
-    ? textLine(x, L.locY, location.toUpperCase(), { anchor: "start", fill: HC_GOLD_TEXT, family: "Poppins", size: L.locSize, weight: 600, spacing: 2 })
+  const headLines = lines.map((line, i) =>
+    textLine(x, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 28, L.headBudget, 0.79), weight: 400 })
+  ).join("");
+  const destaqueLine = destaque
+    ? textLine(x, L.headY + lines.length * L.headGap, destaque, { anchor: "start", fill: GOLD_LIGHT, family: "Anton", size: fitDisplaySize(destaque, Math.round(L.headSize * 0.84), 24, L.headBudget, 0.79), weight: 400 })
     : "";
+  const arrowRows = bullets.map((it, i) => featureArrow(x, L.bulletsY + i * L.bulletStep, it, L.bulletSize)).join("");
 
-  const [ctaX, ctaY, ctaW, ctaH, ctaRx] = L.cta;
-  const ctaSize = fitDisplaySize(cta, L.ctaSize, 16, ctaW - Math.round(ctaH * 0.9), 0.90);
-  const ctaTextY = ctaY + Math.round(ctaH / 2) + Math.round(ctaSize * 0.36);
+  const priceBlock = price
+    ? `${textLine(x, L.labelY, "A PARTIR DE", { anchor: "start", fill: "#FFFFFF", size: L.labelSize, weight: 800, spacing: 6 })}
+       ${textLine(x, L.priceY, price, { anchor: "start", fill: GOLD_LIGHT, family: "Anton", size: fitDisplaySize(price, L.priceSize, 28, L.headBudget, 0.79), weight: 400 })}`
+    : `${textLine(x, L.labelY, "PRÉ-VENDA", { anchor: "start", fill: "#FFFFFF", size: L.labelSize, weight: 800, spacing: 6 })}
+       ${textLine(x, L.priceY, "EXCLUSIVA", { anchor: "start", fill: GOLD_LIGHT, family: "Anton", size: L.priceSize, weight: 400 })}`;
+
+  const [cx, cy, cw, ch, crx] = L.cta;
+  const ctaSize = fitDisplaySize(cta, L.ctaSize, 14, cw - Math.round(ch * 0.9), 0.90);
+  const ctaBlock = `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="${crx}" fill="${GOLD}"/>
+  ${textLine(cx + cw / 2, cy + ch / 2 + Math.round(ctaSize * 0.36), cta, { fill: HC_INK, family: "Poppins", size: ctaSize, weight: 700 })}`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <defs>
-    <radialGradient id="${idBase}-bg" cx="50%" cy="40%" r="72%">
-      <stop offset="0%" stop-color="#0A1B32"/><stop offset="66%" stop-color="#07111F"/><stop offset="100%" stop-color="#050C16"/>
-    </radialGradient>
-    <linearGradient id="${idBase}-veilY" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0%" stop-color="#07111F" stop-opacity="0.92"/>
-      <stop offset="38%" stop-color="#07111F" stop-opacity="0.55"/>
-      <stop offset="70%" stop-color="#07111F" stop-opacity="0.12"/>
-      <stop offset="100%" stop-color="#07111F" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="${idBase}-veilTop" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#07111F" stop-opacity="0.55"/>
-      <stop offset="100%" stop-color="#07111F" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  ${photoLayer}
-  <rect width="${W}" height="${H}" fill="#07111F" opacity="0.18"/>
-  <rect width="${W}" height="${H}" fill="url(#${idBase}-veilTop)"/>
-  <rect width="${W}" height="${H}" fill="url(#${idBase}-veilY)"/>
-  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
-  <svg x="${L.logo[0]}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
-  ${tagPill}
+  ${baseDefs(idBase, photoDefs)}
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
+  ${duoSelosPhoto(images[0], `${idBase}-hero`, L.hero[0], L.hero[1], L.hero[2], L.hero[3], 0)}
+  <rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="url(#${idBase}-panel)"/>
+  <svg x="${wmX}" y="${wmY}" width="${wmW}" height="${wmH}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  ${seloPill}
   ${headLines}
-  ${locLine}
-  ${ctaBlockForHeroChecklist(ctaX, ctaY, ctaW, ctaH, ctaRx, ctaTextY, ctaSize, cta)}
+  ${destaqueLine}
+  ${arrowRows}
+  ${priceBlock}
+  ${ctaBlock}
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
 </svg>`;
 }
 
