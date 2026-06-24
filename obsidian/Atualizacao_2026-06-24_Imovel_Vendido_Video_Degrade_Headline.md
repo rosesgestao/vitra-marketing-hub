@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-24 — Imóvel Vendido (vídeo): degradê da headline reforçado
 
-> O degradê inferior estava suave demais na faixa do texto. Na `main`. Commit: **<HASH>**.
+> O degradê inferior estava suave demais na faixa do texto. Na `main`. Commit: **12060af**.
 
 ## Problema
 O degradê de legibilidade (item 132, mudança 3) só ficava denso na **borda inferior** do quadro; atrás da
