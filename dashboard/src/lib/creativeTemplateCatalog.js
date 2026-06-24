@@ -232,8 +232,6 @@ const fichaFieldGroups = [
       { key: 'differentials', label: 'Atributos (cards com ícone)', type: 'list', required: true, placeholder: '4 suítes\n2 vagas cobertas\nPiscina aquecida\n220,00 m²', helper: 'Ate 4 itens. O ícone é escolhido por palavra-chave (suíte→cama, vaga→garagem, piscina→pool, m²→área, etc.).', colSpan: 'full' },
       { key: 'price', label: 'Valor (card dourado)', type: 'text', required: true, maxLength: 18, placeholder: 'Ex: R$ 950 mil' },
       { key: 'cta', label: 'Chamada (rodapé)', type: 'text', maxLength: 60, helper: 'Texto do rodapé à esquerda.', placeholder: 'Ex: Entre em contato para agendar uma visita!', colSpan: 'full' },
-      { key: 'phone', label: 'Telefone (rodapé)', type: 'text', maxLength: 22, placeholder: 'Ex: +55 51 90000-0000' },
-      { key: 'website', label: 'Site (rodapé)', type: 'text', maxLength: 30, placeholder: 'Ex: www.vitra.com.br' },
     ],
   },
 ]
@@ -745,8 +743,8 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       ],
       variationContract: templateVariationContracts.fichaImovel,
       references: vitraImobiliariaReference('template-11-ficha'),
-      variableFields: ['photos', 'headline', 'subtitle', 'attributes', 'price', 'cta', 'contact'],
-      fixedBrandRules: ['solid_navy_bg', 'approved_white_wordmark', 'attribute_icon_cards', 'gold_price_card', 'photo_gallery_3', 'contact_footer', 'meta_safe_zone'],
+      variableFields: ['photos', 'headline', 'subtitle', 'attributes', 'price', 'cta'],
+      fixedBrandRules: ['solid_navy_bg', 'approved_white_wordmark', 'attribute_icon_cards', 'gold_price_card', 'photo_gallery_3', 'cta_footer', 'meta_safe_zone'],
       // Arte nova (junho/2026). Referencia visual do cliente (estrutura/conceito de marca concorrente — sem
       // copiar logo/contatos); adaptado ao brandbook (navy + dourado, wordmark VITRA, preco em dourado).
       renderVersion: 'ficha-imovel-approved-v1',

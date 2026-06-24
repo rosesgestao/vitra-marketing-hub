@@ -1492,8 +1492,6 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const features = String(pd.differentials || pd.features || "")
     .split(/[\n;|]+/).map((s) => s.replace(/^[-•\s]+/, "").trim()).filter(Boolean).slice(0, 4);
   const cta = (asset.cta || pd.cta || "Entre em contato para agendar uma visita!").toString();
-  const phone = (pd.phone || "").toString();
-  const website = (pd.website || "").toString();
 
   const NAVY = "#0A1628";
   const BAR = "#13294C";
@@ -1501,21 +1499,21 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const L = isStory ? {
     logo: [80, 292, 168], head: [80, 470, 96], sub: [80, 548, 52, 60, 22, 2],
     feat: { tileX: 80, tileY0: 690, tileSize: 100, rowGap: 18, barX: 196, barW: 392, barH: 100, textX: 226, textSize: 32, iconSize: 50 },
-    price: [80, 1240, 408, 124, 26, 78],
+    price: [80, 1232, 508, 134, 26, 102],
     gallery: [628, 412, [470, 778, 1086], 296, 22],
-    footer: { y: 1410, pad: 80, ctaSize: 30, lh: 40, divX: 590 },
+    footer: { y: 1418, pad: 80, ctaSize: 30, lh: 40 },
   } : isWide ? {
     logo: [72, 60, 150], head: [72, 156, 56], sub: [72, 206, 30, 36, 22, 2],
     feat: { tileX: 72, tileY0: 280, tileSize: 60, rowGap: 12, barX: 142, barW: 300, barH: 60, textX: 166, textSize: 22, iconSize: 32 },
-    price: [460, 280, 250, 72, 16, 46],
-    gallery: [840, 272, [64, 252, 440], 178, 16],
+    price: [466, 274, 348, 92, 16, 66],
+    gallery: [836, 268, [64, 252, 440], 178, 16],
     footer: null,
   } : {
     logo: [72, 72, 158], head: [72, 200, 76], sub: [72, 256, 44, 52, 22, 2],
     feat: { tileX: 72, tileY0: 372, tileSize: 76, rowGap: 16, barX: 160, barW: 426, barH: 76, textX: 188, textSize: 28, iconSize: 40 },
-    price: [72, 760, 332, 96, 20, 60],
+    price: [72, 748, 514, 116, 20, 92],
     gallery: [624, 384, [72, 372, 672], 284, 22],
-    footer: { y: 992, pad: 72, ctaSize: 25, lh: 33, divX: 560 },
+    footer: { y: 996, pad: 72, ctaSize: 25, lh: 33 },
   };
 
   // BG sólido navy (gradiente sutil).
@@ -1553,21 +1551,17 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
       ${txt}`;
   }).join("");
 
-  // Card de preço (branco, valor em dourado).
+  // Card de preço (branco, valor em dourado) — ocupa a largura da coluna; o valor preenche o card.
   const [pX, pY, pW, pH, pRx, pSize] = L.price;
+  const pFit = fitDisplaySize(price, pSize, 24, pW - 48, 0.84);
   const priceCard = `<rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" rx="${pRx}" fill="#FFFFFF"/>
-    ${textLine(pX + Math.round(pW * 0.5), pY + pH / 2 + Math.round(pSize * 0.34), price, { fill: GOLD, family: "Poppins", size: fitDisplaySize(price, pSize, 24, pW - 48, 0.84), weight: 700 })}`;
+    ${textLine(pX + Math.round(pW * 0.5), pY + pH / 2 + Math.round(pFit * 0.34), price, { fill: GOLD, family: "Poppins", size: pFit, weight: 700 })}`;
 
-  // Rodapé: CTA (esq.) + régua dourada + contato (dir.). Omitido no wide.
+  // Rodapé: só o CTA (esq.). Omitido no wide.
   let footer = "";
   if (L.footer) {
     const ft = L.footer;
-    const ctaLines = wrapText(cta, 30, 2);
-    const ctaBlock = ctaLines.map((ln, i) => textLine(ft.pad, ft.y + i * ft.lh, ln, { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: ft.ctaSize, weight: 600 })).join("");
-    const contactLines = [phone, website].filter(Boolean);
-    const contactBlock = contactLines.map((ln, i) => textLine(ft.divX + 28, ft.y + i * ft.lh, ln, { anchor: "start", fill: "#E8ECF4", family: "Poppins", size: Math.round(ft.ctaSize * 0.9), weight: 500 })).join("");
-    const divider = contactLines.length ? `<rect x="${ft.divX}" y="${ft.y - ft.ctaSize}" width="3" height="${ft.lh + ft.ctaSize}" rx="1.5" fill="${GOLD}"/>` : "";
-    footer = `${ctaBlock}${divider}${contactBlock}`;
+    footer = wrapText(cta, 30, 2).map((ln, i) => textLine(ft.pad, ft.y + i * ft.lh, ln, { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: ft.ctaSize, weight: 600 })).join("");
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
