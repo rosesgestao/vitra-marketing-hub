@@ -1374,10 +1374,13 @@ function buildVitraOportunidadeSvg(asset: any, campaign: any, images: Array<stri
     eyeX: 90, eyeY: 322, eyeSize: 28,
     headX: 90, headY: 430, headGap: 96, headSize: 104, headBudget: 600,
     priceBox: [74, 654, 470, 112, 6], priceX: 100, priceY: 730, priceSize: 70,
-    subBox: [74, 786, 580, 76, 6], subX: 100, subY: 838, subSize: 36,
+    // Largura alinhada a caixa de preco e ao checklist (470) — antes 580 saia da coluna e invadia a galeria.
+    subBox: [74, 786, 470, 76, 6], subX: 100, subY: 838, subSize: 36,
     listBox: [74, 884, 470, 470, 8], listX: 156, listY: 952, listStep: 74, listSize: 36, badge: 38,
   } : isWide ? {
-    wmBox: [902, 70, 210, 64], gallery: [858, 238, [70, 258, 446], 168, 12], frameOff: 16,
+    // Caixa do wordmark recolocada na propria faixa, ACIMA da galeria (antes [902,70,210,64] sobrepunha a
+    // 1a foto e estourava a margem direita). Galeria desce e encolhe para abrir a faixa do logo.
+    wmBox: [858, 60, 238, 62], gallery: [858, 238, [136, 276, 416], 128, 12], frameOff: 14,
     eyeX: 92, eyeY: 100, eyeSize: 16,
     headX: 92, headY: 156, headGap: 50, headSize: 46, headBudget: 560,
     priceBox: [90, 252, 280, 66, 5], priceX: 110, priceY: 296, priceSize: 40,
