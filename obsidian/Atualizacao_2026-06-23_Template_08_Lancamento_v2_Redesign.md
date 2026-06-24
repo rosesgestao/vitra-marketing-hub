@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Template 08 "Lançamento" REDESENHADO (v2, densidade San Clemente)
 
-> A v1 saiu genérica; refeita com conceito estratégico próprio no nível dos aprovados. Na `main`. Commit: **<HASH>**.
+> A v1 saiu genérica; refeita com conceito estratégico próprio no nível dos aprovados. Na `main`. Commit: **2ff588a**.
 
 ## Diagnóstico (por que a v1 ficou inferior)
 A v1 era foto full-bleed + véu + selo + headline + 1 linha de localização + CTA. **Faltava a densidade
