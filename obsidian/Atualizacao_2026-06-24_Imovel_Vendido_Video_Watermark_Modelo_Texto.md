@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-24 — Imóvel Vendido (vídeo): 2º modelo de marca d'água (Texto VITRA)
 
-> Adiciona a marca d'água "texto-vitra" como modelo selecionável. Na `main`. Commit: **<HASH>**.
+> Adiciona a marca d'água "texto-vitra" como modelo selecionável. Na `main`. Commit: **94ba970**.
 > Estende [[Atualizacao_2026-06-24_Imovel_Vendido_Video_Watermark_Master_op40]].
 
 ## O que mudou
