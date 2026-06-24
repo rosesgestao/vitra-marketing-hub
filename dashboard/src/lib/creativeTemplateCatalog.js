@@ -219,6 +219,25 @@ const oportunidadeFieldGroups = [
   },
 ]
 
+// Template 11 (Ficha do imóvel): fundo navy sólido + logo/headline/subtítulo + cards de atributo (ícone em
+// tile branco + barra navy) + card de preço (dourado) + galeria de 3 fotos + rodapé de contato/CTA.
+// Referência visual do cliente (estrutura/conceito de marca concorrente — sem copiar logo/contatos).
+const fichaFieldGroups = [
+  {
+    id: 'ficha',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'suggested_headline', label: 'Headline (tipo do imóvel)', type: 'text', required: true, maxLength: 18, helper: 'Texto grande em negrito. Ex: Sobrado, Apartamento, Cobertura.', placeholder: 'Ex: Sobrado' },
+      { key: 'location', label: 'Subtítulo / localização', type: 'text', maxLength: 40, helper: 'Linha(s) abaixo da headline. Ex: Cond. Bella Morano.', placeholder: 'Ex: Cond. Bella Morano' },
+      { key: 'differentials', label: 'Atributos (cards com ícone)', type: 'list', required: true, placeholder: '4 suítes\n2 vagas cobertas\nPiscina aquecida\n220,00 m²', helper: 'Ate 4 itens. O ícone é escolhido por palavra-chave (suíte→cama, vaga→garagem, piscina→pool, m²→área, etc.).', colSpan: 'full' },
+      { key: 'price', label: 'Valor (card dourado)', type: 'text', required: true, maxLength: 18, placeholder: 'Ex: R$ 950 mil' },
+      { key: 'cta', label: 'Chamada (rodapé)', type: 'text', maxLength: 60, helper: 'Texto do rodapé à esquerda.', placeholder: 'Ex: Entre em contato para agendar uma visita!', colSpan: 'full' },
+      { key: 'phone', label: 'Telefone (rodapé)', type: 'text', maxLength: 22, placeholder: 'Ex: +55 51 90000-0000' },
+      { key: 'website', label: 'Site (rodapé)', type: 'text', maxLength: 30, placeholder: 'Ex: www.vitra.com.br' },
+    ],
+  },
+]
+
 function vitraImobiliariaReference(prefix) {
   return {
     [TEMPLATE_FRAME_VARIANTS.noFrame]: [
@@ -356,6 +375,19 @@ const templateVariationContracts = {
       { id: 'atributos', label: 'Atributos completos', phase: '2', angle: 'diferenciais', headline: '{neighborhood}', copy: '{details}. Infraestrutura e diferenciais reunidos, com a galeria do empreendimento.', cta: 'Receber detalhes' },
       { id: 'tipologia', label: 'Tipologia certa', phase: '2', angle: 'publico', headline: '{neighborhood}', copy: 'Subtitulo de tipologia + atributos para quem ja sabe o que procura. Fale com a Vitra.', cta: 'Quero conhecer' },
       { id: 'visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: '{neighborhood}', copy: 'Oportunidade de bairro com preco objetivo pede agilidade. Agende a visita com a Vitra.', cta: 'Agendar visita' },
+    ],
+  },
+  fichaImovel: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem fundo navy, cards de atributo com icone, card de preco e galeria; varia tipo, localizacao, atributos, preco e fotos.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'solid_navy_bg', 'attribute_cards', 'price_card', 'photo_gallery', 'contact_footer'],
+    mutableSlots: ['headline', 'subtitle', 'attributes', 'price', 'photos', 'cta', 'contact'],
+    recipes: [
+      { id: 'ficha-completa', label: 'Ficha completa', phase: '1', angle: 'diferenciais', headline: '{product}', copy: '{details}. Atributos do imovel num quadro objetivo, com galeria e preco em destaque.', cta: 'Entre em contato para agendar uma visita!' },
+      { id: 'preco-destaque', label: 'Preço em destaque', phase: '1', angle: 'investimento', headline: '{product}', copy: 'Valor objetivo + atributos essenciais para uma decisao rapida. Fale com a Vitra.', cta: 'Saiba mais sobre o valor' },
+      { id: 'localizacao', label: 'Localização', phase: '2', angle: 'localizacao', headline: '{product}', copy: '{place}. Tipo, atributos e preco reunidos para quem busca a regiao. Agende a visita.', cta: 'Agende uma visita' },
+      { id: 'atributos', label: 'Atributos certos', phase: '2', angle: 'publico', headline: '{product}', copy: 'Suites, vagas, lazer e metragem num so quadro — para quem ja sabe o que procura.', cta: 'Quero conhecer' },
+      { id: 'visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: '{product}', copy: 'Imovel pronto para visita. Fale com a Vitra e agende um horario.', cta: 'Falar com a Vitra' },
     ],
   },
   meninoDeus: {
@@ -692,6 +724,32 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026). Referencia visual do cliente (estrutura/conceito); checks adaptados ao dourado
       // do brandbook (a referencia usa verde, fora da paleta). Versionada desde o inicio.
       renderVersion: 'oportunidade-bairro-approved-v1',
+    },
+    {
+      id: 'vitra-imobiliaria-ficha-imovel',
+      family: 'vitra-imobiliaria-ficha-imovel',
+      mode: 'single_family',
+      name: 'Ficha do imóvel',
+      shortName: 'Ficha (cards + galeria)',
+      bestFor: 'Ficha objetiva: fundo navy + tipo do imóvel/localização + cards de atributo com ícones (suítes, vagas, piscina, m²) + card de preço dourado + galeria de 3 fotos + rodapé de contato. Forte para resumo de produto e prova visual.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-11-ficha-1x1-sem-moldura.png',
+      fieldGroups: fichaFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Galeria 1 / fachada', multiple: false, required: true },
+        { id: 'living', label: 'Galeria 2 / interior', multiple: false, required: true },
+        { id: 'varanda', label: 'Galeria 3 / lazer', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.fichaImovel,
+      references: vitraImobiliariaReference('template-11-ficha'),
+      variableFields: ['photos', 'headline', 'subtitle', 'attributes', 'price', 'cta', 'contact'],
+      fixedBrandRules: ['solid_navy_bg', 'approved_white_wordmark', 'attribute_icon_cards', 'gold_price_card', 'photo_gallery_3', 'contact_footer', 'meta_safe_zone'],
+      // Arte nova (junho/2026). Referencia visual do cliente (estrutura/conceito de marca concorrente — sem
+      // copiar logo/contatos); adaptado ao brandbook (navy + dourado, wordmark VITRA, preco em dourado).
+      renderVersion: 'ficha-imovel-approved-v1',
     },
   ],
 }
