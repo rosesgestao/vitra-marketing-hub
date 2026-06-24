@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-24 — Imóvel Vendido (vídeo): marca d'água master op40
 
-> A pedido, troca para o PNG master `horizontal-aprovada-branca` op40. Na `main`. Commit: **<HASH>**.
+> A pedido, troca para o PNG master `horizontal-aprovada-branca` op40. Na `main`. Commit: **e73b96b**.
 > Substitui a fonte de [[Atualizacao_2026-06-24_Imovel_Vendido_Video_Watermark_Oficial]].
 
 ## O que mudou
