@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-24 — Imóvel Vendido (vídeo): marca d'água OFICIAL (correção)
 
-> Troca do lockup desenhado pelo PNG oficial aprovado para vídeo. Na `main`. Commit: **<HASH>**.
+> Troca do lockup desenhado pelo PNG oficial aprovado para vídeo. Na `main`. Commit: **d66f70a**.
 > Corrige a marca d'água de [[Atualizacao_2026-06-23_Imovel_Vendido_Video_Mascara_v2]].
 
 ## O que estava errado
