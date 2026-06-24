@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Imóvel Vendido (vídeo): máscara v2 + 4:5
 
-> Ajustes de máscara (marca d'água, carimbo, degradê) + novo formato 4:5. Na `main`. Commit: **<HASH>**.
+> Ajustes de máscara (marca d'água, carimbo, degradê) + novo formato 4:5. Na `main`. Commit: **6349563**.
 > Continua [[Atualizacao_2026-06-23_Imovel_Vendido_Video_Fase1]].
 
 ## Ajustes pedidos (3) — só os elementos indicados
