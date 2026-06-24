@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-23 — Template 11 "Ficha do imóvel" (referência do cliente)
 
-> 11º template aprovado da Imobiliária, fiel ao conceito de uma referência visual fornecida. Na `main`. Commit: **<HASH>**.
+> 11º template aprovado da Imobiliária, fiel ao conceito de uma referência visual fornecida. Na `main`. Commit: **a47e747**.
 
 ## Conceito (da referência)
 **Fundo de cor sólida** + logo/headline/subtítulo no topo-esquerda + **cards de atributo** (ícone em tile
