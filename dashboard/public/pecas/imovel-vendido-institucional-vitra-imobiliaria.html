@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VITRA IMOBILIÁRIA — Institucional · Imóvel Vendido</title>
+<title>VITRA IMOBILIÁRIA — Institucional · Imóvel Vendido (post)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  :root{--navy:#0A1628;--navy2:#0F2140;--gold:#C4942A;--gold-light:#F0C95C;
-    --white:#FFFFFF;--off:#F5F5F0;--font:'Inter',sans-serif;--serif:'Playfair Display',serif}
-  body{background:#0c1422;color:#fff;font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:18px;padding:26px 16px 60px}
+  :root{--navy:#0A1628;--navy2:#0F2140;--gold:#C4942A;--gold-light:#F0C95C;--white:#FFFFFF;--off:#F5F5F0;
+    --font:'Inter',sans-serif;--serif:'Playfair Display',serif}
+  body{background:#0c1422;color:#fff;font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px 16px 60px}
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;max-width:1080px}
   .toolbar .group{display:flex;gap:6px;align-items:center;background:#0f1c30;border:1px solid #20304a;border-radius:12px;padding:6px}
   .toolbar label{font-size:11px;letter-spacing:.4px;color:#9fb0c8;text-transform:uppercase;margin:0 4px}
-  select,button{font-family:var(--font);font-weight:600;font-size:13px;letter-spacing:.3px;border:1px solid #2a3c59;border-radius:9px;padding:9px 12px;background:#11233d;color:var(--off);cursor:pointer;transition:.15s}
+  button{font-family:var(--font);font-weight:600;font-size:13px;letter-spacing:.3px;border:1px solid #2a3c59;border-radius:9px;padding:9px 12px;background:#11233d;color:var(--off);cursor:pointer;transition:.15s}
   button:hover{border-color:var(--gold)}
   button.on{background:var(--gold);color:var(--navy);border-color:var(--gold)}
   button.primary{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
@@ -26,36 +26,42 @@
   body.exporting .frame{transform:none;margin:0}
   .stage{position:relative;width:1080px;height:1350px;overflow:hidden;background:var(--navy);font-family:var(--font);color:#fff}
   .stage.story{height:1920px}.stage.post{height:1080px}
-  .bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center;
-      background-image:radial-gradient(120% 80% at 50% 14%, #16314f 0%, #0A1628 56%, #07111F 100%)}
-  .scrim{position:absolute;top:0;left:0;width:100%;height:100%;background:
-      linear-gradient(180deg, rgba(7,17,31,.66) 0%, rgba(7,17,31,.34) 40%, rgba(7,17,31,.82) 100%)}
-  .glow{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(56% 40% at 50% 42%, rgba(196,148,42,.24), transparent 70%);pointer-events:none}
-  .ribbon{position:absolute;top:0;left:0;right:0;height:7px;background:var(--gold);opacity:.85}
-  .content{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:88px 84px 80px;text-align:center}
-  .top,.mid,.bottom{width:100%;display:flex;flex-direction:column;align-items:center}
-  .logo{width:300px;height:100px}.stage.post .logo{width:262px;height:88px}
-  .eyebrow{display:flex;align-items:center;gap:10px;font-size:18px;letter-spacing:6px;text-transform:uppercase;color:var(--gold-light);font-weight:600;white-space:nowrap;margin-top:22px}
-  .eyebrow .dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}
-  /* selo VENDIDO */
-  .seal{width:300px;height:300px;border-radius:50%;border:2px solid rgba(196,148,42,.85);
-        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-        background:radial-gradient(circle at 50% 38%, rgba(196,148,42,.16), rgba(7,17,31,.0) 70%)}
-  .seal .ring{position:absolute;width:264px;height:264px;border-radius:50%;border:1px solid rgba(196,148,42,.35)}
-  .seal .v{width:54px;height:54px;margin-bottom:2px}
-  .seal .word{font-size:46px;font-weight:800;letter-spacing:10px;color:var(--gold-light)}
-  .seal .org{font-size:13px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,.55)}
-  .stage.post .seal{width:248px;height:248px}.stage.post .seal .ring{width:216px;height:216px}.stage.post .seal .word{font-size:38px;letter-spacing:8px}
-  .mid .headline{font-family:var(--serif);font-weight:700;line-height:1.06;font-size:74px;color:#fff;margin-top:34px;max-width:92%}
-  .mid .headline em{font-style:italic;color:var(--gold-light)}
-  .stage.story .headline{font-size:82px}.stage.post .headline{font-size:54px;margin-top:24px}
-  .mid .sub{font-size:30px;line-height:1.4;color:var(--off);font-weight:400;margin-top:20px;max-width:84%}
-  .mid .sub b{color:var(--gold-light);font-weight:600}
-  .stage.post .sub{font-size:24px}
-  .bottom .line{width:120px;height:2px;background:var(--gold);margin-bottom:18px}
-  .bottom .org{font-size:20px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:600}
-  .bottom .slogan{font-size:17px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-top:8px}
-  [contenteditable]{outline:none}[contenteditable]:focus{box-shadow:0 0 0 2px rgba(240,201,92,.5);border-radius:6px}
+
+  /* fundo: empreendimento já borrado (rasterizado no canvas) ou gradiente navy padrão */
+  .bg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;
+      background-image:radial-gradient(120% 80% at 50% 18%, #16314f 0%, #0A1628 56%, #07111F 100%)}
+  .scrim{position:absolute;inset:0;z-index:1;background:
+      linear-gradient(180deg, rgba(7,17,31,.78) 0%, rgba(7,17,31,.42) 34%, rgba(7,17,31,.40) 60%, rgba(7,17,31,.92) 100%)}
+  /* brilho dourado premium (topo e base) — identidade Vitra, sem copiar a referência */
+  .glow{position:absolute;inset:0;z-index:1;pointer-events:none;background:
+      radial-gradient(85% 42% at 50% -6%, rgba(196,148,42,.34), transparent 60%),
+      radial-gradient(95% 40% at 50% 106%, rgba(196,148,42,.30), transparent 62%)}
+  .ribbon{position:absolute;top:0;left:0;right:0;height:6px;background:var(--gold);opacity:.85;z-index:4}
+
+  /* foto do corretor (frente), ancorada na base, atrás dos textos do topo e atrás da logo */
+  .person{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:100%;height:58%;z-index:2;
+      background-repeat:no-repeat;background-position:center bottom;background-size:contain}
+  .stage.story .person{height:55%}.stage.post .person{height:52%}
+
+  /* bloco de texto no topo */
+  .content{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;flex-direction:column;align-items:center;text-align:center;padding:96px 70px 0}
+  .stage.story .content{padding-top:250px}.stage.post .content{padding-top:64px}
+  .vendido{font-weight:800;font-size:168px;line-height:.92;letter-spacing:1px;color:#fff;text-shadow:0 6px 40px rgba(0,0,0,.45)}
+  .stage.story .vendido{font-size:188px}.stage.post .vendido{font-size:132px}
+  .por{font-size:44px;font-weight:400;color:rgba(255,255,255,.92);margin-top:16px}
+  .stage.post .por{font-size:34px;margin-top:10px}
+  .nome{font-family:var(--serif);font-style:italic;font-weight:600;font-size:62px;color:#fff;margin-top:2px}
+  .stage.post .nome{font-size:50px}
+  .emp{margin-top:24px;background:var(--gold);color:var(--navy);font-weight:700;font-size:38px;letter-spacing:.3px;
+      padding:12px 36px;border-radius:44px;box-shadow:0 8px 30px rgba(196,148,42,.28)}
+  .stage.post .emp{font-size:32px;padding:10px 30px;margin-top:18px}
+
+  /* logo na base, à frente da foto do corretor */
+  .logo-wrap{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);z-index:5}
+  .stage.story .logo-wrap{bottom:120px}.stage.post .logo-wrap{bottom:30px}
+  .logo{width:320px;height:107px}.stage.post .logo{width:264px;height:88px}
+
+  [contenteditable]{outline:none}[contenteditable]:focus{box-shadow:0 0 0 2px rgba(240,201,92,.5);border-radius:8px}
 </style>
 </head>
 <body>
@@ -64,74 +70,76 @@
       <button id="b-feed" class="on" onclick="setFmt('feed')">Feed 4:5</button>
       <button id="b-story" onclick="setFmt('story')">Story 9:16</button>
       <button id="b-post" onclick="setFmt('post')">WhatsApp 1:1</button></div>
-    <div class="group"><label>Mensagem</label>
-      <select id="msg" onchange="applyMsg()">
-        <option>Mais um imóvel vendido</option>
-        <option>Vendido pela Vitra Imobiliária</option>
-        <option>Mais uma negociação concluída</option>
-        <option>Mais um sonho realizado</option>
-        <option value="__edit">Outra… (editar no card)</option>
-      </select></div>
-    <div class="group"><label>Fundo</label>
-      <button onclick="document.getElementById('ph').click()">📷 Imagem</button>
-      <button onclick="clearPhoto()">Limpar</button>
-      <input id="ph" type="file" accept="image/*" style="display:none" onchange="loadPhoto(event)"></div>
+    <div class="group"><label>Empreendimento (fundo)</label>
+      <button onclick="document.getElementById('emp-ph').click()">🏢 Imagem</button>
+      <button onclick="clearEmp()">Limpar</button>
+      <input id="emp-ph" type="file" accept="image/*" style="display:none" onchange="loadEmp(event)"></div>
+    <div class="group"><label>Corretor (frente)</label>
+      <button onclick="document.getElementById('person-ph').click()">🧑 Foto</button>
+      <button onclick="clearPerson()">Limpar</button>
+      <input id="person-ph" type="file" accept="image/*" style="display:none" onchange="loadPerson(event)"></div>
     <button class="primary" onclick="exportPeca()">⬇ Baixar PNG</button>
   </div>
-  <p class="hint">Peça institucional de prova social — <b>sem dados do imóvel ou do cliente</b>. Escolha/edite a mensagem, ajuste o complemento e (opcional) suba uma imagem institucional de fundo. Feed 4:5 · Story 9:16 · WhatsApp 1:1.</p>
+  <p class="hint">Prova social de venda. Suba a <b>imagem do empreendimento</b> (vira fundo com blur) e a <b>foto do corretor</b> (de preferência recortada, PNG sem fundo). Edite o nome do corretor e do empreendimento direto na peça. Feed 4:5 · Story 9:16 · WhatsApp 1:1.</p>
   <p class="status" id="status"></p>
 
   <div class="frame">
     <div class="stage feed" id="stage">
-      <div class="bg" id="bg"></div><div class="scrim"></div><div class="glow"></div><div class="ribbon"></div>
+      <div class="bg" id="bg"></div>
+      <div class="scrim"></div>
+      <div class="glow"></div>
+      <div class="ribbon"></div>
+      <div class="person" id="person"></div>
       <div class="content">
-        <div class="top">
-          <svg class="logo" width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
-            <g transform="translate(5,7) scale(0.78)">
-              <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#07111F" stroke="#C4942A" stroke-width="2.5"/>
-              <polygon points="50,9 86,29.5 86,70.5 50,91 14,70.5 14,29.5" fill="none" stroke="rgba(212,168,74,0.18)" stroke-width="0.8"/>
-              <polygon points="20,33 34,33 27,50" fill="#8EC4F0"/><polygon points="20,33 27,50 50,72" fill="#1B3A6B"/><polygon points="34,33 27,50 50,72" fill="#2E6BB5"/>
-              <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/></g>
-            <line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/>
-            <text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text>
-            <path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/>
-            <text x="123" y="71" font-family="Inter" font-weight="700" font-size="8.5" letter-spacing="11.1" fill="#C4942A">IMOBILIÁRIA</text>
-          </svg>
-          <div class="eyebrow"><span class="dot"></span><span contenteditable>Resultado</span></div>
-        </div>
-        <div class="mid">
-          <div class="seal">
-            <div class="ring"></div>
-            <svg class="v" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="none" stroke="#C4942A" stroke-width="3"/>
-              <polygon points="20,33 34,33 27,50" fill="#8EC4F0"/><polygon points="20,33 27,50 50,72" fill="#1B3A6B"/><polygon points="34,33 27,50 50,72" fill="#2E6BB5"/>
-              <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/>
-            </svg>
-            <div class="word">VENDIDO</div>
-            <div class="org">Vitra Imobiliária</div>
-          </div>
-          <div class="headline" id="headline" contenteditable>Mais um imóvel vendido</div>
-          <div class="sub" id="sub" contenteditable>A confiança de quem negocia com <b>quem entende do mercado</b>.</div>
-        </div>
-        <div class="bottom">
-          <div class="line"></div>
-          <div class="org" contenteditable>Vitra Imobiliária · Porto Alegre</div>
-          <div class="slogan" contenteditable>Viva · Invista · Evolua</div>
-        </div>
+        <div class="vendido">VENDIDO</div>
+        <div class="por">por</div>
+        <div class="nome" id="nome" contenteditable>Nome do corretor</div>
+        <div class="emp" id="emp" contenteditable>Residencial Exemplo</div>
+      </div>
+      <div class="logo-wrap">
+        <svg class="logo" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(5,7) scale(0.78)">
+            <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#07111F" stroke="#C4942A" stroke-width="2.5"/>
+            <polygon points="50,9 86,29.5 86,70.5 50,91 14,70.5 14,29.5" fill="none" stroke="rgba(212,168,74,0.18)" stroke-width="0.8"/>
+            <polygon points="20,33 34,33 27,50" fill="#8EC4F0"/><polygon points="20,33 27,50 50,72" fill="#1B3A6B"/><polygon points="34,33 27,50 50,72" fill="#2E6BB5"/>
+            <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/></g>
+          <line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/>
+          <text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text>
+          <path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/>
+          <text x="123" y="71" font-family="Inter" font-weight="700" font-size="8.5" letter-spacing="11.1" fill="#C4942A">IMOBILIÁRIA</text>
+        </svg>
       </div>
     </div>
   </div>
 <script>
-  const stage=document.getElementById('stage');
+  const stage=document.getElementById('stage'),bgEl=document.getElementById('bg'),personEl=document.getElementById('person');
   const DIMS={feed:[1080,1350],story:[1080,1920],post:[1080,1080]};let fmt='feed';
+  let empImg=null;            // imagem original do empreendimento (p/ reborrar ao trocar formato)
+  const DEFAULT_BG="radial-gradient(120% 80% at 50% 18%, #16314f 0%, #0A1628 56%, #07111F 100%)";
+
   function setFmt(f){fmt=f;stage.classList.remove('feed','story','post');stage.classList.add(f);
     ['feed','story','post'].forEach(k=>document.getElementById('b-'+k).classList.toggle('on',k===f));
-    document.querySelector('.frame').style.transform='scale('+(f==='story'?0.34:0.40)+')';}
-  function applyMsg(){const v=document.getElementById('msg').value;if(v==='__edit'){document.getElementById('headline').focus();return;}
-    document.getElementById('headline').textContent=v;}
-  function loadPhoto(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);
-    document.getElementById('bg').style.backgroundImage="linear-gradient(180deg, rgba(7,17,31,.5), rgba(7,17,31,.6)), url('"+url+"')";}
-  function clearPhoto(){document.getElementById('bg').style.backgroundImage="radial-gradient(120% 80% at 50% 14%, #16314f 0%, #0A1628 56%, #07111F 100%)";}
+    document.querySelector('.frame').style.transform='scale('+(f==='story'?0.34:0.40)+')';
+    if(empImg)blurBg();}
+
+  // (8) fundo com blur: borra a imagem do empreendimento num canvas e usa o resultado como background.
+  function blurBg(){const [W,H]=DIMS[fmt];const c=document.createElement('canvas');c.width=W;c.height=H;
+    const x=c.getContext('2d');const s=Math.max(W/empImg.width,H/empImg.height);
+    const dw=empImg.width*s,dh=empImg.height*s,ox=(W-dw)/2,oy=(H-dh)/2,pad=40;
+    x.filter='blur(26px)';x.drawImage(empImg,ox-pad,oy-pad,dw+pad*2,dh+pad*2);x.filter='none';
+    bgEl.style.backgroundImage="url('"+c.toDataURL('image/jpeg',0.9)+"')";}
+  function loadEmp(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;
+    const img=new Image();img.onload=()=>{empImg=img;blurBg();
+      document.getElementById('status').textContent='Fundo do empreendimento aplicado (blur).';};
+    img.src=URL.createObjectURL(file);}
+  function clearEmp(){empImg=null;bgEl.style.backgroundImage=DEFAULT_BG;document.getElementById('status').textContent='';}
+
+  // (6) foto do corretor à frente, ancorada na base.
+  function loadPerson(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;
+    personEl.style.backgroundImage="url('"+URL.createObjectURL(file)+"')";
+    document.getElementById('status').textContent='Foto do corretor aplicada.';}
+  function clearPerson(){personEl.style.backgroundImage='none';}
+
   async function exportPeca(){const status=document.getElementById('status');status.textContent='Gerando PNG…';
     const frame=document.querySelector('.frame');const pT=frame.style.transform,pM=frame.style.marginBottom;
     document.body.classList.add('exporting');frame.style.transform='none';frame.style.marginBottom='0';
