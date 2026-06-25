@@ -1,6 +1,6 @@
 # Atualizacao 2026-06-24 — Imóvel Vendido (post estático): redesenho "VENDIDO por <corretor>"
 
-> Redesenho do post estático com foco no corretor (conceito de uma referência do cliente). Na `main`. Commit: **<HASH>**.
+> Redesenho do post estático com foco no corretor (conceito de uma referência do cliente). Na `main`. Commit: **a826779**.
 
 ## Conceito (da referência — marca concorrente; só estrutura, sem copiar logo/marca)
 Fundo do **empreendimento com blur** + **VENDIDO** no topo + **por** + **nome do corretor** + **nome do
