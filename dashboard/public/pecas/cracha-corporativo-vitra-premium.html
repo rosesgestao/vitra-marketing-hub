@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VITRA PREMIUM — Crachá Corporativo (5,4 × 8,5 cm · PVC)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--navy:#000000;--navy2:#0e0e0e;--gold:#C4942A;--gold-light:#F0C95C;
+    --white:#FFFFFF;--off:#F5F5F0;--font:'Inter',sans-serif}
+  body{background:#0c1422;color:#fff;font-family:var(--font);min-height:100vh;padding:24px 16px 70px}
+  .wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+  h1{font-size:18px;font-weight:700;letter-spacing:.3px}
+  h1 small{display:block;font-size:12px;font-weight:400;color:#8395ac;margin-top:4px;letter-spacing:.2px}
+  .editor{display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start}
+  @media(max-width:820px){.editor{grid-template-columns:1fr}}
+  .panel{background:#0f1c30;border:1px solid #20304a;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .panel h2{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-light);font-weight:700}
+  label.fld{display:flex;flex-direction:column;gap:5px;font-size:11px;letter-spacing:.4px;color:#9fb0c8;text-transform:uppercase}
+  input[type=text],textarea,select{font-family:var(--font);font-size:14px;color:#fff;background:#0a1424;border:1px solid #2a3c59;border-radius:9px;padding:9px 11px;width:100%}
+  input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button{font-family:var(--font);font-weight:600;font-size:13px;letter-spacing:.3px;border:1px solid #2a3c59;border-radius:9px;padding:9px 12px;background:#11233d;color:var(--off);cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--gold)}
+  button.on{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+  button.primary{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
+  button.primary:hover{background:var(--gold-light)}
+  .seg{display:flex;gap:6px}.seg button{flex:1}
+  .range{display:flex;align-items:center;gap:10px}
+  input[type=range]{flex:1;accent-color:var(--gold)}
+  .hint{font-size:11px;color:#8395ac;line-height:1.5}
+  .status{font-size:12px;color:var(--gold-light);min-height:16px}
+  .stageWrap{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .stageScale{transform:scale(.42);transform-origin:top center;height:calc(1051px * .42)}
+  body.exporting .stageScale{transform:none;height:auto}
+
+  /* ===== CRACHÁ — full bleed 58×89mm @300dpi = 685×1051px ===== */
+  .card{position:relative;width:685px;height:1051px;overflow:hidden;font-family:var(--font);
+        background:linear-gradient(180deg,var(--navy) 0%,var(--navy2) 100%)}
+  /* trim (corte) 54×85mm = inset 2mm(23.6px); safe 4mm a partir do corte = inset 70.9px */
+  .guide{position:absolute;pointer-events:none;border:1px dashed}
+  .guide.trim{inset:24px;border-color:rgba(255,80,80,.6)}
+  .guide.safe{inset:71px;border-color:rgba(120,200,120,.5)}
+  body.exporting .guide{display:none}
+  .face{position:absolute;inset:71px;display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+  .topgrp{display:flex;flex-direction:column;align-items:center;width:100%}
+  /* âncora de marca no centro — preenche o espaço sem competir com nome/cargo */
+  .tag{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
+  .tag .dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}
+  .sl{font-size:19px;letter-spacing:6px;text-transform:uppercase;color:var(--gold);font-weight:600;text-align:center}
+
+  /* slot oval superior */
+  .slot{width:150px;height:20px;border-radius:999px;background:rgba(196,148,42,.4);margin-top:6px;margin-bottom:40px}
+  /* ícone Vitra colorido (V faceto) */
+  .vic{width:96px;height:96px;margin-bottom:34px}
+  /* foto circular com anel dourado */
+  .photo{width:300px;height:300px;border-radius:50%;background:rgba(196,148,42,.08);
+         border:2px solid rgba(196,148,42,.45);overflow:hidden;position:relative;margin-bottom:38px;
+         background-repeat:no-repeat}
+  .photo .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:300;color:rgba(255,255,255,.32)}
+  .nome{font-weight:600;font-size:40px;color:#fff;letter-spacing:1px;text-align:center;margin-bottom:12px;line-height:1.1}
+  .cargo{font-size:23px;color:var(--gold);letter-spacing:5px;text-transform:uppercase;text-align:center;font-weight:600}
+  .setor{font-size:17px;color:rgba(255,255,255,.55);letter-spacing:3px;text-transform:uppercase;text-align:center;margin-top:10px}
+  .spacer{flex:1}
+  .foot{width:100%;border-top:1px solid rgba(196,148,42,.18);padding-top:22px;text-align:center}
+  .foot .org{font-size:19px;letter-spacing:2px;color:rgba(255,255,255,.45);text-transform:uppercase}
+  /* frente: slogan reposicionado p/ a base (campo opcional) + linha dourada (Premium, sem azul) + faixa dourada no nome da marca */
+  .fbot{width:100%;display:flex;flex-direction:column;align-items:center;gap:20px}
+  #card-frente .foot{border-top:1px solid rgba(196,148,42,.4);padding-top:20px}
+  #card-frente .foot .org{display:inline-block;background:var(--gold);color:var(--navy);font-size:18px;letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:9px 24px;border-radius:30px}
+  /* variação 2 (frente): faixa retangular dourada full-bleed preenchendo toda a área inferior (a linha azul-clara segue acima) */
+  .footband{display:none}
+  #card-frente.foot-band .footband{display:flex;position:absolute;left:0;right:0;bottom:0;height:124px;background:var(--gold);align-items:flex-start;justify-content:center;padding-top:22px;color:var(--navy);font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;z-index:3}
+  #card-frente.foot-band .foot .org{visibility:hidden}
+  /* verso: linha do rodapé em dourado (Premium, sem azul) */
+  #card-verso .foot{border-top-color:rgba(196,148,42,.4)}
+
+  /* ===== VERSO ===== */
+  .vic-sm{width:78px;height:78px;margin-top:4px;margin-bottom:30px}
+  .qrbox{width:330px;height:330px;background:#fff;border-radius:18px;padding:20px;display:flex;align-items:center;justify-content:center;margin-bottom:30px}
+  .qrbox svg{width:100%;height:100%;display:block}
+  .qrbox .noqr{font-size:15px;color:#000000;text-align:center;letter-spacing:1px;opacity:.5}
+  .matlabel{font-size:16px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:6px}
+  .matricula{font-size:34px;font-weight:700;color:var(--gold-light);letter-spacing:2px}
+  .slogan{font-size:20px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);text-align:center}
+  /* verso: legenda funcional no centro (preenche o espaço) + bloco inferior (slogan + rodapé) */
+  .vmid{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+  .vmid .dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}
+  .vmid .cap{font-size:18px;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:600;text-align:center}
+  .vbot{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%}
+  [contenteditable]{outline:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Crachá Corporativo — Vitra Premium <small>Padrão oficial do brandbook · CR-80 vertical 5,4 × 8,5 cm · PVC · 300 DPI · com sangria 2 mm e área de segurança</small></h1>
+
+  <div class="editor">
+    <!-- ===== FORM ===== -->
+    <div class="panel">
+      <h2>Dados do colaborador</h2>
+      <label class="fld">Nome<input id="f-nome" type="text" value="Gabriel Roses" oninput="bind()"></label>
+      <label class="fld">Cargo<input id="f-cargo" type="text" value="Diretor Comercial" oninput="bind()"></label>
+      <div class="row2">
+        <label class="fld">Setor<input id="f-setor" type="text" value="Comercial" oninput="bind()"></label>
+        <label class="fld">CPF<input id="f-mat" type="text" value="000.000.000-00" oninput="bind()"></label>
+      </div>
+      <label class="fld">Slogan da frente (opcional)<input id="f-slogan" type="text" value="Viva · Invista · Evolua" oninput="bind()"></label>
+      <label class="fld">Cidade (rodapé do verso)<input id="f-org" type="text" value="Vitra Premium" oninput="bind()"></label>
+      <label class="fld">QR Code — link ou texto (verso)<input id="f-qr" type="text" value="https://vitrapremium.com.br" oninput="bind()"></label>
+
+      <h2 style="margin-top:6px">Foto do colaborador</h2>
+      <div class="seg"><button onclick="document.getElementById('ph').click()">📷 Enviar foto</button><button onclick="clearPhoto()">Limpar</button></div>
+      <input id="ph" type="file" accept="image/*" style="display:none" onchange="loadPhoto(event)">
+      <div class="range"><span class="hint">Zoom</span><input id="zoom" type="range" min="100" max="320" value="100" oninput="applyPhoto()"></div>
+      <p class="hint">Arraste sobre a foto no crachá para reposicionar (enquadramento). A moldura é circular, conforme o brandbook.</p>
+
+      <h2 style="margin-top:6px">Lote (opcional)</h2>
+      <label class="fld">Um por linha — Nome;Cargo;Setor;CPF
+        <textarea id="f-lote" rows="3" placeholder="Ana Paula;Consultora;Vendas;111.111.111-11&#10;Carlos Lima;Gestor;Locação;222.222.222-22"></textarea></label>
+      <div class="seg"><button onclick="applyLote()">Aplicar lista</button><button id="bprev" onclick="navLote(-1)">‹</button><button id="bnext" onclick="navLote(1)">›</button></div>
+      <p class="hint" id="loteInfo"></p>
+      <div class="seg"><button onclick="document.getElementById('csv').click()">📄 Importar CSV</button><button onclick="downloadCSVModelo()">Baixar modelo CSV</button></div>
+      <input id="csv" type="file" accept=".csv,text/csv,text/plain" style="display:none" onchange="importCSV(event)">
+      <p class="hint">CSV com cabeçalho <b>nome;cargo;setor;cpf;qr</b> (ou separado por vírgula). Vira a lista do lote.</p>
+
+      <h2 style="margin-top:6px">Registros salvos (neste navegador)</h2>
+      <div class="seg"><button class="primary" onclick="saveRegistro()">💾 Salvar registro</button><button onclick="saveLoteAsRegistros()">Salvar lote</button></div>
+      <label class="fld">Abrir registro salvo
+        <select id="saved" onchange="loadRegistro()"><option value="">— selecione —</option></select></label>
+      <div class="seg"><button onclick="deleteRegistro()">Excluir selecionado</button><button onclick="exportRegistrosCSV()">Exportar todos (CSV)</button></div>
+      <p class="hint">Salva os dados (texto) localmente para reabrir depois. A foto é reanexada ao reabrir (não fica salva no navegador).</p>
+    </div>
+
+    <!-- ===== PREVIEW ===== -->
+    <div class="stageWrap">
+      <div class="seg" style="max-width:520px;width:100%">
+        <button id="b-frente" class="on" onclick="setFace('frente')">Frente</button>
+        <button id="b-verso" onclick="setFace('verso')">Verso</button>
+        <button id="b-guides" class="on" onclick="toggleGuides()">Guias</button>
+      </div>
+      <div class="seg" style="max-width:520px;width:100%">
+        <span class="hint" style="align-self:center">Rodapé (frente):</span>
+        <button id="bf-pill" class="on" onclick="setFoot('pill')">Pill</button>
+        <button id="bf-band" onclick="setFoot('band')">Faixa cheia</button>
+      </div>
+      <div class="stageScale">
+        <!-- FRENTE -->
+        <div class="card" id="card-frente">
+          <div class="guide trim"></div><div class="guide safe"></div>
+          <div class="face">
+            <div class="topgrp">
+              <div class="slot"></div>
+              <svg class="vic" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Ícone Vitra">
+                <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#000000" stroke="#C4942A" stroke-width="2.5"/>
+                <polygon points="20,33 34,33 27,50" fill="#FFE08A"/><polygon points="20,33 27,50 50,72" fill="#8B6914"/><polygon points="34,33 27,50 50,72" fill="#C4942A"/>
+                <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/>
+              </svg>
+              <div class="photo" id="photo"><div class="ph" id="photoPh">GR</div></div>
+              <div class="nome" id="c-nome">Gabriel Roses</div>
+              <div class="cargo" id="c-cargo">Diretor Comercial</div>
+              <div class="setor" id="c-setor">Comercial</div>
+            </div>
+            <div class="fbot">
+              <div class="sl" id="c-tag" contenteditable>Viva · Invista · Evolua</div>
+              <div class="foot"><div class="org" id="c-org">VITRA PREMIUM</div></div>
+            </div>
+          </div>
+          <div class="footband">VITRA PREMIUM</div>
+        </div>
+        <!-- VERSO -->
+        <div class="card" id="card-verso" style="display:none">
+          <div class="guide trim"></div><div class="guide safe"></div>
+          <div class="face">
+            <div class="topgrp">
+              <div class="slot"></div>
+              <svg class="vic-sm" width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Ícone Vitra">
+                <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#000000" stroke="#C4942A" stroke-width="2.5"/>
+                <polygon points="20,33 34,33 27,50" fill="#FFE08A"/><polygon points="20,33 27,50 50,72" fill="#8B6914"/><polygon points="34,33 27,50 50,72" fill="#C4942A"/>
+                <polygon points="80,33 66,33 73,50" fill="#F0C95C"/><polygon points="80,33 73,50 50,72" fill="#9B7A1C"/><polygon points="66,33 73,50 50,72" fill="#D4A84A"/>
+              </svg>
+              <div class="qrbox" id="qrbox"><div class="noqr">QR</div></div>
+              <div class="matlabel">CPF</div>
+              <div class="matricula" id="c-mat">000.000.000-00</div>
+            </div>
+            <div class="vmid"><div class="cap" contenteditable>Aponte a câmera para validar</div></div>
+            <div class="vbot">
+              <div class="slogan" contenteditable>Viva · Invista · Evolua</div>
+              <div class="foot"><div class="org" id="c-org2">Vitra Premium · Porto Alegre</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="seg" style="max-width:520px;width:100%;flex-wrap:wrap">
+        <button class="primary" onclick="exportFace('frente')">⬇ Frente (PNG ~900dpi)</button>
+        <button class="primary" onclick="exportFace('verso')">⬇ Verso (PNG ~900dpi)</button>
+        <button onclick="exportAll()">⬇ Lote (frente+verso)</button>
+      </div>
+      <p class="status" id="status"></p>
+      <p class="hint" style="max-width:520px;text-align:center">Exporta em <b>2055 × 3153 px (~900 DPI · supersampling 3×)</b> = 5,8 × 8,9 cm com <b>sangria de 2 mm</b>. Corte final 5,4 × 8,5 cm (linha vermelha) · conteúdo dentro da área verde. No Canva: crie a página em 5,8 × 8,9 cm e cole o PNG em 100%. Use foto nítida (≥ 900 px) e evite zoom alto.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DPI=300, MM=DPI/25.4; // px por mm
+  // Supersampling do export: o palco é 685×1051 (= 300 DPI no tamanho final com sangria). Capturar a 3×
+  // gera 2055×3153 (~900 DPI) — a foto é amostrada da fonte original em ~900px (nitidez máxima p/ PVC), sem
+  // mexer no layout/enquadramento. PNG é lossless (sem compressão). Baixe para 2× se quiser arquivos menores.
+  const EXPORT_SS=3;
+  const crop={scale:1,x:50,y:50};
+  let photoURL=null, face='frente', lote=[], loteIdx=-1;
+
+  // variação do rodapé da frente: 'pill' (aprovado) | 'band' (faixa retangular full-bleed)
+  function setFoot(s){const c=document.getElementById('card-frente');c.classList.toggle('foot-band',s==='band');
+    document.getElementById('bf-pill').classList.toggle('on',s!=='band');
+    document.getElementById('bf-band').classList.toggle('on',s==='band');}
+
+  function bind(){
+    const v=id=>document.getElementById(id).value;
+    document.getElementById('c-nome').textContent=v('f-nome')||' ';
+    document.getElementById('c-cargo').textContent=v('f-cargo')||' ';
+    document.getElementById('c-setor').textContent=v('f-setor')||'';
+    // frente: rodapé fixo "VITRA PREMIUM" (desacoplado do verso); slogan opcional some quando vazio
+    const _sl=v('f-slogan'),_ct=document.getElementById('c-tag');_ct.textContent=_sl;_ct.style.display=_sl.trim()?'':'none';
+    document.getElementById('c-org2').textContent=v('f-org')||' ';
+    document.getElementById('c-mat').textContent=v('f-mat')||' ';
+    document.getElementById('photoPh').textContent=(v('f-nome')||'  ').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase()||'·';
+    renderQR(v('f-qr'));
+  }
+  function renderQR(text){
+    const box=document.getElementById('qrbox');
+    if(!text||!text.trim()){box.innerHTML='<div class="noqr">QR opcional</div>';return;}
+    try{const qr=qrcode(0,'M');qr.addData(text.trim());qr.make();box.innerHTML=qr.createSvgTag({cellSize:8,margin:0});}
+    catch(e){box.innerHTML='<div class="noqr">QR inválido</div>';}
+  }
+  function loadPhoto(ev){const f=ev.target.files&&ev.target.files[0];if(!f)return;photoURL=URL.createObjectURL(f);crop.scale=1;crop.x=50;crop.y=50;document.getElementById('zoom').value=100;applyPhoto();}
+  function clearPhoto(){photoURL=null;const p=document.getElementById('photo');p.style.backgroundImage='';document.getElementById('photoPh').style.display='';}
+  function applyPhoto(){
+    if(!photoURL)return;
+    crop.scale=Number(document.getElementById('zoom').value)/100;
+    const p=document.getElementById('photo');
+    p.style.backgroundImage="url('"+photoURL+"')";
+    p.style.backgroundSize=(crop.scale*100)+'%';
+    p.style.backgroundPosition=crop.x+'% '+crop.y+'%';
+    document.getElementById('photoPh').style.display='none';
+  }
+  // arraste para reposicionar a foto
+  (function(){const p=document.getElementById('photo');let drag=false,sx,sy,ox,oy;
+    p.addEventListener('pointerdown',e=>{if(!photoURL)return;drag=true;sx=e.clientX;sy=e.clientY;ox=crop.x;oy=crop.y;p.setPointerCapture(e.pointerId);});
+    p.addEventListener('pointermove',e=>{if(!drag)return;crop.x=Math.max(0,Math.min(100,ox-(e.clientX-sx)*0.25));crop.y=Math.max(0,Math.min(100,oy-(e.clientY-sy)*0.25));applyPhoto();});
+    p.addEventListener('pointerup',()=>drag=false);p.addEventListener('pointercancel',()=>drag=false);
+  })();
+
+  function setFace(f){face=f;document.getElementById('card-frente').style.display=f==='frente'?'':'none';
+    document.getElementById('card-verso').style.display=f==='verso'?'':'none';
+    document.getElementById('b-frente').classList.toggle('on',f==='frente');
+    document.getElementById('b-verso').classList.toggle('on',f==='verso');}
+  function toggleGuides(){const on=document.getElementById('b-guides').classList.toggle('on');
+    document.querySelectorAll('.guide').forEach(g=>g.style.display=on?'':'none');}
+
+  function applyLote(){
+    lote=document.getElementById('f-lote').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+      const [nome,cargo,setor,mat]=l.split(';').map(s=>(s||'').trim());return {nome,cargo,setor,mat};});
+    loteIdx=lote.length?0:-1;applyRecord();updateLoteInfo();
+  }
+  function applyRecord(){if(loteIdx<0||!lote[loteIdx])return;const r=lote[loteIdx];
+    if(r.nome)document.getElementById('f-nome').value=r.nome;
+    if(r.cargo)document.getElementById('f-cargo').value=r.cargo;
+    if(r.setor)document.getElementById('f-setor').value=r.setor;
+    if(r.mat)document.getElementById('f-mat').value=r.mat;bind();}
+  function navLote(d){if(!lote.length)return;loteIdx=(loteIdx+d+lote.length)%lote.length;applyRecord();updateLoteInfo();}
+  function updateLoteInfo(){document.getElementById('loteInfo').textContent=lote.length?('Registro '+(loteIdx+1)+' de '+lote.length+' — '+(lote[loteIdx].nome||'')):'';}
+
+  function slug(s){return (s||'cracha').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase()||'cracha';}
+  async function captureFace(f){
+    const prevFace=face;setFace(f);
+    const el=document.getElementById('card-'+f);
+    document.body.classList.add('exporting');
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const canvas=await html2canvas(el,{backgroundColor:'#000000',scale:EXPORT_SS,useCORS:true,logging:false,width:685,height:1051});
+    document.body.classList.remove('exporting');setFace(prevFace);
+    return canvas;
+  }
+  async function exportFace(f){
+    const status=document.getElementById('status');status.textContent='Gerando '+f+'…';
+    try{const canvas=await captureFace(f);const a=document.createElement('a');
+      a.download='cracha-vitra-premium-'+slug(document.getElementById('f-nome').value)+'-'+f+'-685x1051-300dpi.png';
+      a.href=canvas.toDataURL('image/png');a.click();
+      status.textContent='PNG '+f+' '+canvas.width+'×'+canvas.height+' (~900dpi · supersampling '+EXPORT_SS+'× · com sangria) baixado ✓';}
+    catch(e){status.textContent='Erro: '+e.message;}
+  }
+  async function exportAll(){
+    const status=document.getElementById('status');
+    if(lote.length){for(let i=0;i<lote.length;i++){loteIdx=i;applyRecord();updateLoteInfo();
+        await exportFace('frente');await exportFace('verso');}
+      status.textContent='Lote concluído: '+lote.length+' crachá(s) × 2 faces baixados ✓';}
+    else{await exportFace('frente');await exportFace('verso');}
+  }
+  // ===== CSV (import/export de lote) =====
+  function parseCSV(text){
+    const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    if(!lines.length)return [];
+    const delim=(lines[0].match(/;/g)||[]).length>=(lines[0].match(/,/g)||[]).length?';':',';
+    const cells=l=>l.split(delim).map(s=>s.replace(/^"|"$/g,'').trim());
+    const head=cells(lines[0]).map(h=>h.toLowerCase());
+    const hasHeader=head.some(h=>/nome|cargo|setor|matr|cpf|qr/.test(h));
+    const col=name=>head.indexOf(name);
+    const idx=hasHeader?{nome:col('nome'),cargo:col('cargo'),setor:col('setor'),mat:head.findIndex(h=>/cpf|matr/.test(h)),qr:col('qr')}:{nome:0,cargo:1,setor:2,mat:3,qr:4};
+    const rows=hasHeader?lines.slice(1):lines;
+    return rows.map(l=>{const c=cells(l);const g=i=>i>=0&&i<c.length?c[i]:'';
+      return {nome:g(idx.nome),cargo:g(idx.cargo),setor:g(idx.setor),mat:g(idx.mat),qr:g(idx.qr)};}).filter(r=>r.nome);
+  }
+  function importCSV(ev){const f=ev.target.files&&ev.target.files[0];if(!f)return;
+    const rd=new FileReader();rd.onload=()=>{lote=parseCSV(String(rd.result));loteIdx=lote.length?0:-1;
+      document.getElementById('f-lote').value=lote.map(r=>[r.nome,r.cargo,r.setor,r.mat].join(';')).join('\n');
+      applyRecord();updateLoteInfo();
+      document.getElementById('status').textContent=lote.length?('CSV importado: '+lote.length+' registro(s) ✓'):'CSV vazio ou inválido';};
+    rd.readAsText(f,'utf-8');ev.target.value='';}
+  function downloadCSVModelo(){const csv='nome;cargo;setor;cpf;qr\nAna Paula;Consultora;Vendas;111.111.111-11;https://vitrapremium.com.br\nCarlos Lima;Gestor;Locação;222.222.222-22;';
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='modelo-cracha-lote.csv';a.click();}
+  function exportRegistrosCSV(){const r=getRegistros();if(!r.length){document.getElementById('status').textContent='Nenhum registro salvo.';return;}
+    const csv='nome;cargo;setor;cpf;cidade;qr\n'+r.map(x=>[x.nome,x.cargo,x.setor,x.mat,x.org,x.qr].map(s=>(s||'').replace(/;/g,',')).join(';')).join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='cracha-registros-vitra-premium.csv';a.click();}
+
+  // ===== Persistência local (localStorage) =====
+  const LS_KEY='vitra_cracha_imob_registros';
+  function getRegistros(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch(e){return [];}}
+  function setRegistros(arr){try{localStorage.setItem(LS_KEY,JSON.stringify(arr));}catch(e){}}
+  function curData(){const v=id=>document.getElementById(id).value;
+    return {nome:v('f-nome'),cargo:v('f-cargo'),setor:v('f-setor'),mat:v('f-mat'),org:v('f-org'),qr:v('f-qr')};}
+  function saveRegistro(){const d=curData();if(!d.nome.trim()){document.getElementById('status').textContent='Informe o nome para salvar.';return;}
+    const arr=getRegistros();const i=arr.findIndex(x=>x.nome===d.nome&&x.mat===d.mat);
+    if(i>=0)arr[i]=d;else arr.push(d);setRegistros(arr);refreshSaved();
+    document.getElementById('status').textContent='Registro "'+d.nome+'" salvo ✓';}
+  function saveLoteAsRegistros(){if(!lote.length){document.getElementById('status').textContent='Aplique uma lista/CSV primeiro.';return;}
+    const arr=getRegistros();lote.forEach(r=>{const d={nome:r.nome,cargo:r.cargo,setor:r.setor,mat:r.mat,org:document.getElementById('f-org').value,qr:r.qr||''};
+      const i=arr.findIndex(x=>x.nome===d.nome&&x.mat===d.mat);if(i>=0)arr[i]=d;else arr.push(d);});
+    setRegistros(arr);refreshSaved();document.getElementById('status').textContent=lote.length+' registro(s) do lote salvos ✓';}
+  function refreshSaved(){const sel=document.getElementById('saved');const arr=getRegistros();
+    sel.innerHTML='<option value="">— '+(arr.length?arr.length+' salvo(s)':'nenhum salvo')+' —</option>'+
+      arr.map((x,i)=>'<option value="'+i+'">'+(x.nome||'(sem nome)')+(x.mat?' · '+x.mat:'')+'</option>').join('');}
+  function loadRegistro(){const i=document.getElementById('saved').value;if(i==='')return;const x=getRegistros()[Number(i)];if(!x)return;
+    document.getElementById('f-nome').value=x.nome||'';document.getElementById('f-cargo').value=x.cargo||'';
+    document.getElementById('f-setor').value=x.setor||'';document.getElementById('f-mat').value=x.mat||'';
+    document.getElementById('f-org').value=x.org||'';document.getElementById('f-qr').value=x.qr||'';bind();
+    document.getElementById('status').textContent='Registro "'+(x.nome||'')+'" carregado (reanexe a foto).';}
+  function deleteRegistro(){const i=document.getElementById('saved').value;if(i==='')return;const arr=getRegistros();arr.splice(Number(i),1);setRegistros(arr);refreshSaved();
+    document.getElementById('status').textContent='Registro excluído.';}
+
+  refreshSaved();
+  bind();setFace('frente');
+</script>
+</body>
+</html>

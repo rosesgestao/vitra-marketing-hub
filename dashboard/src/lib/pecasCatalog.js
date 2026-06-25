@@ -66,6 +66,7 @@ export const PECAS_PLATFORMS = [
         note: 'Padrão oficial do brandbook (navy + dourado, foto circular, slot oval). Foto com recorte/zoom, nome/cargo/setor/matrícula, QR no verso, geração em lote. Exporta PNG 685×1051 px @300 DPI (com sangria) para Canva e impressão PVC.',
         variants: {
           [BRAND_SCOPES.imobiliaria]: 'cracha-corporativo-vitra-imobiliaria.html',
+          [BRAND_SCOPES.premium]: 'cracha-corporativo-vitra-premium.html',
         },
       },
     ],
