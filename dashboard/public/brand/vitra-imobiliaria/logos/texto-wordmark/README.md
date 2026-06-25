@@ -27,3 +27,9 @@ violar a regra "não redesenhar/interpretar a tipografia": o vetor oficial da lo
 diferente do PNG de referência, e vetorizar (traçar) o PNG reinterpretaria os glifos. Se quiser um vetor,
 o caminho correto é o arquivo vetorial oficial da marca (com a fonte Inter), ciente de que ele difere
 levemente do PNG no espaçamento.
+
+## Só "VITRA" (sem "IMOBILIÁRIA")
+`vitra-imobiliaria-vitra-{branco,dourado,navy}.{png,svg}` — apenas o wordmark **VITRA**, extraído por
+recorte direto da banda superior do PNG oficial (removida só a linha "IMOBILIÁRIA"). Mesma fidelidade:
+tipografia, desenho das letras, proporções e espaçamento idênticos ao "VITRA" original. Transparente,
+2538×434, margem consistente 30px. Cores: branco (255,255,255), dourado (212,168,74), navy (10,22,40).
