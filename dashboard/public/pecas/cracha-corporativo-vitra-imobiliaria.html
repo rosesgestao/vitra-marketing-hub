@@ -50,7 +50,7 @@
   /* âncora de marca no centro — preenche o espaço sem competir com nome/cargo */
   .tag{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
   .tag .dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}
-  .tag .sl{font-size:19px;letter-spacing:6px;text-transform:uppercase;color:var(--gold);font-weight:600;text-align:center}
+  .sl{font-size:19px;letter-spacing:6px;text-transform:uppercase;color:var(--gold);font-weight:600;text-align:center}
 
   /* slot oval superior */
   .slot{width:150px;height:20px;border-radius:999px;background:rgba(196,148,42,.4);margin-top:6px;margin-bottom:40px}
@@ -67,6 +67,10 @@
   .spacer{flex:1}
   .foot{width:100%;border-top:1px solid rgba(196,148,42,.18);padding-top:22px;text-align:center}
   .foot .org{font-size:19px;letter-spacing:2px;color:rgba(255,255,255,.45);text-transform:uppercase}
+  /* frente: slogan reposicionado p/ a base (campo opcional) + linha azul-clara (faceta do V #8EC4F0) + faixa dourada no nome da marca */
+  .fbot{width:100%;display:flex;flex-direction:column;align-items:center;gap:20px}
+  #card-frente .foot{border-top:1px solid rgba(142,196,240,.55);padding-top:20px}
+  #card-frente .foot .org{display:inline-block;background:var(--gold);color:var(--navy);font-size:18px;letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:9px 24px;border-radius:30px}
 
   /* ===== VERSO ===== */
   .vic-sm{width:78px;height:78px;margin-top:4px;margin-bottom:30px}
@@ -98,7 +102,8 @@
         <label class="fld">Setor<input id="f-setor" type="text" value="Comercial" oninput="bind()"></label>
         <label class="fld">CPF<input id="f-mat" type="text" value="000.000.000-00" oninput="bind()"></label>
       </div>
-      <label class="fld">Cidade (rodapé)<input id="f-org" type="text" value="Vitra Imobiliária · Porto Alegre" oninput="bind()"></label>
+      <label class="fld">Slogan da frente (opcional)<input id="f-slogan" type="text" value="Viva · Invista · Evolua" oninput="bind()"></label>
+      <label class="fld">Cidade (rodapé do verso)<input id="f-org" type="text" value="Vitra Imobiliária · Porto Alegre" oninput="bind()"></label>
       <label class="fld">QR Code — link ou texto (verso)<input id="f-qr" type="text" value="https://vitraimobiliaria.com.br" oninput="bind()"></label>
 
       <h2 style="margin-top:6px">Foto do colaborador</h2>
@@ -148,8 +153,10 @@
               <div class="cargo" id="c-cargo">Diretor Comercial</div>
               <div class="setor" id="c-setor">Comercial</div>
             </div>
-            <div class="tag"><span class="dot"></span><div class="sl" id="c-tag" contenteditable>Viva · Invista · Evolua</div></div>
-            <div class="foot"><div class="org" id="c-org">Vitra Imobiliária · Porto Alegre</div></div>
+            <div class="fbot">
+              <div class="sl" id="c-tag" contenteditable>Viva · Invista · Evolua</div>
+              <div class="foot"><div class="org" id="c-org">VITRA IMOBILIÁRIA</div></div>
+            </div>
           </div>
         </div>
         <!-- VERSO -->
@@ -200,7 +207,8 @@
     document.getElementById('c-nome').textContent=v('f-nome')||' ';
     document.getElementById('c-cargo').textContent=v('f-cargo')||' ';
     document.getElementById('c-setor').textContent=v('f-setor')||'';
-    document.getElementById('c-org').textContent=v('f-org')||' ';
+    // frente: rodapé fixo "VITRA IMOBILIÁRIA" (desacoplado do verso); slogan opcional some quando vazio
+    const _sl=v('f-slogan'),_ct=document.getElementById('c-tag');_ct.textContent=_sl;_ct.style.display=_sl.trim()?'':'none';
     document.getElementById('c-org2').textContent=v('f-org')||' ';
     document.getElementById('c-mat').textContent=v('f-mat')||' ';
     document.getElementById('photoPh').textContent=(v('f-nome')||'  ').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase()||'·';
