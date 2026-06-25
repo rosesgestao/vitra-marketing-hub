@@ -126,7 +126,7 @@
   function blurBg(){const [W,H]=DIMS[fmt];const c=document.createElement('canvas');c.width=W;c.height=H;
     const x=c.getContext('2d');const s=Math.max(W/empImg.width,H/empImg.height);
     const dw=empImg.width*s,dh=empImg.height*s,ox=(W-dw)/2,oy=(H-dh)/2,pad=40;
-    x.filter='blur(26px)';x.drawImage(empImg,ox-pad,oy-pad,dw+pad*2,dh+pad*2);x.filter='none';
+    x.filter='blur(13px)';x.drawImage(empImg,ox-pad,oy-pad,dw+pad*2,dh+pad*2);x.filter='none';
     bgEl.style.backgroundImage="url('"+c.toDataURL('image/jpeg',0.9)+"')";}
   function loadEmp(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;
     const img=new Image();img.onload=()=>{empImg=img;blurBg();
