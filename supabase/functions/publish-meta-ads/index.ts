@@ -727,7 +727,14 @@ Deno.serve(async (req) => {
       const targetingNoteMsg = targetingAdjustments.length
         ? ` ${targetingAdjustments.length} conjunto(s) com direcionamento ajustado (interesses depreciados removidos).`
         : "";
-      if (!okBuilt.length) return json({ error: "nothing_built", message: "Nenhum conjunto pode ser criado (sem criativo aprovado ou copy reprovada).", built, skipped_creatives: skippedCreatives }, 422);
+      if (!okBuilt.length) {
+        // ROLLBACK: a campanha foi criada na Meta (linha ~487) ANTES de validar os conjuntos. Se nenhum
+        // conjunto pode ser construido (copy reprovada / sem criativo), apaga a campanha-shell e restaura
+        // o ponteiro anterior — NAO deixa campanha orfa na conta. graphDelete remove a campanha vazia.
+        await graphDelete(campRes.id).catch(() => {});
+        await svc.from("premium_campaigns").update({ meta_campaign_id: campaign.meta_campaign_id ?? null }).eq("id", campaignId);
+        return json({ error: "nothing_built", message: "Nenhum conjunto pode ser criado (sem criativo aprovado ou copy reprovada). Nada foi criado na Meta.", built, skipped_creatives: skippedCreatives, rolled_back: true }, 422);
+      }
       return json({
         ok: true, paused: true, meta_campaign_id: campRes.id, ad_sets: okBuilt.length, ads: totalAds, built,
         skipped_creatives: skippedCreatives,
