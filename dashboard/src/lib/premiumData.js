@@ -545,6 +545,41 @@ export async function resolveImovelContext(name, brandScope = BRAND_SCOPES.imobi
 // sensível numa conta real): reaproveita a Página/conta da última publicação paga + objetivo da campanha.
 // Devolve { adAccountId, pageId, objective, destinationUrl, hasPage } ou null. hasPage=false → o imóvel
 // ainda não tem mídia configurada (1ª vez deve ser feita no painel Tráfego Pago, que coleta tudo).
+// Página PADRÃO da marca: a Página que a marca JÁ usa (última publicação paga da conta da marca). ToS de
+// lead aceito e marca correta (o build guarda contra cross-marca). Permite lançar imóvel cadastrado que
+// ainda NÃO rodou mídia, sem o operador escolher a Página manualmente. null se a marca nunca rodou pago.
+export async function resolveBrandDefaultPage(brandScope = BRAND_SCOPES.imobiliaria) {
+  const account = META_AD_ACCOUNTS[brandScope]
+  if (!account) return null
+  try {
+    const { data } = await supabase.from('premium_publications')
+      .select('metadata')
+      .eq('publication_type', 'paid')
+      .eq('metadata->>ad_account_id', account.adAccountId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const m = Array.isArray(data) ? data[0]?.metadata : null
+    return m?.page_id || null
+  } catch (_) { return null }
+}
+
+// Pré-check de criativo aprovado (MESMO critério do build_draft: channel meta_ads, status approved/
+// published, com public_url). O copiloto chama ANTES do buildMetaDraft para NÃO criar campanha-shell/
+// formulário órfãos na Meta quando ainda não há criativo aprovado (a Edge só valida depois de criar).
+export async function campaignHasApprovedCreative(campaignId) {
+  if (!campaignId) return false
+  try {
+    const { data } = await supabase.from('premium_campaign_assets')
+      .select('id')
+      .eq('campaign_id', campaignId)
+      .eq('channel', 'meta_ads')
+      .in('status', ['approved', 'published'])
+      .not('public_url', 'is', null)
+      .limit(1)
+    return Array.isArray(data) && data.length > 0
+  } catch (_) { return false }
+}
+
 export async function resolveCampaignMediaConfig(campaignId, brandScope = BRAND_SCOPES.imobiliaria) {
   if (!campaignId) return null
   try {
@@ -554,12 +589,16 @@ export async function resolveCampaignMediaConfig(campaignId, brandScope = BRAND_
     ])
     const meta = (Array.isArray(pubsRes.data) ? pubsRes.data[0]?.metadata : null) || {}
     const account = META_AD_ACCOUNTS[brandScope]
-    const pageId = meta.page_id || null
+    // Página: 1º a do próprio imóvel (se já rodou); senão a Página PADRÃO da marca (lança imóvel novo
+    // sem config prévia). pageSource sinaliza qual foi usada (p/ o copiloto avisar).
+    let pageId = meta.page_id || null
+    let pageSource = pageId ? 'imovel' : null
+    if (!pageId) { pageId = await resolveBrandDefaultPage(brandScope); if (pageId) pageSource = 'marca' }
     const adAccountId = meta.ad_account_id || account?.adAccountId || null
     const objective = campRes.data?.campaign_objective || 'lead_generation'
     const brandSite = brandScope === BRAND_SCOPES.premium ? 'https://vitrapremium.com.br' : 'https://vitraimobiliaria.com.br'
     const destinationUrl = cleanText(campRes.data?.brief?.product_data?.listing_url) || brandSite
-    return { adAccountId, pageId, objective, destinationUrl, hasPage: !!pageId }
+    return { adAccountId, pageId, objective, destinationUrl, hasPage: !!pageId, pageSource }
   } catch (_) { return null }
 }
 

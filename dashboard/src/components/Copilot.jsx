@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Check, Database, Loader2, Mic, Send, Sparkles, Wand2, X } from 'lucide-react'
 import { getBrandProfile } from '../lib/brandProfiles.js'
 import {
-  planejarComando, generateCopyWithAI, buildMetaDraft, resolveCampaignMediaConfig,
+  planejarComando, generateCopyWithAI, buildMetaDraft, resolveCampaignMediaConfig, campaignHasApprovedCreative,
   createAgentConversation, appendAgentMessage, saveAgentRun, resolveImovelContext,
 } from '../lib/premiumData.js'
 import { setTrafegoIntent } from '../lib/copilotIntent.js'
@@ -151,13 +151,28 @@ export default function Copilot({ brandScope, onNavigate }) {
           onNavigate?.(trafegoViewId); setTimeout(() => setOpen(false), 800)
         } else if (budgetCents < 100) {
           setError('Informe o orçamento diário (ex.: "R$ 50 por dia") para montar o rascunho.'); setStatus('erro')
+        } else if (!(await campaignHasApprovedCreative(campaignId))) {
+          // Pré-check: sem criativo aprovado, NÃO chama o build (a Edge criaria campanha/formulário órfãos
+          // antes de validar). Mostra o motivo e abre a campanha para aprovar um anúncio (QA).
+          setTrafegoIntent({ type: 'select', campaignId })
+          setResult({ type: 'trafego_error', message: 'Este imóvel ainda não tem um criativo aprovado (QA completo). Aprove ao menos 1 anúncio para a campanha poder ser montada.', issues: [], viewId: trafegoViewId })
+          setStatus('idle'); audit('error', { stage: 'precheck', reason: 'no_approved_creative' })
         } else {
-          const built = await buildMetaDraft(campaignId, {
-            adAccountId: cfg.adAccountId, pageId: cfg.pageId, dailyBudgetCents: budgetCents,
-            objective: cfg.objective, destinationUrl: cfg.destinationUrl,
-          })
-          setResult({ type: 'trafego', built, budgetCents, viewId: trafegoViewId, campaignId }); setStatus('idle')
-          audit('executed', { built, daily_budget_cents: budgetCents })
+          // Monta o rascunho PAUSED. Página: do imóvel (se já rodou) ou a PADRÃO da marca (lança imóvel
+          // cadastrado que nunca rodou mídia). Se a Edge recusar (ToS de lead pendente…), mostra o motivo
+          // acionável e abre a campanha no painel para resolver.
+          try {
+            const built = await buildMetaDraft(campaignId, {
+              adAccountId: cfg.adAccountId, pageId: cfg.pageId, dailyBudgetCents: budgetCents,
+              objective: cfg.objective, destinationUrl: cfg.destinationUrl,
+            })
+            setResult({ type: 'trafego', built, budgetCents, viewId: trafegoViewId, campaignId, pageSource: cfg.pageSource }); setStatus('idle')
+            audit('executed', { built, daily_budget_cents: budgetCents, page_source: cfg.pageSource })
+          } catch (be) {
+            setTrafegoIntent({ type: 'select', campaignId })
+            setResult({ type: 'trafego_error', message: be?.message || 'Não foi possível montar o rascunho.', issues: be?.issues || [], viewId: trafegoViewId }); setStatus('idle')
+            audit('error', { message: be?.message, stage: 'build_draft' })
+          }
         }
       } else if (plan.subagente === 'consulta') {
         setResult({ type: 'nav', label: 'Abrindo Métricas…', view: 'metricas' })
@@ -293,11 +308,29 @@ export default function Copilot({ brandScope, onNavigate }) {
                 <p className="mt-1.5 text-[12px] leading-relaxed text-white/75">
                   {result.built?.ad_sets} conjunto(s) e {result.built?.ads} anúncio(s), orçamento R$ {(result.budgetCents / 100).toFixed(2).replace('.', ',')}/dia. <b>Nada foi ativado nem gastou verba.</b>
                 </p>
+                {result.pageSource === 'marca' && (
+                  <p className="mt-1.5 text-[11px] text-white/45">Usei a Página padrão da marca (este imóvel ainda não tinha rodado mídia).</p>
+                )}
                 <button
                   onClick={() => { if (result.campaignId) setTrafegoIntent({ type: 'select', campaignId: result.campaignId }); onNavigate?.(result.viewId); setOpen(false) }}
                   className="btn-gold mt-3 flex w-full items-center justify-center gap-2 text-[12px]"
                 >Revisar e ativar no Tráfego Pago</button>
                 <p className="mt-2 text-[11px] text-white/45">A ativação (que gasta verba) é uma ação separada, com sua confirmação no painel.</p>
+              </div>
+            )}
+
+            {/* Resultado: build recusado pela Meta (motivo acionável) → abre a campanha no painel */}
+            {result?.type === 'trafego_error' && (
+              <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-3.5">
+                <p className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-200"><AlertTriangle size={14} /> Ainda não dá para montar o rascunho</p>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-white/75">{result.message}</p>
+                {Array.isArray(result.issues) && result.issues.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 text-[11px] text-amber-200/80">{result.issues.map((it, i) => <li key={i}>• {it}</li>)}</ul>
+                )}
+                <button
+                  onClick={() => { onNavigate?.(result.viewId); setOpen(false) }}
+                  className="btn-gold mt-3 flex w-full items-center justify-center gap-2 text-[12px]"
+                >Abrir a campanha no Tráfego Pago</button>
               </div>
             )}
 
