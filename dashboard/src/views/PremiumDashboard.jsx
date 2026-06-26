@@ -104,6 +104,7 @@ import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import { renderPostArtToCanvas, postArtBlob, ensureArtFonts, postArtDims } from '../lib/postArt.js'
 import VitraSelect from '../components/VitraSelect.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
+import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import {
   selectableCreativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
@@ -499,7 +500,13 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [selectedCampaignId, setSelectedCampaignId] = useState(null)
+  // Intenção vinda do Copiloto (peek, não limpa: sobrevive ao double-mount do StrictMode). 'select' já
+  // entra como seleção inicial; 'create' abre "Nova campanha" preenchida (efeito abaixo). Só no modo pago.
+  const [selectedCampaignId, setSelectedCampaignId] = useState(() => {
+    const i = focusMode === 'trafego' ? peekTrafegoIntent() : null
+    return i && i.type === 'select' && i.campaignId ? i.campaignId : null
+  })
+  const [createPrefill, setCreatePrefill] = useState(null)
   const [activeTab, setActiveTab] = useState(isPaidTrafficMode ? 'trafego' : 'assets')
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -517,8 +524,31 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   function openCampaignModal() {
     setCampaignSubmitError(null)
     setError(null)
+    setCreatePrefill(null) // abertura MANUAL: sem prefill do copiloto
     setModalOpen(true)
   }
+
+  // Consome a intenção do Copiloto: 'create' abre "Nova campanha" preenchida; 'select' seleciona a
+  // campanha. Aplica no MOUNT (quando navegar remontou a view) E via EVENTO (quando o painel já estava
+  // montado — navegar p/ a view atual é no-op). peek + clear adiado p/ sobreviver ao StrictMode.
+  useEffect(() => {
+    if (!isPaidTrafficMode) return undefined
+    let clearTimer = null
+    const apply = () => {
+      const intent = peekTrafegoIntent()
+      if (!intent) return
+      if (intent.type === 'create') {
+        setCreatePrefill(intent.prefill || {}); setCampaignSubmitError(null); setModalOpen(true)
+      } else if (intent.type === 'select' && intent.campaignId) {
+        setSelectedCampaignId(intent.campaignId)
+      }
+      if (clearTimer) clearTimeout(clearTimer)
+      clearTimer = setTimeout(() => clearTrafegoIntent(), 1500)
+    }
+    apply()
+    window.addEventListener(TRAFEGO_INTENT_EVENT, apply)
+    return () => { window.removeEventListener(TRAFEGO_INTENT_EVENT, apply); if (clearTimer) clearTimeout(clearTimer) }
+  }, [isPaidTrafficMode])
 
   async function refresh(selectCampaignId = selectedCampaignId, { silent = false } = {}) {
     if (!silent) setLoading(true)
@@ -1031,6 +1061,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
       {modalOpen && (
         <NewCampaignModal
           brandProfile={brandProfile}
+          prefill={createPrefill}
           saving={saving}
           submitError={campaignSubmitError}
           onClose={() => setModalOpen(false)}
@@ -4374,8 +4405,11 @@ function PlatformLabel({ value }) {
   )
 }
 
-function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit }) {
-  const [form, setForm] = useState(() => initialFormForBrand(brandProfile))
+function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose, onSubmit }) {
+  // Prefill do Copiloto (imóvel ditado, ainda não cadastrado). Capturado UMA vez (ref estável) para não
+  // re-aplicar a cada render nem sobrescrever edições do operador.
+  const prefillRef = useRef(prefill)
+  const [form, setForm] = useState(() => ({ ...initialFormForBrand(brandProfile), ...(prefillRef.current || {}) }))
   const [localError, setLocalError] = useState(null)
   const templateOptions = useMemo(() => selectableCreativeTemplatesForBrand(brandProfile.scope), [brandProfile.scope])
   const { template: selectedTemplate, variant: selectedTemplateVariant } = useMemo(
@@ -4409,7 +4443,7 @@ function NewCampaignModal({ brandProfile, saving, submitError, onClose, onSubmit
   })
 
   useEffect(() => {
-    setForm(initialFormForBrand(brandProfile))
+    setForm({ ...initialFormForBrand(brandProfile), ...(prefillRef.current || {}) })
     setLocalError(null)
     setExtract({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null, url: '', fetching: false })
     setExtractMode('fill-empty')

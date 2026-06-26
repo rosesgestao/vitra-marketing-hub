@@ -5,6 +5,7 @@ import {
   planejarComando, generateCopyWithAI, buildMetaDraft, resolveCampaignMediaConfig,
   createAgentConversation, appendAgentMessage, saveAgentRun, resolveImovelContext,
 } from '../lib/premiumData.js'
+import { setTrafegoIntent } from '../lib/copilotIntent.js'
 
 // Copiloto da Operação Imobiliária (MVP, Incremento 2): o operador FALA (Web Speech API) ou digita;
 // o ORQUESTRADOR (Edge agente-operacao) entende a intenção, extrai os dados e devolve PRÉVIA + impacto;
@@ -132,11 +133,22 @@ export default function Copilot({ brandScope, onNavigate }) {
         const budgetCents = Math.round(Number(plan.args?.daily_budget_brl || 0) * 100)
         const cfg = campaignId ? await resolveCampaignMediaConfig(campaignId, brandScope) : null
         if (!campaignId || !cfg?.hasPage) {
+          // Handoff INTELIGENTE: leva o contexto ditado ao painel. Imóvel cadastrado mas sem mídia ->
+          // seleciona a campanha (1ª config lá); imóvel não cadastrado -> abre "Nova campanha" preenchida.
+          const a = mergeArgs(plan.args, enriched)
+          if (campaignId) {
+            setTrafegoIntent({ type: 'select', campaignId })
+          } else {
+            setTrafegoIntent({ type: 'create', prefill: {
+              name: a.product_name || '', product_name: a.product_name || '',
+              neighborhood: a.neighborhood || '', price: a.price || '',
+            } })
+          }
           setResult({ type: 'nav', label: campaignId
-            ? 'Este imóvel ainda não tem mídia configurada. Abrindo o Tráfego Pago para a 1ª configuração (Página, formulário, público)…'
-            : 'Não identifiquei o imóvel cadastrado. Abrindo o Tráfego Pago para você selecionar e revisar…', view: trafegoViewId })
+            ? 'Este imóvel ainda não tem mídia configurada. Abrindo a campanha no Tráfego Pago para a 1ª configuração (Página, formulário, público)…'
+            : `Imóvel “${a.product_name || 'novo'}” ainda não cadastrado. Abrindo o Tráfego Pago com “Nova campanha” já preenchida para você revisar…`, view: trafegoViewId })
           setStatus('idle'); audit('handoff', { view: trafegoViewId, campaign_id: campaignId || null, reason: campaignId ? 'no_media_config' : 'no_campaign' })
-          onNavigate?.(trafegoViewId); setTimeout(() => setOpen(false), 700)
+          onNavigate?.(trafegoViewId); setTimeout(() => setOpen(false), 800)
         } else if (budgetCents < 100) {
           setError('Informe o orçamento diário (ex.: "R$ 50 por dia") para montar o rascunho.'); setStatus('erro')
         } else {
@@ -144,7 +156,7 @@ export default function Copilot({ brandScope, onNavigate }) {
             adAccountId: cfg.adAccountId, pageId: cfg.pageId, dailyBudgetCents: budgetCents,
             objective: cfg.objective, destinationUrl: cfg.destinationUrl,
           })
-          setResult({ type: 'trafego', built, budgetCents, viewId: trafegoViewId }); setStatus('idle')
+          setResult({ type: 'trafego', built, budgetCents, viewId: trafegoViewId, campaignId }); setStatus('idle')
           audit('executed', { built, daily_budget_cents: budgetCents })
         }
       } else if (plan.subagente === 'consulta') {
@@ -282,7 +294,7 @@ export default function Copilot({ brandScope, onNavigate }) {
                   {result.built?.ad_sets} conjunto(s) e {result.built?.ads} anúncio(s), orçamento R$ {(result.budgetCents / 100).toFixed(2).replace('.', ',')}/dia. <b>Nada foi ativado nem gastou verba.</b>
                 </p>
                 <button
-                  onClick={() => { onNavigate?.(result.viewId); setOpen(false) }}
+                  onClick={() => { if (result.campaignId) setTrafegoIntent({ type: 'select', campaignId: result.campaignId }); onNavigate?.(result.viewId); setOpen(false) }}
                   className="btn-gold mt-3 flex w-full items-center justify-center gap-2 text-[12px]"
                 >Revisar e ativar no Tráfego Pago</button>
                 <p className="mt-2 text-[11px] text-white/45">A ativação (que gasta verba) é uma ação separada, com sua confirmação no painel.</p>
