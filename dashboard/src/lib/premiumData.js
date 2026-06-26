@@ -541,6 +541,28 @@ export async function resolveImovelContext(name, brandScope = BRAND_SCOPES.imobi
   } catch (_) { return null }
 }
 
+// Config de MÍDIA comprovada do imóvel (para o copiloto montar o rascunho PAUSED sem CHUTAR config
+// sensível numa conta real): reaproveita a Página/conta da última publicação paga + objetivo da campanha.
+// Devolve { adAccountId, pageId, objective, destinationUrl, hasPage } ou null. hasPage=false → o imóvel
+// ainda não tem mídia configurada (1ª vez deve ser feita no painel Tráfego Pago, que coleta tudo).
+export async function resolveCampaignMediaConfig(campaignId, brandScope = BRAND_SCOPES.imobiliaria) {
+  if (!campaignId) return null
+  try {
+    const [pubsRes, campRes] = await Promise.all([
+      supabase.from('premium_publications').select('metadata').eq('campaign_id', campaignId).eq('publication_type', 'paid').order('created_at', { ascending: false }).limit(1),
+      supabase.from('premium_campaigns').select('campaign_objective, brief').eq('id', campaignId).maybeSingle(),
+    ])
+    const meta = (Array.isArray(pubsRes.data) ? pubsRes.data[0]?.metadata : null) || {}
+    const account = META_AD_ACCOUNTS[brandScope]
+    const pageId = meta.page_id || null
+    const adAccountId = meta.ad_account_id || account?.adAccountId || null
+    const objective = campRes.data?.campaign_objective || 'lead_generation'
+    const brandSite = brandScope === BRAND_SCOPES.premium ? 'https://vitrapremium.com.br' : 'https://vitraimobiliaria.com.br'
+    const destinationUrl = cleanText(campRes.data?.brief?.product_data?.listing_url) || brandSite
+    return { adAccountId, pageId, objective, destinationUrl, hasPage: !!pageId }
+  } catch (_) { return null }
+}
+
 // Porta in-app da skill vitra-copy: gera 3 angulos de copy de ANUNCIO (headline/texto/descricao/cta) a
 // partir dos fatos de uma CAMPANHA ja criada (brief.product_data), para aplicar a um criativo aprovado.
 // Mesma Edge generate-copy (canal pago server-side). Angulos estrategicos: preco-ancora, aspiracao-local,

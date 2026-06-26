@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Check, Database, Loader2, Mic, Send, Sparkles, Wand2, X } from 'lucide-react'
 import { getBrandProfile } from '../lib/brandProfiles.js'
 import {
-  planejarComando, generateCopyWithAI,
+  planejarComando, generateCopyWithAI, buildMetaDraft, resolveCampaignMediaConfig,
   createAgentConversation, appendAgentMessage, saveAgentRun, resolveImovelContext,
 } from '../lib/premiumData.js'
 
@@ -125,8 +125,28 @@ export default function Copilot({ brandScope, onNavigate }) {
         setResult({ type: 'nav', label: 'Abrindo o Estúdio de Criativos com o pedido…', view: 'criativos:novo' })
         setStatus('idle'); audit('handoff', { view: 'criativos:novo' }); onNavigate?.('criativos:novo'); setTimeout(() => setOpen(false), 600)
       } else if (plan.subagente === 'trafego') {
-        setResult({ type: 'nav', label: 'Abrindo Tráfego Pago para revisar o rascunho (PAUSED)…', view: trafegoViewId })
-        setStatus('idle'); audit('handoff', { view: trafegoViewId, campaign_id: enriched?.campaign_id || null }); onNavigate?.(trafegoViewId); setTimeout(() => setOpen(false), 600)
+        // Fecha o ciclo DENTRO do painel: monta o rascunho PAUSED reusando a Página/conta/objetivo já
+        // comprovados do imóvel (sem chutar config sensível). Sem imóvel resolvido ou sem mídia
+        // configurada → encaminha ao Tráfego Pago (1ª configuração é feita lá, com tudo à vista).
+        const campaignId = enriched?.campaign_id
+        const budgetCents = Math.round(Number(plan.args?.daily_budget_brl || 0) * 100)
+        const cfg = campaignId ? await resolveCampaignMediaConfig(campaignId, brandScope) : null
+        if (!campaignId || !cfg?.hasPage) {
+          setResult({ type: 'nav', label: campaignId
+            ? 'Este imóvel ainda não tem mídia configurada. Abrindo o Tráfego Pago para a 1ª configuração (Página, formulário, público)…'
+            : 'Não identifiquei o imóvel cadastrado. Abrindo o Tráfego Pago para você selecionar e revisar…', view: trafegoViewId })
+          setStatus('idle'); audit('handoff', { view: trafegoViewId, campaign_id: campaignId || null, reason: campaignId ? 'no_media_config' : 'no_campaign' })
+          onNavigate?.(trafegoViewId); setTimeout(() => setOpen(false), 700)
+        } else if (budgetCents < 100) {
+          setError('Informe o orçamento diário (ex.: "R$ 50 por dia") para montar o rascunho.'); setStatus('erro')
+        } else {
+          const built = await buildMetaDraft(campaignId, {
+            adAccountId: cfg.adAccountId, pageId: cfg.pageId, dailyBudgetCents: budgetCents,
+            objective: cfg.objective, destinationUrl: cfg.destinationUrl,
+          })
+          setResult({ type: 'trafego', built, budgetCents, viewId: trafegoViewId }); setStatus('idle')
+          audit('executed', { built, daily_budget_cents: budgetCents })
+        }
       } else if (plan.subagente === 'consulta') {
         setResult({ type: 'nav', label: 'Abrindo Métricas…', view: 'metricas' })
         setStatus('idle'); audit('handoff', { view: 'metricas' }); onNavigate?.('metricas'); setTimeout(() => setOpen(false), 600)
@@ -251,6 +271,21 @@ export default function Copilot({ brandScope, onNavigate }) {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Resultado: rascunho de tráfego criado PAUSED */}
+            {result?.type === 'trafego' && (
+              <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] p-3.5">
+                <p className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-200"><Check size={14} /> Rascunho criado na Meta — PAUSED</p>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-white/75">
+                  {result.built?.ad_sets} conjunto(s) e {result.built?.ads} anúncio(s), orçamento R$ {(result.budgetCents / 100).toFixed(2).replace('.', ',')}/dia. <b>Nada foi ativado nem gastou verba.</b>
+                </p>
+                <button
+                  onClick={() => { onNavigate?.(result.viewId); setOpen(false) }}
+                  className="btn-gold mt-3 flex w-full items-center justify-center gap-2 text-[12px]"
+                >Revisar e ativar no Tráfego Pago</button>
+                <p className="mt-2 text-[11px] text-white/45">A ativação (que gasta verba) é uma ação separada, com sua confirmação no painel.</p>
               </div>
             )}
 
