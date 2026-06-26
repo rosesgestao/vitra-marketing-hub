@@ -125,6 +125,24 @@ const heroChecklistFieldGroups = [
   },
 ]
 
+// Template 12 (Oferta ancora — "2 DORM Av. Ipiranga"): foto de fundo + veu navy, logo VITRA no topo,
+// headline, BARRA BRANCA de caracteristicas (diferenciais juntados por " | "), "De" riscado e "Por"
+// num BOX DOURADO (heroi), rodape de localizacao/proximidade. Sem checklist vertical nem CTA-botao.
+const ofertaAncoraFieldGroups = [
+  {
+    id: 'oferta-ancora',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: New Life' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Headline curta — quebra em ate 2 linhas na arte (ate 40 caracteres).', placeholder: 'Ex: 2 dorm junto a Av. Ipiranga', colSpan: 'full' },
+      { key: 'differentials', label: 'Caracteristicas (barra branca)', type: 'list', required: true, placeholder: '2 dorms\n54m2 privativos\nInfra completa', helper: 'Ate 3 itens — viram a barra branca separada por " | ".', colSpan: 'full' },
+      { key: 'price_from', label: 'Valor de (riscado)', type: 'money', placeholder: 'Ex: R$ 439.000,00' },
+      { key: 'price', label: 'Valor por', type: 'money', required: true, placeholder: 'Ex: R$ 319.000,00' },
+      { key: 'location', label: 'Localizacao / proximidade (rodape)', type: 'text', placeholder: 'Ex: Apenas 2 minutos da PUCRS', colSpan: 'full' },
+    ],
+  },
+]
+
 // Template 06 (Zona Norte / Isla): composicao centralizada fiel a peca aprovada original —
 // wordmark VITRA, headline 2 linhas (2a dourada), subtitulo, pill branco De/Por, duas fotos
 // grandes lado a lado sem moldura, dois selos badge-check e CTA pill dourado. Safe zone do Meta
@@ -307,6 +325,20 @@ const templateVariationContracts = {
       { id: 'preco-oportunidade', label: 'Preco de oportunidade', phase: '2', angle: 'investimento', headline: 'Valor de oportunidade para avaliar', copy: 'Compare o preco De/Por com imoveis semelhantes e confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
       { id: 'pronto-para-morar', label: 'Pronto para morar', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar, perto de tudo', copy: 'Imovel para entrar e morar: atributos verificados e proximo passo simples com a Vitra.', cta: 'Receber detalhes' },
       { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Oportunidades com preco reduzido pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
+    ],
+  },
+  ofertaAncora: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem foto de fundo com veu navy, logo VITRA no topo, barra branca de caracteristicas e o box dourado De/Por (com safe zone); varia headline, caracteristicas, preco, localizacao e foto.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'feature_bar', 'price_anchor_box'],
+    mutableSlots: ['headline', 'differentials', 'price', 'location', 'photos'],
+    recipes: [
+      { id: 'preco-ancora', label: 'Preco-ancora De/Por', phase: '1', angle: 'investimento', headline: '{headline_only}', copy: 'O preco de oportunidade em destaque no box dourado, com as caracteristicas que sustentam o valor.', cta: '{cta}' },
+      { id: 'caracteristicas-barra', label: 'Barra de caracteristicas', phase: '2', angle: 'diferenciais', headline: '{headline_only}', copy: '{details}. Resumo direto do imovel acima da oferta De/Por.', cta: 'Receber mais informacoes' },
+      { id: 'localizacao-proximidade', label: 'Localizacao / proximidade', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'A proximidade de referencias da regiao reforca a oferta no rodape da peca.', cta: 'Conhecer a localizacao' },
+      { id: 'preco-oportunidade', label: 'Preco de oportunidade', phase: '2', angle: 'investimento', headline: 'Valor de oportunidade por tempo limitado', copy: 'O box dourado deixa o De/Por explicito. Confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
+      { id: 'pronto-perto-tudo', label: 'Pronto, perto de tudo', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar, perto de tudo', copy: 'Caracteristicas verificadas e localizacao privilegiada, com a oferta em destaque.', cta: 'Receber detalhes' },
+      { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Precos de oportunidade pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
     ],
   },
   duoSelos: {
@@ -748,6 +780,31 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026). Referencia visual do cliente (estrutura/conceito de marca concorrente — sem
       // copiar logo/contatos); adaptado ao brandbook (navy + dourado, wordmark VITRA, preco em dourado).
       renderVersion: 'ficha-imovel-approved-v1',
+    },
+    {
+      id: 'vitra-imobiliaria-oferta-ancora',
+      family: 'vitra-imobiliaria-oferta-ancora',
+      mode: 'single_family',
+      name: 'Oferta com preço-âncora',
+      shortName: 'Oferta âncora (De/Por destaque)',
+      bestFor: 'Oferta de preço com foto única do imóvel: foto + véu navy, logo VITRA no topo, headline forte, barra branca de características, "De" riscado e "Por" num box dourado em destaque, rodapé de localização. Forte para anúncio de oportunidade/desconto com o valor como protagonista.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-12-oferta-ancora-1x1-sem-moldura.png',
+      fieldGroups: ofertaAncoraFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto de fundo (unica)', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.ofertaAncora,
+      references: vitraImobiliariaReference('template-12-oferta-ancora'),
+      variableFields: ['photos', 'headline', 'differentials', 'price_from', 'price', 'location'],
+      fixedBrandRules: ['navy_overlay_photo', 'approved_white_wordmark', 'white_feature_bar', 'gold_price_anchor_box', 'meta_safe_zone'],
+      // Arte nova (junho/2026). Referencia visual do cliente (peca "2 DORM Av. Ipiranga"): conceito/estrutura
+      // de preco-ancora; adaptado ao brandbook (navy + dourado, wordmark VITRA oficial). Cada formato tem
+      // composicao propria com a safe zone do Meta.
+      renderVersion: 'oferta-ancora-approved-v1',
     },
   ],
 }
