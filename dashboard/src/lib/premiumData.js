@@ -464,6 +464,20 @@ export async function generateCopyWithAI(form, brandProfile = getBrandProfile())
   return Array.isArray(data?.angles) ? data.angles : []
 }
 
+// ===== Copiloto da Operação (MVP Fatia 1) =====
+// Chama o ORQUESTRADOR (Edge agente-operacao): manda o comando em linguagem natural (de voz transcrita
+// no browser ou texto) + contexto da marca/perfil e recebe um PLANO (subagente, slots, faltando,
+// impacto, prévia). NÃO executa nada — quem executa é o dashboard reusando generate-copy/render/Meta,
+// sempre com prévia + confirmação. A chave da IA fica server-side. Lança erro acionável.
+export async function planejarComando(text, { brandScope = BRAND_SCOPES.imobiliaria, role = 'gestor', context = {}, history = [] } = {}) {
+  const { data, error } = await supabase.functions.invoke('agente-operacao', {
+    headers: copilotGateHeaders(),
+    body: { text, brand_scope: brandScope, role, context, history },
+  })
+  if (error) throw await edgeError(error)
+  return data?.plan || null
+}
+
 // Porta in-app da skill vitra-copy: gera 3 angulos de copy de ANUNCIO (headline/texto/descricao/cta) a
 // partir dos fatos de uma CAMPANHA ja criada (brief.product_data), para aplicar a um criativo aprovado.
 // Mesma Edge generate-copy (canal pago server-side). Angulos estrategicos: preco-ancora, aspiracao-local,

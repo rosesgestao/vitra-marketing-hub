@@ -11,6 +11,7 @@ import { BrandHorizontalLogo, BrandV } from './components/PremiumBrand.jsx'
 import { BRAND_SCOPES, getBrandProfile } from './lib/brandProfiles.js'
 import EstudioPecas from './views/EstudioPecas.jsx'
 import EstudioCriativos from './views/EstudioCriativos.jsx'
+import Copilot from './components/Copilot.jsx'
 import { PECAS_PLATFORMS } from './lib/pecasCatalog.js'
 
 // Marca-mae (Vitra Imobiliaria) PRIMEIRO: e a marca principal do sistema. Vitra Premium
@@ -231,6 +232,9 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* Copiloto da Operação (voz + texto) — onipresente, desktop e mobile */}
+      <Copilot brandScope={activeBrandScope} onNavigate={selectView} />
     </div>
   )
 }
