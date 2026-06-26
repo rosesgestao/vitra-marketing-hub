@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.geocode-address]
 verify_jwt = false
+
+[functions.agente-operacao]
+verify_jwt = false
