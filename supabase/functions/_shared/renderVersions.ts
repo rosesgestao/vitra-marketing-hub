@@ -9,7 +9,7 @@
 // nova a versionar e nao queremos re-render retroativo em massa de pecas que ja estao corretas).
 export const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION: Record<string, string> = {
   "vitra-imobiliaria-financiamento-orla": "financiamento-orla-approved-v7",
-  "vitra-imobiliaria-hero-checklist": "hero-checklist-safezone-v2",
+  "vitra-imobiliaria-hero-checklist": "hero-checklist-logo-png-v3",
   "vitra-imobiliaria-duo-selos-offer": "duo-selos-approved-v1",
   "vitra-imobiliaria-hero-panel-gallery": "hero-panel-approved-v1",
   "vitra-imobiliaria-lancamento": "lancamento-approved-v2",
