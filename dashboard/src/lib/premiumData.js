@@ -478,6 +478,69 @@ export async function planejarComando(text, { brandScope = BRAND_SCOPES.imobilia
   return data?.plan || null
 }
 
+// Memória do copiloto (agent_*): conversa multi-turno + auditoria de cada turno. Best-effort — se o
+// insert falhar (rede/RLS), o copiloto segue funcionando (a memória é um plus, não um bloqueio).
+export async function createAgentConversation(brandScope = BRAND_SCOPES.imobiliaria, title = null) {
+  try {
+    const { data } = await supabase.from('agent_conversations').insert({ brand_scope: brandScope, title }).select('id').single()
+    return data?.id || null
+  } catch (_) { return null }
+}
+
+export async function appendAgentMessage(conversationId, role, text) {
+  if (!conversationId) return
+  try { await supabase.from('agent_messages').insert({ conversation_id: conversationId, role, text }) } catch (_) { /* best-effort */ }
+}
+
+// Auditoria do turno: comando -> plano -> status/resultado (rastreabilidade).
+export async function saveAgentRun({ conversationId, brandScope, command, plan, status, result } = {}) {
+  try {
+    await supabase.from('agent_runs').insert({
+      conversation_id: conversationId || null,
+      brand_scope: brandScope,
+      command,
+      subagente: plan?.subagente || null,
+      intencao: plan?.intencao || null,
+      impacto: plan?.impacto || null,
+      plan: plan || null,
+      status: status || null,
+      result: result || null,
+    })
+  } catch (_) { /* best-effort */ }
+}
+
+// Enriquecimento de contexto: resolve o IMÓVEL citado contra premium_campaigns (o que a plataforma JÁ
+// sabe) para o copiloto não reperguntar. Casa por product_name/name (ilike) na marca ativa; devolve os
+// fatos consolidados (colunas + brief.product_data) ou null. Best-effort.
+export async function resolveImovelContext(name, brandScope = BRAND_SCOPES.imobiliaria) {
+  const q = cleanText(name)
+  if (!q || q.length < 3) return null
+  try {
+    const { data } = await supabase
+      .from('premium_campaigns')
+      .select('id, name, product_name, neighborhood, city, property_type, campaign_objective, brief')
+      .eq('brand_scope', brandScope)
+      .or(`product_name.ilike.%${q}%,name.ilike.%${q}%`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const row = Array.isArray(data) ? data[0] : null
+    if (!row) return null
+    const pd = row.brief?.product_data || {}
+    return {
+      campaign_id: row.id,
+      product_name: cleanText(pd.name || row.product_name || row.name),
+      price: cleanText(pd.price),
+      price_from: cleanText(pd.price_from),
+      neighborhood: cleanText(pd.neighborhood || row.neighborhood),
+      location: cleanText(pd.location || row.city),
+      area: cleanText(pd.area),
+      suites: cleanText(pd.suites),
+      differentials: Array.isArray(splitContentItems(pd.differentials)) ? splitContentItems(pd.differentials).join('; ') : cleanText(pd.differentials),
+      objetivo: cleanText(row.campaign_objective),
+    }
+  } catch (_) { return null }
+}
+
 // Porta in-app da skill vitra-copy: gera 3 angulos de copy de ANUNCIO (headline/texto/descricao/cta) a
 // partir dos fatos de uma CAMPANHA ja criada (brief.product_data), para aplicar a um criativo aprovado.
 // Mesma Edge generate-copy (canal pago server-side). Angulos estrategicos: preco-ancora, aspiracao-local,

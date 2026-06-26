@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Check, Loader2, Mic, Send, Sparkles, Wand2, X } from 'lucide-react'
+import { AlertTriangle, Check, Database, Loader2, Mic, Send, Sparkles, Wand2, X } from 'lucide-react'
 import { getBrandProfile } from '../lib/brandProfiles.js'
-import { planejarComando, generateCopyWithAI } from '../lib/premiumData.js'
+import {
+  planejarComando, generateCopyWithAI,
+  createAgentConversation, appendAgentMessage, saveAgentRun, resolveImovelContext,
+} from '../lib/premiumData.js'
 
-// Copiloto da Operação Imobiliária (MVP Fatia 1): o operador FALA (Web Speech API) ou digita um comando;
-// o ORQUESTRADOR (Edge agente-operacao) entende a intenção, extrai os dados e devolve uma PRÉVIA + impacto;
+// Copiloto da Operação Imobiliária (MVP, Incremento 2): o operador FALA (Web Speech API) ou digita;
+// o ORQUESTRADOR (Edge agente-operacao) entende a intenção, extrai os dados e devolve PRÉVIA + impacto;
 // nada é executado sem o operador confirmar. Copy é executada aqui (generate-copy); criativo/tráfego são
-// encaminhados ao módulo existente (que já tem o fluxo com confirm/PAUSED). Reaproveita ~80% do que existe.
+// encaminhados ao módulo existente (já com confirm/PAUSED). Reaproveita ~80% do que existe.
+//
+// Incremento 2 — memória & contexto: conversa MULTI-TURNO (history passada ao orquestrador, então
+// "gere o criativo desse imóvel" lembra o imóvel anterior), ENRIQUECIMENTO automático (resolve o imóvel
+// citado em premium_campaigns e completa os dados que a plataforma já tem) e AUDITORIA de cada turno
+// (agent_conversations/agent_messages/agent_runs). A memória é best-effort: se falhar, o copiloto segue.
 
 // Reconhecimento de voz do navegador (Chrome). Fallback: digitar.
 const SpeechRec = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
@@ -23,6 +31,10 @@ export default function Copilot({ brandScope, onNavigate }) {
   const [plan, setPlan] = useState(null)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  // Memória da conversa (multi-turno) + imóvel resolvido do banco para o turno atual.
+  const [history, setHistory] = useState([]) // [{ role: 'user'|'assistant', text }]
+  const [enriched, setEnriched] = useState(null) // { product_name, ... } resolvido de premium_campaigns
+  const convRef = useRef(null) // id da agent_conversations (criada na 1ª mensagem)
   const recRef = useRef(null)
   const inputRef = useRef(null)
   const brand = getBrandProfile(brandScope)
@@ -51,17 +63,45 @@ export default function Copilot({ brandScope, onNavigate }) {
     try { rec.start(); setListening(true) } catch (_) { /* já ativo */ }
   }
 
+  // Mescla o que a plataforma já sabe (imóvel resolvido) com o que o usuário disse: o falado VENCE,
+  // o banco PREENCHE as lacunas. Assim o copiloto não repergunta o que já está cadastrado.
+  const mergeArgs = (args, ctx) => {
+    const out = { ...(args || {}) }
+    if (!ctx) return out
+    for (const k of ['product_name', 'price', 'price_from', 'neighborhood', 'location', 'area', 'suites', 'differentials', 'objetivo']) {
+      if (!out[k] && ctx[k]) out[k] = ctx[k]
+    }
+    return out
+  }
+
   const enviar = async () => {
     const text = input.trim()
     if (!text || status === 'pensando' || status === 'executando') return
     if (listening) { try { recRef.current?.stop() } catch (_) { /* noop */ } }
-    setStatus('pensando'); setError(''); setResult(null); setPlan(null)
+    setStatus('pensando'); setError(''); setResult(null); setPlan(null); setEnriched(null)
+    // Memória: garante a conversa e registra a mensagem do operador.
+    if (!convRef.current) convRef.current = await createAgentConversation(brandScope, text.slice(0, 60))
+    const userMsg = { role: 'user', text }
+    const nextHistory = [...history, userMsg]
+    setHistory(nextHistory)
+    setInput('')
+    appendAgentMessage(convRef.current, 'user', text)
     try {
-      const p = await planejarComando(text, { brandScope, role: 'gestor', context: {} })
+      // Multi-turno: manda o histórico recente para o orquestrador entender follow-ups ("desse imóvel").
+      const p = await planejarComando(text, { brandScope, role: 'gestor', history: nextHistory.slice(-6) })
       if (!p) throw new Error('Não consegui interpretar o comando.')
+      // Enriquecimento: resolve o imóvel citado em premium_campaigns (o que já sabemos).
+      let ctx = null
+      const nome = p.args?.product_name
+      if (nome) { try { ctx = await resolveImovelContext(nome, brandScope) } catch (_) { ctx = null } }
+      setEnriched(ctx)
       setPlan(p); setStatus('previa')
+      setHistory(h => [...h, { role: 'assistant', text: p.previa || p.resumo || '' }])
+      appendAgentMessage(convRef.current, 'assistant', p.previa || p.resumo || '')
+      saveAgentRun({ conversationId: convRef.current, brandScope, command: text, plan: p, status: 'planned' })
     } catch (e) {
       setError(e?.message || 'Falha ao interpretar.'); setStatus('erro')
+      saveAgentRun({ conversationId: convRef.current, brandScope, command: text, plan: null, status: 'error', result: { message: e?.message } })
     }
   }
 
@@ -70,34 +110,39 @@ export default function Copilot({ brandScope, onNavigate }) {
   const executar = async () => {
     if (!plan) return
     setStatus('executando'); setError('')
+    const audit = (status, result) => saveAgentRun({ conversationId: convRef.current, brandScope, command: plan.resumo, plan, status, result })
     try {
       if (plan.subagente === 'copy') {
-        const a = plan.args || {}
+        const a = mergeArgs(plan.args, enriched)
         const angles = await generateCopyWithAI({
           product_name: a.product_name, price: a.price, price_from: a.price_from,
           neighborhood: a.neighborhood, location: a.location, area: a.area, suites: a.suites,
           differentials: a.differentials, tagline: a.mensagem,
         }, brand)
         setResult({ type: 'copy', angles }); setStatus('idle')
+        audit('executed', { angles: angles.length, enriched: !!enriched })
       } else if (plan.subagente === 'criativo') {
         setResult({ type: 'nav', label: 'Abrindo o Estúdio de Criativos com o pedido…', view: 'criativos:novo' })
-        setStatus('idle'); onNavigate?.('criativos:novo'); setTimeout(() => setOpen(false), 600)
+        setStatus('idle'); audit('handoff', { view: 'criativos:novo' }); onNavigate?.('criativos:novo'); setTimeout(() => setOpen(false), 600)
       } else if (plan.subagente === 'trafego') {
         setResult({ type: 'nav', label: 'Abrindo Tráfego Pago para revisar o rascunho (PAUSED)…', view: trafegoViewId })
-        setStatus('idle'); onNavigate?.(trafegoViewId); setTimeout(() => setOpen(false), 600)
+        setStatus('idle'); audit('handoff', { view: trafegoViewId, campaign_id: enriched?.campaign_id || null }); onNavigate?.(trafegoViewId); setTimeout(() => setOpen(false), 600)
       } else if (plan.subagente === 'consulta') {
         setResult({ type: 'nav', label: 'Abrindo Métricas…', view: 'metricas' })
-        setStatus('idle'); onNavigate?.('metricas'); setTimeout(() => setOpen(false), 600)
+        setStatus('idle'); audit('handoff', { view: 'metricas' }); onNavigate?.('metricas'); setTimeout(() => setOpen(false), 600)
       } else {
         setResult({ type: 'msg', label: 'Esse pedido entra numa próxima fase do copiloto. Por ora, use o módulo correspondente no menu.' })
-        setStatus('idle')
+        setStatus('idle'); audit('handoff', { view: null })
       }
     } catch (e) {
       setError(e?.message || 'Falha ao executar.'); setStatus('erro')
+      audit('error', { message: e?.message })
     }
   }
 
-  const reset = () => { setPlan(null); setResult(null); setError(''); setStatus('idle'); setInput('') }
+  // Limpa o turno atual (mantém a conversa/memória). "Nova conversa" zera o histórico.
+  const reset = () => { setPlan(null); setResult(null); setError(''); setStatus('idle'); setInput(''); setEnriched(null) }
+  const novaConversa = () => { reset(); setHistory([]); convRef.current = null }
 
   return (
     <>
@@ -121,15 +166,27 @@ export default function Copilot({ brandScope, onNavigate }) {
               <p className="text-sm font-semibold text-white">Copiloto da Operação</p>
               <p className="truncate text-[11px] text-white/45">Fale ou escreva — {brand.name}</p>
             </div>
-            {(plan || result) && <button onClick={reset} className="text-[11px] text-gold-300 hover:text-gold-200">Limpar</button>}
+            {history.length > 0 && <button onClick={novaConversa} className="text-[11px] text-gold-300 hover:text-gold-200">Nova conversa</button>}
           </div>
 
           {/* corpo */}
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3.5">
-            {!plan && !result && status !== 'pensando' && (
+            {!history.length && status !== 'pensando' && (
               <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3.5 text-[12px] leading-relaxed text-white/55">
                 Tente: <span className="text-gold-300">“Gere 5 copies para o Edifício Aurora, 2 suítes, R$ 950 mil no Menino Deus.”</span> ou
                 <span className="text-gold-300"> “Crie uma campanha para este imóvel com R$ 50 por dia.”</span>
+                <p className="mt-2 text-white/40">Eu lembro do imóvel entre os comandos — depois é só dizer “gere o criativo desse imóvel”.</p>
+              </div>
+            )}
+
+            {/* Thread da conversa (memória multi-turno) — turnos anteriores ao atual */}
+            {history.length > 1 && (
+              <div className="space-y-1.5">
+                {history.slice(0, -1).map((m, i) => (
+                  <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
+                    <span className={`inline-block max-w-[85%] rounded-lg px-2.5 py-1.5 text-[12px] leading-snug ${m.role === 'user' ? 'bg-gold-500/15 text-white/85' : 'bg-white/[0.04] text-white/60'}`}>{m.text}</span>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -147,6 +204,13 @@ export default function Copilot({ brandScope, onNavigate }) {
                     : <span className="text-[10px] text-emerald-300">rascunho · sem impacto</span>}
                 </div>
                 <p className="text-[13px] leading-relaxed text-white/85">{plan.previa}</p>
+
+                {enriched && (
+                  <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.06] px-2.5 py-1.5 text-[11px] text-emerald-200/90">
+                    <Database size={12} className="mt-0.5 flex-shrink-0" />
+                    <span>Usei os dados de <b>{enriched.product_name}</b> já cadastrado{[enriched.price, enriched.neighborhood].filter(Boolean).length ? ` (${[enriched.price, enriched.neighborhood].filter(Boolean).join(' · ')})` : ''} — não precisa repetir.</span>
+                  </div>
+                )}
 
                 {Array.isArray(plan.faltando) && plan.faltando.length > 0 && (
                   <div className="mt-2.5 rounded-lg border border-amber-400/20 bg-amber-400/[0.06] p-2.5">
