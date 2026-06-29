@@ -143,6 +143,26 @@ const ofertaAncoraFieldGroups = [
   },
 ]
 
+// Template 13 (Destino/bairro — pôster inspirado em peça de viagens, adaptado ao imobiliário): o BAIRRO
+// vira o nome gigante (herói); subtítulo de lifestyle; painel "glass" com 2 condições do imóvel
+// (financiamento/oferta) lado a lado; botão-pílula com seta; rodapé "*consulte condições"; foto na base.
+const destinoBairroFieldGroups = [
+  {
+    id: 'destino-bairro',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: New Life' },
+      { key: 'location', label: 'Bairro / região (NOME GIGANTE — herói)', type: 'text', required: true, helper: 'Vira o nome em destaque, gigante e centralizado. É o protagonista da peça.', placeholder: 'Ex: Menino Deus', colSpan: 'full' },
+      { key: 'suggested_headline', label: 'Subtítulo (lifestyle)', type: 'text', required: true, maxLength: 88, helper: 'Linha de estilo de vida do bairro, sob o nome. Persuasiva e específica.', placeholder: 'Ex: Parques, gastronomia e mobilidade — viva tudo isso com a Vitra.', colSpan: 'full' },
+      { key: 'panel_title', label: 'Título do painel de condições', type: 'text', maxLength: 40, placeholder: 'Ex: Condições exclusivas de lançamento:', colSpan: 'full' },
+      { key: 'condition_primary', label: 'Condição 1 (comece pelo destaque)', type: 'text', required: true, maxLength: 40, helper: 'Lidere pelo número/percentual. Ex.: "Até 120x direto", "10% à vista".', placeholder: 'Ex: Ate 120x direto com a construtora' },
+      { key: 'condition_secondary', label: 'Condição 2 (opcional)', type: 'text', maxLength: 40, helper: 'Segunda coluna do painel. Vazio = condição 1 centralizada.', placeholder: 'Ex: Entrada facilitada em 60x' },
+      { key: 'tag', label: 'Selo / tag (opcional)', type: 'text', maxLength: 22, placeholder: 'Ex: Lançamento' },
+      { key: 'cta', label: 'Texto do botão', type: 'text', placeholder: 'Ex: Agende sua visita', colSpan: 'full' },
+    ],
+  },
+]
+
 // Template 06 (Zona Norte / Isla): composicao centralizada fiel a peca aprovada original —
 // wordmark VITRA, headline 2 linhas (2a dourada), subtitulo, pill branco De/Por, duas fotos
 // grandes lado a lado sem moldura, dois selos badge-check e CTA pill dourado. Safe zone do Meta
@@ -339,6 +359,20 @@ const templateVariationContracts = {
       { id: 'preco-oportunidade', label: 'Preco de oportunidade', phase: '2', angle: 'investimento', headline: 'Valor de oportunidade por tempo limitado', copy: 'O box dourado deixa o De/Por explicito. Confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
       { id: 'pronto-perto-tudo', label: 'Pronto, perto de tudo', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar, perto de tudo', copy: 'Caracteristicas verificadas e localizacao privilegiada, com a oferta em destaque.', cta: 'Receber detalhes' },
       { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Precos de oportunidade pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
+    ],
+  },
+  destinoBairro: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem o nome do bairro gigante (heroi), o painel "glass" de condicoes, o botao-pilula e a foto na base (com safe zone); varia o bairro, subtitulo, condicoes, selo, CTA e foto.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'place_hero', 'glass_panel', 'cta_pill'],
+    mutableSlots: ['location', 'headline', 'condition_primary', 'condition_secondary', 'tag', 'cta', 'photos'],
+    recipes: [
+      { id: 'bairro-destino', label: 'Bairro como destino', phase: '1', angle: 'localizacao', headline: 'Morar em {place} é viver perto de tudo', copy: 'O bairro é o protagonista: nome em destaque, lifestyle e as condições para realizar a mudança.', cta: 'Quero morar em {place}' },
+      { id: 'lifestyle-bairro', label: 'Lifestyle do bairro', phase: '1', angle: 'lifestyle', headline: 'Parques, gastronomia e mobilidade no seu dia a dia', copy: 'A rotina que o bairro oferece, com as condições que cabem no seu planejamento.', cta: 'Conhecer o bairro' },
+      { id: 'condicoes-lancamento', label: 'Condições de lançamento', phase: '2', angle: 'investimento', headline: 'Condições de lançamento por tempo limitado', copy: 'Parcelamento direto e entrada facilitada em destaque, no melhor momento de compra.', cta: 'Ver condições' },
+      { id: 'entrada-parcelada', label: 'Entrada facilitada', phase: '2', angle: 'investimento', headline: 'Entrada facilitada para morar em {place}', copy: 'A condição de entrada deixa a mudança ao seu alcance — confirme os valores com a Vitra.', cta: 'Simular entrada' },
+      { id: 'pronto-perto', label: 'Pronto, perto de tudo', phase: '2', angle: 'lifestyle', headline: 'Pronto para morar no coração de {place}', copy: 'Localização privilegiada e condições especiais reunidas em uma única oportunidade.', cta: 'Agende sua visita' },
+      { id: 'urgencia-unidades', label: 'Últimas unidades', phase: '3', angle: 'escassez', headline: 'Últimas unidades em {place}', copy: 'As melhores plantas e as condições de lançamento não duram — fale agora com a Vitra.', cta: 'Garantir a minha' },
     ],
   },
   duoSelos: {
@@ -805,6 +839,31 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // de preco-ancora; adaptado ao brandbook (navy + dourado, wordmark VITRA oficial). Cada formato tem
       // composicao propria com a safe zone do Meta.
       renderVersion: 'oferta-ancora-approved-v1',
+    },
+    {
+      id: 'vitra-imobiliaria-destino-bairro',
+      family: 'vitra-imobiliaria-destino-bairro',
+      mode: 'single_family',
+      name: 'Bairro em destaque (pôster)',
+      shortName: 'Destino/bairro (pôster + condições)',
+      bestFor: 'Pôster de localização: o nome do BAIRRO/região vira o herói gigante, com subtítulo de lifestyle, painel de condições do imóvel (financiamento/oferta) em duas colunas, botão-pílula e foto na base. Forte para vender a REGIÃO como destino e empurrar a condição comercial.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-13-destino-bairro-1x1-sem-moldura.png',
+      fieldGroups: destinoBairroFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto de fundo (unica)', multiple: false, required: true },
+        { id: 'extras', label: 'Imagens extras', multiple: true },
+      ],
+      variationContract: templateVariationContracts.destinoBairro,
+      references: vitraImobiliariaReference('template-13-destino-bairro'),
+      variableFields: ['photos', 'location', 'headline', 'condition_primary', 'condition_secondary', 'tag', 'cta'],
+      fixedBrandRules: ['navy_gradient_photo', 'approved_white_wordmark', 'place_hero_wordmark', 'glass_conditions_panel', 'pill_cta', 'meta_safe_zone'],
+      // Arte nova (junho/2026). Referencia de OUTRO segmento (viagens — pôster de destino) adaptada ao
+      // imobiliário: o bairro vira o herói; condições da peça original viram condições do imóvel; avião
+      // removido; azul -> navy + dourado, wordmark VITRA. Cada formato com composição própria + safe zone.
+      renderVersion: 'destino-bairro-approved-v1',
     },
   ],
 }

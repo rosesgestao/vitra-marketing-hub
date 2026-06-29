@@ -61,6 +61,7 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-oportunidade-bairro",
   "vitra-imobiliaria-ficha-imovel",
   "vitra-imobiliaria-oferta-ancora",
+  "vitra-imobiliaria-destino-bairro",
 ];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
@@ -92,6 +93,9 @@ const MODEL_LABEL: Record<string, string> = {
   "vitra-imobiliaria-oferta-ancora-feed": "Vitra Imobiliaria - oferta ancora 1:1",
   "vitra-imobiliaria-oferta-ancora-story": "Vitra Imobiliaria - oferta ancora 9:16",
   "vitra-imobiliaria-oferta-ancora-wide": "Vitra Imobiliaria - oferta ancora 1.91:1",
+  "vitra-imobiliaria-destino-bairro-feed": "Vitra Imobiliaria - destino bairro 1:1",
+  "vitra-imobiliaria-destino-bairro-story": "Vitra Imobiliaria - destino bairro 9:16",
+  "vitra-imobiliaria-destino-bairro-wide": "Vitra Imobiliaria - destino bairro 1.91:1",
 };
 
 const LOGO_INNER = `<g transform="translate(3,2) scale(0.87)"><polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/><polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/><polygon points="25,37 39,37 32,54" fill="#FFE08A"/><polygon points="25,37 32,54 55,76" fill="#8B6914"/><polygon points="39,37 32,54 55,76" fill="#C4942A"/><polygon points="85,37 71,37 78,54" fill="#F0C95C"/><polygon points="85,37 78,54 55,76" fill="#7A5C10"/><polygon points="71,37 78,54 55,76" fill="#D4A84A"/></g><line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/><text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/><text x="122.50" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6108" fill="#C4942A">PREMIUM</text>`;
@@ -1728,6 +1732,183 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
 </svg>`;
 }
 
+// ===== Template 13: destino-bairro (poster de bairro + condicoes) =====
+// Referencia (outro segmento, viagens): nome do DESTINO gigante como heroi, subtitulo de lifestyle,
+// painel "glass" com 2 condicoes lado a lado, botao-pilula com seta e rodape "*consulte condicoes",
+// sobre foto do destino com gradiente da marca no topo. ADAPTADO ao IMOBILIARIO: o "destino" vira o
+// BAIRRO/regiao (a localizacao e o heroi); as condicoes da cia aerea viram condicoes do IMOVEL
+// (financiamento/oferta); o aviao e removido; azul -> navy + dourado; logo VITRA. Cada formato tem
+// composicao propria + SAFE ZONE do Meta (1:1/9:16 centrados com foto-horizonte na base; 1.91:1 com
+// coluna de conteudo a esquerda e foto a direita).
+function destinoSplitHighlight(text: string): { big: string; rest: string } {
+  const t = String(text || "").replace(/\s+/g, " ").trim();
+  if (!t) return { big: "", rest: "" };
+  const m = t.match(/^((?:at[eé]|de)\s+)?(R\$\s?[\d.,]+(?:\s?\/\s?m[eê]s)?|\d+\s?x|\d+\s?%|\d+)/i);
+  if (m) return { big: m[0].replace(/\s+/g, " ").trim(), rest: t.slice(m[0].length).trim() };
+  const parts = t.split(" ");
+  return parts.length > 2 ? { big: parts.slice(0, 2).join(" "), rest: parts.slice(2).join(" ") } : { big: t, rest: "" };
+}
+
+function destinoConditionColumn(cx: number, topY: number, w: number, raw: string, bigSize: number, restSize: number, restChars: number) {
+  const { big, rest } = destinoSplitHighlight(raw);
+  const bigFit = fitDisplaySize(big, bigSize, Math.round(bigSize * 0.5), w - 24, 0.79);
+  const restLines = rest ? wrapText(rest, restChars, 2) : [];
+  const bigLine = textLine(cx, topY, big, { anchor: "middle", fill: GOLD_LIGHT, family: "Anton", size: bigFit, weight: 400 });
+  const restMarkup = restLines.map((line, i) => textLine(cx, topY + Math.round(bigFit * 0.5) + 8 + i * (restSize + 6), line, { anchor: "middle", fill: "rgba(255,255,255,0.86)", family: "Inter", size: restSize, weight: 600 })).join("");
+  return bigLine + restMarkup;
+}
+
+function destinoCtaPill(x: number, y: number, w: number, h: number, label: string, size: number) {
+  const r = Math.round(h / 2);
+  const cyc = y + Math.round(h / 2);
+  const circR = Math.round(h * 0.33);
+  const circX = x + Math.round(h * 0.5);
+  const a = Math.round(circR * 0.52);
+  const sw = Math.max(2.4, Math.round(h * 0.05));
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="#FFFFFF"/>
+  <circle cx="${circX}" cy="${cyc}" r="${circR}" fill="#0A1628"/>
+  <path d="M ${circX - a} ${cyc} H ${circX + a} M ${circX + a - Math.round(a * 0.7)} ${cyc - Math.round(a * 0.7)} L ${circX + a} ${cyc} L ${circX + a - Math.round(a * 0.7)} ${cyc + Math.round(a * 0.7)}" stroke="#FFFFFF" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  ${textLine(circX + circR + Math.round(h * 0.40), cyc + Math.round(size * 0.35), label, { anchor: "start", fill: "#0A1628", family: "Inter", size, weight: 800 })}`;
+}
+
+function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+  const hero = images[0] || null;
+
+  // Heroi = BAIRRO / regiao (a localizacao e o protagonista).
+  const place = String(pd.location || pd.neighborhood || campaign?.neighborhood || campaign?.city || "Seu novo endereço").trim();
+  const placeRaw = place.toUpperCase();
+  // Subtitulo = linha de lifestyle / beneficio.
+  const subtitle = compactText((asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString(), 88);
+  // Painel de condicoes (2 colunas). Deriva de campos dedicados ou cai para preco/financiamento.
+  const panelTitle = compactText((pd.panel_title || "Condições exclusivas:").toString(), 40).toUpperCase();
+  const cond1 = compactText((pd.condition_primary || pd.financing_claim || (pd.price ? `A partir de ${formatMoneyLike(pd.price)}` : "Condições facilitadas")).toString(), 40);
+  const cond2 = compactText((pd.condition_secondary || pd.condo_argument || "").toString(), 40);
+  const cta = compactText((asset.cta || "Agende sua visita").toString(), 26);
+  const tag = compactText((pd.tag || "").toString(), 22).toUpperCase();
+
+  const L = isStory ? {
+    cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
+    logoW: 168, logoY: 206, logoCenter: true,
+    tagY: 326, heroY: 470, heroBase: 168, heroBudget: 900,
+    subY: 588, subSize: 32, subChars: 40, subGap: 42,
+    panel: [90, 690, 900, 248], panelTitleSize: 24, condBig: 60, condRest: 22, condRestChars: 22,
+    cta: [330, 1196, 420, 92], ctaSize: 30, footY: 1320, footSize: 24, veil: "v",
+  } : isWide ? {
+    cx: 600, margin: 72, anchor: "start" as const, contentX: 72,
+    logoW: 138, logoY: 50, logoCenter: false,
+    tagY: 116, heroY: 168, heroBase: 92, heroBudget: 640,
+    subY: 224, subSize: 22, subChars: 44, subGap: 30,
+    panel: [72, 268, 660, 158], panelTitleSize: 17, condBig: 38, condRest: 15, condRestChars: 18,
+    cta: [72, 452, 320, 64], ctaSize: 21, footY: 540, footSize: 16, veil: "h",
+  } : {
+    cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
+    logoW: 156, logoY: 66, logoCenter: true,
+    tagY: 176, heroY: 286, heroBase: 152, heroBudget: 900,
+    subY: 360, subSize: 29, subChars: 40, subGap: 38,
+    panel: [90, 432, 900, 210], panelTitleSize: 22, condBig: 54, condRest: 20, condRestChars: 22,
+    cta: [330, 686, 420, 80], ctaSize: 28, footY: 800, footSize: 22, veil: "v",
+  };
+
+  const photoLayer = hero
+    ? `<image href="${esc(hero)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+
+  // Logo VITRA oficial (PNG branco) — centralizada (1:1/9:16) ou a esquerda (1.91:1).
+  const logoX = L.logoCenter ? L.cx - Math.round(L.logoW / 2) : L.margin;
+  const logoH = Math.round(L.logoW * 434 / 2538);
+  const logoMarkup = `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${logoX}" y="${L.logoY}" width="${L.logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`;
+
+  // Tag/selo opcional (pílula dourada) — num CANTO superior, fora da faixa do herói (sem colisão):
+  // canto esquerdo nos formatos centrados (logo no centro); canto direito no 1.91:1 (logo à esquerda).
+  const tagMarkup = tag
+    ? (() => {
+        const fs = isWide ? 11 : 13;
+        const th = isWide ? 26 : 34;
+        const tw = Math.round(tag.length * fs * 0.64 + 30);
+        const tx = isWide ? (W - L.margin - tw) : L.margin;
+        const ty = L.logoY;
+        return `<rect x="${tx}" y="${ty}" width="${tw}" height="${th}" rx="${Math.round(th / 2)}" fill="${GOLD}"/>
+        ${textLine(tx + Math.round(tw / 2), ty + Math.round(th / 2) + Math.round(fs * 0.35), tag, { anchor: "middle", fill: "#0A1628", family: "Inter", size: fs, weight: 800 })}`;
+      })()
+    : "";
+
+  // Heroi (bairro) — Anton, branco, gigante, 1 linha (encolhe p/ caber).
+  const heroSize = fitDisplaySize(placeRaw, L.heroBase, Math.round(L.heroBase * 0.42), L.heroBudget, 0.79);
+  const heroMarkup = textLine(L.contentX, L.heroY, placeRaw, { anchor: L.anchor, fill: "#FFFFFF", family: "Anton", size: heroSize, weight: 400 });
+  // Régua dourada de acento sob o herói.
+  const ruleW = Math.round(Math.min(L.heroBudget, placeRaw.length * heroSize * 0.5) * 0.36);
+  const ruleX = L.anchor === "middle" ? L.cx - Math.round(ruleW / 2) : L.margin;
+  const ruleMarkup = `<rect x="${ruleX}" y="${L.heroY + Math.round(heroSize * 0.18)}" width="${ruleW}" height="${Math.max(3, Math.round(heroSize * 0.045))}" rx="2" fill="${GOLD}"/>`;
+
+  // Subtítulo (lifestyle).
+  const subLines = wrapText(subtitle, L.subChars, 2);
+  const subMarkup = subLines.map((line, i) => textLine(L.contentX, L.subY + i * L.subGap, line, { anchor: L.anchor, fill: "rgba(255,255,255,0.90)", family: "Inter", size: L.subSize, weight: 500 })).join("");
+
+  // Painel "glass" com as condições.
+  const [pX, pY, pW, pH] = L.panel;
+  const pTitleY = pY + Math.round(pH * 0.20);
+  const colTop = pY + Math.round(pH * 0.52);
+  let condBlock = "";
+  if (cond2) {
+    const dividerX = pX + Math.round(pW / 2);
+    condBlock = `<line x1="${dividerX}" y1="${pY + Math.round(pH * 0.34)}" x2="${dividerX}" y2="${pY + pH - Math.round(pH * 0.16)}" stroke="rgba(255,255,255,0.20)" stroke-width="1.4"/>
+    ${destinoConditionColumn(pX + Math.round(pW * 0.25), colTop, Math.round(pW * 0.46), cond1, L.condBig, L.condRest, L.condRestChars)}
+    ${destinoConditionColumn(pX + Math.round(pW * 0.75), colTop, Math.round(pW * 0.46), cond2, L.condBig, L.condRest, L.condRestChars)}`;
+  } else {
+    condBlock = destinoConditionColumn(pX + Math.round(pW / 2), colTop, pW - 60, cond1, L.condBig, L.condRest, L.condRestChars + 8);
+  }
+  const panelMarkup = `<rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" rx="${isWide ? 18 : 26}" fill="#0F2140" fill-opacity="0.56" stroke="rgba(196,148,42,0.40)" stroke-width="1.3"/>
+  ${textLine(pX + Math.round(pW / 2), pTitleY, panelTitle, { anchor: "middle", fill: GOLD_LIGHT, family: "Inter", size: L.panelTitleSize, weight: 700 })}
+  ${condBlock}`;
+
+  // Botão-pílula (CTA).
+  const [ctaX, ctaY, ctaW, ctaH] = L.cta;
+  const ctaMarkup = destinoCtaPill(ctaX, ctaY, ctaW, ctaH, cta, L.ctaSize);
+  // Rodapé "*consulte condições".
+  const footMarkup = textLine(L.anchor === "middle" ? L.cx : L.margin, L.footY, "*Consulte condições.", { anchor: L.anchor, fill: "rgba(255,255,255,0.62)", family: "Inter", size: L.footSize, weight: 500 });
+
+  const veilDef = L.veil === "h"
+    ? `<linearGradient id="${idBase}-veil" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#0A1628" stop-opacity="0.94"/>
+        <stop offset="42%" stop-color="#0A1628" stop-opacity="0.74"/>
+        <stop offset="72%" stop-color="#0A1628" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#07111F" stop-opacity="0.04"/>
+      </linearGradient>`
+    : `<linearGradient id="${idBase}-veil" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0A1628" stop-opacity="1"/>
+        <stop offset="${isStory ? "58%" : "44%"}" stop-color="#0A1628" stop-opacity="1"/>
+        <stop offset="${isStory ? "74%" : "64%"}" stop-color="#0A1628" stop-opacity="0"/>
+        <stop offset="90%" stop-color="#07111F" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#07111F" stop-opacity="0.42"/>
+      </linearGradient>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs>
+    <radialGradient id="${idBase}-bg" cx="50%" cy="40%" r="74%">
+      <stop offset="0%" stop-color="#11264A"/>
+      <stop offset="62%" stop-color="#0A1628"/>
+      <stop offset="100%" stop-color="#050C16"/>
+    </radialGradient>
+    ${veilDef}
+  </defs>
+  ${photoLayer}
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-veil)"/>
+  ${logoMarkup}
+  ${tagMarkup}
+  ${heroMarkup}
+  ${ruleMarkup}
+  ${subMarkup}
+  ${panelMarkup}
+  ${ctaMarkup}
+  ${footMarkup}
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+</svg>`;
+}
+
 function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
@@ -1760,6 +1941,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-oportunidade-bairro") return buildVitraOportunidadeSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-ficha-imovel") return buildVitraFichaSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-oferta-ancora") return buildVitraOfertaAncoraSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-destino-bairro") return buildVitraDestinoBairroSvg(asset, campaign, images, W, H, brandProfile, idBase);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -1909,7 +2091,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       step = "load_template_images";
       const imageUrls = imageUrlsForApprovedTemplate(asset, campaign);
       const imageData: Array<string | null> = [];
-      const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist" || templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento" || templateFamily === "vitra-imobiliaria-oferta-ancora"
+      const maxTemplateImages = templateFamily === "vitra-imobiliaria-hero-checklist" || templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento" || templateFamily === "vitra-imobiliaria-oferta-ancora" || templateFamily === "vitra-imobiliaria-destino-bairro"
         ? 1
         : templateFamily === "vitra-imobiliaria-vitrine-gallery" || templateFamily === "vitra-imobiliaria-oportunidade-bairro"
           ? 4
