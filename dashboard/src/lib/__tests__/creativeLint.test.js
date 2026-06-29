@@ -10,9 +10,9 @@ describe('creativeDesign — formatSpec / safe-zone', () => {
     // 9:16 reels-safe
     const story = formatSpec(1080, 1920).safe
     expect(story).toEqual({ x: 35, y: 250, w: 1010, h: 1220 })
-    // 1.91:1
+    // 1.91:1 — margem 6% (72px), pois o feed mostra a imagem inteira
     const wide = formatSpec(1200, 628).safe
-    expect(wide).toEqual({ x: 89, y: 63, w: 1022, h: 501 })
+    expect(wide).toEqual({ x: 72, y: 63, w: 1056, h: 501 })
   })
   it('withinSafe respeita os limites', () => {
     const safe = { x: 100, y: 100, w: 800, h: 800 }

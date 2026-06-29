@@ -525,6 +525,14 @@ function dsImageLayer(href: string | null, W: number, H: number, idBase: string,
   const grade = opts?.grade === false ? "" : `<rect width="${W}" height="${H}" fill="${DS_COLORS.navy}" opacity="0.12"/>`;
   return `<image href="${esc(href)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="${par}"/>${grade}`;
 }
+// Roda o Creative Lint a partir de um relatório de layout e devolve no `out` (best-effort; loga erros).
+// Reutilizado por TODOS os templates para fechar a cobertura do gate de validação visual.
+function runCreativeLint(out: { lint?: ReturnType<typeof lintCreative> } | undefined, W: number, H: number, family: string, els: LintElement[]): void {
+  if (!out) return;
+  const F = formatSpec(W, H);
+  out.lint = lintCreative(F.safe, els);
+  if (!out.lint.ok) console.warn(`[creativeLint] ${family} ${F.kind}: ${out.lint.errors.join(", ")}`);
+}
 
 function baseDefs(idBase: string, photoDefs: string) {
   return `<defs>
@@ -1057,7 +1065,7 @@ function duoSelosBadge(x: number, y: number, text: string, size: number, anchor:
   ${textLine(textX, y, label, { anchor: "start", fill: "#FFFFFF", size, weight: 700 })}`;
 }
 
-function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1116,6 +1124,12 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
   const photoDefs = L.photos.map((p, i) => `<clipPath id="${idBase}-p${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("") +
     `<radialGradient id="${idBase}-glow" cx="78%" cy="10%" r="60%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.10"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>`;
 
+  runCreativeLint(out, W, H, "duo-selos", [
+    { role: "headline", box: { x: headX - L.headBudget / 2, y: L.headY - h1Size, w: L.headBudget, h: h2 ? L.headGap + h2Size : h1Size }, charLen: headline.length, charLimit: 40, fontSize: Math.min(h1Size, h2Size), minFont: 34 },
+    { role: "pill", box: { x: pillX, y: pillY, w: pillW, h: pillH }, critical: true, block: true },
+    { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 16 },
+  ]);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
   <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
@@ -1143,7 +1157,7 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
 // sobrepondo hero e painel. Sem CTA (fiel a peca original). Amarelo da referencia -> dourado.
 // SAFE ZONE do Meta (skill margem-seguranca-criativos): 1:1 conteudo em [108..972]; 9:16
 // reels-safe y[250..1470]; 1.91:1 x[89..1111] y[63..564]. Fotos e painel sangram; texto, nunca.
-function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1198,6 +1212,12 @@ function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string 
     duoSelosPhoto(images[i + 1] || images[0], `${idBase}-p${i + 1}`, p[0], p[1], p[2], p[3], p[4])
   ).join("");
 
+  const hpHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 28, L.headBudget, 0.79) : L.headSize;
+  runCreativeLint(out, W, H, "hero-panel", [
+    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(hpHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: hpHeadSize, minFont: 28 },
+    { role: "price", box: { x: L.headX, y: L.priceY - L.priceSize, w: L.headBudget, h: L.priceSize }, critical: true },
+  ]);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
   <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
@@ -1219,7 +1239,7 @@ function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string 
 // brandbook) com SELO de lançamento (dourado), headline (Anton) + destaque dourado (bairro), lista de
 // diferenciais com setas, condicao "A partir de" + preco e CTA pill "Lista VIP". Densidade e hierarquia
 // no nivel do San Clemente, com finalidade de expectativa/escassez. Safe zone do Meta por formato.
-function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1293,6 +1313,12 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
   const ctaBlock = `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="${crx}" fill="${GOLD}"/>
   ${textLine(cx + cw / 2, cy + ch / 2 + Math.round(ctaSize * 0.36), cta, { fill: HC_INK, family: "Poppins", size: ctaSize, weight: 700 })}`;
 
+  const lcHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 28, L.headBudget, 0.79) : L.headSize;
+  runCreativeLint(out, W, H, "lancamento", [
+    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(lcHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: lcHeadSize, minFont: 28 },
+    { role: "cta", box: { x: cx, y: cy, w: cw, h: ch }, critical: true, block: true, fontSize: ctaSize, minFont: 14 },
+  ]);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
   <rect width="${W}" height="${H}" fill="${bgFill}"/>
@@ -1313,7 +1339,7 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
 // Conceito (referência fornecida): painel navy com CORTE DIAGONAL à esquerda (foto do prédio atrás) com
 // wordmark + headline + De/Por + checklist de selos-check + CTA pill clara; à direita, coluna de 3 fotos
 // arredondadas sobre fundo off-white. Composição própria por formato. Safe zone do Meta aplicada.
-function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1390,6 +1416,12 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
   const ctaBlock = `<rect x="${ctaX}" y="${ctaY}" width="${ctaW}" height="${ctaH}" rx="${ctaRx}" fill="${OFF_WHITE}"/>
   ${textLine(ctaX + ctaW / 2, ctaY + ctaH / 2 + Math.round(ctaSize * 0.36), ctaText, { fill: "#0A1628", family: "Poppins", size: ctaSize, weight: 700 })}`;
 
+  const vtHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 30, L.headBudget, 0.79) : L.headSize;
+  runCreativeLint(out, W, H, "vitrine", [
+    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(vtHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: vtHeadSize, minFont: 30 },
+    { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 14 },
+  ]);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
   <rect width="${W}" height="${H}" fill="${OFF_WHITE}"/>
@@ -1410,7 +1442,7 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
 // do bairro + caixa de preço + barra de subtítulo + painel de checklist com selos) e, à direita, galeria de
 // 3 fotos em moldura navy + wordmark em caixa navy no topo. Checks adaptados ao dourado do brandbook (a
 // referência usa verde, fora da paleta). Composição própria por formato + safe zone do Meta.
-function buildVitraOportunidadeSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraOportunidadeSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1488,6 +1520,13 @@ function buildVitraOportunidadeSvg(asset: any, campaign: any, images: Array<stri
       ${textLine(L.listX, by, compactText(item, isWide ? 22 : 18), { anchor: "start", fill: "#FAFAF8", family: "Inter, Arial, sans-serif", size: L.listSize, weight: 600 })}`;
     }).join("")}`;
 
+  const opHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 34, L.headBudget, 0.79) : L.headSize;
+  runCreativeLint(out, W, H, "oportunidade-bairro", [
+    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(opHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: opHeadSize, minFont: 34 },
+    { role: "price", box: { x: pbx, y: pby, w: pbw, h: pbh }, critical: true },
+    { role: "list", box: { x: lbx, y: lby, w: lbw, h: lbh }, critical: true },
+  ]);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
   ${heroLayer}
@@ -1532,7 +1571,7 @@ function fichaIconSvg(kind: string, x: number, y: number, size: number, color: s
   };
   return `<g transform="translate(${x},${y}) scale(${s})" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[kind] || P.check}</g>`;
 }
-function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1617,6 +1656,13 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
     const ft = L.footer;
     footer = wrapText(cta, 30, 2).map((ln, i) => textLine(ft.pad, ft.y + i * ft.lh, ln, { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: ft.ctaSize, weight: 600 })).join("");
   }
+
+  const fcHeadSize = fitDisplaySize(headline, hSize, 30, (isWide ? 360 : isStory ? 520 : 480), 0.84);
+  runCreativeLint(out, W, H, "ficha-imovel", [
+    { role: "headline", box: { x: hX, y: hY - Math.round(fcHeadSize * 0.8), w: isWide ? 360 : isStory ? 520 : 480, h: hSize }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: fcHeadSize, minFont: 30 },
+    { role: "feature", box: { x: f.tileX, y: f.tileY0, w: f.barX + f.barW - f.tileX, h: features.length * (f.tileSize + f.rowGap) }, critical: true },
+    { role: "price", box: { x: pX, y: pY, w: pW, h: pH }, critical: true },
+  ]);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>${galDefs}</defs>
@@ -2022,12 +2068,12 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-financiamento-orla") return buildVitraFinancingSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-menino-deus-offer") return buildVitraMeninoDeusSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-hero-checklist") return buildVitraHeroChecklistSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
-  if (templateFamily === "vitra-imobiliaria-duo-selos-offer") return buildVitraDuoSelosSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-vitrine-gallery") return buildVitraVitrineSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-oportunidade-bairro") return buildVitraOportunidadeSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-ficha-imovel") return buildVitraFichaSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-duo-selos-offer") return buildVitraDuoSelosSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
+  if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
+  if (templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
+  if (templateFamily === "vitra-imobiliaria-vitrine-gallery") return buildVitraVitrineSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
+  if (templateFamily === "vitra-imobiliaria-oportunidade-bairro") return buildVitraOportunidadeSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
+  if (templateFamily === "vitra-imobiliaria-ficha-imovel") return buildVitraFichaSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   if (templateFamily === "vitra-imobiliaria-oferta-ancora") return buildVitraOfertaAncoraSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   if (templateFamily === "vitra-imobiliaria-destino-bairro") return buildVitraDestinoBairroSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   const frame = templateFrame(asset);

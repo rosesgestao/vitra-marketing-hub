@@ -40,11 +40,12 @@ export function formatSpec(W: number, H: number): FormatSpec {
   const isStory = H > W * 1.25;
   const isWide = W > H * 1.35;
   const kind: FormatKind = isStory ? "story" : isWide ? "wide" : "feed";
-  const margin = isWide ? 72 : Math.round(W * 0.065);
+  // 1:1 (feed) tem chrome mínimo na Meta → margem de 5%; story/wide têm safe-zone própria (abaixo).
+  const margin = isWide ? 72 : Math.round(W * 0.05);
   const safe: Box = isStory
     ? { x: 35, y: 250, w: W - 70, h: 1470 - 250 }
     : isWide
-    ? { x: 89, y: 63, w: 1111 - 89, h: 564 - 63 }
+    ? { x: 72, y: 63, w: W - 144, h: 564 - 63 } // 1.91:1 feed mostra a imagem inteira → margem 6% (72px)
     : { x: margin, y: margin, w: W - margin * 2, h: H - margin * 2 };
   return { W, H, kind, margin, cx: Math.round(W / 2), safe };
 }
