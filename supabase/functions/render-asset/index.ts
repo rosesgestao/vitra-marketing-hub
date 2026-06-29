@@ -1773,7 +1773,7 @@ function destinoCtaPill(x: number, y: number, w: number, h: number, label: strin
   ${textLine(circX + circR + Math.round(h * 0.40), cyc + Math.round(size * 0.35), label, { anchor: "start", fill: "#0A1628", family: "Inter", size, weight: 800 })}`;
 }
 
-function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1908,6 +1908,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   ];
   if (tag) lintEls.push({ role: "badge", box: { x: tagX, y: tagY, w: tagW, h: tagH }, block: true });
   const lint = lintCreative(F.safe, lintEls);
+  if (out) out.lint = lint;
   if (!lint.ok) console.warn(`[creativeLint] destino-bairro ${F.kind}: ${lint.errors.join(", ")}`);
 
   const veilDef = L.veil === "h"
@@ -1950,7 +1951,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
 </svg>`;
 }
 
-function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE) {
+function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, templateFamily = VITRA_IMOBILIARIA_TEMPLATE_BASE, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const ar = (asset.aspect_ratio || "1:1").toString();
   const layout = approvedTemplateLayout(ar);
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
@@ -1982,7 +1983,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-oportunidade-bairro") return buildVitraOportunidadeSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-ficha-imovel") return buildVitraFichaSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-oferta-ancora") return buildVitraOfertaAncoraSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-destino-bairro") return buildVitraDestinoBairroSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-destino-bairro") return buildVitraDestinoBairroSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 
@@ -2146,7 +2147,8 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       }
       while (imageData.length < maxTemplateImages) imageData.push(imageData[0] || null);
       step = "build_approved_template_svg";
-      const svg = buildVitraImobiliariaApprovedSvg(asset, campaign, imageData, W, H, brandProfile, templateFamily);
+      const lintOut: { lint?: ReturnType<typeof lintCreative> } = {};
+      const svg = buildVitraImobiliariaApprovedSvg(asset, campaign, imageData, W, H, brandProfile, templateFamily, lintOut);
       step = "init_wasm";
       await ensureWasm();
       step = "resvg";
@@ -2174,6 +2176,7 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
           rendered_template_family: templateFamily,
           ...(VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[templateFamily] ? { rendered_template_version: VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[templateFamily] } : {}),
           rendered_image_count: imageData.filter(Boolean).length,
+          ...(lintOut.lint ? { lint: lintOut.lint } : {}),
           last_render_error:null,
         },
         updated_at:new Date().toISOString(),

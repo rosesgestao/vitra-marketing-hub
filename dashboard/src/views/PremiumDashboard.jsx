@@ -353,10 +353,14 @@ function evaluateMetaAdReadiness(ad) {
   ))
   const approved = ordered.every(asset => asset.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(asset))
   const hasDestination = Boolean(meta.url_params || first.metadata?.source_intake?.landing_url || first.metadata?.source_intake?.whatsapp_url)
+  // Validação visual objetiva (Creative Lint): um corte com lint reprovado não pode ser publicado.
+  // Cortes de templates sem lint (metadata.lint ausente) passam — só reprova quando há lint e ele falhou.
+  const lintOk = ordered.every(asset => asset.metadata?.lint?.ok !== false)
   const checks = [
     { id: 'formats', label: '3 cortes Meta', ok: AD_FORMAT_ORDER.every(format => formats.has(format)) },
     { id: 'property_image', label: 'Foto do imovel', ok: hasPropertyImage },
     { id: 'render', label: 'Imagens renderizadas', ok: rendered },
+    { id: 'design_lint', label: 'Validação visual (lint)', ok: lintOk },
     { id: 'texts', label: 'Textos + CTA', ok: Boolean(first.headline && (meta.texto_principal || first.copy) && first.cta) },
     { id: 'description', label: 'Descrição', ok: Boolean((meta.descricao || '').trim()) },
     { id: 'destination', label: 'Destino / UTM', ok: hasDestination },
@@ -740,6 +744,12 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   }
 
   async function handleApproveAsset(asset) {
+    // Gate de validação visual (Creative Lint): não deixa aprovar um corte com lint reprovado.
+    const lint = asset.metadata?.lint
+    if (lint && lint.ok === false) {
+      setError(`Este corte (${asset.aspect_ratio}) não passou na validação visual: ${(lint.errors || []).join(', ')}. Ajuste o template/dados e re-renderize antes de aprovar.`)
+      return
+    }
     setAssetBusyId(asset.id)
     setError(null)
     try {
@@ -755,6 +765,12 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   async function handleApproveGroup(assetsInGroup) {
     const ids = assetsInGroup.map(a => a.id)
     if (!ids.length) return
+    // Gate de validação visual: bloqueia o grupo se algum corte reprovou no lint.
+    const failed = assetsInGroup.filter(a => a.metadata?.lint?.ok === false)
+    if (failed.length) {
+      setError(`${failed.length} corte(s) reprovaram na validação visual (${failed.map(a => a.aspect_ratio).join(', ')}). Corrija e re-renderize antes de aprovar.`)
+      return
+    }
     setAssetBusyId(ids[0])
     setError(null)
     try {
