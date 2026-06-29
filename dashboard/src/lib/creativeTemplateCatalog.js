@@ -655,7 +655,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // v2 (junho/2026): reposicionado para dentro da safe zone do Meta nos 3 formatos (logo fora
       // do canto, CTA fora das faixas de reels/base, margem esquerda em 108/89). O bump forca o
       // re-render dos PNGs ja em storage com a arte corrigida.
-      renderVersion: 'hero-checklist-logo-png-v3',
+      renderVersion: 'hero-checklist-ds-image-v4',
     },
     {
       id: 'vitra-imobiliaria-duo-selos-offer',
@@ -787,7 +787,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       fixedBrandRules: ['aerial_hero', 'navy_blocks_column', 'approved_white_wordmark', 'gold_check_seals', 'framed_photo_gallery', 'meta_safe_zone'],
       // Arte nova (junho/2026). Referencia visual do cliente (estrutura/conceito); checks adaptados ao dourado
       // do brandbook (a referencia usa verde, fora da paleta). Versionada desde o inicio.
-      renderVersion: 'oportunidade-bairro-approved-v1',
+      renderVersion: 'oportunidade-bairro-ds-image-v2',
     },
     {
       id: 'vitra-imobiliaria-ficha-imovel',

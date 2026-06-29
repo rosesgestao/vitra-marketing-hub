@@ -934,9 +934,8 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   };
 
   const x = L.margin;
-  const photoLayer = hero
-    ? `<image href="${esc(hero)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+  // Imagem dirigida (DS P1): grade navy + enquadramento por foco (story = topo do prédio).
+  const photoLayer = dsImageLayer(hero, W, H, idBase, isStory ? "story" : isWide ? "wide" : "feed", { grade: true });
 
   const headLines = lines.map((line, index) => {
     const size = fitDisplaySize(line, L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79);
@@ -1485,9 +1484,9 @@ function buildVitraOportunidadeSvg(asset: any, campaign: any, images: Array<stri
   const galClips = gys.map((gy, i) => `<clipPath id="${idBase}-g${i}"><rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="${grx}" ry="${grx}"/></clipPath>`).join("");
   const photoDefs = `<linearGradient id="${idBase}-nb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#13294C"/><stop offset="100%" stop-color="#0A1628"/></linearGradient>` + galClips;
 
-  const heroLayer = images[0]
-    ? `<image href="${esc(images[0])}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+  // Imagem dirigida (DS P1): enquadramento por foco (story = topo do prédio). Sem grade aqui — o
+  // template já escurece com o overlay 0.18 + os blocos navy; o foco é o ganho relevante.
+  const heroLayer = dsImageLayer(images[0], W, H, idBase, isStory ? "story" : isWide ? "wide" : "feed", { grade: false });
 
   // Galeria emoldurada à direita: moldura navy (offset) + 3 fotos por cima + caixa navy do wordmark.
   const frameRect = `<rect x="${gx + L.frameOff}" y="${gys[0] + L.frameOff}" width="${gw}" height="${gys[gys.length - 1] + gh - gys[0]}" fill="url(#${idBase}-nb)"/>`;
