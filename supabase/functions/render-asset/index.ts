@@ -16,6 +16,8 @@ import {
   approvedHeadlineBudgetPx,
 } from "../_shared/textFit.ts";
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVersions.ts";
+import { DS_COLORS, formatSpec } from "../_shared/creativeDesign.ts";
+import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1790,24 +1792,28 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   const cta = compactText((asset.cta || "Agende sua visita").toString(), 26);
   const tag = compactText((pd.tag || "").toString(), 22).toUpperCase();
 
+  // Design System (P0): safe-zone real do formato vinda da fonte única.
+  const F = formatSpec(W, H);
+
   const L = isStory ? {
     cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
     logoW: 168, logoY: 206, logoCenter: true,
-    tagY: 326, heroY: 470, heroBase: 168, heroBudget: 900,
+    heroY: 470, heroBase: 168, heroBudget: 900,
     subY: 588, subSize: 32, subChars: 40, subGap: 42,
     panel: [90, 690, 900, 248], panelTitleSize: 24, condBig: 60, condRest: 22, condRestChars: 22,
     cta: [330, 1196, 420, 92], ctaSize: 30, footY: 1320, footSize: 24, veil: "v",
   } : isWide ? {
-    cx: 600, margin: 72, anchor: "start" as const, contentX: 72,
-    logoW: 138, logoY: 50, logoCenter: false,
-    tagY: 116, heroY: 168, heroBase: 92, heroBudget: 640,
-    subY: 224, subSize: 22, subChars: 44, subGap: 30,
-    panel: [72, 268, 660, 158], panelTitleSize: 17, condBig: 38, condRest: 15, condRestChars: 18,
-    cta: [72, 452, 320, 64], ctaSize: 21, footY: 540, footSize: 16, veil: "h",
+    // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72.
+    cx: 600, margin: 89, anchor: "start" as const, contentX: 89,
+    logoW: 138, logoY: 66, logoCenter: false,
+    heroY: 180, heroBase: 92, heroBudget: 640,
+    subY: 236, subSize: 22, subChars: 44, subGap: 30,
+    panel: [89, 282, 660, 158], panelTitleSize: 17, condBig: 38, condRest: 15, condRestChars: 18,
+    cta: [89, 452, 320, 64], ctaSize: 21, footY: 540, footSize: 16, veil: "h",
   } : {
     cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
     logoW: 156, logoY: 66, logoCenter: true,
-    tagY: 176, heroY: 286, heroBase: 152, heroBudget: 900,
+    heroY: 286, heroBase: 152, heroBudget: 900,
     subY: 360, subSize: 29, subChars: 40, subGap: 38,
     panel: [90, 432, 900, 210], panelTitleSize: 22, condBig: 54, condRest: 20, condRestChars: 22,
     cta: [330, 686, 420, 80], ctaSize: 28, footY: 800, footSize: 22, veil: "v",
@@ -1824,16 +1830,14 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
 
   // Tag/selo opcional (pílula dourada) — num CANTO superior, fora da faixa do herói (sem colisão):
   // canto esquerdo nos formatos centrados (logo no centro); canto direito no 1.91:1 (logo à esquerda).
+  const tagFs = isWide ? 11 : 13;
+  const tagH = isWide ? 26 : 34;
+  const tagW = tag ? Math.round(tag.length * tagFs * 0.64 + 30) : 0;
+  const tagX = isWide ? (W - L.margin - tagW) : L.margin;
+  const tagY = L.logoY;
   const tagMarkup = tag
-    ? (() => {
-        const fs = isWide ? 11 : 13;
-        const th = isWide ? 26 : 34;
-        const tw = Math.round(tag.length * fs * 0.64 + 30);
-        const tx = isWide ? (W - L.margin - tw) : L.margin;
-        const ty = L.logoY;
-        return `<rect x="${tx}" y="${ty}" width="${tw}" height="${th}" rx="${Math.round(th / 2)}" fill="${GOLD}"/>
-        ${textLine(tx + Math.round(tw / 2), ty + Math.round(th / 2) + Math.round(fs * 0.35), tag, { anchor: "middle", fill: "#0A1628", family: "Inter", size: fs, weight: 800 })}`;
-      })()
+    ? `<rect x="${tagX}" y="${tagY}" width="${tagW}" height="${tagH}" rx="${Math.round(tagH / 2)}" fill="${DS_COLORS.gold}"/>
+      ${textLine(tagX + Math.round(tagW / 2), tagY + Math.round(tagH / 2) + Math.round(tagFs * 0.35), tag, { anchor: "middle", fill: DS_COLORS.ink, family: "Inter", size: tagFs, weight: 800 })}`
     : "";
 
   // Heroi (bairro) — Anton, branco, gigante, 1 linha (encolhe p/ caber).
@@ -1861,15 +1865,50 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   } else {
     condBlock = destinoConditionColumn(pX + Math.round(pW / 2), colTop, pW - 60, cond1, L.condBig, L.condRest, L.condRestChars + 8);
   }
-  const panelMarkup = `<rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" rx="${isWide ? 18 : 26}" fill="#0F2140" fill-opacity="0.56" stroke="rgba(196,148,42,0.40)" stroke-width="1.3"/>
-  ${textLine(pX + Math.round(pW / 2), pTitleY, panelTitle, { anchor: "middle", fill: GOLD_LIGHT, family: "Inter", size: L.panelTitleSize, weight: 700 })}
+  // Disciplina de dourado: o título do painel é BRANCO (o dourado fica reservado ao DESTAQUE da oferta).
+  const panelMarkup = `<rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" rx="${isWide ? 18 : 26}" fill="${DS_COLORS.navyMid}" fill-opacity="0.62" stroke="rgba(255,255,255,0.14)" stroke-width="1.2"/>
+  ${textLine(pX + Math.round(pW / 2), pTitleY, panelTitle, { anchor: "middle", fill: "rgba(255,255,255,0.80)", family: "Inter", size: L.panelTitleSize, weight: 700 })}
   ${condBlock}`;
 
   // Botão-pílula (CTA).
   const [ctaX, ctaY, ctaW, ctaH] = L.cta;
   const ctaMarkup = destinoCtaPill(ctaX, ctaY, ctaW, ctaH, cta, L.ctaSize);
-  // Rodapé "*consulte condições".
-  const footMarkup = textLine(L.anchor === "middle" ? L.cx : L.margin, L.footY, "*Consulte condições.", { anchor: L.anchor, fill: "rgba(255,255,255,0.62)", family: "Inter", size: L.footSize, weight: 500 });
+  // Rodapé "*consulte condições" — sobre a foto, por isso recebe SCRIM (placa controlada) atrás.
+  const footTxt = "*Consulte condições.";
+  const footX = L.anchor === "middle" ? L.cx : L.margin;
+  const footMarkup = textLine(footX, L.footY, footTxt, { anchor: L.anchor, fill: DS_COLORS.textFaint, family: "Inter", size: L.footSize, weight: 500 });
+
+  // SCRIM: spotlight escuro localizado atrás do CTA + rodapé — garante contraste sobre a foto (corrige o
+  // rodapé que ficava ilegível). Elipse com gradiente radial (centro escuro -> bordas transparentes).
+  const scrimCx = L.anchor === "middle" ? L.cx : (L.margin + Math.round(ctaW / 2) + 70);
+  const scrimCy = Math.round((ctaY + L.footY) / 2) + 8;
+  const scrimRx = isWide ? 380 : Math.round(W * 0.54);
+  const scrimRy = Math.round((L.footY + L.footSize - ctaY) / 2) + 48;
+  const scrimDef = `<radialGradient id="${idBase}-scrim" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="${DS_COLORS.navyDeep}" stop-opacity="0.66"/>
+      <stop offset="56%" stop-color="${DS_COLORS.navyDeep}" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="${DS_COLORS.navyDeep}" stop-opacity="0"/>
+    </radialGradient>`;
+  const scrimMarkup = `<ellipse cx="${scrimCx}" cy="${scrimCy}" rx="${scrimRx}" ry="${scrimRy}" fill="url(#${idBase}-scrim)"/>`;
+
+  // ---- Creative Lint (P0): monta o relatório de layout e roda a validação objetiva (loga os erros). ----
+  const heroW = Math.min(L.heroBudget, Math.round(placeRaw.length * heroSize * 0.52));
+  const heroX = L.anchor === "middle" ? L.cx - Math.round(heroW / 2) : L.margin;
+  const subWidest = subLines.reduce((m, s) => Math.max(m, s.length), 1);
+  const subW = Math.round(subWidest * L.subSize * 0.52);
+  const subX = L.anchor === "middle" ? L.cx - Math.round(subW / 2) : L.margin;
+  const footW = Math.round(footTxt.length * L.footSize * 0.5);
+  const footBoxX = L.anchor === "middle" ? L.cx - Math.round(footW / 2) : L.margin;
+  const lintEls: LintElement[] = [
+    { role: "hero", box: { x: heroX, y: L.heroY - Math.round(heroSize * 0.80), w: heroW, h: Math.round(heroSize * 0.92) }, critical: true, block: true, display: true, fontSize: heroSize, minFont: Math.round(L.heroBase * 0.42), charLen: placeRaw.length, charLimit: 18 },
+    { role: "subtitle", box: { x: subX, y: L.subY - L.subSize, w: subW, h: subLines.length * L.subGap }, critical: true, block: true, display: true, fontSize: L.subSize, charLen: subtitle.length, charLimit: 88 },
+    { role: "panel", box: { x: pX, y: pY, w: pW, h: pH }, critical: true, block: true },
+    { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, overImage: true, hasScrim: true },
+    { role: "footnote", box: { x: footBoxX, y: L.footY - L.footSize, w: footW, h: L.footSize + 6 }, critical: true, overImage: true, hasScrim: true },
+  ];
+  if (tag) lintEls.push({ role: "badge", box: { x: tagX, y: tagY, w: tagW, h: tagH }, block: true });
+  const lint = lintCreative(F.safe, lintEls);
+  if (!lint.ok) console.warn(`[creativeLint] destino-bairro ${F.kind}: ${lint.errors.join(", ")}`);
 
   const veilDef = L.veil === "h"
     ? `<linearGradient id="${idBase}-veil" x1="0" y1="0" x2="1" y2="0">
@@ -1894,9 +1933,11 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
       <stop offset="100%" stop-color="#050C16"/>
     </radialGradient>
     ${veilDef}
+    ${scrimDef}
   </defs>
   ${photoLayer}
   <rect width="${W}" height="${H}" fill="url(#${idBase}-veil)"/>
+  ${scrimMarkup}
   ${logoMarkup}
   ${tagMarkup}
   ${heroMarkup}
