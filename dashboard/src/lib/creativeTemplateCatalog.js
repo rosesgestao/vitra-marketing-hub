@@ -838,7 +838,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026). Referencia visual do cliente (peca "2 DORM Av. Ipiranga"): conceito/estrutura
       // de preco-ancora; adaptado ao brandbook (navy + dourado, wordmark VITRA oficial). Cada formato tem
       // composicao propria com a safe zone do Meta.
-      renderVersion: 'oferta-ancora-approved-v1',
+      renderVersion: 'oferta-ancora-approved-v2',
     },
     {
       id: 'vitra-imobiliaria-destino-bairro',
@@ -863,7 +863,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026). Referencia de OUTRO segmento (viagens — pôster de destino) adaptada ao
       // imobiliário: o bairro vira o herói; condições da peça original viram condições do imóvel; avião
       // removido; azul -> navy + dourado, wordmark VITRA. Cada formato com composição própria + safe zone.
-      renderVersion: 'destino-bairro-approved-v2',
+      renderVersion: 'destino-bairro-approved-v3',
     },
   ],
 }

@@ -510,6 +510,22 @@ function outerFrame(W: number, H: number, frame: boolean, inset = 22, radius = 2
   return frame ? `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${H - inset * 2}" rx="${radius}" fill="none" stroke="${GOLD}" stroke-width="1.4" opacity="0.82"/>` : "";
 }
 
+// ===== Design System — IMAGEM dirigida (P1) =====
+// Enquadramento art-directed por formato (foco) + grade navy SUTIL via overlay (NÃO usa filtro SVG:
+// feColorMatrix em full-res estoura o compute do isolate da Edge — WORKER_RESOURCE_LIMIT). O overlay
+// navy de baixa opacidade dá coesão cromática às fotos do imóvel sem custo de render.
+function dsImageLayer(href: string | null, W: number, H: number, idBase: string, kind: string, opts?: { grade?: boolean; focal?: string }): string {
+  if (!href) return `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+  const focal = opts?.focal || (kind === "story" ? "top" : "center");
+  const par = focal === "top" ? "xMidYMin slice"
+    : focal === "bottom" ? "xMidYMax slice"
+    : focal === "left" ? "xMinYMid slice"
+    : focal === "right" ? "xMaxYMid slice"
+    : "xMidYMid slice";
+  const grade = opts?.grade === false ? "" : `<rect width="${W}" height="${H}" fill="${DS_COLORS.navy}" opacity="0.12"/>`;
+  return `<image href="${esc(href)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="${par}"/>${grade}`;
+}
+
 function baseDefs(idBase: string, photoDefs: string) {
   return `<defs>
     <radialGradient id="${idBase}-bg" cx="50%" cy="44%" r="70%">
@@ -1617,7 +1633,7 @@ function ofertaBox(x: number, y: number, w: number, h: number, label: string, va
   ${textLine(x + padL + Math.round(labelSize * (label.length * 0.62)), cy, value, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: valueSize, weight: 400 })}`;
 }
 
-function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -1650,11 +1666,12 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     box: [90, 868, 900, 196], boxLabel: 46, boxValue: 96,
     footY: 1140, footSize: 30,
   } : isWide ? {
-    margin: 72, logoW: 150, logoY: 52,
-    headBase: 48, headGap: 52, headY: 150, headBudget: 1040, headChars: 26,
-    bar: [72, 250, 1056, 52], barSize: 21,
+    // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72 (flagrado pelo Creative Lint).
+    margin: 89, logoW: 150, logoY: 52,
+    headBase: 48, headGap: 52, headY: 150, headBudget: 1022, headChars: 26,
+    bar: [89, 250, 1022, 52], barSize: 21,
     deY: 348, deSize: 24,
-    box: [72, 380, 1056, 116], boxLabel: 30, boxValue: 60,
+    box: [89, 380, 1022, 116], boxLabel: 30, boxValue: 60,
     footY: 540, footSize: 22,
   } : {
     margin: 90, logoW: 170, logoY: 70,
@@ -1667,9 +1684,9 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
 
   const x = L.margin;
   const cx = Math.round(W / 2);
-  const photoLayer = hero
-    ? `<image href="${esc(hero)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+  const F = formatSpec(W, H);
+  // Imagem dirigida (DS P1): grade navy + enquadramento por foco.
+  const photoLayer = dsImageLayer(hero, W, H, idBase, F.kind, { grade: true });
 
   // Logo oficial VITRA (PNG branco) centralizada no topo.
   const logoX = cx - Math.round(L.logoW / 2);
@@ -1707,6 +1724,21 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const footMarkup = footer
     ? textLine(cx, L.footY, footer, { anchor: "middle", fill: "rgba(255,255,255,0.78)", family: "Inter", size: L.footSize, weight: 800 })
     : "";
+
+  // ---- Creative Lint (P1): o gate agora cobre também o oferta-ancora. É um template de DOIS FOCOS
+  // (headline em cima + preço-âncora embaixo), então NÃO aplica a regra de herói único; valida
+  // safe-zone, colisão, overflow e limite de caracteres. ----
+  if (out) {
+    const headSize0 = headLines.length ? fitDisplaySize(headLines[0], L.headBase, Math.round(L.headBase * 0.5), L.headBudget, 0.79) : L.headBase;
+    const els: LintElement[] = [
+      { role: "headline", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: headLines.length * L.headGap }, critical: true, block: true, charLen: headlineRaw.length, charLimit: 40 },
+      { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true },
+      { role: "pricebox", box: { x: boxX, y: boxY, w: boxW, h: boxH }, critical: true, block: true, fontSize: valueSize, minFont: Math.round(L.boxValue * 0.5) },
+      { role: "footnote", box: { x: cx - Math.round((footer.length * L.footSize * 0.5) / 2), y: L.footY - L.footSize, w: Math.round(footer.length * L.footSize * 0.5), h: L.footSize + 6 }, critical: true },
+    ];
+    out.lint = lintCreative(F.safe, els);
+    if (!out.lint.ok) console.warn(`[creativeLint] oferta-ancora ${F.kind}: ${out.lint.errors.join(", ")}`);
+  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
@@ -1819,9 +1851,8 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
     cta: [330, 686, 420, 80], ctaSize: 28, footY: 800, footSize: 22, veil: "v",
   };
 
-  const photoLayer = hero
-    ? `<image href="${esc(hero)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>`;
+  // Imagem dirigida (DS P1): grade navy + enquadramento por foco (story = topo do prédio).
+  const photoLayer = dsImageLayer(hero, W, H, idBase, F.kind, { grade: true });
 
   // Logo VITRA oficial (PNG branco) — centralizada (1:1/9:16) ou a esquerda (1.91:1).
   const logoX = L.logoCenter ? L.cx - Math.round(L.logoW / 2) : L.margin;
@@ -1982,7 +2013,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-vitrine-gallery") return buildVitraVitrineSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-oportunidade-bairro") return buildVitraOportunidadeSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-ficha-imovel") return buildVitraFichaSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-oferta-ancora") return buildVitraOfertaAncoraSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-oferta-ancora") return buildVitraOfertaAncoraSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   if (templateFamily === "vitra-imobiliaria-destino-bairro") return buildVitraDestinoBairroSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
