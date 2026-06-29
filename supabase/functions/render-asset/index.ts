@@ -880,7 +880,7 @@ function heroBenefitHeadline(pd: any, campaign: any, brandProfile: any) {
   return h || campaign?.name || brandProfile?.fallbackHeadline || "OPORTUNIDADE";
 }
 
-function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string) {
+function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
   const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
   const frame = templateFrame(asset);
   const isStory = H > W * 1.25;
@@ -959,6 +959,21 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   const logoMarkup = isWide
     ? `<svg x="${L.logo[0]}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>`
     : `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${L.margin}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 434 / 2538)}" preserveAspectRatio="xMidYMid meet"/>`;
+
+  // ---- Creative Lint (P2): o gate passa a cobrir também o hero-checklist (template mais usado). ----
+  if (out) {
+    const F = formatSpec(W, H);
+    const headSize0 = lines.length ? fitDisplaySize(lines[0], L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79) : L.headBase;
+    const bulletsBottom = bullets.length ? L.bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : L.bulletsY;
+    const els: LintElement[] = [
+      { role: "hero", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, display: true, fontSize: headSize0, charLen: headlineRaw.length, charLimit: 40 },
+      { role: "price", box: { x, y: L.porY - L.porSize, w: L.cta[2], h: L.porSize + (priceFrom ? L.deSize + 8 : 0) }, critical: true },
+      { role: "checklist", box: { x, y: L.bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (L.bulletsY - L.bulletSize)) }, critical: true },
+      { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 16 },
+    ];
+    out.lint = lintCreative(F.safe, els);
+    if (!out.lint.ok) console.warn(`[creativeLint] hero-checklist ${F.kind}: ${out.lint.errors.join(", ")}`);
+  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
@@ -2006,7 +2021,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-patios-gallery") return buildVitraPatiosGallerySvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-financiamento-orla") return buildVitraFinancingSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-menino-deus-offer") return buildVitraMeninoDeusSvg(asset, campaign, images, W, H, brandProfile, idBase);
-  if (templateFamily === "vitra-imobiliaria-hero-checklist") return buildVitraHeroChecklistSvg(asset, campaign, images, W, H, brandProfile, idBase);
+  if (templateFamily === "vitra-imobiliaria-hero-checklist") return buildVitraHeroChecklistSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   if (templateFamily === "vitra-imobiliaria-duo-selos-offer") return buildVitraDuoSelosSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-hero-panel-gallery") return buildVitraHeroPanelSvg(asset, campaign, images, W, H, brandProfile, idBase);
   if (templateFamily === "vitra-imobiliaria-lancamento" || templateFamily === "vitra-premium-lancamento") return buildVitraLancamentoSvg(asset, campaign, images, W, H, brandProfile, idBase);
