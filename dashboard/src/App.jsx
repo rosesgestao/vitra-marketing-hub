@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Images, Layers, LayoutGrid, Megaphone, Menu, Wand2, X } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Images, Layers, LayoutGrid, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
 import { viewIdFromHash, hashForViewId } from './lib/hashRoute.js'
+import CommandPalette from './components/CommandPalette.jsx'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -76,6 +77,11 @@ const NAV_SECTIONS = [
 ]
 
 const ALL_VIEWS = NAV_SECTIONS.flatMap(section => section.items)
+// Itens da busca global (⌘K): toda view navegável, com o título da seção como grupo (desambigua os
+// labels repetidos — "Conteúdo"/"Tráfego Pago" das duas marcas).
+const COMMAND_ITEMS = NAV_SECTIONS.flatMap(section =>
+  section.items.map(item => ({ id: item.id, label: item.label, group: section.title, icon: item.icon })),
+)
 const DEFAULT_VIEW_ID = 'imobiliaria'
 const NAV_STORAGE_KEY = 'vitra-operational-dashboard.active-view'
 
@@ -109,6 +115,8 @@ export default function App() {
   const [openSection, setOpenSection] = useState(() => sectionIdForView(readInitialView()))
   // Drawer da navegação no mobile: abaixo de `lg` a sidebar vira off-canvas (oculta por padrão).
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  // Busca global (⌘K).
+  const [searchOpen, setSearchOpen] = useState(false)
   const currentView = ALL_VIEWS.find(item => item.id === view) || ALL_VIEWS[0]
   // Views compartilhadas (operacao, estudio de pecas) caem na MARCA-MAE por padrao;
   // so paineis Premium re-tingem o chrome para preto (sem azul).
@@ -145,6 +153,18 @@ export default function App() {
       setView(normalized) // hash já igual: garante o estado
     }
     setMobileNavOpen(false)
+  }, [])
+
+  // Atalho global de busca: ⌘K / Ctrl+K abre/fecha o command palette.
+  useEffect(() => {
+    const onKey = event => {
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'k' || event.key === 'K')) {
+        event.preventDefault()
+        setSearchOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [])
 
   // Voltar/avançar do browser (ou edição manual da URL) -> atualiza a view.
@@ -201,6 +221,15 @@ export default function App() {
         <div className="gold-line mx-0" />
 
         <nav className="relative flex-1 space-y-2 overflow-y-auto px-4 py-5" aria-label="Navegação principal">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="mb-1 flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-xs text-white/45 transition-colors hover:border-gold-500/30 hover:text-white"
+          >
+            <Search size={14} className="text-gold-400/70" aria-hidden="true" />
+            <span className="flex-1">Buscar telas…</span>
+            <kbd className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-white/40">⌘K</kbd>
+          </button>
           {NAV_SECTIONS.map(section => (
             <NavSection
               key={section.id}
@@ -265,6 +294,9 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* Busca global (⌘K) — navega para qualquer tela */}
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} items={COMMAND_ITEMS} onNavigate={navigate} />
 
       {/* Copiloto da Operação (voz + texto) — onipresente, desktop e mobile */}
       <Copilot brandScope={activeBrandScope} onNavigate={navigate} />
