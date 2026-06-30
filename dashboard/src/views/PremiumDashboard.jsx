@@ -826,7 +826,13 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
         .map(asset => asset.id)
       const result = await renderCampaignAssets(selectedCampaign.id, { assetIds })
       if (result.error && !result.rendered) throw result.error
-      setNotice(`Renderização concluída: ${result.rendered} criativo(s) gerado(s)${result.failed ? `, ${result.failed} com erro` : ''}.`)
+      if (result.failed) {
+        // P0.3: não silenciar — diz quantos falharam, o motivo (se houver) e como recuperar.
+        const reason = result.error ? ` Motivo: ${errorMessage(result.error)}.` : ''
+        setNotice(`Renderização: ${result.rendered} gerado(s), ${result.failed} com erro.${reason} Os cortes com erro seguem marcados — clique em "Gerar cortes" de novo para tentar outra vez.`)
+      } else {
+        setNotice(`Renderização concluída: ${result.rendered} criativo(s) gerado(s).`)
+      }
       await refresh(selectedCampaign.id)
     } catch (err) {
       setError(err)
@@ -2874,7 +2880,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
       address: addr.trim() || null, label: geoLabel || null,
       lat: Number.isFinite(lat) ? lat : null, lng: Number.isFinite(lng) ? lng : null,
       radius_km: Math.min(REGIONAL_RADIUS_MAX_KM, Number(radiusKm) || REGIONAL_RADIUS_MAX_KM),
-    }).catch(() => { /* persistência best-effort */ })
+    }).catch(() => setGeoMsg({ kind: 'warn', text: 'Conjuntos definidos, mas não consegui salvar a geolocalização — ela vale só nesta sessão (recarregar pode perder). Você pode aplicar de novo.' }))
   }
 
   // Direcionamento detalhado (interesses) — padrão = preset "Intenção imobiliária (núcleo)", advantage 1.
@@ -3707,6 +3713,9 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
   const generated = placements.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const approved = placements.filter(a => a.status === 'approved' && !needsVitraImobiliariaApprovedTemplateRender(a)).length
   const readyAds = ads.filter(ad => evaluateMetaAdReadiness(ad).ok).length
+  // Gate ÚNICO de export (P0.5): só libera o pacote quando TODOS os anúncios passam no QA (renderizados +
+  // lint ok + textos + destino) — antes exportava com `ads.length>0` (criativo não-validado vazava).
+  const exportReady = ads.length > 0 && ads.every(ad => evaluateMetaAdReadiness(ad).qaReady)
   // Fase 2 (P4): cortes prontos (gerados, sem pendencia de render) ainda nao aprovados.
   const approvableAssets = placements.filter(a => a.status === 'generated' && !needsVitraImobiliariaApprovedTemplateRender(a))
 
@@ -3742,7 +3751,8 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
           <button
             type="button"
             onClick={() => downloadMetaAdsPackage(campaign, ads, brandProfile)}
-            disabled={!ads.length}
+            disabled={!exportReady}
+            title={exportReady ? 'Baixa o JSON com os anúncios + URLs dos cortes' : 'Disponível quando todos os cortes estiverem renderizados e validados no QA (lint, textos e destino).'}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-white/72 transition hover:border-gold-500/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
           >
             <Download size={16} />
