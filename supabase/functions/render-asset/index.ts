@@ -1498,7 +1498,10 @@ function buildVitraOportunidadeSvg(asset: any, campaign: any, images: Array<stri
 
   // Coluna de blocos navy à esquerda.
   const eyebrowLine = textLine(L.eyeX, L.eyeY, eyebrow, { anchor: "start", fill: "#FFFFFF", family: "Inter, Arial, sans-serif", size: L.eyeSize, weight: 700, spacing: Math.round(L.eyeSize * 0.42) });
-  const lines = wrapText(headline, isWide ? 14 : 9, 2);
+  // Cap por linha alinhado ao maxLength do catalogo (28 ~= 2x14): com 9 a headline truncava cedo
+  // ("NO MENIN...") e ate o uso pretendido do template ("Menino Deus", 11) quebrava — o fit (fitDisplaySize)
+  // ja encolhe a fonte na largura, entao mais chars/linha so evita reticencia, sem estourar a coluna.
+  const lines = wrapText(headline, 14, 2);
   const headLines = lines.map((line, i) => textLine(L.headX, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 34, L.headBudget, 0.79), weight: 400 })).join("");
 
   const [pbx, pby, pbw, pbh, pbrx] = L.priceBox;
