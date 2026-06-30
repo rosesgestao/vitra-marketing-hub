@@ -1688,13 +1688,19 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
 // CTA-botao, sem galeria — a oferta De/Por e o protagonista. Cada formato tem composicao propria com
 // a SAFE ZONE do Meta: 1:1 [margem 90]; 9:16 reels-safe y[250..1470]; 1.91:1 (1200x628) x[89..1111].
 function ofertaBox(x: number, y: number, w: number, h: number, label: string, value: string, valueSize: number, labelSize: number) {
-  // Box de borda dourada com fill navy translucido (faz o valor branco "saltar" sobre a foto).
-  const padL = Math.round(h * 0.42);
+  // PLACA DOURADA SÓLIDA com texto navy — o preço é o herói, então usa o maior contraste possível
+  // (dourado = cor de valor da marca; navy sobre dourado ≈ 6:1, AA). Antes era box translúcido com
+  // valor branco, que competia com a headline/barra brancas e deixava a foto vazar por trás.
+  const padL = Math.round(h * 0.40);
   const cy = y + Math.round(h / 2) + Math.round(valueSize * 0.34);
-  const labelY = y + Math.round(h / 2) + Math.round(labelSize * 0.34);
-  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(h * 0.12)}" fill="#07111F" fill-opacity="0.34" stroke="${GOLD}" stroke-width="${Math.max(2.5, Math.round(h * 0.028))}"/>
-  ${textLine(x + padL, labelY, label, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: labelSize, weight: 400 })}
-  ${textLine(x + padL + Math.round(labelSize * (label.length * 0.62)), cy, value, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: valueSize, weight: 400 })}`;
+  const labelY = cy - Math.round(valueSize * 0.02);
+  const ink = "#0A1628";
+  const rx = Math.round(h * 0.12);
+  // Filete navy interno (1px) dá acabamento de placa premium sem virar borda dourada vazada.
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${GOLD}"/>
+  <rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${h - 12}" rx="${Math.max(2, rx - 4)}" fill="none" stroke="${ink}" stroke-opacity="0.16" stroke-width="2"/>
+  ${textLine(x + padL, labelY, label, { anchor: "start", fill: ink, family: "Anton", size: labelSize, weight: 400, opacity: 0.74 })}
+  ${textLine(x + padL + Math.round(labelSize * (label.length * 0.62)), cy, value, { anchor: "start", fill: ink, family: "Anton", size: valueSize, weight: 400 })}`;
 }
 
 function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
@@ -1723,12 +1729,14 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const footer = compactText(footerRaw, 52).toUpperCase();
 
   const L = isStory ? {
+    // Cluster de preço empurrado para o terço inferior (antes parava em ~1140 e deixava a metade de baixo
+    // morta). Topo: headline+barra; meio: foto do prédio (herói); base: DE/economia + placa + rodapé.
     margin: 90, logoW: 184, logoY: 196,
     headBase: 80, headGap: 86, headY: 452, headBudget: 900, headChars: 15,
     bar: [90, 638, 900, 70], barSize: 28,
-    deY: 812, deSize: 36,
-    box: [90, 868, 900, 196], boxLabel: 46, boxValue: 96,
-    footY: 1140, footSize: 30,
+    deY: 1086, deSize: 36,
+    box: [90, 1140, 900, 200], boxLabel: 46, boxValue: 96,
+    footY: 1420, footSize: 30,
   } : isWide ? {
     // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72 (flagrado pelo Creative Lint).
     margin: 89, logoW: 150, logoY: 52,
@@ -1773,10 +1781,36 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     ${textLine(cx, barTextY, featureBar, { anchor: "middle", fill: "#0A1628", family: "Inter", size: barSize, weight: 800 })}`
     : "";
 
-  // "De" riscado (centralizado).
-  const deMarkup = priceFrom
-    ? `<text x="${cx}" y="${L.deY}" text-anchor="middle" font-family="Inter" font-size="${L.deSize}" font-weight="800" letter-spacing="1"><tspan fill="rgba(255,255,255,0.80)">DE: </tspan><tspan fill="rgba(255,255,255,0.80)" text-decoration="line-through">${esc(formatMoneyLike(priceFrom))}</tspan></text>`
-    : "";
+  // ---- Linha "DE / economia": preço antigo riscado num chip legível (à esquerda) + selo de economia
+  // (à direita) calculado de De−Por. O desconto é o maior gancho de oportunidade da peça e antes não
+  // aparecia; o selo também ocupa a faixa horizontal que ficava vazia ao lado do "DE". ----
+  const moneyToNumber = (s: string) => {
+    const clean = String(s || "").replace(/[^\d.,]/g, "");
+    const norm = clean.replace(/\.(?=\d{3}(?:[.,]|$))/g, "").replace(",", ".");
+    const n = parseFloat(norm);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const fromN = moneyToNumber(priceFrom);
+  const toN = moneyToNumber(priceTo);
+  const savings = (fromN > 0 && toN > 0 && fromN > toN) ? fromN - toN : 0;
+  const savingsLabel = savings >= 1000
+    ? `ECONOMIZE R$ ${Math.round(savings / 1000)} MIL`
+    : (savings > 0 ? `ECONOMIZE ${formatMoneyLike(String(Math.round(savings)))}` : "");
+
+  const rowW = L.bar[2];
+  const deH = Math.round(L.deSize * 1.7);
+  const deRowTop = L.deY - Math.round(L.deSize * 1.05);
+  const deText = `DE: ${formatMoneyLike(priceFrom)}`;
+  const deChipW = Math.round(deText.length * L.deSize * 0.52) + 28;
+  const savFs = Math.round(L.deSize * 0.82);
+  const savPillW = savingsLabel ? Math.round(savingsLabel.length * savFs * 0.56) + 36 : 0;
+  const savX = x + rowW - savPillW;
+  const deMarkup = (priceFrom || savingsLabel) ? `
+    ${priceFrom ? `<rect x="${x}" y="${deRowTop}" width="${deChipW}" height="${deH}" rx="${Math.round(deH / 2)}" fill="#07111F" fill-opacity="0.55"/>
+    <text x="${x + 16}" y="${L.deY}" text-anchor="start" font-family="Inter" font-size="${L.deSize}" font-weight="800" letter-spacing="0.5"><tspan fill="rgba(255,255,255,0.82)">DE: </tspan><tspan fill="rgba(255,255,255,0.82)" text-decoration="line-through">${esc(formatMoneyLike(priceFrom))}</tspan></text>` : ""}
+    ${savingsLabel ? `<rect x="${savX}" y="${deRowTop}" width="${savPillW}" height="${deH}" rx="${Math.round(deH / 2)}" fill="#07111F" fill-opacity="0.85" stroke="${GOLD}" stroke-width="2"/>
+    ${textLine(savX + Math.round(savPillW / 2), L.deY, savingsLabel, { anchor: "middle", fill: GOLD, family: "Inter", size: savFs, weight: 800, spacing: 0.5 })}` : ""}
+  ` : "";
 
   // Box dourado com "POR: <valor>" (heroi da peca).
   const [boxX, boxY, boxW, boxH] = L.box;
