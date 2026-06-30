@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Instagram, Youtube, Facebook, Music, Video, Image, FileText, CalendarOff } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import { LoadingState, EmptyState } from '../components/ui/index.js'
+import PostDetailDrawer from '../components/PostDetailDrawer.jsx'
 import { contentStatusLabel } from '../lib/premiumData.js'
 
 // Calendário editorial sobre a fonte UNICA (premium_content_posts), pelos conteudos com scheduled_for.
@@ -11,10 +13,11 @@ const FORMATO_ICON = { reels: Video, stories: Image, carrossel: Image, feed: Ima
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const PLATAFORMAS = ['todos', 'instagram', 'facebook', 'youtube', 'tiktok']
 
-export default function Calendario() {
+export default function Calendario({ onNavigate }) {
   const [posts, setPosts] = useState([])
   const [filtro, setFiltro] = useState('todos')
   const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState(null)
 
   useEffect(() => {
     async function carregar() {
@@ -26,7 +29,7 @@ export default function Calendario() {
 
       const { data } = await supabase
         .from('premium_content_posts')
-        .select('id, title, hook, platform, format, status, scheduled_for, editorial_pillar, metadata')
+        .select('id, title, hook, caption, hashtags, platform, format, status, scheduled_for, editorial_pillar, metadata, brand_scope')
         .not('scheduled_for', 'is', null)
         .gte('scheduled_for', inicio.toISOString())
         .lte('scheduled_for', fim.toISOString())
@@ -76,23 +79,14 @@ export default function Calendario() {
         }
       />
 
-      {loading && (
-        <div className="flex items-center justify-center h-48">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border border-gold-500/40 border-t-gold-400 rounded-full animate-spin" />
-            <p className="label-section">carregando calendário</p>
-          </div>
-        </div>
-      )}
+      {loading && <LoadingState full label="Carregando calendário" />}
 
       {!loading && Object.keys(porDia).length === 0 && (
-        <div className="card flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/20 bg-gold-500/5">
-            <CalendarOff size={20} className="text-gold-500/70" />
-          </div>
-          <p className="text-sm font-medium text-white/85">Nenhum conteúdo agendado nesta janela</p>
-          <p className="mt-1.5 text-xs text-white/45">Agende um conteúdo na aba Produção (botão “Agendar”) para vê-lo aqui.</p>
-        </div>
+        <EmptyState
+          icon={CalendarOff}
+          title="Nenhum conteúdo agendado nesta janela"
+          description="Agende um conteúdo na aba Produção (botão “Agendar”) para vê-lo aqui."
+        />
       )}
 
       <div className="space-y-8">
@@ -126,7 +120,17 @@ export default function Calendario() {
                   return (
                     <div
                       key={post.id}
-                      className="rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-4 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Abrir detalhe: ${post.title || post.hook || 'conteúdo'}`}
+                      onClick={() => setSelected(post)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setSelected(post)
+                        }
+                      }}
+                      className="cursor-pointer rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-4 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -162,6 +166,13 @@ export default function Calendario() {
           )
         })}
       </div>
+
+      <PostDetailDrawer
+        post={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        onNavigate={onNavigate}
+      />
     </div>
   )
 }

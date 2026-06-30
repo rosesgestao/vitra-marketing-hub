@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import { Image, Video, FileText, Instagram, Youtube, Facebook, Music, RefreshCw } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 import { LoadingState, ErrorAlert } from '../components/ui/index.js'
+import PostDetailDrawer from '../components/PostDetailDrawer.jsx'
 import { CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel } from '../lib/premiumData.js'
 
 // O board lê a fonte UNICA de conteudo organico: premium_content_posts (mesma tabela que a aba Produção
@@ -15,17 +16,18 @@ const PLATAFORMA_ICON = { instagram: Instagram, youtube: Youtube, facebook: Face
 const PLATAFORMA_COR  = { instagram: '#E1306C', youtube: '#FF0000', facebook: '#1877F2', tiktok: '#69C9D0' }
 const FORMATO_ICON = { reels: Video, stories: Image, carrossel: Image, feed: Image, legenda: FileText }
 
-export default function Kanban() {
+export default function Kanban({ onNavigate }) {
   const [conteudos, setConteudos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selected, setSelected] = useState(null)
 
   async function carregar() {
     setError(null)
     try {
       const { data, error: queryError } = await supabase
         .from('premium_content_posts')
-        .select('id, title, hook, caption, platform, format, status, scheduled_for, hashtags, metadata, created_at')
+        .select('id, title, hook, caption, platform, format, status, scheduled_for, hashtags, metadata, brand_scope, created_at')
         .order('created_at', { ascending: false })
         .limit(200)
       if (queryError) throw queryError
@@ -118,7 +120,17 @@ export default function Kanban() {
                   return (
                     <div
                       key={item.id}
-                      className="rounded-lg border border-white/10 bg-[color:var(--surface-1)] p-3 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Abrir detalhe: ${item.title || item.hook || 'conteúdo'}`}
+                      onClick={() => setSelected(item)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setSelected(item)
+                        }
+                      }}
+                      className="cursor-pointer rounded-lg border border-white/10 bg-[color:var(--surface-1)] p-3 transition-all duration-200 hover:border-gold-500/35 hover:shadow-lg hover:shadow-black/30"
                       style={{ borderLeftWidth: '3px', borderLeftColor: dot }}
                     >
                       <div className="flex items-center gap-1.5 mb-2">
@@ -154,6 +166,13 @@ export default function Kanban() {
           )
         })}
       </div>
+
+      <PostDetailDrawer
+        post={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        onNavigate={onNavigate}
+      />
     </div>
   )
 }

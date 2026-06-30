@@ -286,8 +286,8 @@ export default function App() {
             {view.startsWith('criativos:') && <EstudioCriativos />}
             {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={navigate} />}
             {view === 'pipeline' && <Pipeline />}
-            {view === 'calendario' && <Calendario />}
-            {view === 'kanban' && <Kanban />}
+            {view === 'calendario' && <Calendario onNavigate={navigate} />}
+            {view === 'kanban' && <Kanban onNavigate={navigate} />}
             {view === 'biblioteca' && <Biblioteca />}
             {view === 'agentes' && <Agentes />}
             {view === 'metricas' && <Metricas />}
