@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Images, Layers, LayoutGrid, Megaphone, Menu, Wand2, X } from 'lucide-react'
+import { viewIdFromHash, hashForViewId } from './lib/hashRoute.js'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -91,6 +92,10 @@ function sectionIdForView(viewId) {
 function readInitialView() {
   if (typeof window === 'undefined') return DEFAULT_VIEW_ID
 
+  // Deep-link: a URL (hash) tem prioridade — abrir #/metricas direto cai na tela certa.
+  const fromHash = viewIdFromHash(window.location.hash)
+  if (fromHash) return normalizeViewId(fromHash)
+
   try {
     return normalizeViewId(window.localStorage.getItem(NAV_STORAGE_KEY))
   } catch {
@@ -129,10 +134,38 @@ export default function App() {
     setOpenSection(sectionIdForView(view))
   }, [view])
 
-  const selectView = viewId => {
-    setView(viewId)
+  // Navega para uma view escrevendo no HASH — que dirige o estado via listener abaixo. Assim o
+  // voltar/avançar do browser e o deep-link funcionam; o localStorage segue como fallback.
+  const navigate = useCallback(viewId => {
+    const normalized = normalizeViewId(viewId)
+    const target = hashForViewId(normalized)
+    if (typeof window !== 'undefined' && window.location.hash !== target) {
+      window.location.hash = target // dispara hashchange -> setView (e cria entrada de histórico)
+    } else {
+      setView(normalized) // hash já igual: garante o estado
+    }
     setMobileNavOpen(false)
-  }
+  }, [])
+
+  // Voltar/avançar do browser (ou edição manual da URL) -> atualiza a view.
+  useEffect(() => {
+    const onHashChange = () => {
+      const id = viewIdFromHash(window.location.hash)
+      if (id) setView(normalizeViewId(id))
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  // No primeiro load, se a URL não tem hash (estado veio do localStorage/default), reflete a view atual
+  // na URL sem criar histórico — para o link já nascer compartilhável.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!viewIdFromHash(window.location.hash)) {
+      window.history.replaceState(null, '', hashForViewId(view))
+    }
+    // Intencionalmente só na montagem (sincroniza a URL inicial). `view` lido via closure é aceitável aqui.
+  }, [])
 
   return (
     <div className="flex h-screen overflow-hidden text-white">
@@ -176,7 +209,7 @@ export default function App() {
               hasActive={section.items.some(item => item.id === view)}
               onToggle={() => setOpenSection(current => (current === section.id ? null : section.id))}
               view={view}
-              onSelect={selectView}
+              onSelect={navigate}
             />
           ))}
         </nav>
@@ -222,7 +255,7 @@ export default function App() {
             {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
             {view === 'imobiliaria-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} focusMode="trafego" />}
             {view.startsWith('criativos:') && <EstudioCriativos />}
-            {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={setView} />}
+            {view.startsWith('pecas:') && <EstudioPecas platformId={view.slice('pecas:'.length)} onNavigate={navigate} />}
             {view === 'pipeline' && <Pipeline />}
             {view === 'calendario' && <Calendario />}
             {view === 'kanban' && <Kanban />}
@@ -234,7 +267,7 @@ export default function App() {
       </div>
 
       {/* Copiloto da Operação (voz + texto) — onipresente, desktop e mobile */}
-      <Copilot brandScope={activeBrandScope} onNavigate={selectView} />
+      <Copilot brandScope={activeBrandScope} onNavigate={navigate} />
     </div>
   )
 }

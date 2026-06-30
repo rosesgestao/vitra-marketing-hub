@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Activity, AlertTriangle, BarChart3, Loader2, Plus, Radio, RefreshCw, Repeat2, Target } from 'lucide-react'
 import { createManualMetric, loadPremiumWorkspace, syncMetricsFromMeta } from '../lib/premiumData.js'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import { FormField } from '../components/ui/index.js'
 import VitraSelect from '../components/VitraSelect.jsx'
 
 const INITIAL_METRIC = {
@@ -395,11 +396,8 @@ export default function Metricas() {
   )
 }
 
+// Delega ao primitivo FormField (Vitra UI): associa o <label> ao controle (htmlFor/id) e abre espaço
+// para hint/erro. Os call sites seguem <Field label="...">…</Field> — só a implementação mudou.
 function Field({ label, children }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">{label}</span>
-      {children}
-    </label>
-  )
+  return <FormField label={label}>{children}</FormField>
 }

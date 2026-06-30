@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Images, Upload, Copy, Download, Trash2, Loader2, Check, ImageOff } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import { LoadingState, EmptyState, ErrorAlert, Modal, useToast } from '../components/ui/index.js'
 import { BRAND_SCOPES } from '../lib/brandProfiles.js'
 import { listMediaAssets, uploadMediaAsset, deleteMediaAsset } from '../lib/premiumData.js'
 
@@ -21,7 +22,10 @@ export default function Biblioteca() {
   const [busy, setBusy] = useState(false)
   const [copiedId, setCopiedId] = useState(null)
   const [error, setError] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
   const fileRef = useRef(null)
+  const toast = useToast()
 
   const brandFilter = BRAND_FILTERS.find(b => b.key === brand) || BRAND_FILTERS[0]
 
@@ -44,18 +48,33 @@ export default function Biblioteca() {
       await uploadMediaAsset({ brandScope: uploadScope, file, kind: 'photo' })
       if (fileRef.current) fileRef.current.value = ''
       await load()
-    } catch (err) { setError(err) } finally { setBusy(false) }
+      toast.success('Mídia enviada para a biblioteca.')
+    } catch (err) { setError(err); toast.error('Falha ao enviar a mídia.') } finally { setBusy(false) }
   }
 
   async function copy(item) {
     try { await navigator.clipboard.writeText(item.url); setCopiedId(item.id); setTimeout(() => setCopiedId(null), 1500) } catch { /* clipboard indisponivel */ }
   }
 
-  async function remove(item) {
-    if (!window.confirm('Excluir esta mídia da biblioteca? Esta ação remove o arquivo do storage.')) return
-    setBusy(true); setError(null)
-    try { await deleteMediaAsset(item); await load() }
-    catch (err) { setError(err) } finally { setBusy(false) }
+  // Exclusão com confirmação ACESSÍVEL (Modal com foco preso/Esc) — antes era window.confirm (sem foco,
+  // sem identidade, sem anúncio adequado).
+  function remove(item) {
+    setPendingDelete(item)
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    setDeleting(true); setError(null)
+    try {
+      await deleteMediaAsset(pendingDelete)
+      setPendingDelete(null)
+      await load()
+      toast.success('Mídia removida da biblioteca.')
+    } catch (err) {
+      setError(err); toast.error('Não foi possível remover a mídia.')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -95,22 +114,16 @@ export default function Biblioteca() {
         </div>
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-300">{error.message || String(error)}</p>}
+      {error && <ErrorAlert message={error.message || String(error)} onRetry={load} className="mb-4" />}
 
-      {loading && (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 size={20} className="animate-spin text-gold-300" />
-        </div>
-      )}
+      {loading && <LoadingState full label="Carregando acervo" />}
 
       {!loading && filtered.length === 0 && (
-        <div className="card flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/20 bg-gold-500/5">
-            <ImageOff size={20} className="text-gold-500/70" />
-          </div>
-          <p className="text-sm font-medium text-white/85">Acervo vazio nesta visão</p>
-          <p className="mt-1.5 max-w-sm text-xs text-white/45">Envie uma foto ou gere a arte de um post (“Gerar arte” → “Salvar no post”) — ela é registrada aqui automaticamente.</p>
-        </div>
+        <EmptyState
+          icon={ImageOff}
+          title="Acervo vazio nesta visão"
+          description="Envie uma foto ou gere a arte de um post (“Gerar arte” → “Salvar no post”) — ela é registrada aqui automaticamente."
+        />
       )}
 
       {!loading && filtered.length > 0 && (
@@ -139,6 +152,34 @@ export default function Biblioteca() {
           ))}
         </div>
       )}
+
+      <Modal
+        open={!!pendingDelete}
+        onClose={() => (deleting ? null : setPendingDelete(null))}
+        title="Excluir mídia"
+        description="Esta ação remove o arquivo do storage e não pode ser desfeita."
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn-ghost" onClick={() => setPendingDelete(null)} disabled={deleting}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-lg border border-red-400/40 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/25 disabled:opacity-50"
+            >
+              {deleting && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
+              Excluir
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-white/70">
+          {pendingDelete?.title ? `“${pendingDelete.title}”` : 'Esta mídia'} será removida da biblioteca.
+        </p>
+      </Modal>
     </div>
   )
 }

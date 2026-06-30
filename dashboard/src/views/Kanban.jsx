@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Image, Video, FileText, Instagram, Youtube, Facebook, Music, RefreshCw } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import { LoadingState, ErrorAlert } from '../components/ui/index.js'
 import { CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel } from '../lib/premiumData.js'
 
 // O board lê a fonte UNICA de conteudo organico: premium_content_posts (mesma tabela que a aba Produção
@@ -17,15 +18,24 @@ const FORMATO_ICON = { reels: Video, stories: Image, carrossel: Image, feed: Ima
 export default function Kanban() {
   const [conteudos, setConteudos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   async function carregar() {
-    const { data } = await supabase
-      .from('premium_content_posts')
-      .select('id, title, hook, caption, platform, format, status, scheduled_for, hashtags, metadata, created_at')
-      .order('created_at', { ascending: false })
-      .limit(200)
-    setConteudos(data || [])
-    setLoading(false)
+    setError(null)
+    try {
+      const { data, error: queryError } = await supabase
+        .from('premium_content_posts')
+        .select('id, title, hook, caption, platform, format, status, scheduled_for, hashtags, metadata, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (queryError) throw queryError
+      setConteudos(data || [])
+    } catch {
+      // Antes a falha de carga era silenciosa (board vazio sem motivo). Agora vira um erro acionável.
+      setError('Não foi possível carregar os conteúdos.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -53,13 +63,17 @@ export default function Kanban() {
         }
       />
 
-      {loading && (
-        <div className="flex items-center justify-center h-48">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border border-gold-500/40 border-t-gold-400 rounded-full animate-spin" />
-            <p className="label-section">carregando</p>
-          </div>
-        </div>
+      {loading && <LoadingState full label="Carregando conteúdos" />}
+
+      {error && (
+        <ErrorAlert
+          message={error}
+          onRetry={() => {
+            setLoading(true)
+            carregar()
+          }}
+          className="mb-4"
+        />
       )}
 
       <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'thin' }}>
