@@ -33,32 +33,36 @@ describe('catalogo de templates por marca', () => {
 })
 
 describe('templates selecionaveis no modal (aposentados ocultos)', () => {
-  it('Imobiliaria oferece os 9 templates aprovados na selecao, nesta ordem', () => {
+  it('Imobiliaria oferece os 6 templates aprovados na selecao, nesta ordem', () => {
     const selectable = selectableCreativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
     expect(selectable.map(t => t.id)).toEqual([
       'vitra-imobiliaria-hero-checklist',
       'vitra-imobiliaria-duo-selos-offer',
-      'vitra-imobiliaria-hero-panel-gallery',
-      'vitra-imobiliaria-lancamento',
       'vitra-imobiliaria-vitrine-gallery',
-      'vitra-imobiliaria-oportunidade-bairro',
       'vitra-imobiliaria-ficha-imovel',
       'vitra-imobiliaria-oferta-ancora',
       'vitra-imobiliaria-destino-bairro',
     ])
   })
-  it('os 4 templates antigos seguem no catalogo (resolvem) mas marcados como hidden', () => {
+  it('os 7 templates aposentados seguem no catalogo (resolvem) mas marcados como hidden', () => {
     const all = creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
     const hidden = all.filter(t => t.hidden).map(t => t.id)
     expect(hidden).toEqual([
+      // 4 antigos (junho/2026)
       'vitra-imobiliaria-dual-photo-offer',
       'vitra-imobiliaria-patios-gallery',
       'vitra-imobiliaria-financiamento-orla',
       'vitra-imobiliaria-menino-deus-offer',
+      // 3 removidos por padrao de qualidade (junho/2026)
+      'vitra-imobiliaria-hero-panel-gallery',
+      'vitra-imobiliaria-lancamento',
+      'vitra-imobiliaria-oportunidade-bairro',
     ])
-    // ainda resolvem por id (campanhas/assets ja criados continuam funcionando)
+    // ainda resolvem por id (campanhas/assets ja criados continuam funcionando, sem orfas)
     expect(getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-patios-gallery').id)
       .toBe('vitra-imobiliaria-patios-gallery')
+    expect(getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-oportunidade-bairro').id)
+      .toBe('vitra-imobiliaria-oportunidade-bairro')
   })
   it('o default da Imobiliaria passa a ser o primeiro selecionavel (hero-checklist)', () => {
     expect(defaultCreativeTemplateForBrand(BRAND_SCOPES.imobiliaria).id).toBe('vitra-imobiliaria-hero-checklist')

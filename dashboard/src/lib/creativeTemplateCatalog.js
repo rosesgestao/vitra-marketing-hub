@@ -687,6 +687,10 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-hero-panel-gallery',
       family: 'vitra-imobiliaria-hero-panel-gallery',
       mode: 'single_family',
+      // Aposentado da selecao do modal Nova Campanha (junho/2026): nao atingiu o padrao de qualidade
+      // esperado para criativos imobiliarios. Continua no catalogo para que campanhas/assets ja criados
+      // com esta family resolvam e renderizem (sem referencias orfas).
+      hidden: true,
       name: 'Hero com painel e galeria',
       shortName: 'San Clemente (hero + painel)',
       bestFor: 'Imovel com foto forte no topo, painel azul com headline + destaque dourado, lista de setas, preco de oportunidade e galeria lateral — fiel a peca aprovada do San Clemente, com safe zone do Meta.',
@@ -714,6 +718,10 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-lancamento',
       family: 'vitra-imobiliaria-lancamento',
       mode: 'single_family',
+      // Aposentado da selecao do modal Nova Campanha (junho/2026): nao atingiu o padrao de qualidade
+      // esperado para criativos imobiliarios. Continua no catalogo para que campanhas/assets ja criados
+      // com esta family resolvam e renderizem (sem referencias orfas).
+      hidden: true,
       name: 'Lançamento / Em breve',
       shortName: 'Lançamento (teaser)',
       bestFor: 'Teaser editorial de lançamento/pré-lançamento: foto hero + painel navy institucional com selo dourado, headline + destaque, diferenciais com setas, "a partir de" e CTA Lista VIP. Topo de funil com escassez/exclusividade — capta interessados antes do lancamento.',
@@ -766,6 +774,10 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-oportunidade-bairro',
       family: 'vitra-imobiliaria-oportunidade-bairro',
       mode: 'single_family',
+      // Aposentado da selecao do modal Nova Campanha (junho/2026): nao atingiu o padrao de qualidade
+      // esperado para criativos imobiliarios. Continua no catalogo para que campanhas/assets ja criados
+      // com esta family resolvam e renderizem (sem referencias orfas).
+      hidden: true,
       name: 'Oportunidade no bairro',
       shortName: 'Oportunidade (aérea + blocos)',
       bestFor: 'Oferta com foto aérea/hero e coluna de blocos navy (eyebrow + bairro em destaque + caixa de preço + tipologia + checklist de atributos) e galeria de 3 fotos emolduradas. Forte para localização + preço-âncora + atributos.',
