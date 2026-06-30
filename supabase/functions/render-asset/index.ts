@@ -1846,12 +1846,18 @@ function destinoSplitHighlight(text: string): { big: string; rest: string } {
   return parts.length > 2 ? { big: parts.slice(0, 2).join(" "), rest: parts.slice(2).join(" ") } : { big: t, rest: "" };
 }
 
-function destinoConditionColumn(cx: number, topY: number, w: number, raw: string, bigSize: number, restSize: number, restChars: number) {
+function destinoConditionColumn(cx: number, centerY: number, raw: string, bigSize: number, restSize: number, restChars: number) {
   const { big, rest } = destinoSplitHighlight(raw);
-  const bigFit = fitDisplaySize(big, bigSize, Math.round(bigSize * 0.5), w - 24, 0.79);
   const restLines = rest ? wrapText(rest, restChars, 2) : [];
-  const bigLine = textLine(cx, topY, big, { anchor: "middle", fill: GOLD_LIGHT, family: "Anton", size: bigFit, weight: 400 });
-  const restMarkup = restLines.map((line, i) => textLine(cx, topY + Math.round(bigFit * 0.5) + 8 + i * (restSize + 6), line, { anchor: "middle", fill: "rgba(255,255,255,0.86)", family: "Inter", size: restSize, weight: 600 })).join("");
+  // Bloco = destaque (Anton dourado) + ate 2 linhas de qualificador (Inter branco), CENTRADO
+  // verticalmente em centerY. Antes cada coluna fitava sozinha e ancorava no topo, o que
+  // desbalanceava colunas de alturas diferentes (a sem numero ficava desalinhada). Agora o tamanho
+  // do destaque vem COMPARTILHADO de fora (bigSize) e o bloco centra — colunas com pesos iguais.
+  const restH = restLines.length ? 8 + restLines.length * (restSize + 4) : 0;
+  const blockH = bigSize + restH;
+  const bigBase = centerY - Math.round(blockH / 2) + Math.round(bigSize * 0.76);
+  const bigLine = textLine(cx, bigBase, big, { anchor: "middle", fill: GOLD_LIGHT, family: "Anton", size: bigSize, weight: 400 });
+  const restMarkup = restLines.map((line, i) => textLine(cx, bigBase + Math.round(bigSize * 0.30) + 8 + i * (restSize + 4), line, { anchor: "middle", fill: "rgba(255,255,255,0.86)", family: "Inter", size: restSize, weight: 600 })).join("");
   return bigLine + restMarkup;
 }
 
@@ -1893,8 +1899,8 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   const L = isStory ? {
     cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
     logoW: 168, logoY: 206, logoCenter: true,
-    heroY: 470, heroBase: 168, heroBudget: 900,
-    subY: 588, subSize: 32, subChars: 40, subGap: 42,
+    heroY: 470, heroBase: 150, heroBudget: 720,
+    subY: 596, subSize: 32, subChars: 40, subGap: 42,
     panel: [90, 690, 900, 248], panelTitleSize: 24, condBig: 60, condRest: 22, condRestChars: 22,
     cta: [330, 1196, 420, 92], ctaSize: 30, footY: 1320, footSize: 24, veil: "v",
   } : isWide ? {
@@ -1908,8 +1914,8 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   } : {
     cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
     logoW: 156, logoY: 66, logoCenter: true,
-    heroY: 286, heroBase: 152, heroBudget: 900,
-    subY: 360, subSize: 29, subChars: 40, subGap: 38,
+    heroY: 296, heroBase: 152, heroBudget: 760,
+    subY: 372, subSize: 29, subChars: 40, subGap: 38,
     panel: [90, 432, 900, 210], panelTitleSize: 22, condBig: 54, condRest: 20, condRestChars: 22,
     cta: [330, 686, 420, 80], ctaSize: 28, footY: 800, footSize: 22, veil: "v",
   };
@@ -1922,13 +1928,14 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   const logoH = Math.round(L.logoW * 434 / 2538);
   const logoMarkup = `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${logoX}" y="${L.logoY}" width="${L.logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`;
 
-  // Tag/selo opcional (pílula dourada) — num CANTO superior, fora da faixa do herói (sem colisão):
-  // canto esquerdo nos formatos centrados (logo no centro); canto direito no 1.91:1 (logo à esquerda).
+  // Tag/selo opcional (pílula dourada) — eyebrow CENTRADO sob a logo nos formatos centrados (preserva o
+  // eixo central da referência, antes a tag no canto esquerdo competia com a logo); canto direito no
+  // 1.91:1 (banner com logo à esquerda).
   const tagFs = isWide ? 11 : 13;
-  const tagH = isWide ? 26 : 34;
+  const tagH = isWide ? 26 : 32;
   const tagW = tag ? Math.round(tag.length * tagFs * 0.64 + 30) : 0;
-  const tagX = isWide ? (W - L.margin - tagW) : L.margin;
-  const tagY = L.logoY;
+  const tagX = isWide ? (W - L.margin - tagW) : (L.cx - Math.round(tagW / 2));
+  const tagY = isWide ? L.logoY : (L.logoY + logoH + (isStory ? 24 : 16));
   const tagMarkup = tag
     ? `<rect x="${tagX}" y="${tagY}" width="${tagW}" height="${tagH}" rx="${Math.round(tagH / 2)}" fill="${DS_COLORS.gold}"/>
       ${textLine(tagX + Math.round(tagW / 2), tagY + Math.round(tagH / 2) + Math.round(tagFs * 0.35), tag, { anchor: "middle", fill: DS_COLORS.ink, family: "Inter", size: tagFs, weight: 800 })}`
@@ -1937,10 +1944,17 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   // Heroi (bairro) — Anton, branco, gigante, 1 linha (encolhe p/ caber).
   const heroSize = fitDisplaySize(placeRaw, L.heroBase, Math.round(L.heroBase * 0.42), L.heroBudget, 0.79);
   const heroMarkup = textLine(L.contentX, L.heroY, placeRaw, { anchor: L.anchor, fill: "#FFFFFF", family: "Anton", size: heroSize, weight: 400 });
-  // Régua dourada de acento sob o herói.
-  const ruleW = Math.round(Math.min(L.heroBudget, placeRaw.length * heroSize * 0.5) * 0.36);
-  const ruleX = L.anchor === "middle" ? L.cx - Math.round(ruleW / 2) : L.margin;
-  const ruleMarkup = `<rect x="${ruleX}" y="${L.heroY + Math.round(heroSize * 0.18)}" width="${ruleW}" height="${Math.max(3, Math.round(heroSize * 0.045))}" rx="2" fill="${GOLD}"/>`;
+  // Assinatura Vitra: régua dourada com o FACET (triângulo) ao centro — o elemento de marca da peça
+  // (substitui a régua chapada). Dois segmentos curtos flanqueando o facet, centrados sob o herói.
+  const sigY = L.heroY + Math.round(heroSize * 0.20);
+  const sigW = isWide ? 150 : 232;
+  const sigH = Math.max(3, Math.round(heroSize * 0.040));
+  const fcx = L.anchor === "middle" ? L.cx : (L.margin + Math.round(sigW / 2));
+  const fr = isWide ? 7 : 11;
+  const seg = Math.round((sigW - fr * 4) / 2);
+  const ruleMarkup = `<rect x="${fcx - Math.round(sigW / 2)}" y="${sigY - Math.round(sigH / 2)}" width="${seg}" height="${sigH}" rx="2" fill="${GOLD}"/>
+    <rect x="${fcx + Math.round(sigW / 2) - seg}" y="${sigY - Math.round(sigH / 2)}" width="${seg}" height="${sigH}" rx="2" fill="${GOLD}"/>
+    <path d="M ${fcx} ${sigY - fr} L ${fcx + fr} ${sigY + Math.round(fr * 0.75)} L ${fcx - fr} ${sigY + Math.round(fr * 0.75)} Z" fill="${GOLD}"/>`;
 
   // Subtítulo (lifestyle).
   const subLines = wrapText(subtitle, L.subChars, 2);
@@ -1948,16 +1962,22 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
 
   // Painel "glass" com as condições.
   const [pX, pY, pW, pH] = L.panel;
-  const pTitleY = pY + Math.round(pH * 0.20);
-  const colTop = pY + Math.round(pH * 0.52);
+  const pTitleY = pY + Math.round(pH * 0.22);
+  // Centro vertical comum das colunas (abaixo do título) — balanceia colunas de alturas diferentes.
+  const condCenterY = pY + Math.round(pH * 0.64);
+  const condColW = cond2 ? Math.round(pW * 0.46) : (pW - 60);
+  // Tamanho do destaque COMPARTILHADO entre as colunas = menor fit das duas → pesos visuais iguais.
+  // (Antes cada coluna fitava sozinha: "Entrada facilitada" encolhia e "Até 120x" ficava grande.)
+  const fitCondBig = (raw: string) => fitDisplaySize(destinoSplitHighlight(raw).big || raw, L.condBig, Math.round(L.condBig * 0.5), condColW - 24, 0.79);
+  const sharedBig = cond2 ? Math.min(fitCondBig(cond1), fitCondBig(cond2)) : fitCondBig(cond1);
   let condBlock = "";
   if (cond2) {
     const dividerX = pX + Math.round(pW / 2);
-    condBlock = `<line x1="${dividerX}" y1="${pY + Math.round(pH * 0.34)}" x2="${dividerX}" y2="${pY + pH - Math.round(pH * 0.16)}" stroke="rgba(255,255,255,0.20)" stroke-width="1.4"/>
-    ${destinoConditionColumn(pX + Math.round(pW * 0.25), colTop, Math.round(pW * 0.46), cond1, L.condBig, L.condRest, L.condRestChars)}
-    ${destinoConditionColumn(pX + Math.round(pW * 0.75), colTop, Math.round(pW * 0.46), cond2, L.condBig, L.condRest, L.condRestChars)}`;
+    condBlock = `<line x1="${dividerX}" y1="${pY + Math.round(pH * 0.36)}" x2="${dividerX}" y2="${pY + pH - Math.round(pH * 0.18)}" stroke="rgba(255,255,255,0.20)" stroke-width="1.4"/>
+    ${destinoConditionColumn(pX + Math.round(pW * 0.25), condCenterY, cond1, sharedBig, L.condRest, L.condRestChars)}
+    ${destinoConditionColumn(pX + Math.round(pW * 0.75), condCenterY, cond2, sharedBig, L.condRest, L.condRestChars)}`;
   } else {
-    condBlock = destinoConditionColumn(pX + Math.round(pW / 2), colTop, pW - 60, cond1, L.condBig, L.condRest, L.condRestChars + 8);
+    condBlock = destinoConditionColumn(pX + Math.round(pW / 2), condCenterY, cond1, sharedBig, L.condRest, L.condRestChars + 8);
   }
   // Disciplina de dourado: o título do painel é BRANCO (o dourado fica reservado ao DESTAQUE da oferta).
   const panelMarkup = `<rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" rx="${isWide ? 18 : 26}" fill="${DS_COLORS.navyMid}" fill-opacity="0.62" stroke="rgba(255,255,255,0.14)" stroke-width="1.2"/>
@@ -2005,19 +2025,23 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   if (out) out.lint = lint;
   if (!lint.ok) console.warn(`[creativeLint] destino-bairro ${F.kind}: ${lint.errors.join(", ")}`);
 
+  // Véu com transição SUAVE cor→foto (profundidade tipo referência): mais stops, sem salto duro de
+  // opacidade, e base menos pesada para a foto ler mais luminosa/aspiracional.
   const veilDef = L.veil === "h"
     ? `<linearGradient id="${idBase}-veil" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#0A1628" stop-opacity="0.94"/>
-        <stop offset="42%" stop-color="#0A1628" stop-opacity="0.74"/>
-        <stop offset="72%" stop-color="#0A1628" stop-opacity="0.18"/>
-        <stop offset="100%" stop-color="#07111F" stop-opacity="0.04"/>
+        <stop offset="0%" stop-color="#0A1628" stop-opacity="0.95"/>
+        <stop offset="34%" stop-color="#0A1628" stop-opacity="0.82"/>
+        <stop offset="56%" stop-color="#0A1628" stop-opacity="0.42"/>
+        <stop offset="76%" stop-color="#0A1628" stop-opacity="0.12"/>
+        <stop offset="100%" stop-color="#07111F" stop-opacity="0.02"/>
       </linearGradient>`
     : `<linearGradient id="${idBase}-veil" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#0A1628" stop-opacity="1"/>
-        <stop offset="${isStory ? "58%" : "44%"}" stop-color="#0A1628" stop-opacity="1"/>
-        <stop offset="${isStory ? "74%" : "64%"}" stop-color="#0A1628" stop-opacity="0"/>
-        <stop offset="90%" stop-color="#07111F" stop-opacity="0"/>
-        <stop offset="100%" stop-color="#07111F" stop-opacity="0.42"/>
+        <stop offset="${isStory ? "50%" : "38%"}" stop-color="#0A1628" stop-opacity="1"/>
+        <stop offset="${isStory ? "64%" : "54%"}" stop-color="#0A1628" stop-opacity="0.84"/>
+        <stop offset="${isStory ? "76%" : "66%"}" stop-color="#0A1628" stop-opacity="0.40"/>
+        <stop offset="${isStory ? "87%" : "80%"}" stop-color="#0A1628" stop-opacity="0.08"/>
+        <stop offset="100%" stop-color="#07111F" stop-opacity="0.30"/>
       </linearGradient>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
