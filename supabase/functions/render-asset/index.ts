@@ -26,17 +26,18 @@ const GOLD = "#C4942A";        // brandbook --gold
 const GOLD_LIGHT = "#F0C95C";  // brandbook --gold-light (kicker)
 const OFF_WHITE = "#F5F5F0";   // brandbook --off-white (copy)
 // Densidade de pixels da peca Premium (caminho satori legado) POR FORMATO. 1.0 = full-res (DIMS
-// reais, ex.: 1080x1080 / 1200x628). Historicamente fixo em 0.55 (~594px, ABAIXO do minimo Meta de
-// 1080). O caminho satori estoura o limite de compute da Edge (WORKER_RESOURCE_LIMIT) no 9:16
-// (1080x1920) em full-res — comprovado em teste — mas roda bem no 1:1/1.91:1 (mais leves). Por isso
-// o 9:16 (formato "tall") tem um teto proprio (SCALE_TALL). Ambos configuraveis por secret para
-// ajuste/rollback sem redeploy. Default 0.55 preserva o comportamento atual no deploy. O caminho
-// Vitra Imobiliaria ja roda full-res por outro motor (SVG direto) e NAO usa isto.
+// reais, ex.: 1080x1080 / 1200x628). Era 0.55 (~594px, ABAIXO do minimo Meta de 1080) -> P0.1 do roadmap
+// de Tráfego: default agora 1.0 (Premium 1:1=1080 e 1.91:1=1200, FULL-RES). O caminho satori estoura o
+// limite de compute da Edge (WORKER_RESOURCE_LIMIT) APENAS no 9:16 (1080x1920) em full-res — mas roda
+// bem no 1:1/1.91:1 (mais leves; 1:1 a 1.0 ~1.16M px e a referencia que renderiza ok). Por isso o 9:16
+// (formato "tall") mantem o teto proprio (SCALE_TALL) — premiumScale(true)=min(1.0,0.75)=0.75, INALTERADO,
+// sem novo risco de OOM. Ambos configuraveis por secret (PREMIUM_RENDER_SCALE / _TALL) para rollback sem
+// redeploy. O caminho Vitra Imobiliaria ja roda full-res por outro motor (SVG direto) e NAO usa isto.
 function clampScale(value: number, fallback: number) {
   if (!Number.isFinite(value) || value <= 0) return fallback;
   return Math.min(1, Math.max(0.4, value));
 }
-const SCALE = clampScale(Number(Deno.env.get("PREMIUM_RENDER_SCALE") ?? "0.55"), 0.55);
+const SCALE = clampScale(Number(Deno.env.get("PREMIUM_RENDER_SCALE") ?? "1.0"), 1.0);
 // Teto do 9:16: 0.75 = 810x1440 (~1.16M px = a MESMA contagem do 1:1 a 1.0, que renderiza ok).
 const SCALE_TALL = clampScale(Number(Deno.env.get("PREMIUM_RENDER_SCALE_TALL") ?? "0.75"), 0.75);
 function premiumScale(isTall: boolean) { return isTall ? Math.min(SCALE, SCALE_TALL) : SCALE; }
