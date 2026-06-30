@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Instagram, Youtube, Facebook, Music, Video, Image, FileText, CalendarOff } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
@@ -19,29 +19,30 @@ export default function Calendario({ onNavigate }) {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
 
+  const carregar = useCallback(async () => {
+    const inicio = new Date()
+    inicio.setDate(inicio.getDate() - inicio.getDay() + 1)
+    inicio.setHours(0, 0, 0, 0)
+    const fim = new Date(inicio)
+    fim.setDate(fim.getDate() + 21)
+
+    const { data } = await supabase
+      .from('premium_content_posts')
+      .select('id, title, hook, caption, hashtags, platform, format, status, scheduled_for, editorial_pillar, metadata, brand_scope')
+      .not('scheduled_for', 'is', null)
+      .gte('scheduled_for', inicio.toISOString())
+      .lte('scheduled_for', fim.toISOString())
+      .order('scheduled_for')
+
+    setPosts(data || [])
+    setLoading(false)
+  }, [])
+
   useEffect(() => {
-    async function carregar() {
-      const inicio = new Date()
-      inicio.setDate(inicio.getDate() - inicio.getDay() + 1)
-      inicio.setHours(0, 0, 0, 0)
-      const fim = new Date(inicio)
-      fim.setDate(fim.getDate() + 21)
-
-      const { data } = await supabase
-        .from('premium_content_posts')
-        .select('id, title, hook, caption, hashtags, platform, format, status, scheduled_for, editorial_pillar, metadata, brand_scope')
-        .not('scheduled_for', 'is', null)
-        .gte('scheduled_for', inicio.toISOString())
-        .lte('scheduled_for', fim.toISOString())
-        .order('scheduled_for')
-
-      setPosts(data || [])
-      setLoading(false)
-    }
     carregar()
     const timer = setInterval(carregar, 60_000)
     return () => clearInterval(timer)
-  }, [])
+  }, [carregar])
 
   const filtrados = filtro === 'todos' ? posts : posts.filter(p => p.platform === filtro)
 
@@ -172,6 +173,7 @@ export default function Calendario({ onNavigate }) {
         open={!!selected}
         onClose={() => setSelected(null)}
         onNavigate={onNavigate}
+        onChanged={carregar}
       />
     </div>
   )

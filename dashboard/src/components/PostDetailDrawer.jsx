@@ -1,15 +1,43 @@
-import { Copy, ExternalLink, CalendarClock } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Copy, ExternalLink, CalendarClock, Loader2 } from 'lucide-react'
 import { Drawer, useToast } from './ui/index.js'
-import { contentStatusLabel } from '../lib/premiumData.js'
+import VitraSelect from './VitraSelect.jsx'
+import { contentStatusLabel, updateContentPost, CONTENT_STATUS_OPTIONS } from '../lib/premiumData.js'
 
-// Detalhe de um conteúdo orgânico — abre a partir de um card (Kanban/Calendário), que antes eram só
-// leitura. Mostra o post e dá AÇÕES reais: copiar a legenda e ir para a Produção (deep-link da marca).
-// Read-only quanto à edição (a edição/mudança de status fica na aba Produção) — primeiro passo do P1.1.
-export default function PostDetailDrawer({ post, open, onClose, onNavigate }) {
+const STATUS_OPTS = CONTENT_STATUS_OPTIONS.map((s) => ({ value: s.key, label: s.label }))
+
+// Detalhe de um conteúdo orgânico — abre a partir de um card (Kanban/Calendário). Além de inspecionar e
+// das ações (copiar legenda / ir para a Produção), agora muda o STATUS no lugar (P1.1 fatia 2): otimista,
+// com toast e refresh do board via onChanged. Reusa updateContentPost (mesma fonte da aba Produção).
+export default function PostDetailDrawer({ post, open, onClose, onNavigate, onChanged }) {
   const toast = useToast()
-  const visual = post?.metadata?.visual || post?.metadata?.image || null
+  const [status, setStatus] = useState(post?.status || 'draft')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setStatus(post?.status || 'draft')
+  }, [post?.id, post?.status])
+
+  const visual = post?.metadata?.visual || post?.metadata?.image || post?.metadata?.art_url || null
   const hashtags = Array.isArray(post?.hashtags) ? post.hashtags : []
   const scheduled = post?.scheduled_for ? new Date(post.scheduled_for) : null
+
+  const changeStatus = async (next) => {
+    if (!post || !next || next === status || saving) return
+    const prev = status
+    setSaving(true)
+    setStatus(next) // otimista
+    try {
+      await updateContentPost(post.id, { status: next })
+      toast.success(`Status atualizado: ${contentStatusLabel(next)}.`)
+      onChanged?.()
+    } catch {
+      setStatus(prev) // reverte
+      toast.error('Não foi possível mudar o status.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const copyCaption = async () => {
     if (!post?.caption) {
@@ -37,7 +65,7 @@ export default function PostDetailDrawer({ post, open, onClose, onNavigate }) {
       open={open}
       onClose={onClose}
       title={post?.title || post?.hook || 'Detalhe do conteúdo'}
-      description={[meta, post?.status ? contentStatusLabel(post.status) : null].filter(Boolean).join('  ·  ')}
+      description={[meta, contentStatusLabel(status)].filter(Boolean).join('  ·  ')}
       footer={
         <div className="flex flex-wrap justify-end gap-2">
           <button type="button" onClick={copyCaption} className="btn-ghost inline-flex items-center gap-1.5">
@@ -53,6 +81,22 @@ export default function PostDetailDrawer({ post, open, onClose, onNavigate }) {
     >
       {!post ? null : (
         <div className="space-y-5">
+          <section>
+            <p className="form-label">Status</p>
+            <div className="flex items-center gap-2">
+              <VitraSelect
+                value={status}
+                onChange={changeStatus}
+                options={STATUS_OPTS}
+                ariaLabel="Status do conteúdo"
+                disabled={saving}
+                className="flex-1"
+              />
+              {saving && <Loader2 size={15} className="animate-spin text-gold-400" aria-hidden="true" />}
+            </div>
+            <p className="mt-1 text-[11px] leading-4 text-white/40">Move o conteúdo no board e no calendário em tempo real.</p>
+          </section>
+
           {visual && (
             <img
               src={visual}

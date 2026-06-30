@@ -172,6 +172,7 @@ export default function Kanban({ onNavigate }) {
         open={!!selected}
         onClose={() => setSelected(null)}
         onNavigate={onNavigate}
+        onChanged={carregar}
       />
     </div>
   )
