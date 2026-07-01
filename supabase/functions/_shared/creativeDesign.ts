@@ -22,7 +22,7 @@ export const DS_FONT = { display: "Anton", body: "Inter" } as const;
 // Escala de espaçamento — base 8. Use múltiplos (space(1)=8, space(2)=16, ...) para o ritmo vertical.
 export function space(n: number): number { return Math.round(n * 8); }
 
-export const DS_RADII = { panel: 26, panelWide: 18, pill: 999, badge: 999 } as const;
+export const DS_RADII = { panel: 26, panelWide: 18, pill: 999, badge: 999, bar: 10 } as const;
 
 export type FormatKind = "feed" | "story" | "wide";
 

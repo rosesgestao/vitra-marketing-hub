@@ -16,16 +16,17 @@ import {
   approvedHeadlineBudgetPx,
 } from "../_shared/textFit.ts";
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVersions.ts";
-import { DS_COLORS, formatSpec } from "../_shared/creativeDesign.ts";
+import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDesign.ts";
+import { DS_TYPE, DS_WEIGHT, DS_STROKE, DS_LOGO, logoDims } from "../_shared/designTokens.ts";
 import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const GOLD = "#C4942A";        // brandbook --gold
-const GOLD_LIGHT = "#F0C95C";  // brandbook --gold-light (kicker)
-const OFF_WHITE = "#F5F5F0";   // brandbook --off-white (copy)
+const GOLD = DS_COLORS.gold;        // brandbook --gold (fonte única: DS_COLORS)
+const GOLD_LIGHT = DS_COLORS.goldLight;  // brandbook --gold-light (kicker)
+const OFF_WHITE = DS_COLORS.offWhite;   // brandbook --off-white (copy)
 // Densidade de pixels da peca Premium (caminho satori legado) POR FORMATO. 1.0 = full-res (DIMS
 // reais, ex.: 1080x1080 / 1200x628). Era 0.55 (~594px, ABAIXO do minimo Meta de 1080) -> P0.1 do roadmap
 // de Tráfego: default agora 1.0 (Premium 1:1=1080 e 1.91:1=1200, FULL-RES). O caminho satori estoura o
@@ -1787,7 +1788,7 @@ const WIDTH_SAFETY = 1.06;
 function ofertaBox(x: number, y: number, maxW: number, h: number, label: string, value: string, labelSize: number, inset: number):
   { markup: string; valueSize: number; fill: number; plateW: number; textLeft: number } {
   const F = 0.79; // fator display (Anton) — espelha o fitDisplaySize da Edge
-  const ink = "#0A1628";
+  const ink = DS_COLORS.navy;
   const rx = Math.round(h * 0.12);
   const padL = inset;
   const padR = Math.round(h * 0.34);
@@ -1807,9 +1808,9 @@ function ofertaBox(x: number, y: number, maxW: number, h: number, label: string,
   const labelY = cy - Math.round(valueSize * 0.02);
   const fill = fillRatio(groupW, innerW);
   const markup = `<rect x="${x}" y="${y}" width="${plateW}" height="${h}" rx="${rx}" fill="${GOLD}"/>
-  <rect x="${x + 6}" y="${y + 6}" width="${plateW - 12}" height="${h - 12}" rx="${Math.max(2, rx - 4)}" fill="none" stroke="${ink}" stroke-opacity="0.16" stroke-width="2"/>
-  ${textLine(contentX, labelY, label, { anchor: "start", fill: ink, family: "Anton", size: labelSize, weight: 400, opacity: 0.74 })}
-  ${textLine(contentX + Math.round(labelW) + gap, cy, value, { anchor: "start", fill: ink, family: "Anton", size: valueSize, weight: 400 })}`;
+  <rect x="${x + 6}" y="${y + 6}" width="${plateW - 12}" height="${h - 12}" rx="${Math.max(2, rx - 4)}" fill="none" stroke="${ink}" stroke-opacity="0.16" stroke-width="${DS_STROKE.frame}"/>
+  ${textLine(contentX, labelY, label, { anchor: "start", fill: ink, family: DS_FONT.display, size: labelSize, weight: DS_WEIGHT.regular, opacity: 0.74 })}
+  ${textLine(contentX + Math.round(labelW) + gap, cy, value, { anchor: "start", fill: ink, family: DS_FONT.display, size: valueSize, weight: DS_WEIGHT.regular })}`;
   return { markup, valueSize, fill, plateW, textLeft: contentX };
 }
 
@@ -1841,7 +1842,7 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const L = isStory ? {
     // Ritmo vertical equilibrado (sem faixa morta): topo (logo+headline+barra) e base (DE/economia +
     // placa + rodapé) com respiro uniforme; a foto do prédio (herói) preenche a banda do meio.
-    margin: 90, logoW: 184, logoY: 272,
+    margin: 90, logoY: 272,
     headBase: 80, headGap: 86, headY: 470, headBudget: 900, headChars: 15,
     bar: [90, 720, 900, 70], barSize: 28,
     deY: 900, deSize: 36,
@@ -1849,14 +1850,14 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     footY: 1230, footSize: 30, gapCap: 170,
   } : isWide ? {
     // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72 (flagrado pelo Creative Lint).
-    margin: 89, logoW: 150, logoY: 72,
+    margin: 89, logoY: 72,
     headBase: 48, headGap: 52, headY: 150, headBudget: 1022, headChars: 26,
     bar: [89, 250, 1022, 52], barSize: 21,
     deY: 348, deSize: 24,
     box: [89, 380, 1022, 116], boxLabel: 30, boxValue: 60,
     footY: 540, footSize: 22, gapCap: 140,
   } : {
-    margin: 90, logoW: 170, logoY: 70,
+    margin: 90, logoY: 70,
     headBase: 82, headGap: 88, headY: 270, headBudget: 900, headChars: 15,
     bar: [90, 392, 900, 70], barSize: 28,
     deY: 580, deSize: 36,
@@ -1876,16 +1877,17 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   // Imagem dirigida (DS P1): grade navy + enquadramento por foco.
   const photoLayer = dsImageLayer(hero, W, H, idBase, F.kind, { grade: true });
 
-  // Logo oficial VITRA (PNG branco) centralizada no topo.
-  const logoX = cx - Math.round(L.logoW / 2);
-  const logoH = Math.round(L.logoW * 434 / 2538);
-  const logoMarkup = `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${logoX}" y="${L.logoY}" width="${L.logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`;
+  // Logo oficial VITRA (PNG branco) centralizada no topo — largura CANÔNICA por formato (DS_LOGO), não
+  // mais px por template. Uma fonte para todas as famílias.
+  const logo = logoDims(W, F.kind);
+  const logoX = cx - Math.round(logo.w / 2);
+  const logoMarkup = `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${logoX}" y="${L.logoY}" width="${logo.w}" height="${logo.h}" preserveAspectRatio="xMidYMid meet"/>`;
 
   // Headline (Anton, branca, alinhada a esquerda).
   const headLines = wrapText(headlineRaw, L.headChars, 2);
   const headMarkup = headLines.map((line, i) => {
     const size = fitDisplaySize(line, L.headBase, Math.round(L.headBase * 0.5), L.headBudget - INSET, 0.79);
-    return textLine(axis, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size, weight: 400 });
+    return textLine(axis, L.headY + i * L.headGap, line, { anchor: "start", fill: DS_COLORS.white, family: DS_FONT.display, size, weight: DS_WEIGHT.regular });
   }).join("");
 
   // Barra de caracteristicas — ABRAÇA o conteúdo (largura = texto + padding, left-anchored) para não
@@ -1893,7 +1895,7 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const [barX, barY, maxBarW, barH] = L.bar;
   const barPad = INSET; // padding-esquerdo = INSET → o texto da barra cai no eixo comum
   const barPadR = Math.round(barH * 0.5);
-  const barSize = featureBar ? fitFillSize(featureBar, { min: 14, max: Math.round(barH * 0.42), widthPx: maxBarW - barPad - barPadR, factor: 0.9 }) : L.barSize;
+  const barSize = featureBar ? fitFillSize(featureBar, { min: DS_TYPE.label.min, max: Math.round(barH * 0.42), widthPx: maxBarW - barPad - barPadR, factor: 0.9 }) : L.barSize;
   // Largura medida × folga de segurança (o estimador subestima; sem isso o texto encosta na borda — o
   // erro marcado no 1.91:1). fill fica ~1/SAFETY (≈0.94) → passa no minFill e no maxFill (não overflow).
   const barTextW = featureBar ? measuredWidthPx(featureBar, barSize, 0.9) : 0;
@@ -1903,8 +1905,8 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const barFill = featureBar ? fillRatio(barTextW, barInnerW) : 1;
   const barTextY = barY + Math.round(barH / 2) + Math.round(barSize * 0.35);
   const barMarkup = featureBar
-    ? `<rect x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="10" fill="#F5F5F0"/>
-    ${textLine(axis, barTextY, featureBar, { anchor: "start", fill: "#0A1628", family: "Inter", size: barSize, weight: 800 })}`
+    ? `<rect x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="${DS_RADII.bar}" fill="${OFF_WHITE}"/>
+    ${textLine(axis, barTextY, featureBar, { anchor: "start", fill: DS_COLORS.navy, family: DS_FONT.body, size: barSize, weight: DS_WEIGHT.black })}`
     : "";
 
   // ---- Linha "DE / economia": preço antigo riscado num chip legível (à esquerda) + selo de economia
@@ -1933,10 +1935,10 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const savPillW = savingsLabel ? Math.round(measuredWidthPx(savingsLabel, savFs, 1.0) * WIDTH_SAFETY + 40) : 0;
   const savX = x + deChipW + (priceFrom && savingsLabel ? 16 : 0);
   const deMarkup = (priceFrom || savingsLabel) ? `
-    ${priceFrom ? `<rect x="${x}" y="${deRowTop}" width="${deChipW}" height="${deH}" rx="${Math.round(deH / 2)}" fill="#07111F" fill-opacity="0.55"/>
-    <text x="${axis}" y="${L.deY}" text-anchor="start" font-family="Inter" font-size="${L.deSize}" font-weight="800" letter-spacing="0.5"><tspan fill="rgba(255,255,255,0.82)">DE: </tspan><tspan fill="rgba(255,255,255,0.82)" text-decoration="line-through">${esc(formatMoneyLike(priceFrom))}</tspan></text>` : ""}
-    ${savingsLabel ? `<rect x="${savX}" y="${deRowTop}" width="${savPillW}" height="${deH}" rx="${Math.round(deH / 2)}" fill="#07111F" fill-opacity="0.85" stroke="${GOLD}" stroke-width="2"/>
-    ${textLine(savX + Math.round(savPillW / 2), L.deY, savingsLabel, { anchor: "middle", fill: GOLD, family: "Inter", size: savFs, weight: 800, spacing: 0.5 })}` : ""}
+    ${priceFrom ? `<rect x="${x}" y="${deRowTop}" width="${deChipW}" height="${deH}" rx="${Math.round(deH / 2)}" fill="${DS_COLORS.navyDeep}" fill-opacity="0.55"/>
+    <text x="${axis}" y="${L.deY}" text-anchor="start" font-family="${DS_FONT.body}" font-size="${L.deSize}" font-weight="${DS_WEIGHT.black}" letter-spacing="0.5"><tspan fill="rgba(255,255,255,0.82)">DE: </tspan><tspan fill="rgba(255,255,255,0.82)" text-decoration="line-through">${esc(formatMoneyLike(priceFrom))}</tspan></text>` : ""}
+    ${savingsLabel ? `<rect x="${savX}" y="${deRowTop}" width="${savPillW}" height="${deH}" rx="${Math.round(deH / 2)}" fill="${DS_COLORS.navyDeep}" fill-opacity="0.85" stroke="${GOLD}" stroke-width="${DS_STROKE.frame}"/>
+    ${textLine(savX + Math.round(savPillW / 2), L.deY, savingsLabel, { anchor: "middle", fill: GOLD, family: DS_FONT.body, size: savFs, weight: DS_WEIGHT.black, spacing: 0.5 })}` : ""}
   ` : "";
 
   // Placa dourada "POR: <valor>" (herói) — auto-equilibrante: abraça o conteúdo e o valor cresce até preencher.
@@ -1946,7 +1948,7 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
 
   // Rodape (localizacao / proximidade) — no mesmo eixo.
   const footMarkup = footer
-    ? textLine(axis, L.footY, footer, { anchor: "start", fill: "rgba(255,255,255,0.82)", family: "Inter", size: L.footSize, weight: 800 })
+    ? textLine(axis, L.footY, footer, { anchor: "start", fill: "rgba(255,255,255,0.82)", family: DS_FONT.body, size: L.footSize, weight: DS_WEIGHT.black })
     : "";
 
   // ---- Creative Lint v2 (P0 determinismo): além de safe-zone/colisão/overflow/char-limit, agora
@@ -1956,7 +1958,7 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   if (out) {
     const headSize0 = headLines.length ? fitDisplaySize(headLines[0], L.headBase, Math.round(L.headBase * 0.5), L.headBudget, 0.79) : L.headBase;
     const els: LintElement[] = [
-      { role: "logo", box: { x: logoX, y: L.logoY, w: L.logoW, h: logoH }, critical: true, isLogo: true },
+      { role: "logo", box: { x: logoX, y: L.logoY, w: logo.w, h: logo.h }, critical: true, isLogo: true },
       { role: "headline", box: { x: axis, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget - INSET, h: headLines.length * L.headGap }, critical: true, block: true, charLen: headlineRaw.length, charLimit: 40, onAxis: true, textLeft: axis },
       { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true, secondary: true, fontSize: barSize, onAxis: true, textLeft: axis, ...(featureBar ? { fill: barFill, minFill: 0.80, maxFill: 0.99 } : {}) },
       { role: "price", box: { x: boxX, y: boxY, w: price.plateW, h: boxH }, critical: true, block: true, display: true, fontSize: price.valueSize, minFont: Math.round(boxH * 0.34), fill: price.fill, minFill: 0.60, maxFill: 1.02, onAxis: true, textLeft: price.textLeft },
@@ -1981,7 +1983,7 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     </linearGradient>
   </defs>
   ${photoLayer}
-  <rect width="${W}" height="${H}" fill="#0A1628" opacity="0.34"/>
+  <rect width="${W}" height="${H}" fill="${DS_COLORS.navy}" opacity="0.34"/>
   <rect width="${W}" height="${H}" fill="url(#${idBase}-veil)"/>
   ${logoMarkup}
   ${headMarkup}
