@@ -19,6 +19,7 @@ import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVers
 import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDesign.ts";
 import { DS_TYPE, DS_WEIGHT, DS_STROKE } from "../_shared/designTokens.ts";
 import { logoBlock } from "../_shared/components.ts";
+import { OFERTA_LAYOUT, schemaFor } from "../_shared/templateSchemas.ts";
 import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
@@ -1839,35 +1840,14 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const priceFrom = String(pd.price_from || parts.from || "").replace(/^de\s*:?\s*/i, "").trim();
   const priceTo = formatMoneyLike(parts.to || pd.price || "") || "Consulte";
 
-  // Rodape: localizacao/proximidade (ou subtitulo/CTA como fallback).
-  const footerRaw = (pd.location || asset.subtitle || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(" · ") || asset.cta || "").toString();
-  const footer = compactText(footerRaw, 52).toUpperCase();
+  // Contrato do template (Etapa 3): arquétipo, componentes, campos e lint vêm do SCHEMA (dado), não do
+  // código. O LAYOUT (posições/tamanhos por formato) também — o builder só LÊ as zonas.
+  const S = schemaFor("vitra-imobiliaria-oferta-ancora")!;
+  const L = OFERTA_LAYOUT[isStory ? "story" : isWide ? "wide" : "feed"];
 
-  const L = isStory ? {
-    // Ritmo vertical equilibrado (sem faixa morta): topo (logo+headline+barra) e base (DE/economia +
-    // placa + rodapé) com respiro uniforme; a foto do prédio (herói) preenche a banda do meio.
-    margin: 90, logoY: 272,
-    headBase: 80, headGap: 86, headY: 470, headBudget: 900, headChars: 15,
-    bar: [90, 720, 900, 70], barSize: 28,
-    deY: 900, deSize: 36,
-    box: [90, 940, 900, 200], boxLabel: 46, boxValue: 96,
-    footY: 1230, footSize: 30, gapCap: 170,
-  } : isWide ? {
-    // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72 (flagrado pelo Creative Lint).
-    margin: 89, logoY: 72,
-    headBase: 48, headGap: 52, headY: 150, headBudget: 1022, headChars: 26,
-    bar: [89, 250, 1022, 52], barSize: 21,
-    deY: 348, deSize: 24,
-    box: [89, 380, 1022, 116], boxLabel: 30, boxValue: 60,
-    footY: 540, footSize: 22, gapCap: 140,
-  } : {
-    margin: 90, logoY: 70,
-    headBase: 82, headGap: 88, headY: 270, headBudget: 900, headChars: 15,
-    bar: [90, 392, 900, 70], barSize: 28,
-    deY: 580, deSize: 36,
-    box: [90, 640, 900, 188], boxLabel: 46, boxValue: 92,
-    footY: 930, footSize: 30, gapCap: 200,
-  };
+  // Rodape: localizacao/proximidade (ou subtitulo/CTA como fallback). Limite do campo vem do schema.
+  const footerRaw = (pd.location || asset.subtitle || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(" · ") || asset.cta || "").toString();
+  const footer = compactText(footerRaw, S.fields.footnote.charLimit).toUpperCase();
 
   const x = L.margin;
   // EIXO ÚNICO de texto: todo texto (headline, barra, DE, POR, rodapé) parte de `axis`; as placas
@@ -1962,13 +1942,13 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     const headSize0 = headLines.length ? fitDisplaySize(headLines[0], L.headBase, Math.round(L.headBase * 0.5), L.headBudget, 0.79) : L.headBase;
     const els: LintElement[] = [
       { role: "logo", box: logoC.box, critical: true, isLogo: true },
-      { role: "headline", box: { x: axis, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget - INSET, h: headLines.length * L.headGap }, critical: true, block: true, charLen: headlineRaw.length, charLimit: 40, onAxis: true, textLeft: axis },
+      { role: "headline", box: { x: axis, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget - INSET, h: headLines.length * L.headGap }, critical: true, block: true, charLen: headlineRaw.length, charLimit: S.fields.headline.charLimit, onAxis: true, textLeft: axis },
       { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true, secondary: true, fontSize: barSize, onAxis: true, textLeft: axis, ...(featureBar ? { fill: barFill, minFill: 0.80, maxFill: 0.99 } : {}) },
       { role: "price", box: { x: boxX, y: boxY, w: price.plateW, h: boxH }, critical: true, block: true, display: true, fontSize: price.valueSize, minFont: Math.round(boxH * 0.34), fill: price.fill, minFill: 0.60, maxFill: 1.02, onAxis: true, textLeft: price.textLeft },
       { role: "de", box: { x, y: deRowTop, w: deChipW + (savingsLabel ? savPillW + 16 : 0), h: deH }, secondary: true, fontSize: L.deSize, onAxis: !!priceFrom, textLeft: axis },
       { role: "footnote", box: { x: axis, y: L.footY - L.footSize, w: Math.round(measuredWidthPx(footer, L.footSize, 1.0)), h: L.footSize + 6 }, critical: true, secondary: true, fontSize: L.footSize, onAxis: !!footer, textLeft: axis },
     ];
-    out.lint = lintCreative(F.safe, els, { gapCap: L.gapCap, priceMinRatio: 1.6, requireLogo: true, axisTol: 8 });
+    out.lint = lintCreative(F.safe, els, { gapCap: L.gapCap, ...S.lint });
     if (!out.lint.ok) console.warn(`[creativeLint] oferta-ancora ${F.kind}: ${out.lint.errors.join(", ")}`);
   }
 
