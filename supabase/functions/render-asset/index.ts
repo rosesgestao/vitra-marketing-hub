@@ -861,8 +861,10 @@ function fitDisplaySize(text: string, base: number, min: number, budgetPx: numbe
 }
 
 function heroChecklistBullets(pd: any, campaign: any, max: number) {
+  // Aceita | além de , ; e quebra de linha como separador (operadores usam qualquer um; o oferta-ancora
+  // usa "|"). Sem o "|" os diferenciais viravam UM bullet truncado + vazio no hero-checklist.
   const values = String(pd?.differentials || "")
-    .split(/[\n;,]+/)
+    .split(/[\n;,|]+/)
     .map((item) => item.replace(/^[-•\s]+/, "").trim())
     .filter(Boolean);
   if (values.length) return values.slice(0, max);
@@ -969,18 +971,26 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
     ? `<svg x="${L.logo[0]}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>`
     : `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${L.margin}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 434 / 2538)}" preserveAspectRatio="xMidYMid meet"/>`;
 
-  // ---- Creative Lint (P2): o gate passa a cobrir também o hero-checklist (template mais usado). ----
+  // ---- Creative Lint v2: hero-checklist (template mais usado) — arquétipo LEFT-ANCHORED (headline/
+  // De/Por/CTA no mesmo eixo x; bullets indentados pela lista). Cobre eixo, logo, hierarquia (herói ≥
+  // preço), faixa morta e safe-zone. ----
   if (out) {
     const F = formatSpec(W, H);
     const headSize0 = lines.length ? fitDisplaySize(lines[0], L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79) : L.headBase;
     const bulletsBottom = bullets.length ? L.bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : L.bulletsY;
+    const logoHh = isWide ? Math.round(L.logo[2] * 25 / 136) : Math.round(L.logo[2] * 434 / 2538);
+    const logoXv = isWide ? L.logo[0] : L.margin;
     const els: LintElement[] = [
-      { role: "hero", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, display: true, fontSize: headSize0, charLen: headlineRaw.length, charLimit: 40 },
-      { role: "price", box: { x, y: L.porY - L.porSize, w: L.cta[2], h: L.porSize + (priceFrom ? L.deSize + 8 : 0) }, critical: true },
-      { role: "checklist", box: { x, y: L.bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (L.bulletsY - L.bulletSize)) }, critical: true },
-      { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 16 },
+      { role: "logo", box: { x: logoXv, y: L.logo[1], w: L.logo[2], h: logoHh }, critical: true, isLogo: true },
+      { role: "hero", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, display: true, fontSize: headSize0, charLen: headlineRaw.length, charLimit: 40, onAxis: true, textLeft: x },
+      { role: "price", box: { x, y: (priceFrom ? L.deY - L.deSize : L.porY - porSize), w: L.cta[2], h: (L.porY + Math.round(porSize * 0.12)) - (priceFrom ? L.deY - L.deSize : L.porY - porSize) }, critical: true, block: true, display: true, fontSize: porSize, onAxis: true, textLeft: x },
+      { role: "checklist", box: { x, y: L.bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (L.bulletsY - L.bulletSize)) }, critical: true, block: true },
+      // CTA NÃO entra na cadeia de gap: é bottom-anchored de propósito (o respiro acima flexa com a
+      // contagem de bullets). Segue coberto por safe-zone + overflow de fonte.
+      { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, fontSize: ctaSize, minFont: 16, onAxis: true, textLeft: ctaX },
     ];
-    out.lint = lintCreative(F.safe, els);
+    // gapCap cobre só o cluster de topo (headline → preço → checklist), onde o ritmo deve ser apertado.
+    out.lint = lintCreative(F.safe, els, { requireLogo: true, axisTol: 8, gapCap: isStory ? 150 : isWide ? 90 : 130 });
     if (!out.lint.ok) console.warn(`[creativeLint] hero-checklist ${F.kind}: ${out.lint.errors.join(", ")}`);
   }
 
