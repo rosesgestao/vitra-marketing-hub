@@ -2062,7 +2062,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
 
   const L = isStory ? {
     cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
-    logoW: 168, logoY: 206, logoCenter: true,
+    logoW: 168, logoY: 258, logoCenter: true, // safe-zone story y≥250 (logo antes em 206, no chrome da Meta)
     heroY: 470, heroBase: 150, heroBudget: 720,
     subY: 596, subSize: 32, subChars: 40, subGap: 42,
     panel: [90, 690, 900, 248], panelTitleSize: 24, condBig: 60, condRest: 22, condRestChars: 22,
@@ -2178,6 +2178,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   const footW = Math.round(footTxt.length * L.footSize * 0.5);
   const footBoxX = L.anchor === "middle" ? L.cx - Math.round(footW / 2) : L.margin;
   const lintEls: LintElement[] = [
+    { role: "logo", box: { x: logoX, y: L.logoY, w: L.logoW, h: logoH }, critical: true, isLogo: true },
     { role: "hero", box: { x: heroX, y: L.heroY - Math.round(heroSize * 0.80), w: heroW, h: Math.round(heroSize * 0.92) }, critical: true, block: true, display: true, fontSize: heroSize, minFont: Math.round(L.heroBase * 0.42), charLen: placeRaw.length, charLimit: 18 },
     { role: "subtitle", box: { x: subX, y: L.subY - L.subSize, w: subW, h: subLines.length * L.subGap }, critical: true, block: true, display: true, fontSize: L.subSize, charLen: subtitle.length, charLimit: 88 },
     { role: "panel", box: { x: pX, y: pY, w: pW, h: pH }, critical: true, block: true },
@@ -2185,7 +2186,9 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
     { role: "footnote", box: { x: footBoxX, y: L.footY - L.footSize, w: footW, h: L.footSize + 6 }, critical: true, overImage: true, hasScrim: true },
   ];
   if (tag) lintEls.push({ role: "badge", box: { x: tagX, y: tagY, w: tagW, h: tagH }, block: true });
-  const lint = lintCreative(F.safe, lintEls);
+  // Arquétipo CENTRADO (feed/story ancoram no eixo central; wide em coluna à esquerda) → sem regra de
+  // eixo (axis). v2 = exige a logo declarada + dentro da safe-zone.
+  const lint = lintCreative(F.safe, lintEls, { requireLogo: true });
   if (out) out.lint = lint;
   if (!lint.ok) console.warn(`[creativeLint] destino-bairro ${F.kind}: ${lint.errors.join(", ")}`);
 
