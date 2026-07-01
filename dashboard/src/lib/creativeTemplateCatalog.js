@@ -768,7 +768,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       fixedBrandRules: ['navy_diagonal_panel', 'approved_white_wordmark', 'gold_check_seals', 'price_de_por', 'photo_gallery_3', 'clear_cta_pill', 'meta_safe_zone'],
       // Arte nova (junho/2026), versionada desde o inicio. Referencia visual do cliente (estrutura/conceito),
       // adaptada ao brandbook (navy + dourado, wordmark branco) e as safe zones do Meta nos 3 formatos.
-      renderVersion: 'vitrine-gallery-approved-v1',
+      renderVersion: 'vitrine-gallery-approved-v2',
     },
     {
       id: 'vitra-imobiliaria-oportunidade-bairro',

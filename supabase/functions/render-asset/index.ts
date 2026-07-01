@@ -1453,32 +1453,52 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
 
   // Conteúdo (esquerda).
   const lines = wrapText(headline, isWide ? 22 : 16, 3);
+  const vtHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 30, L.headBudget, 0.79) : L.headSize;
+  // Headline de 3 linhas empurrava o bloco De/Por (Y fixo, pensado p/ 2 linhas) e COLIDIA com ele.
+  // Deslocamento adaptativo: quando a headline é mais alta que o previsto, De/Por + bullets + CTA descem
+  // juntos (sem colisão, sem overflow). Com 2 linhas o shift é 0 (layout original preservado).
+  const headlineBottom = L.headY - Math.round(vtHeadSize * 0.8) + lines.length * L.headGap;
+  const rawShift = Math.max(0, (headlineBottom + 12) - (L.deY - L.deSize));
+  // Clamp: o deslocamento nunca joga o CTA para fora da safe-zone (story é denso — 3 linhas + 5 bullets).
+  const vtSafeBottom = (() => { const s = formatSpec(W, H).safe; return s.y + s.h; })();
+  const shift = Math.min(rawShift, Math.max(0, vtSafeBottom - (L.cta[1] + L.cta[3]) - 6));
+  const deY = L.deY + shift, porY = L.porY + shift, bulletsY = L.bulletsY + shift;
+  const [ctaX, ctaYbase, ctaW, ctaH, ctaRx] = L.cta;
+  const ctaY = ctaYbase + shift;
+
   const headLines = lines.map((line, i) => textLine(x, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 30, L.headBudget, 0.79), weight: 400 })).join("");
 
   const deLine = priceFrom
-    ? textLine(x, L.deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: GOLD_LIGHT, family: "Poppins", size: L.deSize, weight: 600, decoration: "line-through" })
+    ? textLine(x, deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: GOLD_LIGHT, family: "Poppins", size: L.deSize, weight: 600, decoration: "line-through" })
     : "";
   const porSize = fitDisplaySize(`Por ${priceTo}`, L.porSize, Math.round(L.porSize * 0.6), L.cta[2] + 80, 0.84);
-  const porLine = `<text x="${x}" y="${L.porY}" text-anchor="start" font-family="Poppins" font-size="${porSize}" font-weight="800"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${GOLD_LIGHT}">${esc(priceTo)}</tspan></text>`;
+  const porLine = `<text x="${x}" y="${porY}" text-anchor="start" font-family="Poppins" font-size="${porSize}" font-weight="800"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${GOLD_LIGHT}">${esc(priceTo)}</tspan></text>`;
 
   const bulletRows = bullets.map((item, i) => {
-    const by = L.bulletsY + i * L.bulletStep;
+    const by = bulletsY + i * L.bulletStep;
     return `${heroChecklistBadge(x, by - Math.round(L.bulletSize * 0.35 + L.badge / 2), L.badge)}
     ${textLine(L.bulletX, by, compactText(item, L.bulletChars), { anchor: "start", fill: "#FAFAF8", family: "Poppins", size: L.bulletSize, weight: 500 })}`;
   }).join("");
 
   // CTA pill CLARA (fundo off-white, texto navy) — fiel à referência.
-  const [ctaX, ctaY, ctaW, ctaH, ctaRx] = L.cta;
   const ctaSize = fitDisplaySize(compactText(asset.cta || "Clique abaixo e saiba mais", 40), L.ctaSize, 14, ctaW - Math.round(ctaH * 0.9), 0.90);
   const ctaText = compactText(asset.cta || "Clique abaixo e saiba mais", 40);
   const ctaBlock = `<rect x="${ctaX}" y="${ctaY}" width="${ctaW}" height="${ctaH}" rx="${ctaRx}" fill="${OFF_WHITE}"/>
   ${textLine(ctaX + ctaW / 2, ctaY + ctaH / 2 + Math.round(ctaSize * 0.36), ctaText, { fill: "#0A1628", family: "Poppins", size: ctaSize, weight: 700 })}`;
 
-  const vtHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 30, L.headBudget, 0.79) : L.headSize;
+  // Creative Lint v2 — arquétipo SPLIT diagonal (painel navy à esquerda, conteúdo left-anchored;
+  // galeria à direita). Cobre logo, eixo (headline/De-Por), a COLISÃO headline×preço (ambos block) e o
+  // cluster de topo; o CTA é bottom-anchored → fora da cadeia de gap.
+  const wmHv = Math.round(L.wm[2] * 25 / 136);
+  const priceTop = priceFrom ? deY - L.deSize : porY - porSize;
+  const bulletsBottom = bullets.length ? bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : bulletsY;
   runCreativeLint(out, W, H, "vitrine", [
-    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(vtHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: vtHeadSize, minFont: 30 },
-    { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 14 },
-  ]);
+    { role: "logo", box: { x: L.wm[0], y: L.wm[1], w: L.wm[2], h: wmHv }, critical: true, isLogo: true },
+    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(vtHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: vtHeadSize, minFont: 30, onAxis: true, textLeft: L.headX },
+    { role: "price", box: { x: L.headX, y: priceTop, w: L.headBudget, h: (porY + Math.round(porSize * 0.12)) - priceTop }, critical: true, block: true, onAxis: true, textLeft: L.headX },
+    { role: "bullets", box: { x: L.headX, y: bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (bulletsY - L.bulletSize)) }, critical: true, block: true },
+    { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, fontSize: ctaSize, minFont: 14 },
+  ], { requireLogo: true, axisTol: 8, gapCap: isStory ? 170 : isWide ? 130 : 150 });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
