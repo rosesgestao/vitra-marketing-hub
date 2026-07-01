@@ -16,7 +16,7 @@ export const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION: Record<string, string> =
   "vitra-imobiliaria-vitrine-gallery": "vitrine-gallery-approved-v1",
   "vitra-imobiliaria-oportunidade-bairro": "oportunidade-bairro-headfit-v3",
   "vitra-imobiliaria-ficha-imovel": "ficha-imovel-approved-v1",
-  "vitra-imobiliaria-oferta-ancora": "oferta-ancora-approved-v3",
+  "vitra-imobiliaria-oferta-ancora": "oferta-ancora-approved-v4",
   "vitra-imobiliaria-destino-bairro": "destino-bairro-poster-v4",
 };
 

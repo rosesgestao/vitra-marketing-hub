@@ -18,6 +18,7 @@ import {
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVersions.ts";
 import { DS_COLORS, formatSpec } from "../_shared/creativeDesign.ts";
 import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
+import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1687,20 +1688,36 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
 // DOURADA como heroi da peca; rodape de localizacao/proximidade). Sem checklist vertical, sem
 // CTA-botao, sem galeria — a oferta De/Por e o protagonista. Cada formato tem composicao propria com
 // a SAFE ZONE do Meta: 1:1 [margem 90]; 9:16 reels-safe y[250..1470]; 1.91:1 (1200x628) x[89..1111].
-function ofertaBox(x: number, y: number, w: number, h: number, label: string, value: string, valueSize: number, labelSize: number) {
-  // PLACA DOURADA SÓLIDA com texto navy — o preço é o herói, então usa o maior contraste possível
-  // (dourado = cor de valor da marca; navy sobre dourado ≈ 6:1, AA). Antes era box translúcido com
-  // valor branco, que competia com a headline/barra brancas e deixava a foto vazar por trás.
-  const padL = Math.round(h * 0.40);
-  const cy = y + Math.round(h / 2) + Math.round(valueSize * 0.34);
-  const labelY = cy - Math.round(valueSize * 0.02);
+// Placa dourada sólida com "LABEL valor" navy — o preço é o herói (dourado = cor de valor da marca;
+// navy sobre dourado ≈ 6:1 AA). AUTO-EQUILÍBRIO (Layout Kit): a placa ABRAÇA o conteúdo (largura =
+// grupo + padding, limitada a maxW) e o VALOR CRESCE até preencher a altura útil — sem vazio lateral
+// (o erro marcado nos screenshots). Left-anchored em `x` para manter o mesmo eixo da headline/barra.
+// Retorna métricas (valueSize, fill, plateW) para o Creative Lint provar o preenchimento.
+function ofertaBox(x: number, y: number, maxW: number, h: number, label: string, value: string, labelSize: number):
+  { markup: string; valueSize: number; fill: number; plateW: number } {
+  const F = 0.79; // fator display (Anton) — espelha o fitDisplaySize da Edge
   const ink = "#0A1628";
   const rx = Math.round(h * 0.12);
-  // Filete navy interno (1px) dá acabamento de placa premium sem virar borda dourada vazada.
-  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${GOLD}"/>
-  <rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${h - 12}" rx="${Math.max(2, rx - 4)}" fill="none" stroke="${ink}" stroke-opacity="0.16" stroke-width="2"/>
-  ${textLine(x + padL, labelY, label, { anchor: "start", fill: ink, family: "Anton", size: labelSize, weight: 400, opacity: 0.74 })}
-  ${textLine(x + padL + Math.round(labelSize * (label.length * 0.62)), cy, value, { anchor: "start", fill: ink, family: "Anton", size: valueSize, weight: 400 })}`;
+  const padSide = Math.round(h * 0.34);
+  const gap = Math.round(labelSize * 0.55);
+  const labelW = measuredWidthPx(label, labelSize, F);
+  const valueMax = Math.round(h * 0.66);
+  const valueMin = Math.round(h * 0.34);
+  const valueBudget = Math.max(40, (maxW - padSide * 2) - labelW - gap);
+  const valueSize = fitFillSize(value, { min: valueMin, max: valueMax, widthPx: valueBudget, factor: F });
+  const valueW = measuredWidthPx(value, valueSize, F);
+  const groupW = labelW + gap + valueW;
+  const plateW = Math.min(maxW, Math.round(groupW + padSide * 2));
+  const innerW = plateW - padSide * 2;
+  const contentX = x + padSide;
+  const cy = y + Math.round(h / 2) + Math.round(valueSize * 0.34);
+  const labelY = cy - Math.round(valueSize * 0.02);
+  const fill = fillRatio(groupW, innerW);
+  const markup = `<rect x="${x}" y="${y}" width="${plateW}" height="${h}" rx="${rx}" fill="${GOLD}"/>
+  <rect x="${x + 6}" y="${y + 6}" width="${plateW - 12}" height="${h - 12}" rx="${Math.max(2, rx - 4)}" fill="none" stroke="${ink}" stroke-opacity="0.16" stroke-width="2"/>
+  ${textLine(contentX, labelY, label, { anchor: "start", fill: ink, family: "Anton", size: labelSize, weight: 400, opacity: 0.74 })}
+  ${textLine(contentX + labelW + gap, cy, value, { anchor: "start", fill: ink, family: "Anton", size: valueSize, weight: 400 })}`;
+  return { markup, valueSize, fill, plateW };
 }
 
 function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
@@ -1729,29 +1746,29 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   const footer = compactText(footerRaw, 52).toUpperCase();
 
   const L = isStory ? {
-    // Cluster de preço empurrado para o terço inferior (antes parava em ~1140 e deixava a metade de baixo
-    // morta). Topo: headline+barra; meio: foto do prédio (herói); base: DE/economia + placa + rodapé.
-    margin: 90, logoW: 184, logoY: 196,
-    headBase: 80, headGap: 86, headY: 452, headBudget: 900, headChars: 15,
-    bar: [90, 638, 900, 70], barSize: 28,
-    deY: 1086, deSize: 36,
-    box: [90, 1140, 900, 200], boxLabel: 46, boxValue: 96,
-    footY: 1420, footSize: 30,
+    // Ritmo vertical equilibrado (sem faixa morta): topo (logo+headline+barra) e base (DE/economia +
+    // placa + rodapé) com respiro uniforme; a foto do prédio (herói) preenche a banda do meio.
+    margin: 90, logoW: 184, logoY: 272,
+    headBase: 80, headGap: 86, headY: 470, headBudget: 900, headChars: 15,
+    bar: [90, 720, 900, 70], barSize: 28,
+    deY: 900, deSize: 36,
+    box: [90, 940, 900, 200], boxLabel: 46, boxValue: 96,
+    footY: 1230, footSize: 30, gapCap: 170,
   } : isWide ? {
     // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72 (flagrado pelo Creative Lint).
-    margin: 89, logoW: 150, logoY: 52,
+    margin: 89, logoW: 150, logoY: 72,
     headBase: 48, headGap: 52, headY: 150, headBudget: 1022, headChars: 26,
     bar: [89, 250, 1022, 52], barSize: 21,
     deY: 348, deSize: 24,
     box: [89, 380, 1022, 116], boxLabel: 30, boxValue: 60,
-    footY: 540, footSize: 22,
+    footY: 540, footSize: 22, gapCap: 140,
   } : {
     margin: 90, logoW: 170, logoY: 70,
     headBase: 82, headGap: 88, headY: 270, headBudget: 900, headChars: 15,
     bar: [90, 392, 900, 70], barSize: 28,
     deY: 580, deSize: 36,
     box: [90, 640, 900, 188], boxLabel: 46, boxValue: 92,
-    footY: 930, footSize: 30,
+    footY: 930, footSize: 30, gapCap: 200,
   };
 
   const x = L.margin;
@@ -1772,13 +1789,19 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     return textLine(x, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size, weight: 400 });
   }).join("");
 
-  // Barra branca de caracteristicas.
-  const [barX, barY, barW, barH] = L.bar;
-  const barTextY = barY + Math.round(barH / 2) + Math.round(L.barSize * 0.35);
-  const barSize = featureBar ? fitDisplaySize(featureBar, L.barSize, 14, barW - 56, 0.9) : L.barSize;
+  // Barra de caracteristicas — ABRAÇA o conteúdo (largura = texto + padding, left-anchored) para não
+  // deixar vazio lateral (erro marcado no 1.91:1). O texto CRESCE até um teto e a barra encolhe até ele.
+  const [barX, barY, maxBarW, barH] = L.bar;
+  const barPad = Math.round(barH * 0.5);
+  const barSize = featureBar ? fitFillSize(featureBar, { min: 14, max: Math.round(barH * 0.42), widthPx: maxBarW - barPad * 2, factor: 0.9 }) : L.barSize;
+  const barTextW = featureBar ? measuredWidthPx(featureBar, barSize, 0.9) : 0;
+  const barW = featureBar ? Math.min(maxBarW, Math.round(barTextW + barPad * 2)) : maxBarW;
+  const barInnerW = Math.max(1, barW - barPad * 2);
+  const barFill = featureBar ? fillRatio(barTextW, barInnerW) : 1;
+  const barTextY = barY + Math.round(barH / 2) + Math.round(barSize * 0.35);
   const barMarkup = featureBar
     ? `<rect x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="10" fill="#F5F5F0"/>
-    ${textLine(cx, barTextY, featureBar, { anchor: "middle", fill: "#0A1628", family: "Inter", size: barSize, weight: 800 })}`
+    ${textLine(barX + barPad, barTextY, featureBar, { anchor: "start", fill: "#0A1628", family: "Inter", size: barSize, weight: 800 })}`
     : "";
 
   // ---- Linha "DE / economia": preço antigo riscado num chip legível (à esquerda) + selo de economia
@@ -1797,14 +1820,14 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     ? `ECONOMIZE R$ ${Math.round(savings / 1000)} MIL`
     : (savings > 0 ? `ECONOMIZE ${formatMoneyLike(String(Math.round(savings)))}` : "");
 
-  const rowW = L.bar[2];
+  // Left-anchored (mesmo eixo da headline/barra/placa): [chip DE][selo ECONOMIZE], sem faixa vazia à direita.
   const deH = Math.round(L.deSize * 1.7);
   const deRowTop = L.deY - Math.round(L.deSize * 1.05);
   const deText = `DE: ${formatMoneyLike(priceFrom)}`;
-  const deChipW = Math.round(deText.length * L.deSize * 0.52) + 28;
+  const deChipW = priceFrom ? Math.round(measuredWidthPx(deText, L.deSize, 1.0) + 32) : 0;
   const savFs = Math.round(L.deSize * 0.82);
-  const savPillW = savingsLabel ? Math.round(savingsLabel.length * savFs * 0.56) + 36 : 0;
-  const savX = x + rowW - savPillW;
+  const savPillW = savingsLabel ? Math.round(measuredWidthPx(savingsLabel, savFs, 1.0) + 36) : 0;
+  const savX = x + deChipW + (priceFrom && savingsLabel ? 16 : 0);
   const deMarkup = (priceFrom || savingsLabel) ? `
     ${priceFrom ? `<rect x="${x}" y="${deRowTop}" width="${deChipW}" height="${deH}" rx="${Math.round(deH / 2)}" fill="#07111F" fill-opacity="0.55"/>
     <text x="${x + 16}" y="${L.deY}" text-anchor="start" font-family="Inter" font-size="${L.deSize}" font-weight="800" letter-spacing="0.5"><tspan fill="rgba(255,255,255,0.82)">DE: </tspan><tspan fill="rgba(255,255,255,0.82)" text-decoration="line-through">${esc(formatMoneyLike(priceFrom))}</tspan></text>` : ""}
@@ -1812,29 +1835,31 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     ${textLine(savX + Math.round(savPillW / 2), L.deY, savingsLabel, { anchor: "middle", fill: GOLD, family: "Inter", size: savFs, weight: 800, spacing: 0.5 })}` : ""}
   ` : "";
 
-  // Box dourado com "POR: <valor>" (heroi da peca).
-  const [boxX, boxY, boxW, boxH] = L.box;
-  const valueText = esc(priceTo);
-  const valueSize = fitDisplaySize(`POR: ${valueText}`, L.boxValue, Math.round(L.boxValue * 0.5), boxW - Math.round(boxH * 0.42) * 2 - Math.round(L.boxLabel * 2.6), 0.79);
-  const boxMarkup = ofertaBox(boxX, boxY, boxW, boxH, "POR:", valueText, valueSize, L.boxLabel);
+  // Placa dourada "POR: <valor>" (herói) — auto-equilibrante: abraça o conteúdo e o valor cresce até preencher.
+  const [boxX, boxY, boxMaxW, boxH] = L.box;
+  const price = ofertaBox(boxX, boxY, boxMaxW, boxH, "POR:", esc(priceTo), L.boxLabel);
+  const boxMarkup = price.markup;
 
-  // Rodape (localizacao / proximidade).
+  // Rodape (localizacao / proximidade) — left-anchored no mesmo eixo.
   const footMarkup = footer
-    ? textLine(cx, L.footY, footer, { anchor: "middle", fill: "rgba(255,255,255,0.78)", family: "Inter", size: L.footSize, weight: 800 })
+    ? textLine(x, L.footY, footer, { anchor: "start", fill: "rgba(255,255,255,0.82)", family: "Inter", size: L.footSize, weight: 800 })
     : "";
 
-  // ---- Creative Lint (P1): o gate agora cobre também o oferta-ancora. É um template de DOIS FOCOS
-  // (headline em cima + preço-âncora embaixo), então NÃO aplica a regra de herói único; valida
-  // safe-zone, colisão, overflow e limite de caracteres. ----
+  // ---- Creative Lint v2 (P0 determinismo): além de safe-zone/colisão/overflow/char-limit, agora
+  // valida OBJETIVAMENTE preenchimento (barra e placa sem vazio lateral), faixa morta vertical,
+  // DESTAQUE do preço (≥1.6× o texto secundário) e presença da logo. Template de DOIS FOCOS
+  // (headline + preço-âncora) → sem regra de herói único. ----
   if (out) {
     const headSize0 = headLines.length ? fitDisplaySize(headLines[0], L.headBase, Math.round(L.headBase * 0.5), L.headBudget, 0.79) : L.headBase;
     const els: LintElement[] = [
+      { role: "logo", box: { x: logoX, y: L.logoY, w: L.logoW, h: logoH }, critical: true, isLogo: true },
       { role: "headline", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: headLines.length * L.headGap }, critical: true, block: true, charLen: headlineRaw.length, charLimit: 40 },
-      { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true },
-      { role: "pricebox", box: { x: boxX, y: boxY, w: boxW, h: boxH }, critical: true, block: true, fontSize: valueSize, minFont: Math.round(L.boxValue * 0.5) },
-      { role: "footnote", box: { x: cx - Math.round((footer.length * L.footSize * 0.5) / 2), y: L.footY - L.footSize, w: Math.round(footer.length * L.footSize * 0.5), h: L.footSize + 6 }, critical: true },
+      { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true, secondary: true, fontSize: barSize, ...(featureBar ? { fill: barFill, minFill: 0.80 } : {}) },
+      { role: "price", box: { x: boxX, y: boxY, w: price.plateW, h: boxH }, critical: true, block: true, display: true, fontSize: price.valueSize, minFont: Math.round(boxH * 0.34), fill: price.fill, minFill: 0.60 },
+      { role: "de", box: { x, y: deRowTop, w: deChipW + (savingsLabel ? savPillW + 16 : 0), h: deH }, secondary: true, fontSize: L.deSize },
+      { role: "footnote", box: { x, y: L.footY - L.footSize, w: Math.round(measuredWidthPx(footer, L.footSize, 1.0)), h: L.footSize + 6 }, critical: true, secondary: true, fontSize: L.footSize },
     ];
-    out.lint = lintCreative(F.safe, els);
+    out.lint = lintCreative(F.safe, els, { gapCap: L.gapCap, priceMinRatio: 1.6, requireLogo: true });
     if (!out.lint.ok) console.warn(`[creativeLint] oferta-ancora ${F.kind}: ${out.lint.errors.join(", ")}`);
   }
 

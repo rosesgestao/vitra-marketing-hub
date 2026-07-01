@@ -73,3 +73,67 @@ describe('creativeLint — gate objetivo', () => {
     expect(r.errors).toContain('overflow:hero')
   })
 })
+
+describe('creativeLint v2 — composição determinística (os erros marcados nos screenshots)', () => {
+  const safe = formatSpec(1080, 1080).safe
+
+  it('REPROVA preenchimento baixo (placa/barra com vazio lateral sem função)', () => {
+    const els = [
+      { role: 'price', box: { x: 90, y: 640, w: 900, h: 188 }, fill: 0.40, minFill: 0.60 },
+    ]
+    const r = lintCreative(safe, els)
+    expect(r.errors).toContain('underfill:price')
+    expect(r.metrics.fill_price).toBe(0.4)
+  })
+
+  it('APROVA quando o conteúdo preenche o container', () => {
+    const els = [{ role: 'price', box: { x: 90, y: 640, w: 900, h: 188 }, fill: 0.98, minFill: 0.60 }]
+    expect(lintCreative(safe, els).ok).toBe(true)
+  })
+
+  it('REPROVA faixa morta vertical acima do teto (gapCap)', () => {
+    const els = [
+      { role: 'bar', box: { x: 90, y: 300, w: 900, h: 70 }, block: true },
+      { role: 'price', box: { x: 90, y: 700, w: 900, h: 188 }, block: true }, // 330px de folga
+    ]
+    const r = lintCreative(safe, els, { gapCap: 200 })
+    expect(r.errors.some(e => e.startsWith('dead_gap:'))).toBe(true)
+    expect(r.metrics.max_gap).toBe(330)
+  })
+
+  it('APROVA folga vertical dentro do teto', () => {
+    const els = [
+      { role: 'bar', box: { x: 90, y: 300, w: 900, h: 70 }, block: true },
+      { role: 'price', box: { x: 90, y: 500, w: 900, h: 188 }, block: true }, // 130px de folga
+    ]
+    expect(lintCreative(safe, els, { gapCap: 200 }).ok).toBe(true)
+  })
+
+  it('REPROVA preço sem destaque suficiente sobre o texto secundário', () => {
+    const els = [
+      { role: 'price', box: { x: 90, y: 640, w: 900, h: 120 }, fontSize: 40 },
+      { role: 'bar', box: { x: 90, y: 300, w: 900, h: 70 }, secondary: true, fontSize: 30 },
+    ]
+    const r = lintCreative(safe, els, { priceMinRatio: 1.6 }) // 40/30 = 1.33 < 1.6
+    expect(r.errors.some(e => e.startsWith('price_weak:'))).toBe(true)
+  })
+
+  it('APROVA preço com destaque adequado', () => {
+    const els = [
+      { role: 'price', box: { x: 90, y: 640, w: 900, h: 188 }, fontSize: 120 },
+      { role: 'bar', box: { x: 90, y: 300, w: 900, h: 70 }, secondary: true, fontSize: 30 },
+    ]
+    expect(lintCreative(safe, els, { priceMinRatio: 1.6 }).ok).toBe(true) // 4.0 ≥ 1.6
+  })
+
+  it('REPROVA logo ausente quando requireLogo', () => {
+    const els = [{ role: 'headline', box: { x: 90, y: 200, w: 900, h: 160 } }]
+    expect(lintCreative(safe, els, { requireLogo: true }).errors).toContain('logo_missing')
+    expect(lintCreative(safe, [...els, { role: 'logo', box: { x: 400, y: 60, w: 280, h: 48 }, isLogo: true }], { requireLogo: true }).ok).toBe(true)
+  })
+
+  it('retrocompatível: sem opts, as regras v2 não disparam', () => {
+    const els = [{ role: 'bar', box: { x: 90, y: 300, w: 900, h: 70 }, block: true }]
+    expect(lintCreative(safe, els).ok).toBe(true)
+  })
+})

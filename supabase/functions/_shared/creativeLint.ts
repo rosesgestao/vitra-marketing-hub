@@ -8,6 +8,7 @@
 //   - copy acima do limite de caracteres;
 //   - hierarquia quebrada (o herói não é o maior elemento de display).
 import { type Box, type FormatSpec, withinSafe, overlapArea } from "./creativeDesign.ts";
+import { maxVerticalGap } from "./layoutKit.ts";
 
 export interface LintElement {
   role: string;
@@ -19,17 +20,30 @@ export interface LintElement {
   charLen?: number; charLimit?: number;
   overImage?: boolean;  // está sobre a foto (não sobre uma superfície navy)
   hasScrim?: boolean;   // há placa/scrim controlado atrás (garante contraste)
+  // v2 (determinismo de composição):
+  fill?: number;        // fração [0..1] da largura interna do container preenchida pelo conteúdo
+  minFill?: number;     // preenchimento mínimo exigido (reprova vazio lateral sem função)
+  secondary?: boolean;  // texto secundário (barra/rodapé) — referência p/ a proeminência do preço
+  isLogo?: boolean;     // é a logo da marca (checa presença quando requireLogo)
 }
 
-export interface LintReport { ok: boolean; errors: string[]; warnings: string[] }
+export interface LintReport { ok: boolean; errors: string[]; warnings: string[]; metrics?: Record<string, number> }
+
+// Opções v2 (por formato/template). Ausentes → a regra correspondente é ignorada (retrocompatível).
+export interface LintOptions {
+  gapCap?: number;       // maior faixa morta vertical tolerada (px) entre blocos de topo
+  priceMinRatio?: number; // altura do preço ≥ ratio × maior texto secundário
+  requireLogo?: boolean;  // exige uma logo presente
+}
 
 // Fração da menor caixa a partir da qual uma sobreposição conta como colisão real (evita falso-positivo
 // por encostar 1px). Blocos pai/filho NÃO entram aqui (só elementos marcados block:true).
 const OVERLAP_TOL = 0.06;
 
-export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[]): LintReport {
+export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[], opts: LintOptions = {}): LintReport {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const metrics: Record<string, number> = {};
 
   // 1) Safe-zone: todo elemento crítico dentro.
   for (const e of elements) {
@@ -79,5 +93,36 @@ export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[]):
     }
   }
 
-  return { ok: errors.length === 0, errors, warnings };
+  // 7) Preenchimento: conteúdo que deixa vazio lateral sem função dentro do próprio container
+  // (ex.: valor curto numa placa larga, texto centralizado numa barra full-width). REPROVA.
+  for (const e of elements) {
+    if (e.minFill != null && e.fill != null) {
+      metrics[`fill_${e.role}`] = Number(e.fill.toFixed(2));
+      if (e.fill < e.minFill) errors.push(`underfill:${e.role}`);
+    }
+  }
+
+  // 8) Faixa morta: maior folga vertical entre blocos de topo acima do teto do formato. REPROVA.
+  if (opts.gapCap != null) {
+    const gap = maxVerticalGap(elements.filter((e) => e.block).map((e) => ({ y: e.box.y, h: e.box.h })));
+    metrics.max_gap = gap;
+    if (gap > opts.gapCap) errors.push(`dead_gap:${gap}>${opts.gapCap}`);
+  }
+
+  // 9) Destaque do preço: o preço deve ser sensivelmente maior que o maior texto secundário. REPROVA.
+  if (opts.priceMinRatio != null) {
+    const price = elements.find((e) => e.role === "price" && e.fontSize != null);
+    const secMax = elements.filter((e) => e.secondary && e.fontSize != null)
+      .reduce((m, e) => Math.max(m, e.fontSize as number), 0);
+    if (price && secMax > 0) {
+      const ratio = (price.fontSize as number) / secMax;
+      metrics.price_ratio = Number(ratio.toFixed(2));
+      if (ratio < opts.priceMinRatio) errors.push(`price_weak:${ratio.toFixed(2)}<${opts.priceMinRatio}`);
+    }
+  }
+
+  // 10) Logo: presença obrigatória (identidade da marca). REPROVA se ausente.
+  if (opts.requireLogo && !elements.some((e) => e.isLogo)) errors.push("logo_missing");
+
+  return { ok: errors.length === 0, errors, warnings, metrics };
 }
