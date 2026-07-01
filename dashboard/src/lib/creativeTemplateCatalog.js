@@ -712,7 +712,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026), versionada desde o inicio: referencia aprovada e a peca da
       // campanha San Clemente (criativos-aprovados-vitra-imobiliaria/1040ccb5 e 83b3c406), com o
       // painel na familia azul do brandbook e amarelo -> dourado (skill margem-seguranca-criativos).
-      renderVersion: 'hero-panel-approved-v1',
+      renderVersion: 'hero-panel-approved-v2',
     },
     {
       id: 'vitra-imobiliaria-lancamento',

@@ -141,7 +141,7 @@ describe('render-version (fonte unica no catalogo — Fase 3)', () => {
     expect(renderVersionForFamily('vitra-imobiliaria-financiamento-orla')).toBe('financiamento-orla-approved-v7')
     expect(renderVersionForFamily('vitra-imobiliaria-hero-checklist')).toBe('hero-checklist-ds-image-v5')
     expect(renderVersionForFamily('vitra-imobiliaria-duo-selos-offer')).toBe('duo-selos-approved-v2')
-    expect(renderVersionForFamily('vitra-imobiliaria-hero-panel-gallery')).toBe('hero-panel-approved-v1')
+    expect(renderVersionForFamily('vitra-imobiliaria-hero-panel-gallery')).toBe('hero-panel-approved-v2')
     expect(renderVersionForFamily('vitra-imobiliaria-dual-photo-offer')).toBeNull()
     expect(renderVersionForFamily('vitra-imobiliaria-patios-gallery')).toBeNull()
     expect(renderVersionForFamily('vitra-imobiliaria-menino-deus-offer')).toBeNull()

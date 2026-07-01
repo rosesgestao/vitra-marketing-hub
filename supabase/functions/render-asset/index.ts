@@ -1261,11 +1261,20 @@ function buildVitraHeroPanelSvg(asset: any, campaign: any, images: Array<string 
     duoSelosPhoto(images[i + 1] || images[0], `${idBase}-p${i + 1}`, p[0], p[1], p[2], p[3], p[4])
   ).join("");
 
+  // Creative Lint v2 — arquétipo SPLIT (foto hero + painel navy com conteúdo LEFT-anchored). Cobre logo,
+  // eixo (headline/destaque/label/preço no mesmo x; bullets indentados pela seta), e o cluster de topo
+  // (headline→destaque→bullets); o par label+preço é bottom-anchored no painel → fora da cadeia de gap.
   const hpHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 28, L.headBudget, 0.79) : L.headSize;
+  const destaqueY = L.headY + lines.length * L.headGap;
+  const bulletsBottom = bullets.length ? L.bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : L.bulletsY;
   runCreativeLint(out, W, H, "hero-panel", [
-    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(hpHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: hpHeadSize, minFont: 28 },
-    { role: "price", box: { x: L.headX, y: L.priceY - L.priceSize, w: L.headBudget, h: L.priceSize }, critical: true },
-  ]);
+    { role: "logo", box: { x: wmX, y: wmY, w: wmW, h: wmH }, critical: true, isLogo: true },
+    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(hpHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: hpHeadSize, minFont: 28, onAxis: true, textLeft: L.headX },
+    { role: "destaque", box: { x: L.headX, y: destaqueY - Math.round(hpHeadSize * 0.75), w: L.headBudget, h: Math.round(hpHeadSize * 0.85) }, critical: true, block: true, charLen: destaque.length, charLimit: 30, onAxis: true, textLeft: L.headX },
+    { role: "bullets", box: { x: L.headX, y: L.bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (L.bulletsY - L.bulletSize)) }, critical: true, block: true },
+    { role: "label", box: { x: L.headX, y: L.labelY - L.labelSize, w: L.headBudget, h: L.labelSize + 4 }, critical: true, onAxis: true, textLeft: L.headX },
+    { role: "price", box: { x: L.headX, y: L.priceY - L.priceSize, w: L.headBudget, h: L.priceSize }, critical: true, onAxis: true, textLeft: L.headX },
+  ], { requireLogo: true, axisTol: 8, gapCap: isStory ? 170 : isWide ? 140 : 150 });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
