@@ -17,7 +17,8 @@ import {
 } from "../_shared/textFit.ts";
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVersions.ts";
 import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDesign.ts";
-import { DS_TYPE, DS_WEIGHT, DS_STROKE, DS_LOGO, logoDims } from "../_shared/designTokens.ts";
+import { DS_TYPE, DS_WEIGHT, DS_STROKE } from "../_shared/designTokens.ts";
+import { logoBlock } from "../_shared/components.ts";
 import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
@@ -1877,11 +1878,10 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   // Imagem dirigida (DS P1): grade navy + enquadramento por foco.
   const photoLayer = dsImageLayer(hero, W, H, idBase, F.kind, { grade: true });
 
-  // Logo oficial VITRA (PNG branco) centralizada no topo — largura CANÔNICA por formato (DS_LOGO), não
-  // mais px por template. Uma fonte para todas as famílias.
-  const logo = logoDims(W, F.kind);
-  const logoX = cx - Math.round(logo.w / 2);
-  const logoMarkup = `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${logoX}" y="${L.logoY}" width="${logo.w}" height="${logo.h}" preserveAspectRatio="xMidYMid meet"/>`;
+  // Logo oficial VITRA (PNG branco) centralizada no topo — componente ÚNICO (logoBlock), largura CANÔNICA
+  // por formato (DS_LOGO). Uma fonte para todas as famílias.
+  const logoC = logoBlock(VITRA_WORDMARK_WHITE_PNG, W, F.kind, { y: L.logoY, centered: true, cx });
+  const logoMarkup = logoC.markup;
 
   // Headline (Anton, branca, alinhada a esquerda).
   const headLines = wrapText(headlineRaw, L.headChars, 2);
@@ -1958,7 +1958,7 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
   if (out) {
     const headSize0 = headLines.length ? fitDisplaySize(headLines[0], L.headBase, Math.round(L.headBase * 0.5), L.headBudget, 0.79) : L.headBase;
     const els: LintElement[] = [
-      { role: "logo", box: { x: logoX, y: L.logoY, w: logo.w, h: logo.h }, critical: true, isLogo: true },
+      { role: "logo", box: logoC.box, critical: true, isLogo: true },
       { role: "headline", box: { x: axis, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget - INSET, h: headLines.length * L.headGap }, critical: true, block: true, charLen: headlineRaw.length, charLimit: 40, onAxis: true, textLeft: axis },
       { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true, secondary: true, fontSize: barSize, onAxis: true, textLeft: axis, ...(featureBar ? { fill: barFill, minFill: 0.80, maxFill: 0.99 } : {}) },
       { role: "price", box: { x: boxX, y: boxY, w: price.plateW, h: boxH }, critical: true, block: true, display: true, fontSize: price.valueSize, minFont: Math.round(boxH * 0.34), fill: price.fill, minFill: 0.60, maxFill: 1.02, onAxis: true, textLeft: price.textLeft },
@@ -2064,7 +2064,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
 
   const L = isStory ? {
     cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
-    logoW: 168, logoY: 258, logoCenter: true, // safe-zone story y≥250 (logo antes em 206, no chrome da Meta)
+    logoY: 258, logoCenter: true, // safe-zone story y≥250 (logo antes em 206, no chrome da Meta)
     heroY: 470, heroBase: 150, heroBudget: 720,
     subY: 596, subSize: 32, subChars: 40, subGap: 42,
     panel: [90, 690, 900, 248], panelTitleSize: 24, condBig: 60, condRest: 22, condRestChars: 22,
@@ -2072,14 +2072,14 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   } : isWide ? {
     // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72.
     cx: 600, margin: 89, anchor: "start" as const, contentX: 89,
-    logoW: 138, logoY: 66, logoCenter: false,
+    logoY: 66, logoCenter: false,
     heroY: 180, heroBase: 92, heroBudget: 640,
     subY: 236, subSize: 22, subChars: 44, subGap: 30,
     panel: [89, 282, 660, 158], panelTitleSize: 17, condBig: 38, condRest: 15, condRestChars: 18,
     cta: [89, 452, 320, 64], ctaSize: 21, footY: 540, footSize: 16, veil: "h",
   } : {
     cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
-    logoW: 156, logoY: 66, logoCenter: true,
+    logoY: 66, logoCenter: true,
     heroY: 296, heroBase: 152, heroBudget: 760,
     subY: 372, subSize: 29, subChars: 40, subGap: 38,
     panel: [90, 432, 900, 210], panelTitleSize: 22, condBig: 54, condRest: 20, condRestChars: 22,
@@ -2089,10 +2089,12 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   // Imagem dirigida (DS P1): grade navy + enquadramento por foco (story = topo do prédio).
   const photoLayer = dsImageLayer(hero, W, H, idBase, F.kind, { grade: true });
 
-  // Logo VITRA oficial (PNG branco) — centralizada (1:1/9:16) ou a esquerda (1.91:1).
-  const logoX = L.logoCenter ? L.cx - Math.round(L.logoW / 2) : L.margin;
-  const logoH = Math.round(L.logoW * 434 / 2538);
-  const logoMarkup = `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${logoX}" y="${L.logoY}" width="${L.logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`;
+  // Logo VITRA oficial (PNG branco) — componente ÚNICO (logoBlock), largura CANÔNICA por formato.
+  // Centralizada (1:1/9:16) ou à esquerda (1.91:1).
+  const logoC = logoBlock(VITRA_WORDMARK_WHITE_PNG, W, F.kind, { y: L.logoY, centered: L.logoCenter, x: L.margin, cx: L.cx });
+  const logoX = logoC.box.x;
+  const logoH = logoC.box.h;
+  const logoMarkup = logoC.markup;
 
   // Tag/selo opcional (pílula dourada) — eyebrow CENTRADO sob a logo nos formatos centrados (preserva o
   // eixo central da referência, antes a tag no canto esquerdo competia com a logo); canto direito no
@@ -2180,7 +2182,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   const footW = Math.round(footTxt.length * L.footSize * 0.5);
   const footBoxX = L.anchor === "middle" ? L.cx - Math.round(footW / 2) : L.margin;
   const lintEls: LintElement[] = [
-    { role: "logo", box: { x: logoX, y: L.logoY, w: L.logoW, h: logoH }, critical: true, isLogo: true },
+    { role: "logo", box: logoC.box, critical: true, isLogo: true },
     { role: "hero", box: { x: heroX, y: L.heroY - Math.round(heroSize * 0.80), w: heroW, h: Math.round(heroSize * 0.92) }, critical: true, block: true, display: true, fontSize: heroSize, minFont: Math.round(L.heroBase * 0.42), charLen: placeRaw.length, charLimit: 18 },
     { role: "subtitle", box: { x: subX, y: L.subY - L.subSize, w: subW, h: subLines.length * L.subGap }, critical: true, block: true, display: true, fontSize: L.subSize, charLen: subtitle.length, charLimit: 88 },
     { role: "panel", box: { x: pX, y: pY, w: pW, h: pH }, critical: true, block: true },

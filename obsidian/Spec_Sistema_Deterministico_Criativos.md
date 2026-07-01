@@ -150,6 +150,8 @@ Contraste sobre foto ⇒ amostrar luminância no render (custo só atrás de tex
 ## Progresso
 - **Etapa 1 ✅:** [[Atualizacao_2026-07-01_Etapa1_Design_Tokens]] — designTokens.ts + oferta-ancora
   token-driven (logo por ratio canônico; GOLD/OFF_WHITE = DS_COLORS; harness 12/12; 208 testes).
-- **Etapa 2 (próxima):** components.ts (priceBlock/ctaPill/badge/card/logo únicos) + migração família a família.
+- **Etapa 2 (em andamento):** [[Atualizacao_2026-07-01_Etapa2_Componentes_Logo]] — passo 1: `components.ts`
+  + `logoBlock`; wordmark canônico = PNG aprovado (decisão); oferta+destino migrados (harness verde).
+  Falta passo 2: 4 SVG selecionáveis → logoBlock + priceBlock/ctaPill/badge.
 
 [[render-asset-deploy-e-limites]] · [[validacao-criativo-arquitetura]]

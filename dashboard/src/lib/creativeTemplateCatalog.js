@@ -875,7 +875,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026). Referencia de OUTRO segmento (viagens — pôster de destino) adaptada ao
       // imobiliário: o bairro vira o herói; condições da peça original viram condições do imóvel; avião
       // removido; azul -> navy + dourado, wordmark VITRA. Cada formato com composição própria + safe zone.
-      renderVersion: 'destino-bairro-poster-v5',
+      renderVersion: 'destino-bairro-poster-v6',
     },
   ],
 }
