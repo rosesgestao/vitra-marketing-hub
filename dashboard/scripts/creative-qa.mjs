@@ -13,6 +13,29 @@
 //   QA_CAMPAIGN_ID=... QA_SOURCE_IMAGE=... node scripts/creative-qa.mjs [--family oferta-ancora]
 // Sai com código 1 se qualquer fixture divergir do esperado (falha o CI).
 import { createClient } from '@supabase/supabase-js'
+import { readFileSync, existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
+
+// Carrega .env.qa.local (gitignored) sem dependência externa: procura em dashboard/ e na raiz do repo.
+// Só define chaves que ainda não vieram do ambiente (env real do CI tem precedência).
+function loadQaEnv() {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const candidates = [resolve(here, '../.env.qa.local'), resolve(here, '../../.env.qa.local')]
+  for (const file of candidates) {
+    if (!existsSync(file)) continue
+    for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
+      if (!m || line.trim().startsWith('#')) continue
+      const key = m[1]
+      let val = m[2].replace(/^["']|["']$/g, '')
+      if (process.env[key] == null || process.env[key] === '') process.env[key] = val
+    }
+    return file
+  }
+  return null
+}
+const loadedFrom = loadQaEnv()
 
 const {
   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RENDER_APIKEY,
@@ -20,7 +43,10 @@ const {
 } = process.env
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RENDER_APIKEY || !QA_CAMPAIGN_ID || !QA_SOURCE_IMAGE) {
-  console.error('Faltam env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RENDER_APIKEY, QA_CAMPAIGN_ID, QA_SOURCE_IMAGE')
+  console.error('[qa:creative] faltam variáveis de ambiente.')
+  console.error('Crie dashboard/.env.qa.local (gitignored) a partir de dashboard/.env.qa.example e preencha:')
+  console.error('  SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RENDER_APIKEY, QA_CAMPAIGN_ID, QA_SOURCE_IMAGE')
+  if (loadedFrom) console.error(`(li ${loadedFrom}, mas ainda falta chave)`)
   process.exit(2)
 }
 
