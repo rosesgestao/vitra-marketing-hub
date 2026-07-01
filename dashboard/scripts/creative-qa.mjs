@@ -52,8 +52,20 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RENDER_APIKEY || !QA_CAMPAIG
 
 const svc = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 const RENDER_URL = `${SUPABASE_URL}/functions/v1/render-asset`
-const FORMATS = { feed: '1:1', story: '9:16', wide: '1.91:1' }
+const ALL_FORMATS = { feed: '1:1', story: '9:16', wide: '1.91:1' }
+// QA_FORMATS=feed,wide (ex.) limita os formatos — passada rápida sem o 9:16 (que pode dar 546/OOM).
+const onlyFormats = (process.env.QA_FORMATS || '').split(',').map((s) => s.trim()).filter(Boolean)
+const FORMATS = onlyFormats.length ? Object.fromEntries(Object.entries(ALL_FORMATS).filter(([k]) => onlyFormats.includes(k))) : ALL_FORMATS
 const MAX_RENDER_RETRIES = 5 // 9:16 pode dar 546 (OOM de isolate frio) — retry trata como infra, não design
+
+// Conteúdo realista comum (superset de campos; cada builder usa o que precisa e cai em fallback no resto).
+const base = {
+  price: 'R$ 549.000,00', price_from: 'R$ 629.000,00',
+  differentials: '3 dorms sendo 1 suíte|72m² privativos|2 vagas cobertas',
+  location: 'Bairro Petrópolis, Porto Alegre', neighborhood: 'Petrópolis', city: 'Porto Alegre',
+  rooms: '3', suites: '1', bathrooms: '2', parking: '2', area: '72m²', address: 'Rua Néri Filho, 200',
+}
+const okFixture = (headline, over = {}) => ({ name: 'medio', expect: 'ok', headline, product_data: { ...base, ...over } })
 
 // Matriz de fixtures por família. `expect: 'ok'` = deve passar; `expectError` = deve reprovar por essa regra.
 const MATRIX = {
@@ -66,6 +78,16 @@ const MATRIX = {
       { name: 'headline-longa', expectError: 'char_limit', product_data: { price: 'R$ 1.289.000,00', price_from: 'R$ 1.549.000,00', differentials: '3 dorms sendo 1 suíte|72m² com sacada|2 vagas', location: 'A 5 min do Shopping' }, headline: 'Apartamento 3 dormitórios com suíte e sacada gourmet integrada' },
     ],
   },
+  // Propagação — 1 fixture realista por família (primeira triagem sob o gate determinístico).
+  'hero-checklist': { family: 'vitra-imobiliaria-hero-checklist', contents: [okFixture('Apartamento pronto no Petrópolis')] },
+  'duo-selos': { family: 'vitra-imobiliaria-duo-selos-offer', contents: [okFixture('Studio garden no Bom Fim')] },
+  'hero-panel': { family: 'vitra-imobiliaria-hero-panel-gallery', contents: [okFixture('Cobertura duplex vista parque')] },
+  'lancamento': { family: 'vitra-imobiliaria-lancamento', contents: [okFixture('Lançamento na Zona Sul')] },
+  'vitrine': { family: 'vitra-imobiliaria-vitrine-gallery', contents: [okFixture('Casa em condomínio fechado')] },
+  'oportunidade-bairro': { family: 'vitra-imobiliaria-oportunidade-bairro', contents: [okFixture('Oportunidade no Menino Deus')] },
+  'ficha-imovel': { family: 'vitra-imobiliaria-ficha-imovel', contents: [okFixture('2 dorms no Rio Branco')] },
+  // destino-bairro: o HERÓI é o bairro (pd.location, ≤18 chars); o headline vira o subtítulo lifestyle.
+  'destino-bairro': { family: 'vitra-imobiliaria-destino-bairro', contents: [okFixture('A poucos passos do Parcão', { location: 'Moinhos de Vento', neighborhood: 'Moinhos de Vento' })] },
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
