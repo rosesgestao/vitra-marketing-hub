@@ -393,7 +393,7 @@ function imageUrlsForApprovedTemplate(asset: any, campaign: any) {
 
 function productDifferentials(pd: any, campaign: any) {
   const values = String(pd?.differentials || "")
-    .split(/[\n;,]+/)
+    .split(/[\n;,|]+/)  // aceita "|" também (o form/oferta usa "|") — sem isso virava 1 selo truncado
     .map((item) => item.replace(/^[-•\s]+/, "").trim())
     .filter(Boolean);
   if (values.length >= 2) return values.slice(0, 2);
@@ -482,25 +482,53 @@ function featureLine(x: number, y: number, text: string, anchor: "start" | "midd
   </g>`;
 }
 
+// Pill De/Por auto-equilibrante: mede cada segmento (rótulo + valor) e distribui left→right, centrado
+// no pill, encolhendo junto se não couber. Antes usava offsets fixos com anchor central → os rótulos
+// "De/Por" sobrepunham os valores quando o preço era largo (bug marcado no duo-selos). Left-anchored.
 function priceChip(x: number, y: number, w: number, h: number, rawPrice: unknown) {
   const parts = priceParts(rawPrice);
   const from = compactText(parts.from, 22);
   const to = compactText(parts.to || "Consulte", 24);
   const cy = y + Math.round(h * 0.64);
+  const ink = "#111111";
+  const pad = Math.round(h * 0.5);
+  const innerW = Math.max(40, w - pad * 2);
+  const plate = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(h / 2)}" fill="#F5F5F0"/>`;
+
   if (!from) {
-    return `<g filter="url(#pillShadow)">
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(h / 2)}" fill="#F5F5F0"/>
-      ${textLine(x + w / 2 - 70, cy, "Por:", { fill: "#111111", size: 24, weight: 900 })}
-      ${textLine(x + w / 2 + 40, cy, to, { fill: GOLD, size: 30, weight: 900 })}
+    let sL = Math.round(h * 0.34), sT = Math.round(h * 0.46);
+    const g = Math.round(sL * 0.4);
+    let wL = measuredWidthPx("Por:", sL), wT = measuredWidthPx(to, sT);
+    if (wL + g + wT > innerW) { const k = innerW / (wL + g + wT); sL = Math.round(sL * k); sT = Math.round(sT * k); wL = measuredWidthPx("Por:", sL); wT = measuredWidthPx(to, sT); }
+    const sx = centerStartX(x + pad, innerW, wL + g + wT);
+    return `<g filter="url(#pillShadow)">${plate}
+      ${textLine(sx, cy, "Por:", { anchor: "start", fill: ink, size: sL, weight: 900 })}
+      ${textLine(sx + Math.round(wL) + g, cy, to, { anchor: "start", fill: GOLD, size: sT, weight: 900 })}
     </g>`;
   }
-  return `<g filter="url(#pillShadow)">
-    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(h / 2)}" fill="#F5F5F0"/>
-    ${textLine(x + 70, cy, "De:", { fill: "#111111", size: 22, weight: 900 })}
-    ${textLine(x + 160, cy, from, { fill: "#111111", size: 23, weight: 900, decoration: "line-through" })}
-    <line x1="${x + w / 2}" y1="${y + 13}" x2="${x + w / 2}" y2="${y + h - 13}" stroke="#111111" stroke-width="2" opacity="0.72"/>
-    ${textLine(x + w / 2 + 55, cy, "Por:", { fill: "#111111", size: 22, weight: 900 })}
-    ${textLine(x + w / 2 + 175, cy, to, { fill: GOLD, size: 29, weight: 900 })}
+
+  let sL = Math.round(h * 0.30), sF = Math.round(h * 0.32), sT = Math.round(h * 0.44);
+  const g = Math.round(sL * 0.35);
+  const dv = Math.round(sL * 1.1); // região do divisor (com folga dos dois lados)
+  const measure = () => {
+    const wDe = measuredWidthPx("De:", sL), wFrom = measuredWidthPx(from, sF);
+    const wPor = measuredWidthPx("Por:", sL), wTo = measuredWidthPx(to, sT);
+    return { wDe, wFrom, wPor, wTo, total: wDe + g + wFrom + g + dv + g + wPor + g + wTo };
+  };
+  let m = measure();
+  if (m.total > innerW) { const k = innerW / m.total; sL = Math.round(sL * k); sF = Math.round(sF * k); sT = Math.round(sT * k); m = measure(); }
+  let cx = centerStartX(x + pad, innerW, m.total);
+  const deX = cx; cx += Math.round(m.wDe) + g;
+  const fromX = cx; cx += Math.round(m.wFrom) + g;
+  const dvX = cx + Math.round(dv / 2); cx += dv + g;
+  const porX = cx; cx += Math.round(m.wPor) + g;
+  const toX = cx;
+  return `<g filter="url(#pillShadow)">${plate}
+    ${textLine(deX, cy, "De:", { anchor: "start", fill: ink, size: sL, weight: 900 })}
+    ${textLine(fromX, cy, from, { anchor: "start", fill: ink, size: sF, weight: 900, decoration: "line-through" })}
+    <line x1="${dvX}" y1="${y + 13}" x2="${dvX}" y2="${y + h - 13}" stroke="${ink}" stroke-width="2" opacity="0.72"/>
+    ${textLine(porX, cy, "Por:", { anchor: "start", fill: ink, size: sL, weight: 900 })}
+    ${textLine(toX, cy, to, { anchor: "start", fill: GOLD, size: sT, weight: 900 })}
   </g>`;
 }
 
@@ -529,10 +557,10 @@ function dsImageLayer(href: string | null, W: number, H: number, idBase: string,
 }
 // Roda o Creative Lint a partir de um relatório de layout e devolve no `out` (best-effort; loga erros).
 // Reutilizado por TODOS os templates para fechar a cobertura do gate de validação visual.
-function runCreativeLint(out: { lint?: ReturnType<typeof lintCreative> } | undefined, W: number, H: number, family: string, els: LintElement[]): void {
+function runCreativeLint(out: { lint?: ReturnType<typeof lintCreative> } | undefined, W: number, H: number, family: string, els: LintElement[], opts?: Parameters<typeof lintCreative>[2]): void {
   if (!out) return;
   const F = formatSpec(W, H);
-  out.lint = lintCreative(F.safe, els);
+  out.lint = lintCreative(F.safe, els, opts);
   if (!out.lint.ok) console.warn(`[creativeLint] ${family} ${F.kind}: ${out.lint.errors.join(", ")}`);
 }
 
@@ -1135,11 +1163,21 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
   const photoDefs = L.photos.map((p, i) => `<clipPath id="${idBase}-p${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("") +
     `<radialGradient id="${idBase}-glow" cx="78%" cy="10%" r="60%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.10"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>`;
 
+  // Creative Lint v2 — arquétipo CENTRADO (feed/story) / coluna-esquerda (wide), foto-forward. Cobre
+  // logo, headline, pill, os 2 SELOS (com char-limit p/ não truncar) e o CTA. Sem regra de eixo (não é
+  // left-anchored) nem de preenchimento do pill (conteúdo variável, centrado e auto-encolhe).
+  const badgeBox = (bx: number, by: number, txt: string) => {
+    const bw = Math.min(620, txt.length * L.badgeSize * 0.6) + Math.round(L.badgeSize * 1.5);
+    return { x: L.badgeAnchor === "middle" ? Math.round(bx - bw / 2) : bx, y: by - L.badgeSize, w: Math.round(bw), h: L.badgeSize + 12 };
+  };
   runCreativeLint(out, W, H, "duo-selos", [
-    { role: "headline", box: { x: headX - L.headBudget / 2, y: L.headY - h1Size, w: L.headBudget, h: h2 ? L.headGap + h2Size : h1Size }, charLen: headline.length, charLimit: 40, fontSize: Math.min(h1Size, h2Size), minFont: 34 },
+    { role: "logo", box: { x: wmX, y: wmY, w: wmW, h: wmH }, critical: true, isLogo: true },
+    { role: "headline", box: { x: headX - L.headBudget / 2, y: L.headY - h1Size, w: L.headBudget, h: h2 ? L.headGap + h2Size : h1Size }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: Math.min(h1Size, h2Size), minFont: 34 },
     { role: "pill", box: { x: pillX, y: pillY, w: pillW, h: pillH }, critical: true, block: true },
+    { role: "selo1", box: badgeBox(L.badgeRow[0][0], L.badgeRow[0][1], badges[0]), critical: true, charLen: String(badges[0]).length, charLimit: 30 },
+    { role: "selo2", box: badgeBox(L.badgeRow[1][0], L.badgeRow[1][1], badges[1]), critical: true, charLen: String(badges[1]).length, charLimit: 30 },
     { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 16 },
-  ]);
+  ], { requireLogo: true });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}

@@ -681,7 +681,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026), versionada desde o inicio: referencia aprovada e a peca da
       // campanha Zona Norte (criativos-aprovados-vitra-imobiliaria/2fe17ff8 e f38e4f2b), adaptada
       // ao brandbook (navy+dourado) e as safe zones do Meta (skill margem-seguranca-criativos).
-      renderVersion: 'duo-selos-approved-v1',
+      renderVersion: 'duo-selos-approved-v2',
     },
     {
       id: 'vitra-imobiliaria-hero-panel-gallery',
