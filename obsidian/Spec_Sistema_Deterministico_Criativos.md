@@ -150,8 +150,10 @@ Contraste sobre foto ⇒ amostrar luminância no render (custo só atrás de tex
 ## Progresso
 - **Etapa 1 ✅:** [[Atualizacao_2026-07-01_Etapa1_Design_Tokens]] — designTokens.ts + oferta-ancora
   token-driven (logo por ratio canônico; GOLD/OFF_WHITE = DS_COLORS; harness 12/12; 208 testes).
-- **Etapa 2 (em andamento):** [[Atualizacao_2026-07-01_Etapa2_Componentes_Logo]] — passo 1: `components.ts`
-  + `logoBlock`; wordmark canônico = PNG aprovado (decisão); oferta+destino migrados (harness verde).
-  Falta passo 2: 4 SVG selecionáveis → logoBlock + priceBlock/ctaPill/badge.
+- **Etapa 2 (em andamento):** `components.ts` + `logoBlock` (wordmark canônico = PNG). Passo 1
+  [[Atualizacao_2026-07-01_Etapa2_Componentes_Logo]] oferta+destino; passo 2
+  [[Atualizacao_2026-07-01_Etapa2_Logo_4Familias]] as 4 SVG selecionáveis → **logo unificada nas 6**
+  (pegou o bug hero-checklist feed na inspeção visual → falta regra de gap logo↔headline p/ Etapa 4).
+  Falta passo 3: `priceBlock`/`ctaPill`/`badgePill` (2 sistemas de preço, 2 de badge).
 
 [[render-asset-deploy-e-limites]] · [[validacao-criativo-arquitetura]]

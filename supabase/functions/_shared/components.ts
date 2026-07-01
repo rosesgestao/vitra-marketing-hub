@@ -8,15 +8,21 @@ import { logoDims, type FormatKind } from "./designTokens.ts";
 // Wordmark VITRA (PNG oficial aprovado — decisão de marca: canônico único, aspecto 2538×434). Largura
 // CANÔNICA por formato (DS_LOGO via logoDims); posição por `y` + (centrada no eixo `cx` OU em `x`).
 // Retorna markup + box (para o Creative Lint declarar a logo como elemento crítico).
+// Posição: `centered` no eixo cx; `rightEdge` alinha a DIREITA da logo nesse x (borda-direita constante,
+// p/ logos ancoradas no topo-direito); senão `x` é a borda esquerda.
 export function logoBlock(
   hrefPng: string,
   W: number,
   kind: FormatKind,
-  opts: { y: number; centered?: boolean; x?: number; cx?: number },
+  opts: { y: number; centered?: boolean; x?: number; cx?: number; rightEdge?: number },
 ): { markup: string; box: { x: number; y: number; w: number; h: number } } {
   const { w, h } = logoDims(W, kind);
   const cx = opts.cx ?? Math.round(W / 2);
-  const x = opts.centered ? Math.round(cx - w / 2) : Math.round(opts.x ?? 0);
+  const x = opts.centered
+    ? Math.round(cx - w / 2)
+    : opts.rightEdge != null
+    ? Math.round(opts.rightEdge - w)
+    : Math.round(opts.x ?? 0);
   const markup = `<image href="${hrefPng}" x="${x}" y="${opts.y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
   return { markup, box: { x, y: opts.y, w, h } };
 }

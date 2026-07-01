@@ -960,7 +960,7 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
     bulletsY: 356, bulletStep: 42, bulletSize: 18, badge: 22, bulletTextX: 124, bulletChars: 26,
     cta: [90, 486, 460, 58, 14], ctaSize: 20,
   } : {
-    logo: [852, 120, 120], margin: 108,
+    logo: [852, 90, 120], margin: 108, // logo canônica (maior) → sobe p/ manter respiro à headline
     headBase: 84, headGap: 92, headY: 224, headBudget: 600,
     deY: 462, deSize: 32, porY: priceFrom ? 524 : 488, porSize: 48,
     bulletsY: 588, bulletStep: 62, bulletSize: 28, badge: 30, bulletTextX: 158, bulletChars: 30,
@@ -995,11 +995,12 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   const ctaSize = fitDisplaySize(cta, L.ctaSize, 16, ctaW - Math.round(ctaH * 0.9), 0.90);
   const ctaTextY = ctaY + Math.round(ctaH / 2) + Math.round(ctaSize * 0.36);
 
-  // Logo: nos formatos 1:1 (feed) e 9:16 (story) usa a PNG OFICIAL "VITRA" (texto branco) ancorada a
-  // ESQUERDA (alinhada a margem/headline). No 1.91:1 (wide) mantem o wordmark desenhado no topo direito.
-  const logoMarkup = isWide
-    ? `<svg x="${L.logo[0]}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>`
-    : `<image href="${VITRA_WORDMARK_WHITE_PNG}" x="${L.margin}" y="${L.logo[1]}" width="${L.logo[2]}" height="${Math.round(L.logo[2] * 434 / 2538)}" preserveAspectRatio="xMidYMid meet"/>`;
+  // Logo: componente único (logoBlock/PNG oficial), largura canônica. Feed/story à ESQUERDA (alinhada à
+  // margem/headline); wide no topo-DIREITO (borda-direita preservada via rightEdge).
+  const logoC = isWide
+    ? logoBlock(VITRA_WORDMARK_WHITE_PNG, W, "wide", { y: L.logo[1], rightEdge: L.logo[0] + L.logo[2] })
+    : logoBlock(VITRA_WORDMARK_WHITE_PNG, W, isStory ? "story" : "feed", { y: L.logo[1], x: L.margin });
+  const logoMarkup = logoC.markup;
 
   // ---- Creative Lint v2: hero-checklist (template mais usado) — arquétipo LEFT-ANCHORED (headline/
   // De/Por/CTA no mesmo eixo x; bullets indentados pela lista). Cobre eixo, logo, hierarquia (herói ≥
@@ -1008,10 +1009,8 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
     const F = formatSpec(W, H);
     const headSize0 = lines.length ? fitDisplaySize(lines[0], L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79) : L.headBase;
     const bulletsBottom = bullets.length ? L.bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : L.bulletsY;
-    const logoHh = isWide ? Math.round(L.logo[2] * 25 / 136) : Math.round(L.logo[2] * 434 / 2538);
-    const logoXv = isWide ? L.logo[0] : L.margin;
     const els: LintElement[] = [
-      { role: "logo", box: { x: logoXv, y: L.logo[1], w: L.logo[2], h: logoHh }, critical: true, isLogo: true },
+      { role: "logo", box: logoC.box, critical: true, isLogo: true },
       { role: "hero", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, display: true, fontSize: headSize0, charLen: headlineRaw.length, charLimit: 40, onAxis: true, textLeft: x },
       { role: "price", box: { x, y: (priceFrom ? L.deY - L.deSize : L.porY - porSize), w: L.cta[2], h: (L.porY + Math.round(porSize * 0.12)) - (priceFrom ? L.deY - L.deSize : L.porY - porSize) }, critical: true, block: true, display: true, fontSize: porSize, onAxis: true, textLeft: x },
       { role: "checklist", box: { x, y: L.bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (L.bulletsY - L.bulletSize)) }, critical: true, block: true },
@@ -1158,8 +1157,9 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
   const h2 = lines[1] || "";
   const h1Size = fitFontSize(h1, L.headSize, 34, L.headBudget);
   const h2Size = fitFontSize(h2, L.headSize, 34, L.headBudget);
-  const [wmX, wmY, wmW] = L.wordmark;
-  const wmH = Math.round(wmW * 25 / 136);
+  const [wmX, wmY] = L.wordmark;
+  // Logo: componente único (logoBlock/PNG oficial), largura canônica. Centrada (feed/story) ou à esquerda (wide).
+  const logoC = logoBlock(VITRA_WORDMARK_WHITE_PNG, W, isStory ? "story" : isWide ? "wide" : "feed", { y: wmY, centered: !isWide, x: wmX, cx: Math.round(W / 2) });
   const [pillX, pillY, pillW, pillH] = L.pill;
   const [ctaX, ctaY, ctaW, ctaH, ctaTextY, ctaSize] = L.cta;
   const photoDefs = L.photos.map((p, i) => `<clipPath id="${idBase}-p${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("") +
@@ -1173,7 +1173,7 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
     return { x: L.badgeAnchor === "middle" ? Math.round(bx - bw / 2) : bx, y: by - L.badgeSize, w: Math.round(bw), h: L.badgeSize + 12 };
   };
   runCreativeLint(out, W, H, "duo-selos", [
-    { role: "logo", box: { x: wmX, y: wmY, w: wmW, h: wmH }, critical: true, isLogo: true },
+    { role: "logo", box: logoC.box, critical: true, isLogo: true },
     { role: "headline", box: { x: headX - L.headBudget / 2, y: L.headY - h1Size, w: L.headBudget, h: h2 ? L.headGap + h2Size : h1Size }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: Math.min(h1Size, h2Size), minFont: 34 },
     { role: "pill", box: { x: pillX, y: pillY, w: pillW, h: pillH }, critical: true, block: true },
     { role: "selo1", box: badgeBox(L.badgeRow[0][0], L.badgeRow[0][1], badges[0]), critical: true, charLen: String(badges[0]).length, charLimit: 30 },
@@ -1186,7 +1186,7 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
   <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
   <rect width="${W}" height="${H}" fill="url(#${idBase}-glow)"/>
   ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
-  <svg x="${wmX}" y="${wmY}" width="${wmW}" height="${wmH}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  ${logoC.markup}
   ${textLine(headX, L.headY, h1, { fill: "#FFFFFF", size: h1Size, weight: 900, spacing: "-0.5" })}
   ${h2 ? textLine(headX, L.headY + L.headGap, h2, { fill: GOLD_LIGHT, size: h2Size, weight: 900, spacing: "-0.5" }) : ""}
   ${subtitle ? textLine(subX, L.subY, subtitle, { fill: "#FFFFFF", size: L.subSize, weight: 600 }) : ""}
@@ -1491,11 +1491,12 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
   // Creative Lint v2 — arquétipo SPLIT diagonal (painel navy à esquerda, conteúdo left-anchored;
   // galeria à direita). Cobre logo, eixo (headline/De-Por), a COLISÃO headline×preço (ambos block) e o
   // cluster de topo; o CTA é bottom-anchored → fora da cadeia de gap.
-  const wmHv = Math.round(L.wm[2] * 25 / 136);
+  // Logo: componente único (logoBlock/PNG oficial), largura canônica. Left-anchored (painel navy à esquerda).
+  const logoC = logoBlock(VITRA_WORDMARK_WHITE_PNG, W, isStory ? "story" : isWide ? "wide" : "feed", { y: L.wm[1], x: L.wm[0] });
   const priceTop = priceFrom ? deY - L.deSize : porY - porSize;
   const bulletsBottom = bullets.length ? bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : bulletsY;
   runCreativeLint(out, W, H, "vitrine", [
-    { role: "logo", box: { x: L.wm[0], y: L.wm[1], w: L.wm[2], h: wmHv }, critical: true, isLogo: true },
+    { role: "logo", box: logoC.box, critical: true, isLogo: true },
     { role: "headline", box: { x: L.headX, y: L.headY - Math.round(vtHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: vtHeadSize, minFont: 30, onAxis: true, textLeft: L.headX },
     { role: "price", box: { x: L.headX, y: priceTop, w: L.headBudget, h: (porY + Math.round(porSize * 0.12)) - priceTop }, critical: true, block: true, onAxis: true, textLeft: L.headX },
     { role: "bullets", box: { x: L.headX, y: bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (bulletsY - L.bulletSize)) }, critical: true, block: true },
@@ -1507,7 +1508,7 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
   <rect width="${W}" height="${H}" fill="${OFF_WHITE}"/>
   ${panel}
   ${gallery}
-  <svg x="${L.wm[0]}" y="${L.wm[1]}" width="${L.wm[2]}" height="${Math.round(L.wm[2] * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>
+  ${logoC.markup}
   ${headLines}
   ${deLine}
   ${porLine}
@@ -1701,8 +1702,10 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const gallery = gys.map((gy, i) => duoSelosPhoto(images[i] || images[0], `${idBase}-fg${i}`, gx, gy, gw, gh, grx)).join("");
 
   // Logo VITRA branco.
-  const [lgX, lgY, lgW] = L.logo;
-  const logo = `<svg x="${lgX}" y="${lgY}" width="${lgW}" height="${Math.round(lgW * 25 / 136)}" viewBox="133 26 136 25">${VITRA_WORDMARK_WHITE}</svg>`;
+  const [lgX, lgY] = L.logo;
+  // Logo: componente único (logoBlock/PNG oficial), largura canônica por formato. Left-anchored (coluna navy).
+  const logoC = logoBlock(VITRA_WORDMARK_WHITE_PNG, W, isStory ? "story" : isWide ? "wide" : "feed", { y: lgY, x: lgX });
+  const logo = logoC.markup;
 
   // Headline (Poppins 700) + subtítulo (Poppins 500, ate 2 linhas).
   const [hX, hY, hSize] = L.head;
@@ -1748,7 +1751,7 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   // headline com char-limit=30 (== cap do render, p/ não truncar em silêncio), cards e preço.
   const fcHeadSize = fitDisplaySize(headline, hSize, 30, headBudget, 0.84);
   const fcEls: LintElement[] = [
-    { role: "logo", box: { x: lgX, y: lgY, w: lgW, h: Math.round(lgW * 25 / 136) }, critical: true, isLogo: true },
+    { role: "logo", box: logoC.box, critical: true, isLogo: true },
     { role: "headline", box: { x: hX, y: hY - Math.round(fcHeadSize * 0.8), w: headBudget, h: hSize }, critical: true, block: true, charLen: headline.length, charLimit: 30, fontSize: fcHeadSize, minFont: 30, onAxis: true, textLeft: hX },
     { role: "subtitle", box: { x: sX, y: sY - sSize, w: headBudget, h: (subtitle ? wrapText(subtitle, sMax, sLines).length : 1) * sLh }, critical: true, onAxis: true, textLeft: sX, charLen: subtitle.length, charLimit: sMax * sLines },
     { role: "feature", box: { x: f.tileX, y: f.tileY0, w: f.barX + f.barW - f.tileX, h: features.length * (f.tileSize + f.rowGap) }, critical: true, block: true },

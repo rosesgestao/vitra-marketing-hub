@@ -22,6 +22,13 @@ describe('components — logoBlock (componente único de logo)', () => {
     expect(box.y).toBe(66)
   })
 
+  it('rightEdge alinha a DIREITA da logo (borda-direita constante, ex.: hero-checklist wide)', () => {
+    const { box } = logoBlock(HREF, 1200, 'wide', { y: 72, rightEdge: 1100 })
+    const { w } = logoDims(1200, 'wide')
+    expect(box.x).toBe(Math.round(1100 - w))
+    expect(box.x + box.w).toBe(1100)
+  })
+
   it('markup carrega o href passado e as dimensões do box (determinístico)', () => {
     const a = logoBlock(HREF, 1080, 'story', { y: 258, centered: true })
     const b = logoBlock(HREF, 1080, 'story', { y: 258, centered: true })
