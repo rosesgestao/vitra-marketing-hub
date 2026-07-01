@@ -1662,7 +1662,7 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const subtitle = (pd.location || pd.address || campaign?.neighborhood || "").toString();
   const price = formatMoneyLike(pd.price || campaign?.offer || "") || "Consulte";
   const features = String(pd.differentials || pd.features || "")
-    .split(/[\n;|]+/).map((s) => s.replace(/^[-•\s]+/, "").trim()).filter(Boolean).slice(0, 4);
+    .split(/[\n;,|]+/).map((s) => s.replace(/^[-•\s]+/, "").trim()).filter(Boolean).slice(0, 4);
   const cta = (asset.cta || pd.cta || "Entre em contato para agendar uma visita!").toString();
 
   const NAVY = "#0A1628";
@@ -1675,7 +1675,7 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
     gallery: [628, 412, [470, 778, 1086], 296, 22],
     footer: { y: 1418, pad: 80, ctaSize: 30, lh: 40 },
   } : isWide ? {
-    logo: [72, 60, 150], head: [72, 156, 56], sub: [72, 206, 30, 36, 22, 2],
+    logo: [72, 66, 150], head: [72, 156, 56], sub: [72, 206, 30, 36, 22, 2],
     feat: { tileX: 72, tileY0: 280, tileSize: 60, rowGap: 12, barX: 142, barW: 300, barH: 60, textX: 166, textSize: 22, iconSize: 32 },
     price: [466, 274, 348, 92, 16, 66],
     gallery: [836, 268, [64, 252, 440], 178, 16],
@@ -1704,7 +1704,10 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
 
   // Headline (Poppins 700) + subtítulo (Poppins 500, ate 2 linhas).
   const [hX, hY, hSize] = L.head;
-  const headLine = textLine(hX, hY, compactText(headline, 18), { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: fitDisplaySize(headline, hSize, 30, (isWide ? 360 : isStory ? 520 : 480), 0.84), weight: 700 });
+  // Cap 30 (era 18, truncava headlines normais como "Apartamento no Rio Branco") alinhado ao charLimit
+  // do lint: ≤30 renderiza inteiro (encolhe pela largura); >30 o gate reprova em vez de exibir cortado.
+  const headBudget = isWide ? 360 : isStory ? 520 : 480;
+  const headLine = textLine(hX, hY, compactText(headline, 30), { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: fitDisplaySize(headline, hSize, 30, headBudget, 0.84), weight: 700 });
   const [sX, sY, sSize, sLh, sMax, sLines] = L.sub as [number, number, number, number, number, number];
   const subLines = subtitle ? wrapText(subtitle, sMax, sLines).map((ln, i) => textLine(sX, sY + i * sLh, ln, { anchor: "start", fill: "#E8ECF4", family: "Poppins", size: sSize, weight: 500 })).join("") : "";
 
@@ -1738,12 +1741,19 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
     footer = wrapText(cta, 30, 2).map((ln, i) => textLine(ft.pad, ft.y + i * ft.lh, ln, { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: ft.ctaSize, weight: 600 })).join("");
   }
 
-  const fcHeadSize = fitDisplaySize(headline, hSize, 30, (isWide ? 360 : isStory ? 520 : 480), 0.84);
-  runCreativeLint(out, W, H, "ficha-imovel", [
-    { role: "headline", box: { x: hX, y: hY - Math.round(fcHeadSize * 0.8), w: isWide ? 360 : isStory ? 520 : 480, h: hSize }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: fcHeadSize, minFont: 30 },
-    { role: "feature", box: { x: f.tileX, y: f.tileY0, w: f.barX + f.barW - f.tileX, h: features.length * (f.tileSize + f.rowGap) }, critical: true },
-    { role: "price", box: { x: pX, y: pY, w: pW, h: pH }, critical: true },
-  ]);
+  // Creative Lint v2 — arquétipo COLUNA navy à esquerda (logo/headline/subtítulo/cards/preço left-anchored;
+  // galeria à direita). Cobre logo, eixo (headline/subtítulo/footer no mesmo x; o valor do card é centrado),
+  // headline com char-limit=30 (== cap do render, p/ não truncar em silêncio), cards e preço.
+  const fcHeadSize = fitDisplaySize(headline, hSize, 30, headBudget, 0.84);
+  const fcEls: LintElement[] = [
+    { role: "logo", box: { x: lgX, y: lgY, w: lgW, h: Math.round(lgW * 25 / 136) }, critical: true, isLogo: true },
+    { role: "headline", box: { x: hX, y: hY - Math.round(fcHeadSize * 0.8), w: headBudget, h: hSize }, critical: true, block: true, charLen: headline.length, charLimit: 30, fontSize: fcHeadSize, minFont: 30, onAxis: true, textLeft: hX },
+    { role: "subtitle", box: { x: sX, y: sY - sSize, w: headBudget, h: (subtitle ? wrapText(subtitle, sMax, sLines).length : 1) * sLh }, critical: true, onAxis: true, textLeft: sX, charLen: subtitle.length, charLimit: sMax * sLines },
+    { role: "feature", box: { x: f.tileX, y: f.tileY0, w: f.barX + f.barW - f.tileX, h: features.length * (f.tileSize + f.rowGap) }, critical: true, block: true },
+    { role: "price", box: { x: pX, y: pY, w: pW, h: pH }, critical: true, block: true },
+  ];
+  if (L.footer) fcEls.push({ role: "footnote", box: { x: L.footer.pad, y: L.footer.y - L.footer.ctaSize, w: headBudget, h: wrapText(cta, 30, 2).length * L.footer.lh }, critical: true, onAxis: true, textLeft: L.footer.pad });
+  runCreativeLint(out, W, H, "ficha-imovel", fcEls, { requireLogo: true, axisTol: 8 });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>${galDefs}</defs>
