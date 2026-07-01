@@ -492,10 +492,10 @@ function priceChip(x: number, y: number, w: number, h: number, rawPrice: unknown
   const from = compactText(parts.from, 22);
   const to = compactText(parts.to || "Consulte", 24);
   const cy = y + Math.round(h * 0.64);
-  const ink = "#111111";
+  const ink = "#111111"; // near-black específico do chip (fora da paleta de tokens — sinalizar na Etapa 4)
   const pad = Math.round(h * 0.5);
   const innerW = Math.max(40, w - pad * 2);
-  const plate = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(h / 2)}" fill="#F5F5F0"/>`;
+  const plate = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(h / 2)}" fill="${OFF_WHITE}"/>`;
 
   if (!from) {
     let sL = Math.round(h * 0.34), sT = Math.round(h * 0.46);
@@ -528,7 +528,7 @@ function priceChip(x: number, y: number, w: number, h: number, rawPrice: unknown
   return `<g filter="url(#pillShadow)">${plate}
     ${textLine(deX, cy, "De:", { anchor: "start", fill: ink, size: sL, weight: 900 })}
     ${textLine(fromX, cy, from, { anchor: "start", fill: ink, size: sF, weight: 900, decoration: "line-through" })}
-    <line x1="${dvX}" y1="${y + 13}" x2="${dvX}" y2="${y + h - 13}" stroke="${ink}" stroke-width="2" opacity="0.72"/>
+    <line x1="${dvX}" y1="${y + 13}" x2="${dvX}" y2="${y + h - 13}" stroke="${ink}" stroke-width="${DS_STROKE.frame}" opacity="0.72"/>
     ${textLine(porX, cy, "Por:", { anchor: "start", fill: ink, size: sL, weight: 900 })}
     ${textLine(toX, cy, to, { anchor: "start", fill: GOLD, size: sT, weight: 900 })}
   </g>`;
@@ -872,7 +872,7 @@ function buildVitraMeninoDeusSvg(asset: any, campaign: any, images: Array<string
 // dourado-claro para TEXTO sobre navy (legivel) e GOLD solido para PREENCHIMENTO de botao.
 const HC_GOLD_TEXT = GOLD_LIGHT;  // preco "Por" + selos: dourado claro do brandbook sobre fundo navy
 const HC_GOLD_BTN = GOLD;         // botao CTA preenchido com o dourado oficial #C4942A
-const HC_INK = "#07111F";         // texto navy sobre o botao dourado (== template duas fotos)
+const HC_INK = DS_COLORS.navyDeep;  // texto navy sobre o botao dourado (== template duas fotos)
 
 // Selo "badge-check" (mesmo desenho do icone lucide), escalado a partir do grid 24x24.
 function heroChecklistBadge(x: number, y: number, size: number) {
@@ -1102,7 +1102,7 @@ function duoSelosBadge(x: number, y: number, text: string, size: number, anchor:
   const textX = iconX + badge + 14;
   const badgeTop = y - Math.round(size * 0.35 + badge / 2);
   return `${heroChecklistBadge(iconX, badgeTop, badge)}
-  ${textLine(textX, y, label, { anchor: "start", fill: "#FFFFFF", size, weight: 700 })}`;
+  ${textLine(textX, y, label, { anchor: "start", fill: DS_COLORS.white, size, weight: DS_WEIGHT.bold })}`;
 }
 
 function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
@@ -2025,8 +2025,8 @@ function destinoConditionColumn(cx: number, centerY: number, raw: string, bigSiz
   const restH = restLines.length ? 8 + restLines.length * (restSize + 4) : 0;
   const blockH = bigSize + restH;
   const bigBase = centerY - Math.round(blockH / 2) + Math.round(bigSize * 0.76);
-  const bigLine = textLine(cx, bigBase, big, { anchor: "middle", fill: GOLD_LIGHT, family: "Anton", size: bigSize, weight: 400 });
-  const restMarkup = restLines.map((line, i) => textLine(cx, bigBase + Math.round(bigSize * 0.30) + 8 + i * (restSize + 4), line, { anchor: "middle", fill: "rgba(255,255,255,0.86)", family: "Inter", size: restSize, weight: 600 })).join("");
+  const bigLine = textLine(cx, bigBase, big, { anchor: "middle", fill: GOLD_LIGHT, family: DS_FONT.display, size: bigSize, weight: DS_WEIGHT.regular });
+  const restMarkup = restLines.map((line, i) => textLine(cx, bigBase + Math.round(bigSize * 0.30) + 8 + i * (restSize + 4), line, { anchor: "middle", fill: "rgba(255,255,255,0.86)", family: DS_FONT.body, size: restSize, weight: DS_WEIGHT.semibold })).join("");
   return bigLine + restMarkup;
 }
 
@@ -2037,10 +2037,10 @@ function destinoCtaPill(x: number, y: number, w: number, h: number, label: strin
   const circX = x + Math.round(h * 0.5);
   const a = Math.round(circR * 0.52);
   const sw = Math.max(2.4, Math.round(h * 0.05));
-  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="#FFFFFF"/>
-  <circle cx="${circX}" cy="${cyc}" r="${circR}" fill="#0A1628"/>
-  <path d="M ${circX - a} ${cyc} H ${circX + a} M ${circX + a - Math.round(a * 0.7)} ${cyc - Math.round(a * 0.7)} L ${circX + a} ${cyc} L ${circX + a - Math.round(a * 0.7)} ${cyc + Math.round(a * 0.7)}" stroke="#FFFFFF" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  ${textLine(circX + circR + Math.round(h * 0.40), cyc + Math.round(size * 0.35), label, { anchor: "start", fill: "#0A1628", family: "Inter", size, weight: 800 })}`;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${DS_COLORS.white}"/>
+  <circle cx="${circX}" cy="${cyc}" r="${circR}" fill="${DS_COLORS.navy}"/>
+  <path d="M ${circX - a} ${cyc} H ${circX + a} M ${circX + a - Math.round(a * 0.7)} ${cyc - Math.round(a * 0.7)} L ${circX + a} ${cyc} L ${circX + a - Math.round(a * 0.7)} ${cyc + Math.round(a * 0.7)}" stroke="${DS_COLORS.white}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  ${textLine(circX + circR + Math.round(h * 0.40), cyc + Math.round(size * 0.35), label, { anchor: "start", fill: DS_COLORS.navy, family: DS_FONT.body, size, weight: DS_WEIGHT.black })}`;
 }
 
 function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
