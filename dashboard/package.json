@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint .",
-    "sync:pecas": "node scripts/sync-pecas.mjs"
+    "sync:pecas": "node scripts/sync-pecas.mjs",
+    "qa:creative": "node scripts/creative-qa.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

@@ -136,4 +136,37 @@ describe('creativeLint v2 — composição determinística (os erros marcados no
     const els = [{ role: 'bar', box: { x: 90, y: 300, w: 900, h: 70 }, block: true }]
     expect(lintCreative(safe, els).ok).toBe(true)
   })
+
+  it('REPROVA overflow: texto excede o container (fill acima do teto)', () => {
+    const els = [{ role: 'bar', box: { x: 90, y: 300, w: 400, h: 70 }, fill: 1.08, maxFill: 0.99 }]
+    const r = lintCreative(safe, els)
+    expect(r.errors).toContain('overflow:bar')
+  })
+
+  it('APROVA quando o texto abraça o container com folga (fill ≤ maxFill)', () => {
+    const els = [{ role: 'bar', box: { x: 90, y: 300, w: 400, h: 70 }, fill: 0.94, minFill: 0.80, maxFill: 0.99 }]
+    expect(lintCreative(safe, els).ok).toBe(true)
+  })
+
+  it('REPROVA eixos de texto escalonados (axis_misaligned)', () => {
+    const els = [
+      { role: 'headline', box: { x: 90, y: 200, w: 800, h: 80 }, onAxis: true, textLeft: 90 },
+      { role: 'bar', box: { x: 90, y: 300, w: 800, h: 70 }, onAxis: true, textLeft: 125 }, // recuo do padding
+      { role: 'price', box: { x: 90, y: 400, w: 800, h: 120 }, onAxis: true, textLeft: 154 },
+    ]
+    const r = lintCreative(safe, els, { axisTol: 8 })
+    expect(r.errors.some(e => e.startsWith('axis_misaligned:'))).toBe(true)
+    expect(r.metrics.axis_spread).toBe(64)
+  })
+
+  it('APROVA quando todos os textos partem do mesmo eixo (spread 0)', () => {
+    const els = [
+      { role: 'headline', box: { x: 124, y: 200, w: 700, h: 80 }, onAxis: true, textLeft: 124 },
+      { role: 'bar', box: { x: 90, y: 300, w: 700, h: 70 }, onAxis: true, textLeft: 124 },
+      { role: 'price', box: { x: 90, y: 400, w: 700, h: 120 }, onAxis: true, textLeft: 124 },
+    ]
+    const r = lintCreative(safe, els, { axisTol: 8 })
+    expect(r.metrics.axis_spread).toBe(0)
+    expect(r.errors.some(e => e.startsWith('axis_misaligned'))).toBe(false)
+  })
 })

@@ -23,8 +23,11 @@ export interface LintElement {
   // v2 (determinismo de composição):
   fill?: number;        // fração [0..1] da largura interna do container preenchida pelo conteúdo
   minFill?: number;     // preenchimento mínimo exigido (reprova vazio lateral sem função)
+  maxFill?: number;     // preenchimento máximo (fill>max ⇒ texto encostando/excedendo o container)
   secondary?: boolean;  // texto secundário (barra/rodapé) — referência p/ a proeminência do preço
   isLogo?: boolean;     // é a logo da marca (checa presença quando requireLogo)
+  textLeft?: number;    // x óptico da 1ª letra (para checar o eixo de alinhamento entre textos)
+  onAxis?: boolean;     // participa do eixo de alinhamento comum (com textLeft)
 }
 
 export interface LintReport { ok: boolean; errors: string[]; warnings: string[]; metrics?: Record<string, number> }
@@ -34,6 +37,7 @@ export interface LintOptions {
   gapCap?: number;       // maior faixa morta vertical tolerada (px) entre blocos de topo
   priceMinRatio?: number; // altura do preço ≥ ratio × maior texto secundário
   requireLogo?: boolean;  // exige uma logo presente
+  axisTol?: number;       // desvio máximo (px) entre os eixos ópticos dos textos onAxis
 }
 
 // Fração da menor caixa a partir da qual uma sobreposição conta como colisão real (evita falso-positivo
@@ -95,10 +99,22 @@ export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[], 
 
   // 7) Preenchimento: conteúdo que deixa vazio lateral sem função dentro do próprio container
   // (ex.: valor curto numa placa larga, texto centralizado numa barra full-width). REPROVA.
+  // E o inverso: fill acima do teto ⇒ texto encostando/excedendo a borda do container (overflow).
   for (const e of elements) {
-    if (e.minFill != null && e.fill != null) {
+    if (e.fill != null && (e.minFill != null || e.maxFill != null)) {
       metrics[`fill_${e.role}`] = Number(e.fill.toFixed(2));
-      if (e.fill < e.minFill) errors.push(`underfill:${e.role}`);
+      if (e.minFill != null && e.fill < e.minFill) errors.push(`underfill:${e.role}`);
+      if (e.maxFill != null && e.fill > e.maxFill) errors.push(`overflow:${e.role}`);
+    }
+  }
+
+  // 7b) Eixo de alinhamento: os textos marcados onAxis devem partir do MESMO x óptico (± axisTol).
+  if (opts.axisTol != null) {
+    const lefts = elements.filter((e) => e.onAxis && e.textLeft != null).map((e) => e.textLeft as number);
+    if (lefts.length > 1) {
+      const spread = Math.max(...lefts) - Math.min(...lefts);
+      metrics.axis_spread = Math.round(spread);
+      if (spread > opts.axisTol) errors.push(`axis_misaligned:${Math.round(spread)}>${opts.axisTol}`);
     }
   }
 
