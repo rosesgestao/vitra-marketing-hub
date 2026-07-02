@@ -157,9 +157,11 @@ Contraste sobre foto ⇒ amostrar luminância no render (custo só atrás de tex
   [[Atualizacao_2026-07-01_Etapa2_Tokenizar_Preco_CTA_Badge]] preço/CTA/badge **tokenizados** (decisão:
   tokenizar, não homogeneizar; byte-diff IDÊNTICO). Pendências mapeadas p/ Etapa 3/4: preço/CTA inline
   dos builders, fonte Poppins, valores non-token.
-- **Etapa 3 (em andamento):** [[Atualizacao_2026-07-01_Etapa3_Schemas_Oferta]] — `templateSchemas.ts`
-  (tipos + schemaFor) + **oferta schema-driven** (layout+contrato em dado, byte-idêntico). Falta: 5
-  famílias restantes ao schema + tokenizar preço/CTA inline no mesmo passo; guard catálogo↔schema.
+- **Etapa 3 (em andamento — 3/6):** `templateSchemas.ts` + schema-driven em **oferta**
+  [[Atualizacao_2026-07-01_Etapa3_Schemas_Oferta]], **destino + ficha**
+  [[Atualizacao_2026-07-01_Etapa3_Schemas_Destino_Ficha]] (padrão: mover o L verbatim p/ `xLayout()`,
+  byte-idêntico). Faltam **vitrine, hero-checklist, duo-selos** (+ tokenizar preço/CTA inline junto);
+  depois guard catálogo↔schema.
 - **Etapa 4 (depois):** lint v3 — contraste WCAG real, token_conformance, format_divergence, gap mínimo
   logo↔headline (achado do passo 2), 3 níveis de severidade.
 

@@ -19,7 +19,7 @@ import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVers
 import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDesign.ts";
 import { DS_TYPE, DS_WEIGHT, DS_STROKE } from "../_shared/designTokens.ts";
 import { logoBlock } from "../_shared/components.ts";
-import { OFERTA_LAYOUT, schemaFor } from "../_shared/templateSchemas.ts";
+import { OFERTA_LAYOUT, destinoLayout, fichaLayout, schemaFor } from "../_shared/templateSchemas.ts";
 import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
@@ -1672,25 +1672,9 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const NAVY = "#0A1628";
   const BAR = "#13294C";
 
-  const L = isStory ? {
-    logo: [80, 292, 168], head: [80, 470, 96], sub: [80, 548, 52, 60, 22, 2],
-    feat: { tileX: 80, tileY0: 690, tileSize: 100, rowGap: 18, barX: 196, barW: 392, barH: 100, textX: 226, textSize: 32, iconSize: 50 },
-    price: [80, 1232, 508, 134, 26, 102],
-    gallery: [628, 412, [470, 778, 1086], 296, 22],
-    footer: { y: 1418, pad: 80, ctaSize: 30, lh: 40 },
-  } : isWide ? {
-    logo: [72, 66, 150], head: [72, 156, 56], sub: [72, 206, 30, 36, 22, 2],
-    feat: { tileX: 72, tileY0: 280, tileSize: 60, rowGap: 12, barX: 142, barW: 300, barH: 60, textX: 166, textSize: 22, iconSize: 32 },
-    price: [466, 274, 348, 92, 16, 66],
-    gallery: [836, 268, [64, 252, 440], 178, 16],
-    footer: null,
-  } : {
-    logo: [72, 72, 158], head: [72, 200, 76], sub: [72, 256, 44, 52, 22, 2],
-    feat: { tileX: 72, tileY0: 372, tileSize: 76, rowGap: 16, barX: 160, barW: 426, barH: 76, textX: 188, textSize: 28, iconSize: 40 },
-    price: [72, 748, 514, 116, 20, 92],
-    gallery: [624, 384, [72, 372, 672], 284, 22],
-    footer: { y: 996, pad: 72, ctaSize: 25, lh: 33 },
-  };
+  // Layout + contrato (Etapa 3): posição/tamanhos e o contrato de campos/lint vêm do SCHEMA (dado).
+  const S = schemaFor("vitra-imobiliaria-ficha-imovel")!;
+  const L = fichaLayout(isStory, isWide);
 
   // BG sólido navy (gradiente sutil).
   const bg = `<defs><linearGradient id="${idBase}-fbg" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0%" stop-color="#0E1D38"/><stop offset="100%" stop-color="#0A1628"/></linearGradient></defs>
@@ -1713,7 +1697,7 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   // Cap 30 (era 18, truncava headlines normais como "Apartamento no Rio Branco") alinhado ao charLimit
   // do lint: ≤30 renderiza inteiro (encolhe pela largura); >30 o gate reprova em vez de exibir cortado.
   const headBudget = isWide ? 360 : isStory ? 520 : 480;
-  const headLine = textLine(hX, hY, compactText(headline, 30), { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: fitDisplaySize(headline, hSize, 30, headBudget, 0.84), weight: 700 });
+  const headLine = textLine(hX, hY, compactText(headline, S.fields.headline.charLimit), { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: fitDisplaySize(headline, hSize, 30, headBudget, 0.84), weight: 700 });
   const [sX, sY, sSize, sLh, sMax, sLines] = L.sub as [number, number, number, number, number, number];
   const subLines = subtitle ? wrapText(subtitle, sMax, sLines).map((ln, i) => textLine(sX, sY + i * sLh, ln, { anchor: "start", fill: "#E8ECF4", family: "Poppins", size: sSize, weight: 500 })).join("") : "";
 
@@ -1753,13 +1737,13 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const fcHeadSize = fitDisplaySize(headline, hSize, 30, headBudget, 0.84);
   const fcEls: LintElement[] = [
     { role: "logo", box: logoC.box, critical: true, isLogo: true },
-    { role: "headline", box: { x: hX, y: hY - Math.round(fcHeadSize * 0.8), w: headBudget, h: hSize }, critical: true, block: true, charLen: headline.length, charLimit: 30, fontSize: fcHeadSize, minFont: 30, onAxis: true, textLeft: hX },
+    { role: "headline", box: { x: hX, y: hY - Math.round(fcHeadSize * 0.8), w: headBudget, h: hSize }, critical: true, block: true, charLen: headline.length, charLimit: S.fields.headline.charLimit, fontSize: fcHeadSize, minFont: 30, onAxis: true, textLeft: hX },
     { role: "subtitle", box: { x: sX, y: sY - sSize, w: headBudget, h: (subtitle ? wrapText(subtitle, sMax, sLines).length : 1) * sLh }, critical: true, onAxis: true, textLeft: sX, charLen: subtitle.length, charLimit: sMax * sLines },
     { role: "feature", box: { x: f.tileX, y: f.tileY0, w: f.barX + f.barW - f.tileX, h: features.length * (f.tileSize + f.rowGap) }, critical: true, block: true },
     { role: "price", box: { x: pX, y: pY, w: pW, h: pH }, critical: true, block: true },
   ];
   if (L.footer) fcEls.push({ role: "footnote", box: { x: L.footer.pad, y: L.footer.y - L.footer.ctaSize, w: headBudget, h: wrapText(cta, 30, 2).length * L.footer.lh }, critical: true, onAxis: true, textLeft: L.footer.pad });
-  runCreativeLint(out, W, H, "ficha-imovel", fcEls, { requireLogo: true, axisTol: 8 });
+  runCreativeLint(out, W, H, "ficha-imovel", fcEls, { ...S.lint });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>${galDefs}</defs>
@@ -2034,7 +2018,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   const place = String(pd.location || pd.neighborhood || campaign?.neighborhood || campaign?.city || "Seu novo endereço").trim();
   const placeRaw = place.toUpperCase();
   // Subtitulo = linha de lifestyle / beneficio.
-  const subtitle = compactText((asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString(), 88);
+  const subtitle = compactText((asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString(), schemaFor("vitra-imobiliaria-destino-bairro")!.fields.subtitle.charLimit);
   // Painel de condicoes (2 colunas). Deriva de campos dedicados ou cai para preco/financiamento.
   const panelTitle = compactText((pd.panel_title || "Condições exclusivas:").toString(), 40).toUpperCase();
   const cond1 = compactText((pd.condition_primary || pd.financing_claim || (pd.price ? `A partir de ${formatMoneyLike(pd.price)}` : "Condições facilitadas")).toString(), 40);
@@ -2045,29 +2029,9 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   // Design System (P0): safe-zone real do formato vinda da fonte única.
   const F = formatSpec(W, H);
 
-  const L = isStory ? {
-    cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
-    logoY: 258, logoCenter: true, // safe-zone story y≥250 (logo antes em 206, no chrome da Meta)
-    heroY: 470, heroBase: 150, heroBudget: 720,
-    subY: 596, subSize: 32, subChars: 40, subGap: 42,
-    panel: [90, 690, 900, 248], panelTitleSize: 24, condBig: 60, condRest: 22, condRestChars: 22,
-    cta: [330, 1196, 420, 92], ctaSize: 30, footY: 1320, footSize: 24, veil: "v",
-  } : isWide ? {
-    // 1.91:1 alinhado à SAFE ZONE real do Meta (x≥89), não mais x=72.
-    cx: 600, margin: 89, anchor: "start" as const, contentX: 89,
-    logoY: 66, logoCenter: false,
-    heroY: 180, heroBase: 92, heroBudget: 640,
-    subY: 236, subSize: 22, subChars: 44, subGap: 30,
-    panel: [89, 282, 660, 158], panelTitleSize: 17, condBig: 38, condRest: 15, condRestChars: 18,
-    cta: [89, 452, 320, 64], ctaSize: 21, footY: 540, footSize: 16, veil: "h",
-  } : {
-    cx: 540, margin: 90, anchor: "middle" as const, contentX: 540,
-    logoY: 66, logoCenter: true,
-    heroY: 296, heroBase: 152, heroBudget: 760,
-    subY: 372, subSize: 29, subChars: 40, subGap: 38,
-    panel: [90, 432, 900, 210], panelTitleSize: 22, condBig: 54, condRest: 20, condRestChars: 22,
-    cta: [330, 686, 420, 80], ctaSize: 28, footY: 800, footSize: 22, veil: "v",
-  };
+  // Layout + contrato (Etapa 3): posição/tamanhos e o contrato de campos/lint vêm do SCHEMA (dado).
+  const S = schemaFor("vitra-imobiliaria-destino-bairro")!;
+  const L = destinoLayout(isStory, isWide);
 
   // Imagem dirigida (DS P1): grade navy + enquadramento por foco (story = topo do prédio).
   const photoLayer = dsImageLayer(hero, W, H, idBase, F.kind, { grade: true });
@@ -2166,7 +2130,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   const footBoxX = L.anchor === "middle" ? L.cx - Math.round(footW / 2) : L.margin;
   const lintEls: LintElement[] = [
     { role: "logo", box: logoC.box, critical: true, isLogo: true },
-    { role: "hero", box: { x: heroX, y: L.heroY - Math.round(heroSize * 0.80), w: heroW, h: Math.round(heroSize * 0.92) }, critical: true, block: true, display: true, fontSize: heroSize, minFont: Math.round(L.heroBase * 0.42), charLen: placeRaw.length, charLimit: 18 },
+    { role: "hero", box: { x: heroX, y: L.heroY - Math.round(heroSize * 0.80), w: heroW, h: Math.round(heroSize * 0.92) }, critical: true, block: true, display: true, fontSize: heroSize, minFont: Math.round(L.heroBase * 0.42), charLen: placeRaw.length, charLimit: S.fields.hero.charLimit },
     { role: "subtitle", box: { x: subX, y: L.subY - L.subSize, w: subW, h: subLines.length * L.subGap }, critical: true, block: true, display: true, fontSize: L.subSize, charLen: subtitle.length, charLimit: 88 },
     { role: "panel", box: { x: pX, y: pY, w: pW, h: pH }, critical: true, block: true },
     { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, overImage: true, hasScrim: true },
@@ -2175,7 +2139,7 @@ function buildVitraDestinoBairroSvg(asset: any, campaign: any, images: Array<str
   if (tag) lintEls.push({ role: "badge", box: { x: tagX, y: tagY, w: tagW, h: tagH }, block: true });
   // Arquétipo CENTRADO (feed/story ancoram no eixo central; wide em coluna à esquerda) → sem regra de
   // eixo (axis). v2 = exige a logo declarada + dentro da safe-zone.
-  const lint = lintCreative(F.safe, lintEls, { requireLogo: true });
+  const lint = lintCreative(F.safe, lintEls, { ...S.lint });
   if (out) out.lint = lint;
   if (!lint.ok) console.warn(`[creativeLint] destino-bairro ${F.kind}: ${lint.errors.join(", ")}`);
 
