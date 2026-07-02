@@ -14,6 +14,7 @@
 // Sai com código 1 se qualquer fixture divergir do esperado (falha o CI).
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync, existsSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
@@ -78,6 +79,24 @@ function metricDrift(base, cur) {
     if (Math.abs(cv - bv) > tol) drifts.push(`${k} ${cv}≠${bv}`)
   }
   return drifts
+}
+
+// ── Golden visual (SHA do PNG) ────────────────────────────────────────────────────────────────────────
+// O render é byte-determinístico (mesmo input → mesmos bytes). O golden é o SHA-1 do PNG: pega QUALQUER
+// mudança visual que o lint/métricas não veem (cor de gradiente, forma, tratamento de imagem). Footprint
+// mínimo (SHAs num JSON, não os PNGs). `--update-visual` regrava (após mudança visual APROVADA). Num
+// upgrade de fonte/Resvg todos mudam → regerar após revisão.
+const VISUAL_PATH = resolve(HERE, 'creative-qa-visual.json')
+const UPDATE_VISUAL = process.argv.includes('--update-visual')
+const VISUAL = existsSync(VISUAL_PATH) ? JSON.parse(readFileSync(VISUAL_PATH, 'utf8')) : {}
+const capturedVisual = { ...VISUAL }
+const sha1 = (buf) => createHash('sha1').update(buf).digest('hex')
+async function readPngSha(id) {
+  const { data } = await svc.from('premium_campaign_assets').select('public_url').eq('id', id).single()
+  if (!data?.public_url) return null
+  const res = await fetch(data.public_url)
+  if (!res.ok) return null
+  return sha1(Buffer.from(await res.arrayBuffer()))
 }
 
 // Conteúdo realista comum (superset de campos; cada builder usa o que precisa e cai em fallback no resto).
@@ -195,6 +214,14 @@ async function run() {
             const drift = metricDrift(BASELINE[key], lint?.metrics)
             if (drift.length) { verdict.pass = false; verdict.why = `drift de métrica: ${drift.join(', ')}` }
           }
+          // Golden visual (SHA do PNG) — só busca o PNG se for atualizar ou se houver golden p/ a chave.
+          if (rendered && (UPDATE_VISUAL || VISUAL[key] != null)) {
+            const sha = await readPngSha(id)
+            if (sha) {
+              if (UPDATE_VISUAL) capturedVisual[key] = sha
+              else if (verdict.pass && sha !== VISUAL[key]) { verdict.pass = false; verdict.why = `regressão visual: SHA ${sha.slice(0, 10)} ≠ golden ${VISUAL[key].slice(0, 10)}` }
+            }
+          }
           rows.push({ fam, content: content.name, format, ...verdict, metrics: lint?.metrics })
         } catch (e) {
           rows.push({ fam, content: content.name, format, pass: false, why: e.message })
@@ -205,9 +232,9 @@ async function run() {
     }
   }
 
-  if (UPDATE_BASELINE) {
-    writeFileSync(BASELINE_PATH, JSON.stringify(capturedBaseline, null, 2) + '\n')
-    console.log(`\nbaseline de métricas atualizado: ${Object.keys(capturedBaseline).length} entradas → creative-qa-baseline.json`)
+  if (UPDATE_BASELINE || UPDATE_VISUAL) {
+    if (UPDATE_BASELINE) { writeFileSync(BASELINE_PATH, JSON.stringify(capturedBaseline, null, 2) + '\n'); console.log(`\nbaseline de métricas: ${Object.keys(capturedBaseline).length} entradas → creative-qa-baseline.json`) }
+    if (UPDATE_VISUAL) { writeFileSync(VISUAL_PATH, JSON.stringify(capturedVisual, null, 2) + '\n'); console.log(`golden visual (SHA): ${Object.keys(capturedVisual).length} entradas → creative-qa-visual.json`) }
     return
   }
 

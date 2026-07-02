@@ -148,6 +148,13 @@ Contraste sobre foto ⇒ amostrar luminância no render (custo só atrás de tex
 - [ ] Governança: selectable só após N fixtures verdes + aprovação visual; DS versionado com changelog.
 
 ## Progresso
+- **NÚCLEO COMPLETO (etapas 1-8):** tokens · componentes · schemas/zonas · lint v3 · render_trace ·
+  harness (Premium + baseline de métricas + regressão visual golden SHA) · guard de governança.
+  Última grande peça: [[Atualizacao_2026-07-02_Etapa7_Regressao_Visual_Golden]] — 3 camadas de proteção
+  (ok + métricas golden + SHA golden). Restam só pendências MENORES (não bloqueiam): contraste WCAG nas
+  outras 5 famílias + sobre foto, format_divergence, promover logo_crowding a erro, imagem H/V/Q,
+  governança documental (ciclo de vida/changelog DS).
+
 - **Etapa 5 ✅:** [[Atualizacao_2026-07-02_Etapa5_Render_Trace]] — `render_trace` por asset (ds_version,
   template_version, archetype, format, lint-resumo, decisão do gate, rendered_at). Byte-idêntico.
 
