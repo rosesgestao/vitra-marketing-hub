@@ -105,6 +105,7 @@ import { renderPostArtToCanvas, postArtBlob, ensureArtFonts, postArtDims } from 
 import VitraSelect from '../components/VitraSelect.jsx'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
+import { humanizeLintList } from '../lib/lintText.js'
 import {
   selectableCreativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
@@ -747,7 +748,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     // Gate de validação visual (Creative Lint): não deixa aprovar um corte com lint reprovado.
     const lint = asset.metadata?.lint
     if (lint && lint.ok === false) {
-      setError(`Este corte (${asset.aspect_ratio}) não passou na validação visual: ${(lint.errors || []).join(', ')}. Ajuste o template/dados e re-renderize antes de aprovar.`)
+      setError(`Este corte (${asset.aspect_ratio}) não passou na validação visual: ${humanizeLintList(lint.errors).join(', ')}. Ajuste o template/dados e re-renderize antes de aprovar.`)
       return
     }
     setAssetBusyId(asset.id)
@@ -3896,10 +3897,20 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
         </div>
         {Array.isArray(current?.metadata?.lint?.errors) && current.metadata.lint.errors.length > 0 && (
           <div className="mt-2 rounded border border-amber-400/25 bg-amber-400/[0.06] px-2.5 py-1.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200/90">Validação visual — corte {current.aspect_ratio}</p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-amber-100/80">{current.metadata.lint.errors.join(' · ')}</p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200/90">Reprovado na validação visual — corte {current.aspect_ratio}</p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-amber-100/80">{humanizeLintList(current.metadata.lint.errors).join(' · ')}</p>
           </div>
         )}
+        {(() => {
+          const notes = humanizeLintList([...(current?.metadata?.lint?.warnings || []), ...(current?.metadata?.lint?.recommendations || [])])
+          if (!notes.length) return null
+          return (
+            <div className="mt-2 rounded border border-sky-400/20 bg-sky-400/[0.05] px-2.5 py-1.5">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-200/80">Observações de qualidade — não bloqueiam</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-sky-100/70">{notes.join(' · ')}</p>
+            </div>
+          )
+        })()}
       </div>
 
       <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">

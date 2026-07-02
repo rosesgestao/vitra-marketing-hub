@@ -167,9 +167,12 @@ Contraste sobre foto ⇒ amostrar luminância no render (custo só atrás de tex
   (3 severidades + `logo_crowding` ALERTA); increment 2 [[Atualizacao_2026-07-01_Etapa4_Token_Conformance]]
   (`tokenConformance` varre o SVG; paleta completada com 4 navies; alertas cirúrgicos: Poppins,
   near-whites, #111111); increment 3 [[Atualizacao_2026-07-01_Etapa4_Contraste_WCAG]] (contraste WCAG
-  real sobre superfície sólida, ERRO; fiado no oferta: bar 16.58, price 6.58). Faltam: estender
-  contraste às outras 5 famílias + sobre FOTO (raster), format_divergence, promover logo_crowding a
-  erro, front exibir warnings. Débito de marca: Poppins→Inter, near-whites→offWhite, #111111→navyDeep.
+  real sobre superfície sólida, ERRO; fiado no oferta: bar 16.58, price 6.58); increment 4
+  [[Atualizacao_2026-07-01_Etapa4_Front_Exibe_Warnings]] (front exibe warnings humanizados —
+  `lib/lintText.js`; bloco azul "Observações de qualidade"). Faltam (menores): estender contraste às
+  outras 5 famílias + sobre FOTO (raster), format_divergence, promover logo_crowding a erro por
+  arquétipo. Débito de marca (agora visível ao operador): Poppins→Inter, near-whites→offWhite,
+  #111111→navyDeep.
 - **Etapa 4 (depois):** lint v3 — contraste WCAG real, token_conformance, format_divergence, gap mínimo
   logo↔headline (achado do passo 2), 3 níveis de severidade.
 
