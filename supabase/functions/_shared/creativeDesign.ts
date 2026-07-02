@@ -8,6 +8,11 @@ export const DS_COLORS = {
   navy: "#0A1628",
   navyMid: "#0F2140",
   navyDeep: "#07111F",
+  // Navies estruturais (profundidade de gradiente + superfícies/barras) — sistema real de fundo.
+  navyAbyss: "#050C16",  // stop mais profundo dos gradientes de fundo
+  navyBg: "#0A1B32",     // fundo navy intermediário
+  navyPanel: "#0E1D38",  // topo do painel (ficha)
+  navyBar: "#13294C",    // barra/superfície navy sobre o fundo
   gold: "#C4942A",
   goldLight: "#F0C95C",
   white: "#FFFFFF",

@@ -163,10 +163,12 @@ Contraste sobre foto ⇒ amostrar luminância no render (custo só atrás de tex
   [[Atualizacao_2026-07-01_Etapa3_Schemas_Completa]]. Posição = DADO (o motor lê a zona). Tudo
   byte-idêntico. Pendências (não regressão): preço/CTA inline sem token, Poppins fora do DS_FONT,
   normalização rel 0..1 opcional, guard catálogo↔schema.
-- **Etapa 4 (em andamento):** [[Atualizacao_2026-07-01_Etapa4_Lint_v3_Severidade_LogoGap]] — increment 1:
-  3 níveis de severidade (errors/warnings/recommendations) + regra `logo_crowding` (ALERTA, gap
-  logo↔headline, limiar 14). Faltam: token_conformance (#111111/Poppins/alphas/weight 900), contraste
-  WCAG real, format_divergence, promover logo_crowding a erro por arquétipo, front exibir warnings.
+- **Etapa 4 (em andamento):** increment 1 [[Atualizacao_2026-07-01_Etapa4_Lint_v3_Severidade_LogoGap]]
+  (3 severidades + `logo_crowding` ALERTA); increment 2 [[Atualizacao_2026-07-01_Etapa4_Token_Conformance]]
+  (`tokenConformance` varre o SVG; paleta completada com 4 navies; alertas cirúrgicos: Poppins,
+  near-whites, #111111). Faltam: contraste WCAG real, format_divergence, promover logo_crowding a erro
+  por arquétipo, front exibir warnings. Débito de marca a decidir: Poppins→Inter, near-whites→offWhite,
+  #111111→navyDeep.
 - **Etapa 4 (depois):** lint v3 — contraste WCAG real, token_conformance, format_divergence, gap mínimo
   logo↔headline (achado do passo 2), 3 níveis de severidade.
 

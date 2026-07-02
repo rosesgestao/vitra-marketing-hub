@@ -20,7 +20,7 @@ import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDes
 import { DS_TYPE, DS_WEIGHT, DS_STROKE } from "../_shared/designTokens.ts";
 import { logoBlock } from "../_shared/components.ts";
 import { OFERTA_LAYOUT, destinoLayout, fichaLayout, vitrineLayout, heroChecklistLayout, duoSelosLayout, schemaFor } from "../_shared/templateSchemas.ts";
-import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
+import { lintCreative, tokenConformance, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -29,6 +29,9 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const GOLD = DS_COLORS.gold;        // brandbook --gold (fonte única: DS_COLORS)
 const GOLD_LIGHT = DS_COLORS.goldLight;  // brandbook --gold-light (kicker)
 const OFF_WHITE = DS_COLORS.offWhite;   // brandbook --off-white (copy)
+// Paleta/fontes do design system p/ o token_conformance (Etapa 4): cores #hex de DS_COLORS + Anton/Inter.
+const TOKEN_COLORS = new Set(Object.values(DS_COLORS).filter((v) => /^#[0-9a-fA-F]{6}$/.test(v)).map((v) => v.toUpperCase()));
+const TOKEN_FONTS = new Set<string>(Object.values(DS_FONT));
 // Densidade de pixels da peca Premium (caminho satori legado) POR FORMATO. 1.0 = full-res (DIMS
 // reais, ex.: 1080x1080 / 1200x628). Era 0.55 (~594px, ABAIXO do minimo Meta de 1080) -> P0.1 do roadmap
 // de Tráfego: default agora 1.0 (Premium 1:1=1080 e 1.91:1=1200, FULL-RES). O caminho satori estoura o
@@ -2327,6 +2330,8 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       step = "build_approved_template_svg";
       const lintOut: { lint?: ReturnType<typeof lintCreative> } = {};
       const svg = buildVitraImobiliariaApprovedSvg(asset, campaign, imageData, W, H, brandProfile, templateFamily, lintOut);
+      // v3 token_conformance (ALERTA): cor/fonte do SVG fora da paleta do design system → warnings.
+      if (lintOut.lint) lintOut.lint.warnings.push(...tokenConformance(svg, TOKEN_COLORS, TOKEN_FONTS));
       step = "init_wasm";
       await ensureWasm();
       step = "resvg";

@@ -47,6 +47,27 @@ export interface LintOptions {
 // por encostar 1px). Blocos pai/filho NÃO entram aqui (só elementos marcados block:true).
 const OVERLAP_TOL = 0.06;
 
+// v3 — conformidade de token (nível ALERTA): varre o SVG FINAL por CORES (#hex) e FONTES fora da paleta
+// do design system. Diferente das demais regras (geometria), opera na STRING de saída. Ignora `none`,
+// gradientes por url() e alphas rgba() (tratados à parte). Retorna avisos `token_color:#..`/`token_font:..`.
+export function tokenConformance(svg: string, palette: Set<string>, fonts: Set<string>): string[] {
+  const out: string[] = [];
+  const colors = new Set<string>();
+  for (const m of svg.matchAll(/(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{6})"/g)) {
+    const hex = m[1].toUpperCase();
+    if (!palette.has(hex)) colors.add(hex);
+  }
+  for (const c of [...colors].sort()) out.push(`token_color:${c}`);
+  const fam = new Set<string>();
+  for (const m of svg.matchAll(/font-family="([^"]+)"/g)) {
+    // fonte PRIMÁRIA do stack ("Inter, Arial, sans-serif" → "Inter"); fallbacks não contam.
+    const f = m[1].split(",")[0].trim().replace(/^['"]|['"]$/g, "");
+    if (f && !fonts.has(f)) fam.add(f);
+  }
+  for (const f of [...fam].sort()) out.push(`token_font:${f}`);
+  return out;
+}
+
 export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[], opts: LintOptions = {}): LintReport {
   const errors: string[] = [];
   const warnings: string[] = [];

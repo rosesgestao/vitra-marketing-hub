@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { formatSpec, withinSafe } from '../../../../supabase/functions/_shared/creativeDesign.ts'
-import { lintCreative } from '../../../../supabase/functions/_shared/creativeLint.ts'
+import { lintCreative, tokenConformance } from '../../../../supabase/functions/_shared/creativeLint.ts'
 
 describe('creativeDesign — formatSpec / safe-zone', () => {
   it('deriva canvas, kind e safe-zone por formato', () => {
@@ -31,6 +31,27 @@ describe('creativeLint — gate objetivo', () => {
     { role: 'cta', box: { x: 330, y: 720, w: 420, h: 80 }, critical: true, block: true, overImage: true, hasScrim: true },
     { role: 'footnote', box: { x: 380, y: 820, w: 320, h: 28 }, critical: true, overImage: true, hasScrim: true },
   ]
+
+  it('v3 token_conformance: sinaliza cor #hex fora da paleta', () => {
+    const palette = new Set(['#0A1628', '#C4942A', '#FFFFFF'])
+    const fonts = new Set(['Anton', 'Inter'])
+    const w = tokenConformance('<rect fill="#111111"/><text fill="#0A1628">x</text>', palette, fonts)
+    expect(w).toContain('token_color:#111111')
+    expect(w).not.toContain('token_color:#0A1628')
+  })
+
+  it('v3 token_conformance: fonte fora do DS, mas aceita stack com primária válida', () => {
+    const palette = new Set(['#0A1628'])
+    const fonts = new Set(['Anton', 'Inter'])
+    const w = tokenConformance('<text font-family="Poppins">a</text><text font-family="Inter, Arial, sans-serif">b</text>', palette, fonts)
+    expect(w).toContain('token_font:Poppins')
+    expect(w.some((x) => x.startsWith('token_font:Inter'))).toBe(false)
+  })
+
+  it('v3 token_conformance: ignora none / url() / rgba', () => {
+    const w = tokenConformance('<rect fill="none"/><rect fill="url(#g)"/><text fill="rgba(255,255,255,0.8)">x</text>', new Set(['#0A1628']), new Set(['Inter']))
+    expect(w).toEqual([])
+  })
 
   it('v3: o relatório expõe os 3 níveis (errors/warnings/recommendations)', () => {
     const r = lintCreative(safe, ok)
