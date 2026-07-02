@@ -42,6 +42,15 @@ describe('templateSchemas — contrato formal por template', () => {
     }
   })
 
+  it('todas as 6 famílias SELECIONÁVEIS têm schema (guard de cobertura)', () => {
+    const selectable = [
+      'vitra-imobiliaria-oferta-ancora', 'vitra-imobiliaria-hero-checklist',
+      'vitra-imobiliaria-duo-selos-offer', 'vitra-imobiliaria-vitrine-gallery',
+      'vitra-imobiliaria-ficha-imovel', 'vitra-imobiliaria-destino-bairro',
+    ]
+    for (const fam of selectable) expect(schemaFor(fam), fam).toBeTruthy()
+  })
+
   it('oferta: contrato de lint e campos conforme aprovado', () => {
     const s = schemaFor('vitra-imobiliaria-oferta-ancora')
     expect(s.lint).toEqual({ priceMinRatio: 1.6, axisTol: 8, requireLogo: true })

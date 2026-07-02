@@ -114,6 +114,85 @@ export function fichaLayout(isStory: boolean, isWide: boolean) {
   };
 }
 
+// ── vitrine-gallery ───────────────────────────────────────────────────────────────────────────────
+export function vitrineLayout(isStory: boolean, isWide: boolean) {
+  return isStory ? {
+    split: [720, 640], gallery: [716, 300, 300, [300, 676, 1052], 360, 18],
+    wm: [88, 300, 150], headX: 88, headY: 470, headGap: 92, headSize: 86, headBudget: 540,
+    tagY: 400, tagSize: 22,
+    deY: 660, deSize: 32, porY: 730, porSize: 60,
+    bulletsY: 858, bulletStep: 78, bulletSize: 31, badge: 38, bulletX: 150, bulletChars: 32,
+    cta: [88, 1320, 540, 96, 48], ctaSize: 31,
+  } : isWide ? {
+    split: [806, 770], gallery: [820, 292, 64, [64, 248, 432], 168, 14],
+    wm: [96, 70, 140], headX: 96, headY: 150, headGap: 56, headSize: 50, headBudget: 600,
+    tagY: 116, tagSize: 16,
+    deY: 244, deSize: 19, porY: 286, porSize: 36,
+    bulletsY: 346, bulletStep: 42, bulletSize: 18, badge: 24, bulletX: 150, bulletChars: 30,
+    cta: [96, 500, 380, 54, 27], ctaSize: 19,
+  } : {
+    split: [668, 600], gallery: [694, 312, 694, [104, 392, 680], 280, 20],
+    wm: [82, 90, 158], headX: 82, headY: 206, headGap: 80, headSize: 80, headBudget: 500,
+    tagY: 150, tagSize: 20,
+    deY: 372, deSize: 30, porY: 436, porSize: 56,
+    bulletsY: 540, bulletStep: 62, bulletSize: 27, badge: 32, bulletX: 138, bulletChars: 34,
+    cta: [82, 812, 470, 76, 38], ctaSize: 27,
+  };
+}
+
+// ── hero-checklist ────────────────────────────────────────────────────────────────────────────────
+// porY depende do preço "De" (runtime) → recebe priceFrom. Layout verbatim do builder.
+export function heroChecklistLayout(isStory: boolean, isWide: boolean, priceFrom: boolean) {
+  return isStory ? {
+    logo: [905, 276, 120], margin: 90,
+    headBase: 96, headGap: 104, headY: 440, headBudget: 740,
+    deY: 720, deSize: 38, porY: priceFrom ? 796 : 760, porSize: 58,
+    bulletsY: 900, bulletStep: 80, bulletSize: 34, badge: 38, bulletTextX: 152, bulletChars: 30,
+    cta: [90, 1300, 640, 100, 20], ctaSize: 30,
+  } : isWide ? {
+    logo: [990, 72, 110], margin: 90,
+    headBase: 46, headGap: 50, headY: 120, headBudget: 500,
+    deY: 270, deSize: 22, porY: priceFrom ? 312 : 286, porSize: 34,
+    bulletsY: 356, bulletStep: 42, bulletSize: 18, badge: 22, bulletTextX: 124, bulletChars: 26,
+    cta: [90, 486, 460, 58, 14], ctaSize: 20,
+  } : {
+    logo: [852, 90, 120], margin: 108, // logo canônica (maior) → sobe p/ manter respiro à headline
+    headBase: 84, headGap: 92, headY: 224, headBudget: 600,
+    deY: 462, deSize: 32, porY: priceFrom ? 524 : 488, porSize: 48,
+    bulletsY: 588, bulletStep: 62, bulletSize: 28, badge: 30, bulletTextX: 158, bulletChars: 30,
+    cta: [108, 880, 552, 84, 18], ctaSize: 26,
+  };
+}
+
+// ── duo-selos ─────────────────────────────────────────────────────────────────────────────────────
+export function duoSelosLayout(isStory: boolean, isWide: boolean) {
+  return isStory ? {
+    wordmark: [465, 290, 150],
+    headY: 420, headGap: 75, headSize: 64, headBudget: 940,
+    subY: 555, subSize: 30,
+    pill: [260, 590, 560, 58],
+    photos: [[55, 690, 465, 450, 40], [560, 690, 465, 450, 40]],
+    badgeRow: [[300, 1230], [780, 1230]], badgeSize: 24, badgeAnchor: "middle" as const,
+    cta: [235, 1310, 610, 76, 1358, 26],
+  } : isWide ? {
+    wordmark: [89, 75, 130],
+    headY: 165, headGap: 50, headSize: 40, headBudget: 540, headX: 365,
+    subY: 258, subSize: 20, subX: 365,
+    pill: [115, 285, 500, 50],
+    photos: [[650, 70, 455, 230, 24], [650, 318, 455, 230, 24]],
+    badgeRow: [[100, 385], [100, 428]], badgeSize: 19, badgeAnchor: "start" as const,
+    cta: [120, 460, 430, 52, 493, 19],
+  } : {
+    wordmark: [470, 118, 140],
+    headY: 235, headGap: 70, headSize: 60, headBudget: 820,
+    photos: [[108, 470, 410, 330, 36], [562, 470, 410, 330, 36]],
+    subY: 355, subSize: 28,
+    pill: [285, 385, 510, 56],
+    badgeRow: [[320, 860], [760, 860]], badgeSize: 24, badgeAnchor: "middle" as const,
+    cta: [300, 895, 480, 64, 936, 21],
+  };
+}
+
 // ── Registro dos schemas (contrato) ───────────────────────────────────────────────────────────────────
 export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
   "vitra-imobiliaria-oferta-ancora": {
@@ -151,6 +230,40 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       headline: { charLimit: 30, fallback: "derive", priority: 1 },
     },
     lint: { axisTol: 8, requireLogo: true },
+    approvedVariants: ["noFrame", "gold"],
+    dsVersion: DS_VERSION,
+  },
+  "vitra-imobiliaria-vitrine-gallery": {
+    id: "template-09-vitrine",
+    family: "vitra-imobiliaria-vitrine-gallery",
+    archetype: "left-anchored", // painel navy à esquerda (conteúdo no eixo) + galeria à direita
+    components: { required: ["logo", "headline", "price", "bullets", "cta"], optional: ["tag"] },
+    fields: { headline: { charLimit: 40, fallback: "derive", priority: 1 } },
+    lint: { axisTol: 8, requireLogo: true }, // gapCap é por-formato → fica no builder
+    approvedVariants: ["noFrame", "gold"],
+    dsVersion: DS_VERSION,
+  },
+  "vitra-imobiliaria-hero-checklist": {
+    id: "template-05-hero-checklist",
+    family: "vitra-imobiliaria-hero-checklist",
+    archetype: "left-anchored",
+    components: { required: ["logo", "headline", "price", "bullets", "cta"], optional: [] },
+    fields: { headline: { charLimit: 40, fallback: "derive", priority: 1 } },
+    lint: { axisTol: 8, requireLogo: true }, // gapCap por-formato no builder
+    approvedVariants: ["noFrame", "gold"],
+    dsVersion: DS_VERSION,
+  },
+  "vitra-imobiliaria-duo-selos-offer": {
+    id: "template-06-duo-selos",
+    family: "vitra-imobiliaria-duo-selos-offer",
+    archetype: "centered", // feed/story centrados; wide em coluna à esquerda — foto-forward, sem eixo
+    components: { required: ["logo", "headline", "pill", "selo1", "selo2", "cta"], optional: [] },
+    fields: {
+      headline: { charLimit: 40, fallback: "derive", priority: 1 },
+      selo1: { charLimit: 30, fallback: "hide", priority: 2 },
+      selo2: { charLimit: 30, fallback: "hide", priority: 2 },
+    },
+    lint: { requireLogo: true },
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },

@@ -19,7 +19,7 @@ import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVers
 import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDesign.ts";
 import { DS_TYPE, DS_WEIGHT, DS_STROKE } from "../_shared/designTokens.ts";
 import { logoBlock } from "../_shared/components.ts";
-import { OFERTA_LAYOUT, destinoLayout, fichaLayout, schemaFor } from "../_shared/templateSchemas.ts";
+import { OFERTA_LAYOUT, destinoLayout, fichaLayout, vitrineLayout, heroChecklistLayout, duoSelosLayout, schemaFor } from "../_shared/templateSchemas.ts";
 import { lintCreative, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
@@ -948,25 +948,9 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   // conteudo critico DENTRO do retangulo seguro. 1:1 [108..972]; 9:16 reels-safe y[250..1470]
   // (logo abaixo de 250, CTA acima de 1470); 1.91:1 (1200x628) x[89..1111] y[63..564]. So a foto
   // de fundo sangra ate a borda.
-  const L = isStory ? {
-    logo: [905, 276, 120], margin: 90,
-    headBase: 96, headGap: 104, headY: 440, headBudget: 740,
-    deY: 720, deSize: 38, porY: priceFrom ? 796 : 760, porSize: 58,
-    bulletsY: 900, bulletStep: 80, bulletSize: 34, badge: 38, bulletTextX: 152, bulletChars: 30,
-    cta: [90, 1300, 640, 100, 20], ctaSize: 30,
-  } : isWide ? {
-    logo: [990, 72, 110], margin: 90,
-    headBase: 46, headGap: 50, headY: 120, headBudget: 500,
-    deY: 270, deSize: 22, porY: priceFrom ? 312 : 286, porSize: 34,
-    bulletsY: 356, bulletStep: 42, bulletSize: 18, badge: 22, bulletTextX: 124, bulletChars: 26,
-    cta: [90, 486, 460, 58, 14], ctaSize: 20,
-  } : {
-    logo: [852, 90, 120], margin: 108, // logo canônica (maior) → sobe p/ manter respiro à headline
-    headBase: 84, headGap: 92, headY: 224, headBudget: 600,
-    deY: 462, deSize: 32, porY: priceFrom ? 524 : 488, porSize: 48,
-    bulletsY: 588, bulletStep: 62, bulletSize: 28, badge: 30, bulletTextX: 158, bulletChars: 30,
-    cta: [108, 880, 552, 84, 18], ctaSize: 26,
-  };
+  // Layout + contrato (Etapa 3): posição/tamanhos e o contrato de campos/lint vêm do SCHEMA (dado).
+  const S = schemaFor("vitra-imobiliaria-hero-checklist")!;
+  const L = heroChecklistLayout(isStory, isWide, !!priceFrom);
 
   const x = L.margin;
   // Imagem dirigida (DS P1): grade navy + enquadramento por foco (story = topo do prédio).
@@ -1012,7 +996,7 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
     const bulletsBottom = bullets.length ? L.bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : L.bulletsY;
     const els: LintElement[] = [
       { role: "logo", box: logoC.box, critical: true, isLogo: true },
-      { role: "hero", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, display: true, fontSize: headSize0, charLen: headlineRaw.length, charLimit: 40, onAxis: true, textLeft: x },
+      { role: "hero", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, display: true, fontSize: headSize0, charLen: headlineRaw.length, charLimit: S.fields.headline.charLimit, onAxis: true, textLeft: x },
       { role: "price", box: { x, y: (priceFrom ? L.deY - L.deSize : L.porY - porSize), w: L.cta[2], h: (L.porY + Math.round(porSize * 0.12)) - (priceFrom ? L.deY - L.deSize : L.porY - porSize) }, critical: true, block: true, display: true, fontSize: porSize, onAxis: true, textLeft: x },
       { role: "checklist", box: { x, y: L.bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (L.bulletsY - L.bulletSize)) }, critical: true, block: true },
       // CTA NÃO entra na cadeia de gap: é bottom-anchored de propósito (o respiro acima flexa com a
@@ -1020,7 +1004,7 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
       { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, fontSize: ctaSize, minFont: 16, onAxis: true, textLeft: ctaX },
     ];
     // gapCap cobre só o cluster de topo (headline → preço → checklist), onde o ritmo deve ser apertado.
-    out.lint = lintCreative(F.safe, els, { requireLogo: true, axisTol: 8, gapCap: isStory ? 150 : isWide ? 90 : 130 });
+    out.lint = lintCreative(F.safe, els, { gapCap: isStory ? 150 : isWide ? 90 : 130, ...S.lint });
     if (!out.lint.ok) console.warn(`[creativeLint] hero-checklist ${F.kind}: ${out.lint.errors.join(", ")}`);
   }
 
@@ -1125,32 +1109,9 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
   const photoA = images[0] || null;
   const photoB = images[1] || images[0] || null;
 
-  // Layout por formato — todos os elementos DENTRO da safe zone do formato.
-  const L = isStory ? {
-    wordmark: [465, 290, 150],
-    headY: 420, headGap: 75, headSize: 64, headBudget: 940,
-    subY: 555, subSize: 30,
-    pill: [260, 590, 560, 58],
-    photos: [[55, 690, 465, 450, 40], [560, 690, 465, 450, 40]],
-    badgeRow: [[300, 1230], [780, 1230]], badgeSize: 24, badgeAnchor: "middle" as const,
-    cta: [235, 1310, 610, 76, 1358, 26],
-  } : isWide ? {
-    wordmark: [89, 75, 130],
-    headY: 165, headGap: 50, headSize: 40, headBudget: 540, headX: 365,
-    subY: 258, subSize: 20, subX: 365,
-    pill: [115, 285, 500, 50],
-    photos: [[650, 70, 455, 230, 24], [650, 318, 455, 230, 24]],
-    badgeRow: [[100, 385], [100, 428]], badgeSize: 19, badgeAnchor: "start" as const,
-    cta: [120, 460, 430, 52, 493, 19],
-  } : {
-    wordmark: [470, 118, 140],
-    headY: 235, headGap: 70, headSize: 60, headBudget: 820,
-    photos: [[108, 470, 410, 330, 36], [562, 470, 410, 330, 36]],
-    subY: 355, subSize: 28,
-    pill: [285, 385, 510, 56],
-    badgeRow: [[320, 860], [760, 860]], badgeSize: 24, badgeAnchor: "middle" as const,
-    cta: [300, 895, 480, 64, 936, 21],
-  };
+  // Layout + contrato (Etapa 3): posição/tamanhos e o contrato de campos/lint vêm do SCHEMA (dado).
+  const S = schemaFor("vitra-imobiliaria-duo-selos-offer")!;
+  const L = duoSelosLayout(isStory, isWide);
 
   const headX = (L as any).headX || W / 2;
   const subX = (L as any).subX || W / 2;
@@ -1175,12 +1136,12 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
   };
   runCreativeLint(out, W, H, "duo-selos", [
     { role: "logo", box: logoC.box, critical: true, isLogo: true },
-    { role: "headline", box: { x: headX - L.headBudget / 2, y: L.headY - h1Size, w: L.headBudget, h: h2 ? L.headGap + h2Size : h1Size }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: Math.min(h1Size, h2Size), minFont: 34 },
+    { role: "headline", box: { x: headX - L.headBudget / 2, y: L.headY - h1Size, w: L.headBudget, h: h2 ? L.headGap + h2Size : h1Size }, critical: true, block: true, charLen: headline.length, charLimit: S.fields.headline.charLimit, fontSize: Math.min(h1Size, h2Size), minFont: 34 },
     { role: "pill", box: { x: pillX, y: pillY, w: pillW, h: pillH }, critical: true, block: true },
-    { role: "selo1", box: badgeBox(L.badgeRow[0][0], L.badgeRow[0][1], badges[0]), critical: true, charLen: String(badges[0]).length, charLimit: 30 },
-    { role: "selo2", box: badgeBox(L.badgeRow[1][0], L.badgeRow[1][1], badges[1]), critical: true, charLen: String(badges[1]).length, charLimit: 30 },
+    { role: "selo1", box: badgeBox(L.badgeRow[0][0], L.badgeRow[0][1], badges[0]), critical: true, charLen: String(badges[0]).length, charLimit: S.fields.selo1.charLimit },
+    { role: "selo2", box: badgeBox(L.badgeRow[1][0], L.badgeRow[1][1], badges[1]), critical: true, charLen: String(badges[1]).length, charLimit: S.fields.selo2.charLimit },
     { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 16 },
-  ], { requireLogo: true });
+  ], { ...S.lint });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
@@ -1412,28 +1373,9 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
   const priceTo = formatMoneyLike(parts.to || pd.price || "") || "Consulte";
   const bullets = heroChecklistBullets(pd, campaign, isWide ? 4 : 5);
 
-  const L = isStory ? {
-    split: [720, 640], gallery: [716, 300, 300, [300, 676, 1052], 360, 18],
-    wm: [88, 300, 150], headX: 88, headY: 470, headGap: 92, headSize: 86, headBudget: 540,
-    tagY: 400, tagSize: 22,
-    deY: 660, deSize: 32, porY: 730, porSize: 60,
-    bulletsY: 858, bulletStep: 78, bulletSize: 31, badge: 38, bulletX: 150, bulletChars: 32,
-    cta: [88, 1320, 540, 96, 48], ctaSize: 31,
-  } : isWide ? {
-    split: [806, 770], gallery: [820, 292, 64, [64, 248, 432], 168, 14],
-    wm: [96, 70, 140], headX: 96, headY: 150, headGap: 56, headSize: 50, headBudget: 600,
-    tagY: 116, tagSize: 16,
-    deY: 244, deSize: 19, porY: 286, porSize: 36,
-    bulletsY: 346, bulletStep: 42, bulletSize: 18, badge: 24, bulletX: 150, bulletChars: 30,
-    cta: [96, 500, 380, 54, 27], ctaSize: 19,
-  } : {
-    split: [668, 600], gallery: [694, 312, 694, [104, 392, 680], 280, 20],
-    wm: [82, 90, 158], headX: 82, headY: 206, headGap: 80, headSize: 80, headBudget: 500,
-    tagY: 150, tagSize: 20,
-    deY: 372, deSize: 30, porY: 436, porSize: 56,
-    bulletsY: 540, bulletStep: 62, bulletSize: 27, badge: 32, bulletX: 138, bulletChars: 34,
-    cta: [82, 812, 470, 76, 38], ctaSize: 27,
-  };
+  // Layout + contrato (Etapa 3): posição/tamanhos e o contrato de campos/lint vêm do SCHEMA (dado).
+  const S = schemaFor("vitra-imobiliaria-vitrine-gallery")!;
+  const L = vitrineLayout(isStory, isWide);
 
   const [splitTop, splitBot] = L.split;
   const [gx, gw, , gys, gh, grx] = L.gallery as [number, number, number, number[], number, number];
@@ -1498,11 +1440,11 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
   const bulletsBottom = bullets.length ? bulletsY + (bullets.length - 1) * L.bulletStep + L.bulletSize : bulletsY;
   runCreativeLint(out, W, H, "vitrine", [
     { role: "logo", box: logoC.box, critical: true, isLogo: true },
-    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(vtHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: 40, fontSize: vtHeadSize, minFont: 30, onAxis: true, textLeft: L.headX },
+    { role: "headline", box: { x: L.headX, y: L.headY - Math.round(vtHeadSize * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, charLen: headline.length, charLimit: S.fields.headline.charLimit, fontSize: vtHeadSize, minFont: 30, onAxis: true, textLeft: L.headX },
     { role: "price", box: { x: L.headX, y: priceTop, w: L.headBudget, h: (porY + Math.round(porSize * 0.12)) - priceTop }, critical: true, block: true, onAxis: true, textLeft: L.headX },
     { role: "bullets", box: { x: L.headX, y: bulletsY - L.bulletSize, w: L.headBudget, h: Math.max(L.bulletSize, bulletsBottom - (bulletsY - L.bulletSize)) }, critical: true, block: true },
     { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, fontSize: ctaSize, minFont: 14 },
-  ], { requireLogo: true, axisTol: 8, gapCap: isStory ? 170 : isWide ? 130 : 150 });
+  ], { gapCap: isStory ? 170 : isWide ? 130 : 150, ...S.lint });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${baseDefs(idBase, photoDefs)}
