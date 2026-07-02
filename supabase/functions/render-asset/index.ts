@@ -954,7 +954,11 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   // de fundo sangra ate a borda.
   // Layout + contrato (Etapa 3): posição/tamanhos e o contrato de campos/lint vêm do SCHEMA (dado).
   const S = schemaFor("vitra-imobiliaria-hero-checklist")!;
-  const L = heroChecklistLayout(isStory, isWide, !!priceFrom);
+  const L0 = heroChecklistLayout(isStory, isWide, !!priceFrom);
+  // Wide com headline CURTA (1 linha) deixava faixa morta antes do preço (o layout assume ~2 linhas).
+  // Sobe o cluster preço/checklist na proporção das linhas que faltam. Feed/story e wide-2-linhas: shift 0.
+  const upShift = isWide && lines.length < 2 ? (2 - lines.length) * L0.headGap : 0;
+  const L = upShift ? { ...L0, deY: L0.deY - upShift, porY: L0.porY - upShift, bulletsY: L0.bulletsY - upShift } : L0;
 
   const x = L.margin;
   // Imagem dirigida (DS P1): grade navy + enquadramento por foco (story = topo do prédio).
@@ -1107,7 +1111,9 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
   const rawPrice = pd.price_from
     ? `De: ${pd.price_from} | Por: ${pd.price || "Consulte"}`
     : (pd.price || campaign?.offer || "");
-  const badges = productDifferentials(pd, campaign);
+  // Cap ao slot do selo (== charLimit 30 do schema): sem dados, o fallback cai em pd.location, que pode
+  // exceder 30 (ex.: "Bairro Petrópolis, Porto Alegre") — nunca exibir/reprovar por estouro de slot.
+  const badges = productDifferentials(pd, campaign).map((b) => compactText(String(b), 30));
   while (badges.length < 2) badges.push(badges[0] || "Atendimento consultivo Vitra");
   const cta = compactText(asset.cta || "Clique para receber mais informacoes", 46);
   const photoA = images[0] || null;
@@ -1612,7 +1618,7 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const subtitle = (pd.location || pd.address || campaign?.neighborhood || "").toString();
   const price = formatMoneyLike(pd.price || campaign?.offer || "") || "Consulte";
   const features = String(pd.differentials || pd.features || "")
-    .split(/[\n;,|]+/).map((s) => s.replace(/^[-•\s]+/, "").trim()).filter(Boolean).slice(0, 4);
+    .split(/[\n;,|]+/).map((s) => s.replace(/^[-•\s]+/, "").trim()).filter(Boolean).slice(0, isWide ? 3 : 4); // wide (banner curto) só cabe 3 tiles na safe-zone
   const cta = (asset.cta || pd.cta || "Entre em contato para agendar uma visita!").toString();
 
   const NAVY = "#0A1628";

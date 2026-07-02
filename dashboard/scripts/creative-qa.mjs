@@ -66,6 +66,10 @@ const base = {
   rooms: '3', suites: '1', bathrooms: '2', parking: '2', area: '72m²', address: 'Rua Néri Filho, 200',
 }
 const okFixture = (headline, over = {}) => ({ name: 'medio', expect: 'ok', headline, product_data: { ...base, ...over } })
+// curto = conteúdo mínimo porém presente; vazio = SEM product_data (exercita os fallbacks do builder —
+// o cenário real que mais quebra em produção). Ambos DEVEM passar (expect ok).
+const curtoFixture = (headline, over = {}) => ({ name: 'curto', expect: 'ok', headline, product_data: { price: 'R$ 199.000', location: 'No Centro', differentials: '1 dorm|38m²|Lazer', ...over } })
+const vazioFixture = (headline, over = {}) => ({ name: 'vazio', expect: 'ok', headline, product_data: { ...over } })
 
 // Matriz de fixtures por família. `expect: 'ok'` = deve passar; `expectError` = deve reprovar por essa regra.
 const MATRIX = {
@@ -78,16 +82,16 @@ const MATRIX = {
       { name: 'headline-longa', expectError: 'char_limit', product_data: { price: 'R$ 1.289.000,00', price_from: 'R$ 1.549.000,00', differentials: '3 dorms sendo 1 suíte|72m² com sacada|2 vagas', location: 'A 5 min do Shopping' }, headline: 'Apartamento 3 dormitórios com suíte e sacada gourmet integrada' },
     ],
   },
-  // Propagação — 1 fixture realista por família (primeira triagem sob o gate determinístico).
-  'hero-checklist': { family: 'vitra-imobiliaria-hero-checklist', contents: [okFixture('Apartamento pronto no Petrópolis')] },
-  'duo-selos': { family: 'vitra-imobiliaria-duo-selos-offer', contents: [okFixture('Studio garden no Bom Fim')] },
+  // Selecionáveis — médio + curto + vazio (fallbacks). Os ocultos seguem com 1 fixture.
+  'hero-checklist': { family: 'vitra-imobiliaria-hero-checklist', contents: [okFixture('Apartamento pronto no Petrópolis'), curtoFixture('1 dorm no Centro'), vazioFixture('Apartamento pronto')] },
+  'duo-selos': { family: 'vitra-imobiliaria-duo-selos-offer', contents: [okFixture('Studio garden no Bom Fim'), curtoFixture('Studio no Bom Fim'), vazioFixture('Studio garden')] },
   'hero-panel': { family: 'vitra-imobiliaria-hero-panel-gallery', contents: [okFixture('Cobertura duplex vista parque')] },
   'lancamento': { family: 'vitra-imobiliaria-lancamento', contents: [okFixture('Lançamento na Zona Sul')] },
-  'vitrine': { family: 'vitra-imobiliaria-vitrine-gallery', contents: [okFixture('Casa em condomínio fechado')] },
+  'vitrine': { family: 'vitra-imobiliaria-vitrine-gallery', contents: [okFixture('Casa em condomínio fechado'), curtoFixture('Casa no Sul'), vazioFixture('Casa em condomínio')] },
   'oportunidade-bairro': { family: 'vitra-imobiliaria-oportunidade-bairro', contents: [okFixture('Oportunidade no Menino Deus')] },
-  'ficha-imovel': { family: 'vitra-imobiliaria-ficha-imovel', contents: [okFixture('2 dorms no Rio Branco')] },
+  'ficha-imovel': { family: 'vitra-imobiliaria-ficha-imovel', contents: [okFixture('2 dorms no Rio Branco'), curtoFixture('2 dorms'), vazioFixture('Apartamento à venda')] },
   // destino-bairro: o HERÓI é o bairro (pd.location, ≤18 chars); o headline vira o subtítulo lifestyle.
-  'destino-bairro': { family: 'vitra-imobiliaria-destino-bairro', contents: [okFixture('A poucos passos do Parcão', { location: 'Moinhos de Vento', neighborhood: 'Moinhos de Vento' })] },
+  'destino-bairro': { family: 'vitra-imobiliaria-destino-bairro', contents: [okFixture('A poucos passos do Parcão', { location: 'Moinhos de Vento', neighborhood: 'Moinhos de Vento' }), curtoFixture('Perto de tudo', { location: 'Cidade Baixa' }), vazioFixture('A um passo do Parcão')] },
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
