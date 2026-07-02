@@ -13,7 +13,7 @@
 //   QA_CAMPAIGN_ID=... QA_SOURCE_IMAGE=... node scripts/creative-qa.mjs [--family oferta-ancora]
 // Sai com código 1 se qualquer fixture divergir do esperado (falha o CI).
 import { createClient } from '@supabase/supabase-js'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
@@ -57,6 +57,28 @@ const ALL_FORMATS = { feed: '1:1', story: '9:16', wide: '1.91:1' }
 const onlyFormats = (process.env.QA_FORMATS || '').split(',').map((s) => s.trim()).filter(Boolean)
 const FORMATS = onlyFormats.length ? Object.fromEntries(Object.entries(ALL_FORMATS).filter(([k]) => onlyFormats.includes(k))) : ALL_FORMATS
 const MAX_RENDER_RETRIES = 5 // 9:16 pode dar 546 (OOM de isolate frio) — retry trata como infra, não design
+
+// ── Baseline de métricas (golden) ────────────────────────────────────────────────────────────────────
+// Trava os valores das métricas do lint (fill_bar, logo_gap, contrast_*, price_ratio, axis_spread…) além
+// do `ok` — pega regressões SUTIS que não quebram o ok (ex.: fill_bar caindo 0.94→0.88, contraste piorando
+// 6.5→4.6). `--update-baseline` regrava o arquivo (após uma mudança INTENCIONAL). Determinístico: mesmo
+// conteúdo → mesmas métricas, então a tolerância é apertada.
+const HERE = dirname(fileURLToPath(import.meta.url))
+const BASELINE_PATH = resolve(HERE, 'creative-qa-baseline.json')
+const UPDATE_BASELINE = process.argv.includes('--update-baseline')
+const BASELINE = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf8')) : {}
+const capturedBaseline = { ...BASELINE } // merge: --family X só atualiza X, preserva o resto
+function metricDrift(base, cur) {
+  if (!base) return [] // sem baseline p/ a chave → informativo, não falha (rode --update-baseline)
+  const drifts = []
+  for (const [k, bv] of Object.entries(base)) {
+    const cv = cur?.[k]
+    if (cv == null) { drifts.push(`${k} sumiu (era ${bv})`); continue }
+    const tol = Math.abs(bv) < 10 ? 0.04 : 3 // ratio/fill (±0.04) vs px (±3)
+    if (Math.abs(cv - bv) > tol) drifts.push(`${k} ${cv}≠${bv}`)
+  }
+  return drifts
+}
 
 // Conteúdo realista comum (superset de campos; cada builder usa o que precisa e cai em fallback no resto).
 const base = {
@@ -166,6 +188,13 @@ async function run() {
           const rendered = await renderWithRetry(id)
           const lint = rendered ? await readLint(id) : null
           const verdict = evaluate(content, lint)
+          const key = `${fam}/${content.name}/${format}`
+          if (UPDATE_BASELINE) {
+            if (lint?.metrics) capturedBaseline[key] = lint.metrics
+          } else if (verdict.pass) {
+            const drift = metricDrift(BASELINE[key], lint?.metrics)
+            if (drift.length) { verdict.pass = false; verdict.why = `drift de métrica: ${drift.join(', ')}` }
+          }
           rows.push({ fam, content: content.name, format, ...verdict, metrics: lint?.metrics })
         } catch (e) {
           rows.push({ fam, content: content.name, format, pass: false, why: e.message })
@@ -174,6 +203,12 @@ async function run() {
         }
       }
     }
+  }
+
+  if (UPDATE_BASELINE) {
+    writeFileSync(BASELINE_PATH, JSON.stringify(capturedBaseline, null, 2) + '\n')
+    console.log(`\nbaseline de métricas atualizado: ${Object.keys(capturedBaseline).length} entradas → creative-qa-baseline.json`)
+    return
   }
 
   console.log('\n=== Vitra Creative QA — relatório ===')

@@ -1,0 +1,326 @@
+{
+  "oferta-ancora/curto/feed": {
+    "max_gap": 178,
+    "fill_bar": 0.94,
+    "logo_gap": 106,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.44,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/curto/story": {
+    "max_gap": 150,
+    "fill_bar": 0.94,
+    "logo_gap": 104,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.67,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/curto/wide": {
+    "max_gap": 86,
+    "fill_bar": 0.94,
+    "logo_gap": 15,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.21,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/medio/feed": {
+    "max_gap": 178,
+    "fill_bar": 0.94,
+    "logo_gap": 106,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.17,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/medio/story": {
+    "max_gap": 150,
+    "fill_bar": 0.94,
+    "logo_gap": 104,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.17,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/medio/wide": {
+    "max_gap": 78,
+    "fill_bar": 0.94,
+    "logo_gap": 15,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.21,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/preco-grande/feed": {
+    "max_gap": 178,
+    "fill_bar": 0.94,
+    "logo_gap": 106,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 2.81,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/preco-grande/story": {
+    "max_gap": 150,
+    "fill_bar": 0.94,
+    "logo_gap": 104,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 2.81,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/preco-grande/wide": {
+    "max_gap": 86,
+    "fill_bar": 0.94,
+    "logo_gap": 15,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.21,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/headline-longa/feed": {
+    "max_gap": 178,
+    "fill_bar": 0.98,
+    "logo_gap": 106,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 2.81,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/headline-longa/story": {
+    "max_gap": 150,
+    "fill_bar": 0.98,
+    "logo_gap": 104,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 2.81,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "oferta-ancora/headline-longa/wide": {
+    "max_gap": 78,
+    "fill_bar": 0.94,
+    "logo_gap": 15,
+    "fill_price": 1,
+    "axis_spread": 0,
+    "price_ratio": 3.21,
+    "contrast_bar": 16.58,
+    "contrast_price": 6.58
+  },
+  "hero-checklist/medio/feed": {
+    "max_gap": 30,
+    "logo_gap": 39,
+    "axis_spread": 0
+  },
+  "hero-checklist/medio/story": {
+    "max_gap": 63,
+    "logo_gap": 57,
+    "axis_spread": 0
+  },
+  "hero-checklist/medio/wide": {
+    "max_gap": 22,
+    "axis_spread": 0
+  },
+  "hero-checklist/curto/feed": {
+    "max_gap": 89,
+    "logo_gap": 39,
+    "axis_spread": 0
+  },
+  "hero-checklist/curto/story": {
+    "max_gap": 111,
+    "logo_gap": 57,
+    "axis_spread": 0
+  },
+  "hero-checklist/curto/wide": {
+    "max_gap": 65,
+    "axis_spread": 0
+  },
+  "hero-checklist/vazio/feed": {
+    "max_gap": 89,
+    "logo_gap": 39,
+    "axis_spread": 0
+  },
+  "hero-checklist/vazio/story": {
+    "max_gap": 111,
+    "logo_gap": 57,
+    "axis_spread": 0
+  },
+  "hero-checklist/vazio/wide": {
+    "max_gap": 65,
+    "axis_spread": 0
+  },
+  "duo-selos/medio/feed": {
+    "logo_gap": 33
+  },
+  "duo-selos/medio/story": {
+    "logo_gap": 36
+  },
+  "duo-selos/medio/wide": {
+    "logo_gap": 28
+  },
+  "duo-selos/curto/feed": {
+    "logo_gap": 29
+  },
+  "duo-selos/curto/story": {
+    "logo_gap": 36
+  },
+  "duo-selos/curto/wide": {
+    "logo_gap": 25
+  },
+  "duo-selos/vazio/feed": {
+    "logo_gap": 29
+  },
+  "duo-selos/vazio/story": {
+    "logo_gap": 36
+  },
+  "duo-selos/vazio/wide": {
+    "logo_gap": 25
+  },
+  "hero-panel/medio/feed": {
+    "max_gap": 14,
+    "axis_spread": 0
+  },
+  "hero-panel/medio/story": {
+    "max_gap": 39,
+    "axis_spread": 0
+  },
+  "hero-panel/medio/wide": {
+    "max_gap": 26,
+    "axis_spread": 0
+  },
+  "lancamento/medio/feed": {},
+  "lancamento/medio/story": {},
+  "lancamento/medio/wide": {},
+  "vitrine/medio/feed": {
+    "max_gap": 70,
+    "logo_gap": 24,
+    "axis_spread": 0
+  },
+  "vitrine/medio/story": {
+    "max_gap": 90,
+    "logo_gap": 71,
+    "axis_spread": 0
+  },
+  "vitrine/medio/wide": {
+    "max_gap": 38,
+    "logo_gap": 15,
+    "axis_spread": 0
+  },
+  "vitrine/curto/feed": {
+    "max_gap": 120,
+    "logo_gap": 24,
+    "axis_spread": 0
+  },
+  "vitrine/curto/story": {
+    "max_gap": 135,
+    "logo_gap": 71,
+    "axis_spread": 0
+  },
+  "vitrine/curto/wide": {
+    "max_gap": 59,
+    "logo_gap": 15,
+    "axis_spread": 0
+  },
+  "vitrine/vazio/feed": {
+    "max_gap": 70,
+    "logo_gap": 24,
+    "axis_spread": 0
+  },
+  "vitrine/vazio/story": {
+    "max_gap": 90,
+    "logo_gap": 71,
+    "axis_spread": 0
+  },
+  "vitrine/vazio/wide": {
+    "max_gap": 59,
+    "logo_gap": 15,
+    "axis_spread": 0
+  },
+  "oportunidade-bairro/medio/feed": {},
+  "oportunidade-bairro/medio/story": {},
+  "oportunidade-bairro/medio/wide": {},
+  "ficha-imovel/medio/feed": {
+    "logo_gap": 65,
+    "axis_spread": 0
+  },
+  "ficha-imovel/medio/story": {
+    "logo_gap": 110,
+    "axis_spread": 0
+  },
+  "ficha-imovel/medio/wide": {
+    "logo_gap": 39,
+    "axis_spread": 0
+  },
+  "ficha-imovel/curto/feed": {
+    "logo_gap": 39,
+    "axis_spread": 0
+  },
+  "ficha-imovel/curto/story": {
+    "logo_gap": 71,
+    "axis_spread": 0
+  },
+  "ficha-imovel/curto/wide": {
+    "logo_gap": 20,
+    "axis_spread": 0
+  },
+  "ficha-imovel/vazio/feed": {
+    "logo_gap": 62,
+    "axis_spread": 0
+  },
+  "ficha-imovel/vazio/story": {
+    "logo_gap": 107,
+    "axis_spread": 0
+  },
+  "ficha-imovel/vazio/wide": {
+    "logo_gap": 37,
+    "axis_spread": 0
+  },
+  "destino-bairro/medio/feed": {
+    "logo_gap": 126
+  },
+  "destino-bairro/medio/story": {
+    "logo_gap": 110
+  },
+  "destino-bairro/medio/wide": {
+    "logo_gap": 25
+  },
+  "destino-bairro/curto/feed": {
+    "logo_gap": 91
+  },
+  "destino-bairro/curto/story": {
+    "logo_gap": 77
+  },
+  "destino-bairro/curto/wide": {
+    "logo_gap": 15
+  },
+  "destino-bairro/vazio/feed": {
+    "logo_gap": 101
+  },
+  "destino-bairro/vazio/story": {
+    "logo_gap": 86
+  },
+  "destino-bairro/vazio/wide": {
+    "logo_gap": 15
+  },
+  "premium-lancamento/medio/feed": {},
+  "premium-lancamento/medio/story": {},
+  "premium-lancamento/medio/wide": {},
+  "premium-lancamento/curto/feed": {},
+  "premium-lancamento/curto/story": {},
+  "premium-lancamento/curto/wide": {},
+  "premium-lancamento/vazio/feed": {},
+  "premium-lancamento/vazio/story": {},
+  "premium-lancamento/vazio/wide": {}
+}
