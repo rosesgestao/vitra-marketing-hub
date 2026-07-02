@@ -12,6 +12,26 @@ export type { FormatKind, Box, FormatSpec } from "./creativeDesign.ts";
 // Versão do design system — gravada no render_trace (Etapa 5) e travada por template (schema, Etapa 3).
 export const DS_VERSION = "ds-2026-07" as const;
 
+// ── PALETA ESTENDIDA (sancionada) ─────────────────────────────────────────────────────────────────
+// Cores em uso REAL nos templates além do núcleo (DS_COLORS): stops de gradiente (navy/dourado/preto),
+// accents azuis da Imobiliária, e near-whites/near-black de texto. Não são cores de marca "principais"
+// (essas são DS_COLORS) — são o vocabulário de PROFUNDIDADE/DEGRADÊ. Sancionadas explicitamente e
+// incluídas no `token_conformance` (Etapa 4) para o gate parar de sinalizá-las SEM mudar 1 byte do
+// render (byte-idêntico). Débito de marca "invisível" fechado: em vez de trocar as cores (mudaria o
+// pixel), oficializa-se a paleta que já é usada.
+export const DS_PALETTE_EXTENDED = [
+  // near-whites (texto sobre navy) e near-black (ink do priceChip)
+  "#FAFAF8", "#F2F2F2", "#E8ECF4", "#111111",
+  // pretos / profundidade (Premium + véus) — #050C16 já está no núcleo (DS_COLORS)
+  "#000000", "#050505", "#080808", "#0B0B0B",
+  // navies de profundidade / gradiente — #0A1B32/#0E1D38/#13294C já estão no núcleo
+  "#1B3A6B", "#123B86", "#164DA6",
+  // accents azuis (Imobiliária)
+  "#2E6BB5", "#8EC4F0",
+  // dourados: stops de gradiente/sombra (escuro → claro)
+  "#241803", "#7A5C10", "#8B6914", "#9B7A1C", "#D4A84A", "#FBC52D", "#FFE08A",
+] as const;
+
 // ── TIPOGRAFIA ────────────────────────────────────────────────────────────────────────────────────
 // Papel → família/peso/faixa de tamanho (px no canvas real)/line-height/tracking. `min`/`max` são os
 // limites que alimentam o fit (fitFillSize/fitDisplaySize); a arte cresce/encolhe DENTRO dessa faixa.

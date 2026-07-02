@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  DS_TYPE, DS_WEIGHT, DS_STROKE, DS_PADDING, DS_IMAGE, DS_LOGO, DS_VERSION, logoDims,
+  DS_TYPE, DS_WEIGHT, DS_STROKE, DS_PADDING, DS_IMAGE, DS_LOGO, DS_VERSION, logoDims, DS_PALETTE_EXTENDED,
 } from '../../../../supabase/functions/_shared/designTokens.ts'
 import { DS_COLORS, DS_FONT, DS_RADII } from '../../../../supabase/functions/_shared/creativeDesign.ts'
 
@@ -43,6 +43,18 @@ describe('designTokens — invariantes da fundação', () => {
     for (const [min, max] of Object.values(DS_IMAGE.ratio)) {
       expect(min).toBeGreaterThan(0); expect(max).toBeGreaterThan(min); expect(max).toBeLessThanOrEqual(1)
     }
+  })
+
+  it('DS_PALETTE_EXTENDED: hexes válidos e distintos, sem colidir com o núcleo', () => {
+    const core = new Set(Object.values(DS_COLORS).filter((v) => /^#[0-9A-Fa-f]{6}$/.test(v)).map((v) => v.toUpperCase()))
+    const seen = new Set()
+    for (const c of DS_PALETTE_EXTENDED) {
+      expect(c, `${c} deve ser #hex de 6 dígitos`).toMatch(/^#[0-9A-Fa-f]{6}$/)
+      const up = c.toUpperCase()
+      expect(seen.has(up), `duplicata: ${c}`).toBe(false); seen.add(up)
+      expect(core.has(up), `${c} já está no núcleo DS_COLORS`).toBe(false)
+    }
+    expect(DS_PALETTE_EXTENDED.length).toBeGreaterThanOrEqual(20)
   })
 
   it('tokens de cor/fonte/raio/stroke seguem sendo a fonte única esperada', () => {
