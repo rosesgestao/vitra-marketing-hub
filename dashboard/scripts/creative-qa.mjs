@@ -92,13 +92,16 @@ const MATRIX = {
   'ficha-imovel': { family: 'vitra-imobiliaria-ficha-imovel', contents: [okFixture('2 dorms no Rio Branco'), curtoFixture('2 dorms'), vazioFixture('Apartamento à venda')] },
   // destino-bairro: o HERÓI é o bairro (pd.location, ≤18 chars); o headline vira o subtítulo lifestyle.
   'destino-bairro': { family: 'vitra-imobiliaria-destino-bairro', contents: [okFixture('A poucos passos do Parcão', { location: 'Moinhos de Vento', neighborhood: 'Moinhos de Vento' }), curtoFixture('Perto de tudo', { location: 'Cidade Baixa' }), vazioFixture('A um passo do Parcão')] },
+  // PREMIUM — única família Premium do catálogo (SVG-direta, emite lint). Cobre a MARCA Premium no gate
+  // (antes 100% descoberta). brand: 'vitra_premium' → render usa o brandProfile Premium (wordmark/paleta).
+  'premium-lancamento': { family: 'vitra-premium-lancamento', brand: 'vitra_premium', contents: [okFixture('Pré-lançamento Moinhos de Vento'), curtoFixture('Novo no Bela Vista'), vazioFixture('Pré-lançamento')] },
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function insertAsset(family, format, ar, content) {
+async function insertAsset(family, format, ar, content, brand = 'vitra_imobiliaria') {
   const metadata = {
-    brand_scope: 'vitra_imobiliaria',
+    brand_scope: brand,
     visual_template: { key: family, family, frame: 'none' },
     frame: 'none',
     product_data: content.product_data,
@@ -159,7 +162,7 @@ async function run() {
       for (const [format, ar] of Object.entries(FORMATS)) {
         let id
         try {
-          id = await insertAsset(spec.family, format, ar, content)
+          id = await insertAsset(spec.family, format, ar, content, spec.brand)
           const rendered = await renderWithRetry(id)
           const lint = rendered ? await readLint(id) : null
           const verdict = evaluate(content, lint)
