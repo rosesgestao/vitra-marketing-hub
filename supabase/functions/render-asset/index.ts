@@ -1872,8 +1872,8 @@ function buildVitraOfertaAncoraSvg(asset: any, campaign: any, images: Array<stri
     const els: LintElement[] = [
       { role: "logo", box: logoC.box, critical: true, isLogo: true },
       { role: "headline", box: { x: axis, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget - INSET, h: headLines.length * L.headGap }, critical: true, block: true, charLen: headlineRaw.length, charLimit: S.fields.headline.charLimit, onAxis: true, textLeft: axis },
-      { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true, secondary: true, fontSize: barSize, onAxis: true, textLeft: axis, ...(featureBar ? { fill: barFill, minFill: 0.80, maxFill: 0.99 } : {}) },
-      { role: "price", box: { x: boxX, y: boxY, w: price.plateW, h: boxH }, critical: true, block: true, display: true, fontSize: price.valueSize, minFont: Math.round(boxH * 0.34), fill: price.fill, minFill: 0.60, maxFill: 1.02, onAxis: true, textLeft: price.textLeft },
+      { role: "bar", box: { x: barX, y: barY, w: barW, h: barH }, critical: true, block: true, secondary: true, fontSize: barSize, onAxis: true, textLeft: axis, textColor: DS_COLORS.navy, bgColor: OFF_WHITE, ...(featureBar ? { fill: barFill, minFill: 0.80, maxFill: 0.99 } : {}) },
+      { role: "price", box: { x: boxX, y: boxY, w: price.plateW, h: boxH }, critical: true, block: true, display: true, fontSize: price.valueSize, minFont: Math.round(boxH * 0.34), fill: price.fill, minFill: 0.60, maxFill: 1.02, onAxis: true, textLeft: price.textLeft, textColor: DS_COLORS.navy, bgColor: GOLD },
       { role: "de", box: { x, y: deRowTop, w: deChipW + (savingsLabel ? savPillW + 16 : 0), h: deH }, secondary: true, fontSize: L.deSize, onAxis: !!priceFrom, textLeft: axis },
       { role: "footnote", box: { x: axis, y: L.footY - L.footSize, w: Math.round(measuredWidthPx(footer, L.footSize, 1.0)), h: L.footSize + 6 }, critical: true, secondary: true, fontSize: L.footSize, onAxis: !!footer, textLeft: axis },
     ];

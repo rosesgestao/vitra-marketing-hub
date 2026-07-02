@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { formatSpec, withinSafe } from '../../../../supabase/functions/_shared/creativeDesign.ts'
-import { lintCreative, tokenConformance } from '../../../../supabase/functions/_shared/creativeLint.ts'
+import { lintCreative, tokenConformance, contrastRatio } from '../../../../supabase/functions/_shared/creativeLint.ts'
 
 describe('creativeDesign — formatSpec / safe-zone', () => {
   it('deriva canvas, kind e safe-zone por formato', () => {
@@ -31,6 +31,26 @@ describe('creativeLint — gate objetivo', () => {
     { role: 'cta', box: { x: 330, y: 720, w: 420, h: 80 }, critical: true, block: true, overImage: true, hasScrim: true },
     { role: 'footnote', box: { x: 380, y: 820, w: 320, h: 28 }, critical: true, overImage: true, hasScrim: true },
   ]
+
+  it('v3 contrastRatio: segue o WCAG (branco/preto ≈ 21; navy/gold passa; branco/off-white falha)', () => {
+    expect(Math.round(contrastRatio('#FFFFFF', '#000000'))).toBe(21)
+    expect(contrastRatio('#0A1628', '#C4942A')).toBeGreaterThan(4.5) // navy sobre gold (placa de preço)
+    expect(contrastRatio('#FFFFFF', '#F5F5F0')).toBeLessThan(1.2)     // branco no off-white (ilegível)
+  })
+
+  it('v3 contraste (ERRO): reprova texto sobre superfície sólida com ratio baixo', () => {
+    const el = { role: 'label', box: { x: 100, y: 100, w: 200, h: 40 }, textColor: '#FFFFFF', bgColor: '#F5F5F0', fontSize: 20 }
+    const r = lintCreative(safe, [el])
+    expect(r.ok).toBe(false)
+    expect(r.errors.some((e) => e.startsWith('contrast:label'))).toBe(true)
+  })
+
+  it('v3 contraste: aprova navy sobre gold (placa de preço, texto grande)', () => {
+    const el = { role: 'price', box: { x: 100, y: 100, w: 400, h: 120 }, textColor: '#0A1628', bgColor: '#C4942A', fontSize: 90, display: true }
+    const r = lintCreative(safe, [el])
+    expect(r.errors.some((e) => e.startsWith('contrast:'))).toBe(false)
+    expect(r.metrics.contrast_price).toBeGreaterThan(4.5)
+  })
 
   it('v3 token_conformance: sinaliza cor #hex fora da paleta', () => {
     const palette = new Set(['#0A1628', '#C4942A', '#FFFFFF'])

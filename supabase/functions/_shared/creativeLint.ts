@@ -28,6 +28,9 @@ export interface LintElement {
   isLogo?: boolean;     // é a logo da marca (checa presença quando requireLogo)
   textLeft?: number;    // x óptico da 1ª letra (para checar o eixo de alinhamento entre textos)
   onAxis?: boolean;     // participa do eixo de alinhamento comum (com textLeft)
+  // v3 (contraste WCAG real sobre superfície sólida): cor do texto e do fundo (#hex sólido).
+  textColor?: string;
+  bgColor?: string;
 }
 
 // v3: três níveis de severidade. `errors` BLOQUEIA (ok=false); `warnings`/`recommendations` são
@@ -66,6 +69,23 @@ export function tokenConformance(svg: string, palette: Set<string>, fonts: Set<s
   }
   for (const f of [...fam].sort()) out.push(`token_font:${f}`);
   return out;
+}
+
+// v3 — contraste WCAG real entre duas cores sólidas (#hex). Luminância relativa (sRGB) → razão de
+// contraste (hi+0.05)/(lo+0.05). Usado para texto sobre SUPERFÍCIE sólida (placa/chip/pílula/painel);
+// texto sobre FOTO segue pela heurística de scrim (contrast_no_scrim), pois exige amostrar a imagem.
+function relLuminance(hex: string): number {
+  const h = hex.replace("#", "");
+  const ch = (i: number) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * ch(0) + 0.7152 * ch(2) + 0.0722 * ch(4);
+}
+export function contrastRatio(fg: string, bg: string): number {
+  const a = relLuminance(fg), b = relLuminance(bg);
+  const hi = Math.max(a, b), lo = Math.min(a, b);
+  return (hi + 0.05) / (lo + 0.05);
 }
 
 export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[], opts: LintOptions = {}): LintReport {
@@ -164,6 +184,20 @@ export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[], 
 
   // 10) Logo: presença obrigatória (identidade da marca). REPROVA se ausente.
   if (opts.requireLogo && !elements.some((e) => e.isLogo)) errors.push("logo_missing");
+
+  // 12) Contraste WCAG real (ERRO) entre texto e a SUPERFÍCIE SÓLIDA sob ele (quando ambas as cores são
+  // declaradas). Limiar: 4.5:1 (texto normal) ou 3:1 (texto grande/display, ≥24px). Texto sobre foto não
+  // entra aqui (usa scrim). Grava `contrast_{role}`.
+  const HEX = /^#[0-9a-fA-F]{6}$/;
+  for (const e of elements) {
+    if (e.textColor && e.bgColor && HEX.test(e.textColor) && HEX.test(e.bgColor)) {
+      const ratio = contrastRatio(e.textColor, e.bgColor);
+      metrics[`contrast_${e.role}`] = Number(ratio.toFixed(2));
+      const large = (e.fontSize ?? 0) >= 24 || !!e.display;
+      const min = large ? 3 : 4.5;
+      if (ratio < min) errors.push(`contrast:${e.role}:${ratio.toFixed(2)}<${min}`);
+    }
+  }
 
   // 11) Aperto logo↔headline (nível ALERTA): a headline/herói encostando na logo quando estão na mesma
   // coluna (achado do hero-checklist: a logo canônica crescia e colava na headline). Só quando há
