@@ -148,6 +148,9 @@ Contraste sobre foto ⇒ amostrar luminância no render (custo só atrás de tex
 - [ ] Governança: selectable só após N fixtures verdes + aprovação visual; DS versionado com changelog.
 
 ## Progresso
+- **Etapa 5 ✅:** [[Atualizacao_2026-07-02_Etapa5_Render_Trace]] — `render_trace` por asset (ds_version,
+  template_version, archetype, format, lint-resumo, decisão do gate, rendered_at). Byte-idêntico.
+
 - **Etapa 1 ✅:** [[Atualizacao_2026-07-01_Etapa1_Design_Tokens]] — designTokens.ts + oferta-ancora
   token-driven (logo por ratio canônico; GOLD/OFF_WHITE = DS_COLORS; harness 12/12; 208 testes).
 - **Etapa 2 ✅ COMPLETA:** `components.ts` + `logoBlock`. Passo 1

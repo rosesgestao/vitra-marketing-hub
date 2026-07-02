@@ -20,6 +20,7 @@ import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDes
 import { DS_TYPE, DS_WEIGHT, DS_STROKE } from "../_shared/designTokens.ts";
 import { logoBlock } from "../_shared/components.ts";
 import { OFERTA_LAYOUT, destinoLayout, fichaLayout, vitrineLayout, heroChecklistLayout, duoSelosLayout, schemaFor } from "../_shared/templateSchemas.ts";
+import { buildRenderTrace } from "../_shared/renderTrace.ts";
 import { lintCreative, tokenConformance, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
 
@@ -2347,6 +2348,14 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
       if (up.error) throw up.error;
       const { data: pub } = svc.storage.from("cards").getPublicUrl(path);
       step = "update_asset";
+      const renderedAt = new Date().toISOString();
+      const renderTrace = buildRenderTrace({
+        templateVersion: VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[templateFamily] ?? null,
+        archetype: schemaFor(templateFamily)?.archetype ?? null,
+        format: formatSpec(W, H).kind,
+        lint: lintOut.lint ?? null,
+        renderedAt,
+      });
       const { error: updErr } = await svc.from("premium_campaign_assets").update({
         status:"generated",
         storage_bucket:"cards",
@@ -2360,9 +2369,10 @@ async function renderAsset(svc: any, asset: any, campaign: any, resvgFonts: Uint
           ...(VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[templateFamily] ? { rendered_template_version: VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION[templateFamily] } : {}),
           rendered_image_count: imageData.filter(Boolean).length,
           ...(lintOut.lint ? { lint: lintOut.lint } : {}),
+          render_trace: renderTrace,
           last_render_error:null,
         },
-        updated_at:new Date().toISOString(),
+        updated_at:renderedAt,
       }).eq("id", asset.id);
       if (updErr) throw updErr;
       return pub.publicUrl;
