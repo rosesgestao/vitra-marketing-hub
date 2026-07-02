@@ -30,14 +30,17 @@ export interface LintElement {
   onAxis?: boolean;     // participa do eixo de alinhamento comum (com textLeft)
 }
 
-export interface LintReport { ok: boolean; errors: string[]; warnings: string[]; metrics?: Record<string, number> }
+// v3: três níveis de severidade. `errors` BLOQUEIA (ok=false); `warnings`/`recommendations` são
+// consultivos (não afetam ok) — o operador vê, mas o criativo não é barrado por eles.
+export interface LintReport { ok: boolean; errors: string[]; warnings: string[]; recommendations: string[]; metrics?: Record<string, number> }
 
-// Opções v2 (por formato/template). Ausentes → a regra correspondente é ignorada (retrocompatível).
+// Opções v2/v3 (por formato/template). Ausentes → a regra correspondente é ignorada (retrocompatível).
 export interface LintOptions {
   gapCap?: number;       // maior faixa morta vertical tolerada (px) entre blocos de topo
   priceMinRatio?: number; // altura do preço ≥ ratio × maior texto secundário
   requireLogo?: boolean;  // exige uma logo presente
   axisTol?: number;       // desvio máximo (px) entre os eixos ópticos dos textos onAxis
+  minLogoGap?: number;    // v3: folga vertical MÍNIMA entre a base da logo e a headline/herói abaixo dela
 }
 
 // Fração da menor caixa a partir da qual uma sobreposição conta como colisão real (evita falso-positivo
@@ -47,6 +50,7 @@ const OVERLAP_TOL = 0.06;
 export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[], opts: LintOptions = {}): LintReport {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const recommendations: string[] = [];
   const metrics: Record<string, number> = {};
 
   // 1) Safe-zone: todo elemento crítico dentro.
@@ -140,5 +144,24 @@ export function lintCreative(safe: FormatSpec["safe"], elements: LintElement[], 
   // 10) Logo: presença obrigatória (identidade da marca). REPROVA se ausente.
   if (opts.requireLogo && !elements.some((e) => e.isLogo)) errors.push("logo_missing");
 
-  return { ok: errors.length === 0, errors, warnings, metrics };
+  // 11) Aperto logo↔headline (nível ALERTA): a headline/herói encostando na logo quando estão na mesma
+  // coluna (achado do hero-checklist: a logo canônica crescia e colava na headline). Só quando há
+  // sobreposição horizontal entre a logo e o texto principal — logos em coluna oposta (ex.: topo-direito)
+  // não disparam. É ALERTA (não bloqueia): a folga "apertada porém ok" varia por peça (ex.: banner 1.91:1
+  // é denso). Grava a métrica `logo_gap` para auditoria; promover a ERRO exige limiar calibrado por arquétipo.
+  if (opts.minLogoGap != null) {
+    const logo = elements.find((e) => e.isLogo);
+    const head = elements.find((e) => e.role === "headline" || e.role === "hero");
+    if (logo && head) {
+      const lb = logo.box.y + logo.box.h;
+      const ox = Math.max(0, Math.min(logo.box.x + logo.box.w, head.box.x + head.box.w) - Math.max(logo.box.x, head.box.x));
+      if (ox > 0 && head.box.y >= lb - 2) {
+        const gap = head.box.y - lb;
+        metrics.logo_gap = Math.round(gap);
+        if (gap < opts.minLogoGap) warnings.push(`logo_crowding:${head.role}:${Math.round(gap)}<${opts.minLogoGap}`);
+      }
+    }
+  }
+
+  return { ok: errors.length === 0, errors, warnings, recommendations, metrics };
 }

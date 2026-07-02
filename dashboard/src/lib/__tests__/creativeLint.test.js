@@ -32,6 +32,34 @@ describe('creativeLint — gate objetivo', () => {
     { role: 'footnote', box: { x: 380, y: 820, w: 320, h: 28 }, critical: true, overImage: true, hasScrim: true },
   ]
 
+  it('v3: o relatório expõe os 3 níveis (errors/warnings/recommendations)', () => {
+    const r = lintCreative(safe, ok)
+    expect(Array.isArray(r.errors)).toBe(true)
+    expect(Array.isArray(r.warnings)).toBe(true)
+    expect(Array.isArray(r.recommendations)).toBe(true)
+  })
+
+  it('v3 logo_crowding: ALERTA (não erro) quando a headline encosta na logo na mesma coluna', () => {
+    const logo = { role: 'logo', box: { x: 90, y: 60, w: 160, h: 28 }, critical: true, isLogo: true }
+    // headline logo abaixo da logo, mesma coluna (x sobreposto), folga 10px < 16
+    const headTight = { role: 'headline', box: { x: 90, y: 98, w: 600, h: 100 }, critical: true, block: true }
+    const rTight = lintCreative(safe, [logo, headTight], { minLogoGap: 16 })
+    expect(rTight.ok).toBe(true) // alerta NÃO bloqueia
+    expect(rTight.warnings.some((w) => w.startsWith('logo_crowding'))).toBe(true)
+    expect(rTight.metrics.logo_gap).toBe(10)
+    // folga confortável (40px) → sem alerta
+    const headOk = { role: 'headline', box: { x: 90, y: 128, w: 600, h: 100 }, critical: true, block: true }
+    const rOk = lintCreative(safe, [logo, headOk], { minLogoGap: 16 })
+    expect(rOk.warnings.some((w) => w.startsWith('logo_crowding'))).toBe(false)
+  })
+
+  it('v3 logo_crowding: logo em coluna OPOSTA (topo-direito) não dispara', () => {
+    const logo = { role: 'logo', box: { x: 900, y: 60, w: 160, h: 28 }, critical: true, isLogo: true }
+    const head = { role: 'headline', box: { x: 90, y: 98, w: 500, h: 100 }, critical: true, block: true }
+    const r = lintCreative(safe, [logo, head], { minLogoGap: 16 })
+    expect(r.warnings.some((w) => w.startsWith('logo_crowding'))).toBe(false)
+  })
+
   it('um layout saudável passa sem erros', () => {
     const r = lintCreative(safe, ok)
     expect(r.ok).toBe(true)

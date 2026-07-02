@@ -12,7 +12,7 @@ export type Archetype = "left-anchored" | "centered" | "photo-forward";
 export interface FieldSpec { charLimit: number; fallback: "hide" | "derive" | string; priority: number }
 
 // Opções de lint constantes por template (o gapCap é por-formato → vive no layout).
-export interface LintProfile { priceMinRatio?: number; axisTol?: number; requireLogo?: boolean }
+export interface LintProfile { priceMinRatio?: number; axisTol?: number; requireLogo?: boolean; minLogoGap?: number }
 
 export interface TemplateSchema {
   id: string;
@@ -204,7 +204,7 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       headline: { charLimit: 40, fallback: "derive", priority: 1 }, // preço-like → heroBenefitHeadline
       footnote: { charLimit: 52, fallback: "hide", priority: 3 },    // localização/proximidade
     },
-    lint: { priceMinRatio: 1.6, axisTol: 8, requireLogo: true },
+    lint: { priceMinRatio: 1.6, axisTol: 8, requireLogo: true, minLogoGap: 14 },
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },
@@ -217,7 +217,7 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       hero: { charLimit: 18, fallback: "derive", priority: 1 },     // nome do bairro (herói)
       subtitle: { charLimit: 88, fallback: "hide", priority: 2 },   // lifestyle
     },
-    lint: { requireLogo: true },
+    lint: { requireLogo: true, minLogoGap: 14 },
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },
@@ -229,7 +229,7 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
     fields: {
       headline: { charLimit: 30, fallback: "derive", priority: 1 },
     },
-    lint: { axisTol: 8, requireLogo: true },
+    lint: { axisTol: 8, requireLogo: true, minLogoGap: 14 },
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },
@@ -239,7 +239,7 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
     archetype: "left-anchored", // painel navy à esquerda (conteúdo no eixo) + galeria à direita
     components: { required: ["logo", "headline", "price", "bullets", "cta"], optional: ["tag"] },
     fields: { headline: { charLimit: 40, fallback: "derive", priority: 1 } },
-    lint: { axisTol: 8, requireLogo: true }, // gapCap é por-formato → fica no builder
+    lint: { axisTol: 8, requireLogo: true, minLogoGap: 14 }, // gapCap é por-formato → fica no builder
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },
@@ -249,7 +249,7 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
     archetype: "left-anchored",
     components: { required: ["logo", "headline", "price", "bullets", "cta"], optional: [] },
     fields: { headline: { charLimit: 40, fallback: "derive", priority: 1 } },
-    lint: { axisTol: 8, requireLogo: true }, // gapCap por-formato no builder
+    lint: { axisTol: 8, requireLogo: true, minLogoGap: 14 }, // gapCap por-formato no builder
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },
@@ -263,7 +263,7 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       selo1: { charLimit: 30, fallback: "hide", priority: 2 },
       selo2: { charLimit: 30, fallback: "hide", priority: 2 },
     },
-    lint: { requireLogo: true },
+    lint: { requireLogo: true, minLogoGap: 14 },
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },
