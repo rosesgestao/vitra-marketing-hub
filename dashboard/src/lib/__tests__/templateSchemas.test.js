@@ -3,6 +3,7 @@ import {
   TEMPLATE_SCHEMAS, OFERTA_LAYOUT, schemaFor,
 } from '../../../../supabase/functions/_shared/templateSchemas.ts'
 import { DS_VERSION } from '../../../../supabase/functions/_shared/designTokens.ts'
+import { selectableCreativeTemplatesForBrand } from '../creativeTemplateCatalog.js'
 
 const ARCHETYPES = ['left-anchored', 'centered', 'photo-forward']
 
@@ -42,13 +43,14 @@ describe('templateSchemas — contrato formal por template', () => {
     }
   })
 
-  it('todas as 6 famílias SELECIONÁVEIS têm schema (guard de cobertura)', () => {
-    const selectable = [
-      'vitra-imobiliaria-oferta-ancora', 'vitra-imobiliaria-hero-checklist',
-      'vitra-imobiliaria-duo-selos-offer', 'vitra-imobiliaria-vitrine-gallery',
-      'vitra-imobiliaria-ficha-imovel', 'vitra-imobiliaria-destino-bairro',
-    ]
-    for (const fam of selectable) expect(schemaFor(fam), fam).toBeTruthy()
+  // GOVERNANÇA (Etapa 8): guard cruzado catálogo↔schema — TODO template selecionável da Imobiliária
+  // no catálogo REAL precisa ter schema. Impede que um selecionável novo entre sem contrato/zonas.
+  it('todo template selecionável da Imobiliária tem schema (guard catálogo↔schema)', () => {
+    const selectable = selectableCreativeTemplatesForBrand('vitra_imobiliaria')
+    expect(selectable.length).toBeGreaterThanOrEqual(6)
+    for (const t of selectable) {
+      expect(schemaFor(t.family), `selecionável sem schema: ${t.family}`).toBeTruthy()
+    }
   })
 
   it('oferta: contrato de lint e campos conforme aprovado', () => {
