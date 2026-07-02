@@ -173,22 +173,18 @@ async function loadFonts() {
   ];
   return fontsCache;
 }
-// Fontes do caminho SVG direto (resvg): Inter 700 e a base historica de TODOS os templates
-// aprovados (default). Anton (headline condensada) e Poppins 500/600/700 (corpo/preco/CTA)
-// entraram com o template hero-checklist (New Life) e so afetam SVGs que as referenciam por
-// font-family — os templates antigos seguem resolvendo Inter como antes.
+// Fontes do caminho SVG direto (resvg): Inter (corpo/preço/CTA/rótulos — base histórica de TODOS os
+// templates, default) + Anton (headline condensada). A Poppins foi REMOVIDA (débito de marca resolvido:
+// padronizada em Inter, fiel ao brandbook) — nenhum template a referencia mais.
 let resvgFontsCache: Uint8Array[] | null = null;
 async function loadResvgFonts() {
   if (resvgFontsCache) return resvgFontsCache;
   const f = async (url: string) => new Uint8Array(await (await fetch(url)).arrayBuffer());
-  const [inter700, anton400, poppins500, poppins600, poppins700] = await Promise.all([
+  const [inter700, anton400] = await Promise.all([
     f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter@0.4.2/700Bold/Inter_700Bold.ttf"),
     f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/anton@0.4.2/400Regular/Anton_400Regular.ttf"),
-    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/poppins@0.4.1/500Medium/Poppins_500Medium.ttf"),
-    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/poppins@0.4.1/600SemiBold/Poppins_600SemiBold.ttf"),
-    f("https://cdn.jsdelivr.net/npm/@expo-google-fonts/poppins@0.4.1/700Bold/Poppins_700Bold.ttf"),
   ]);
-  resvgFontsCache = [inter700, anton400, poppins500, poppins600, poppins700];
+  resvgFontsCache = [inter700, anton400];
   return resvgFontsCache;
 }
 function storageTransformUrl(url: string): string | null {
@@ -970,16 +966,16 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
   }).join("");
 
   const deLine = priceFrom
-    ? textLine(x, L.deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: "#F2F2F2", family: "Poppins", size: L.deSize, weight: 600, decoration: "line-through" })
+    ? textLine(x, L.deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: "#F2F2F2", family: DS_FONT.body, size: L.deSize, weight: 600, decoration: "line-through" })
     : "";
   const porSize = fitDisplaySize(`Por ${priceTo}`, L.porSize, Math.round(L.porSize * 0.6), L.cta[2], 0.84);
-  const porLine = `<text x="${x}" y="${L.porY}" text-anchor="start" font-family="Poppins" font-size="${porSize}" font-weight="700"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${HC_GOLD_TEXT}">${esc(priceTo)}</tspan></text>`;
+  const porLine = `<text x="${x}" y="${L.porY}" text-anchor="start" font-family="${DS_FONT.body}" font-size="${porSize}" font-weight="700"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${HC_GOLD_TEXT}">${esc(priceTo)}</tspan></text>`;
 
   const bulletRows = bullets.map((item, index) => {
     const baseY = L.bulletsY + index * L.bulletStep;
     const badgeTop = baseY - Math.round(L.bulletSize * 0.35 + L.badge / 2);
     return `${heroChecklistBadge(x, badgeTop, L.badge)}
-    ${textLine(L.bulletTextX, baseY, compactText(item, L.bulletChars), { anchor: "start", fill: "#FAFAF8", family: "Poppins", size: L.bulletSize, weight: 500 })}`;
+    ${textLine(L.bulletTextX, baseY, compactText(item, L.bulletChars), { anchor: "start", fill: "#FAFAF8", family: DS_FONT.body, size: L.bulletSize, weight: 500 })}`;
   }).join("");
 
   const [ctaX, ctaY, ctaW, ctaH, ctaRx] = L.cta;
@@ -1052,7 +1048,7 @@ function buildVitraHeroChecklistSvg(asset: any, campaign: any, images: Array<str
 
 function ctaBlockForHeroChecklist(x: number, y: number, w: number, h: number, rx: number, textY: number, size: number, label: string) {
   return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${HC_GOLD_BTN}"/>
-  ${textLine(x + w / 2, textY, label, { fill: HC_INK, family: "Poppins", size, weight: 700 })}`;
+  ${textLine(x + w / 2, textY, label, { fill: HC_INK, family: DS_FONT.body, size, weight: 700 })}`;
 }
 
 // Wordmark VITRA so com o texto branco (sem hexagono), para o topo direito do hero-checklist.
@@ -1324,7 +1320,7 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
   const [seloX, seloY, seloH, seloSize] = L.selo;
   const seloW = Math.round(selo.length * seloSize * 0.64) + Math.round(seloH * 1.3);
   const seloPill = `<rect x="${seloX}" y="${seloY}" width="${seloW}" height="${seloH}" rx="${Math.round(seloH / 2)}" fill="${GOLD}"/>
-  ${textLine(seloX + seloW / 2, seloY + seloH / 2 + Math.round(seloSize * 0.36), selo, { fill: HC_INK, family: "Poppins", size: seloSize, weight: 700, spacing: 2 })}`;
+  ${textLine(seloX + seloW / 2, seloY + seloH / 2 + Math.round(seloSize * 0.36), selo, { fill: HC_INK, family: DS_FONT.body, size: seloSize, weight: 700, spacing: 2 })}`;
 
   const headLines = lines.map((line, i) =>
     textLine(x, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 28, L.headBudget, 0.79), weight: 400 })
@@ -1343,7 +1339,7 @@ function buildVitraLancamentoSvg(asset: any, campaign: any, images: Array<string
   const [cx, cy, cw, ch, crx] = L.cta;
   const ctaSize = fitDisplaySize(cta, L.ctaSize, 14, cw - Math.round(ch * 0.9), 0.90);
   const ctaBlock = `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="${crx}" fill="${GOLD}"/>
-  ${textLine(cx + cw / 2, cy + ch / 2 + Math.round(ctaSize * 0.36), cta, { fill: HC_INK, family: "Poppins", size: ctaSize, weight: 700 })}`;
+  ${textLine(cx + cw / 2, cy + ch / 2 + Math.round(ctaSize * 0.36), cta, { fill: HC_INK, family: DS_FONT.body, size: ctaSize, weight: 700 })}`;
 
   const lcHeadSize = lines.length ? fitDisplaySize(lines[0], L.headSize, 28, L.headBudget, 0.79) : L.headSize;
   runCreativeLint(out, W, H, "lancamento", [
@@ -1424,22 +1420,22 @@ function buildVitraVitrineSvg(asset: any, campaign: any, images: Array<string | 
   const headLines = lines.map((line, i) => textLine(x, L.headY + i * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size: fitDisplaySize(line, L.headSize, 30, L.headBudget, 0.79), weight: 400 })).join("");
 
   const deLine = priceFrom
-    ? textLine(x, deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: GOLD_LIGHT, family: "Poppins", size: L.deSize, weight: 600, decoration: "line-through" })
+    ? textLine(x, deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: GOLD_LIGHT, family: DS_FONT.body, size: L.deSize, weight: 600, decoration: "line-through" })
     : "";
   const porSize = fitDisplaySize(`Por ${priceTo}`, L.porSize, Math.round(L.porSize * 0.6), L.cta[2] + 80, 0.84);
-  const porLine = `<text x="${x}" y="${porY}" text-anchor="start" font-family="Poppins" font-size="${porSize}" font-weight="800"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${GOLD_LIGHT}">${esc(priceTo)}</tspan></text>`;
+  const porLine = `<text x="${x}" y="${porY}" text-anchor="start" font-family="${DS_FONT.body}" font-size="${porSize}" font-weight="800"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${GOLD_LIGHT}">${esc(priceTo)}</tspan></text>`;
 
   const bulletRows = bullets.map((item, i) => {
     const by = bulletsY + i * L.bulletStep;
     return `${heroChecklistBadge(x, by - Math.round(L.bulletSize * 0.35 + L.badge / 2), L.badge)}
-    ${textLine(L.bulletX, by, compactText(item, L.bulletChars), { anchor: "start", fill: "#FAFAF8", family: "Poppins", size: L.bulletSize, weight: 500 })}`;
+    ${textLine(L.bulletX, by, compactText(item, L.bulletChars), { anchor: "start", fill: "#FAFAF8", family: DS_FONT.body, size: L.bulletSize, weight: 500 })}`;
   }).join("");
 
   // CTA pill CLARA (fundo off-white, texto navy) — fiel à referência.
   const ctaSize = fitDisplaySize(compactText(asset.cta || "Clique abaixo e saiba mais", 40), L.ctaSize, 14, ctaW - Math.round(ctaH * 0.9), 0.90);
   const ctaText = compactText(asset.cta || "Clique abaixo e saiba mais", 40);
   const ctaBlock = `<rect x="${ctaX}" y="${ctaY}" width="${ctaW}" height="${ctaH}" rx="${ctaRx}" fill="${OFF_WHITE}"/>
-  ${textLine(ctaX + ctaW / 2, ctaY + ctaH / 2 + Math.round(ctaSize * 0.36), ctaText, { fill: "#0A1628", family: "Poppins", size: ctaSize, weight: 700 })}`;
+  ${textLine(ctaX + ctaW / 2, ctaY + ctaH / 2 + Math.round(ctaSize * 0.36), ctaText, { fill: "#0A1628", family: DS_FONT.body, size: ctaSize, weight: 700 })}`;
 
   // Creative Lint v2 — arquétipo SPLIT diagonal (painel navy à esquerda, conteúdo left-anchored;
   // galeria à direita). Cobre logo, eixo (headline/De-Por), a COLISÃO headline×preço (ambos block) e o
@@ -1649,9 +1645,9 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   // Cap 30 (era 18, truncava headlines normais como "Apartamento no Rio Branco") alinhado ao charLimit
   // do lint: ≤30 renderiza inteiro (encolhe pela largura); >30 o gate reprova em vez de exibir cortado.
   const headBudget = isWide ? 360 : isStory ? 520 : 480;
-  const headLine = textLine(hX, hY, compactText(headline, S.fields.headline.charLimit), { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: fitDisplaySize(headline, hSize, 30, headBudget, 0.84), weight: 700 });
+  const headLine = textLine(hX, hY, compactText(headline, S.fields.headline.charLimit), { anchor: "start", fill: "#FFFFFF", family: DS_FONT.body, size: fitDisplaySize(headline, hSize, 30, headBudget, 0.84), weight: 700 });
   const [sX, sY, sSize, sLh, sMax, sLines] = L.sub as [number, number, number, number, number, number];
-  const subLines = subtitle ? wrapText(subtitle, sMax, sLines).map((ln, i) => textLine(sX, sY + i * sLh, ln, { anchor: "start", fill: "#E8ECF4", family: "Poppins", size: sSize, weight: 500 })).join("") : "";
+  const subLines = subtitle ? wrapText(subtitle, sMax, sLines).map((ln, i) => textLine(sX, sY + i * sLh, ln, { anchor: "start", fill: "#E8ECF4", family: DS_FONT.body, size: sSize, weight: 500 })).join("") : "";
 
   // Cards de atributo: tile branco com ícone navy + barra navy com o texto.
   const f = L.feat;
@@ -1661,7 +1657,7 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
     const ic = Math.round((f.tileSize - f.iconSize) / 2);
     const tLines = wrapText(item, 18, 2);
     const textBlockY = ty + f.barH / 2 - (tLines.length - 1) * (f.textSize * 0.58) + f.textSize * 0.34;
-    const txt = tLines.map((ln, k) => textLine(f.textX, textBlockY + k * (f.textSize * 1.16), ln, { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: f.textSize, weight: 600 })).join("");
+    const txt = tLines.map((ln, k) => textLine(f.textX, textBlockY + k * (f.textSize * 1.16), ln, { anchor: "start", fill: "#FFFFFF", family: DS_FONT.body, size: f.textSize, weight: 600 })).join("");
     return `<rect x="${f.barX}" y="${ty}" width="${f.barW}" height="${f.barH}" rx="${Math.round(f.barH * 0.26)}" fill="${BAR}"/>
       <rect x="${f.tileX}" y="${ty}" width="${f.tileSize}" height="${f.tileSize}" rx="${Math.round(f.tileSize * 0.26)}" fill="#FFFFFF"/>
       ${fichaIconSvg(kind, f.tileX + ic, ty + ic, f.iconSize, NAVY)}
@@ -1674,13 +1670,13 @@ function buildVitraFichaSvg(asset: any, campaign: any, images: Array<string | nu
   const [pX, pY, pW, pH, pRx, pSize] = L.price;
   const pFit = fitDisplaySize(price, pSize, 24, pW - 72, 1.0);
   const priceCard = `<rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" rx="${pRx}" fill="#FFFFFF"/>
-    ${textLine(pX + Math.round(pW * 0.5), pY + pH / 2 + Math.round(pFit * 0.34), price, { fill: GOLD, family: "Poppins", size: pFit, weight: 700 })}`;
+    ${textLine(pX + Math.round(pW * 0.5), pY + pH / 2 + Math.round(pFit * 0.34), price, { fill: GOLD, family: DS_FONT.body, size: pFit, weight: 700 })}`;
 
   // Rodapé: só o CTA (esq.). Omitido no wide.
   let footer = "";
   if (L.footer) {
     const ft = L.footer;
-    footer = wrapText(cta, 30, 2).map((ln, i) => textLine(ft.pad, ft.y + i * ft.lh, ln, { anchor: "start", fill: "#FFFFFF", family: "Poppins", size: ft.ctaSize, weight: 600 })).join("");
+    footer = wrapText(cta, 30, 2).map((ln, i) => textLine(ft.pad, ft.y + i * ft.lh, ln, { anchor: "start", fill: "#FFFFFF", family: DS_FONT.body, size: ft.ctaSize, weight: 600 })).join("");
   }
 
   // Creative Lint v2 — arquétipo COLUNA navy à esquerda (logo/headline/subtítulo/cards/preço left-anchored;

@@ -655,7 +655,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // v2 (junho/2026): reposicionado para dentro da safe zone do Meta nos 3 formatos (logo fora
       // do canto, CTA fora das faixas de reels/base, margem esquerda em 108/89). O bump forca o
       // re-render dos PNGs ja em storage com a arte corrigida.
-      renderVersion: 'hero-checklist-ds-image-v6',
+      renderVersion: 'hero-checklist-ds-image-v7',
     },
     {
       id: 'vitra-imobiliaria-duo-selos-offer',
@@ -768,7 +768,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       fixedBrandRules: ['navy_diagonal_panel', 'approved_white_wordmark', 'gold_check_seals', 'price_de_por', 'photo_gallery_3', 'clear_cta_pill', 'meta_safe_zone'],
       // Arte nova (junho/2026), versionada desde o inicio. Referencia visual do cliente (estrutura/conceito),
       // adaptada ao brandbook (navy + dourado, wordmark branco) e as safe zones do Meta nos 3 formatos.
-      renderVersion: 'vitrine-gallery-approved-v3',
+      renderVersion: 'vitrine-gallery-approved-v4',
     },
     {
       id: 'vitra-imobiliaria-oportunidade-bairro',
@@ -825,7 +825,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       fixedBrandRules: ['solid_navy_bg', 'approved_white_wordmark', 'attribute_icon_cards', 'gold_price_card', 'photo_gallery_3', 'cta_footer', 'meta_safe_zone'],
       // Arte nova (junho/2026). Referencia visual do cliente (estrutura/conceito de marca concorrente — sem
       // copiar logo/contatos); adaptado ao brandbook (navy + dourado, wordmark VITRA, preco em dourado).
-      renderVersion: 'ficha-imovel-approved-v3',
+      renderVersion: 'ficha-imovel-approved-v4',
     },
     {
       id: 'vitra-imobiliaria-oferta-ancora',
