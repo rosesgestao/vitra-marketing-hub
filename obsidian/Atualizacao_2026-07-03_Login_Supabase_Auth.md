@@ -25,13 +25,20 @@ deploy PÚBLICO, endurecer com auth de usuário real". **Decisão do Leonardo: l
   `fetch-listing-text` (não-gated) → 200. 240 testes (edgeAuth +2: user autorizado, anon negado) + lint +
   deno check + build OK. 10 Edges deployadas (CLI).
 
-## Ações do Leonardo no Supabase (não posso fazer — criar conta/senha)
-1. **Criar usuário:** Authentication → Users → Add user (e-mail+senha, Auto Confirm). **auth.users=0 hoje**
-   → sem usuário ninguém entra. Fazer ANTES de ativar o login.
-2. **Desativar cadastro público:** Authentication → Email → desligar "Allow new users to sign up" (senão
-   qualquer um se auto-registra).
+## Cadastro (2ª parte, mesmo dia)
+Leonardo pediu **sistema de cadastro** na tela. `AuthGate` ganhou modo **Criar conta** (nome, e-mail,
+senha+confirmação, validações, toggle) via `supabase.auth.signUp`; se a confirmação de e-mail estiver
+ligada, mostra "confirme seu e-mail" e volta ao login. Verificado no preview (login + cadastro
+renderizam on-brand, console limpo). **Escolha do Leonardo: cadastro ABERTO com confirmação de e-mail**
+(qualquer e-mail válido se registra + confirma antes de entrar). Trade-off consciente: o copiloto pago
+fica acessível a quem se cadastrar. Auto-cadastro resolve o lockout (não precisa mais criar usuário à mão).
 
-## Rollout (PUSH SEGURADO)
-O commit foi feito mas **NÃO** foi pushado ainda: o push ativa a parede de login no ar e, com 0 usuários,
-trancaria o app. Sequência: (1) criar o usuário → (2) push → (3) rebuild Hostinger → logar.
-DEPLOY.md seção 2.1. [[deploy-hostinger-vitrapremium]] [[validacao-criativo-arquitetura]]
+## Config Supabase (Authentication → Email)
+Manter **"Allow new users to sign up" LIGADO** + **"Confirm email" LIGADO** (padrões). Recomendado criar
+1 conta pelo painel (Auto Confirm) como fallback garantido. SMTP embutido cobre baixo volume; próprio p/
+produção séria.
+
+## Rollout
+Com auto-cadastro, sem risco de lockout (registra o 1º acesso). Sequência: (1) confirmar signups ON +
+confirm email ON + criar fallback → (2) push → (3) rebuild Hostinger → cadastrar/logar. DEPLOY.md §2.1.
+[[deploy-hostinger-vitrapremium]] [[validacao-criativo-arquitetura]]

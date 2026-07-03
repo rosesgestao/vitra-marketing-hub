@@ -6,31 +6,81 @@ import { VitraHorizontalLogo } from './PremiumBrand.jsx'
 // sem login, nenhuma tela do app aparece — e as Edges de IA (verify_jwt=true + edgeAuth) so autorizam
 // o JWT de um usuario autenticado. Assim a chave publishable (publica, no bundle) sozinha nao dispara
 // chamada paga. Sessao persistida pelo supabase-js (localStorage) + refresh automatico.
+//
+// Tela unica com dois modos: ENTRAR (signInWithPassword) e CRIAR CONTA (signUp). Se a confirmacao de
+// e-mail estiver ligada no Supabase, o signUp nao retorna sessao -> mostra "confirme seu e-mail".
 
-function LoginScreen() {
+const MIN_PASSWORD = 6
+
+function friendlyError(message = '') {
+  if (/invalid login/i.test(message)) return 'E-mail ou senha incorretos.'
+  if (/already registered|already exists|User already/i.test(message)) return 'Este e-mail ja tem conta. Faca login.'
+  if (/password should be at least|weak password/i.test(message)) return `A senha precisa de ao menos ${MIN_PASSWORD} caracteres.`
+  if (/signups? not allowed|signup is disabled/i.test(message)) return 'Cadastro desativado. Peca acesso ao administrador.'
+  if (/rate limit|too many/i.test(message)) return 'Muitas tentativas. Aguarde um instante e tente de novo.'
+  if (/unable to validate email|invalid email/i.test(message)) return 'E-mail invalido.'
+  return message || 'Nao foi possivel concluir. Tente novamente.'
+}
+
+function AuthScreen() {
+  const [mode, setMode] = useState('signin') // 'signin' | 'signup'
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const isSignup = mode === 'signup'
+
+  function switchMode(next) {
+    setMode(next)
+    setError('')
+    setNotice('')
+    setPassword('')
+    setConfirm('')
+  }
 
   async function onSubmit(event) {
     event.preventDefault()
     setError('')
+    setNotice('')
+
+    if (isSignup) {
+      if (password.length < MIN_PASSWORD) return setError(`A senha precisa de ao menos ${MIN_PASSWORD} caracteres.`)
+      if (password !== confirm) return setError('As senhas nao conferem.')
+    }
+
     setBusy(true)
+    if (isSignup) {
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { full_name: name.trim() || null } },
+      })
+      setBusy(false)
+      if (authError) return setError(friendlyError(authError.message))
+      // Confirmacao de e-mail ligada: sem sessao -> orienta a confirmar. Desligada: onAuthStateChange loga.
+      if (!data?.session) {
+        setNotice('Conta criada. Enviamos um e-mail de confirmacao — confirme para entrar.')
+        setMode('signin')
+        setPassword('')
+        setConfirm('')
+      }
+      return
+    }
+
     const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     setBusy(false)
-    if (authError) {
-      setError(
-        /invalid login/i.test(authError.message)
-          ? 'E-mail ou senha incorretos.'
-          : (authError.message || 'Nao foi possivel entrar. Tente novamente.'),
-      )
-    }
-    // Sucesso: onAuthStateChange no AuthGate troca para o app automaticamente.
+    if (authError) setError(friendlyError(authError.message))
+    // Sucesso: onAuthStateChange no AuthGate troca para o app.
   }
 
+  const canSubmit = email && password && (!isSignup || (confirm && password.length >= MIN_PASSWORD))
+
   return (
-    <div className="min-h-dvh w-full flex items-center justify-center bg-[#0A1628] px-4"
+    <div className="min-h-dvh w-full flex items-center justify-center bg-[#0A1628] px-4 py-8"
       style={{ backgroundImage: 'radial-gradient(60% 50% at 78% 8%, rgba(196,148,42,0.10), transparent 70%)' }}>
       <div className="w-full max-w-[400px]">
         <div className="flex justify-center mb-8">
@@ -39,35 +89,64 @@ function LoginScreen() {
         <form onSubmit={onSubmit}
           className="rounded-2xl border border-[#C4942A]/25 bg-[#0E1D38]/80 backdrop-blur px-7 py-8 shadow-[0_18px_50px_rgba(5,12,22,0.55)]">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-[#C4942A] uppercase">Operacao Imobiliaria</p>
-          <h1 className="mt-1.5 text-2xl font-semibold text-white">Entrar</h1>
-          <p className="mt-1 text-sm text-white/55">Acesso restrito a equipe Vitra.</p>
+          <h1 className="mt-1.5 text-2xl font-semibold text-white">{isSignup ? 'Criar conta' : 'Entrar'}</h1>
+          <p className="mt-1 text-sm text-white/55">
+            {isSignup ? 'Cadastre-se para acessar a central.' : 'Acesso restrito a equipe Vitra.'}
+          </p>
 
-          <label className="mt-6 block text-sm text-white/80" htmlFor="auth-email">E-mail</label>
+          {isSignup ? (
+            <>
+              <label className="mt-6 block text-sm text-white/80" htmlFor="auth-name">Nome</label>
+              <input id="auth-name" type="text" autoComplete="name" value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-white/12 bg-[#0A1628] px-3.5 py-2.5 text-[15px] text-white outline-none transition focus:border-[#C4942A] focus:ring-2 focus:ring-[#C4942A]/30"
+                placeholder="Seu nome" />
+            </>
+          ) : null}
+
+          <label className={`${isSignup ? 'mt-4' : 'mt-6'} block text-sm text-white/80`} htmlFor="auth-email">E-mail</label>
           <input id="auth-email" type="email" autoComplete="email" required value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-white/12 bg-[#0A1628] px-3.5 py-2.5 text-[15px] text-white outline-none transition focus:border-[#C4942A] focus:ring-2 focus:ring-[#C4942A]/30"
             placeholder="voce@vitra.com.br" />
 
           <label className="mt-4 block text-sm text-white/80" htmlFor="auth-password">Senha</label>
-          <input id="auth-password" type="password" autoComplete="current-password" required value={password}
+          <input id="auth-password" type="password" required value={password}
+            autoComplete={isSignup ? 'new-password' : 'current-password'}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-white/12 bg-[#0A1628] px-3.5 py-2.5 text-[15px] text-white outline-none transition focus:border-[#C4942A] focus:ring-2 focus:ring-[#C4942A]/30"
-            placeholder="••••••••" />
+            placeholder={isSignup ? `Ao menos ${MIN_PASSWORD} caracteres` : '••••••••'} />
 
-          {error ? (
-            <p role="alert" className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-              {error}
-            </p>
+          {isSignup ? (
+            <>
+              <label className="mt-4 block text-sm text-white/80" htmlFor="auth-confirm">Confirmar senha</label>
+              <input id="auth-confirm" type="password" autoComplete="new-password" required value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-white/12 bg-[#0A1628] px-3.5 py-2.5 text-[15px] text-white outline-none transition focus:border-[#C4942A] focus:ring-2 focus:ring-[#C4942A]/30"
+                placeholder="Repita a senha" />
+            </>
           ) : null}
 
-          <button type="submit" disabled={busy || !email || !password}
+          {error ? (
+            <p role="alert" className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</p>
+          ) : null}
+          {notice ? (
+            <p role="status" className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{notice}</p>
+          ) : null}
+
+          <button type="submit" disabled={busy || !canSubmit}
             className="mt-6 w-full rounded-lg bg-[#C4942A] px-4 py-2.5 text-[15px] font-semibold text-[#0A1628] transition hover:bg-[#d4a84a] disabled:cursor-not-allowed disabled:opacity-50">
-            {busy ? 'Entrando…' : 'Entrar'}
+            {busy ? (isSignup ? 'Criando…' : 'Entrando…') : (isSignup ? 'Criar conta' : 'Entrar')}
           </button>
+
+          <p className="mt-5 text-center text-sm text-white/55">
+            {isSignup ? 'Ja tem conta?' : 'Nao tem conta?'}{' '}
+            <button type="button" onClick={() => switchMode(isSignup ? 'signin' : 'signup')}
+              className="font-semibold text-[#C4942A] hover:text-[#d4a84a] underline-offset-2 hover:underline">
+              {isSignup ? 'Entrar' : 'Criar conta'}
+            </button>
+          </p>
         </form>
-        <p className="mt-5 text-center text-xs text-white/35">
-          Esqueceu a senha? Fale com o administrador para redefinir no painel.
-        </p>
       </div>
     </div>
   )
@@ -112,7 +191,7 @@ export default function AuthGate({ children }) {
     )
   }
 
-  if (status !== 'authed') return <LoginScreen />
+  if (status !== 'authed') return <AuthScreen />
 
   return (
     <>

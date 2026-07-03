@@ -44,16 +44,24 @@ via Supabase Auth**. O app inteiro fica atrás de uma tela de login (`AuthGate`)
 `verify_jwt=true` + `authorizeAiEdge`, que só autoriza **usuário autenticado** (ou service role). RLS já
 cobre `authenticated` em todas as tabelas — o banco não quebra.
 
-**Duas ações suas no painel do Supabase (Authentication):**
-1. **Criar o(s) usuário(s) de login:** Authentication → Users → *Add user* → e-mail + senha + marcar
-   *Auto Confirm User*. Enquanto **não houver usuário, ninguém entra** (nem você) — faça isto ANTES de
-   ativar o login em produção.
-2. **Desativar cadastro público:** Authentication → Sign In / Providers → Email → **desligar "Allow new
-   users to sign up"** (ou Project Settings → Auth). Sem isso, qualquer um se auto-registra e fura a
-   parede de login.
+A tela (`AuthGate`) tem **login + cadastro** (auto-registro). Modelo escolhido: **cadastro ABERTO com
+confirmação de e-mail** — qualquer pessoa com um e-mail válido se cadastra, mas precisa confirmar o
+e-mail antes de entrar. ⚠️ Isso deixa o **copiloto de IA (API paga)** acessível a quem se registrar +
+confirmar; foi uma escolha consciente (custo vs. conveniência). Para restringir depois: allowlist de
+domínio (trigger no Postgres) ou desligar o cadastro e criar usuários só pelo painel.
 
-Sequência segura de ativação (evita ficar trancado): (a) criar o usuário no Supabase → (b) `git push`
-(Hostinger rebuilda com a tela de login) → (c) abrir o site, logar. Logout: botão "Sair" no canto
+**Configuração no painel do Supabase (Authentication → Sign In / Providers → Email):**
+1. **Manter "Allow new users to sign up" LIGADO** (senão o botão "Criar conta" retorna "cadastro
+   desativado").
+2. **Manter "Confirm email" LIGADO** (o cadastro exige confirmação antes do 1º login). São os padrões
+   do Supabase — provavelmente já estão assim.
+3. **E-mail de confirmação:** o SMTP embutido do Supabase cobre baixo volume (pode cair em spam/limite).
+   Para produção séria, configurar SMTP próprio (Authentication → Emails).
+4. **Fallback garantido (recomendado):** criar UMA conta pelo painel (Users → Add user → *Auto Confirm
+   User*) — login que sempre funciona, independente do e-mail de confirmação. Evita qualquer lockout.
+
+Sequência de ativação: (a) confirmar os itens 1-2 e criar o fallback (item 4) → (b) `git push` (Hostinger
+rebuilda com a tela de login) → (c) abrir o site, cadastrar/logar. Logout: botão "Sair" no canto
 inferior-esquerdo.
 
 ## 3. Variáveis de ambiente (BUILD) — **passo que faltava**
