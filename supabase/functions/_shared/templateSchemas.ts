@@ -195,6 +195,38 @@ export function duoSelosLayout(isStory: boolean, isWide: boolean) {
   };
 }
 
+// ── checklist-rail ────────────────────────────────────────────────────────────────────────────────
+// Painel dividido: coluna navy à esquerda (foto + véu; logo > headline Anton > De/Por > checklist de
+// selos > CTA pill CLARO) + trilho claro à direita com fotos empilhadas (PROVA visual — 3 no feed/story,
+// 2 no wide). Arquétipo left-anchored (eixo único). porY depende do "De" (runtime) → recebe priceFrom.
+// Safe zone Meta: 1:1 x108/y[90..960]; 9:16 y[250..1470]; 1.91:1 x>=89 y[63..564]. Painel/fotos sangram.
+export function checklistRailLayout(isStory: boolean, isWide: boolean, priceFrom: boolean) {
+  return isStory ? {
+    panelX: 640, rail: [[674, 250, 370, 386, 28], [674, 666, 370, 386, 28], [674, 1082, 370, 386, 28]],
+    logo: [90, 278], margin: 90,
+    headBase: 88, headGap: 100, headY: 430, headBudget: 500,
+    // deY/porY com folga da caixa da headline 2 linhas (o lint usa caixa conservadora = lines*headGap;
+    // colava no De → overlap:heroxprice pego pelo gate no nascimento — corrigido no DADO, não no código).
+    deY: 640, deSize: 36, porY: priceFrom ? 716 : 668, porSize: 56,
+    checksY: 790, checkStep: 78, checkSize: 29, badge: 34, checkTextX: 138, maxChecks: 5,
+    cta: [90, 1330, 500, 88, 44], ctaSize: 27, gapCap: 170,
+  } : isWide ? {
+    panelX: 700, rail: [[736, 56, 428, 245, 20], [736, 325, 428, 245, 20]],
+    logo: [89, 63], margin: 89,
+    headBase: 46, headGap: 52, headY: 160, headBudget: 540,
+    deY: 280, deSize: 22, porY: priceFrom ? 326 : 296, porSize: 40,
+    checksY: 390, checkStep: 44, checkSize: 19, badge: 22, checkTextX: 125, maxChecks: 3,
+    cta: [89, 490, 430, 62, 31], ctaSize: 20, gapCap: 110,
+  } : {
+    panelX: 642, rail: [[678, 72, 366, 293, 24], [678, 393, 366, 293, 24], [678, 714, 366, 293, 24]],
+    logo: [108, 90], margin: 108,
+    headBase: 84, headGap: 92, headY: 248, headBudget: 470,
+    deY: 426, deSize: 30, porY: priceFrom ? 490 : 450, porSize: 52,
+    checksY: 560, checkStep: 66, checkSize: 26, badge: 30, checkTextX: 156, maxChecks: 5,
+    cta: [108, 880, 470, 80, 40], ctaSize: 24, gapCap: 150,
+  };
+}
+
 // ── Registro dos schemas (contrato) ───────────────────────────────────────────────────────────────────
 export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
   "vitra-imobiliaria-oferta-ancora": {
@@ -266,6 +298,25 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       selo2: { charLimit: 30, fallback: "hide", priority: 2 },
     },
     lint: { requireLogo: true, minLogoGap: 14 },
+    approvedVariants: ["noFrame", "gold"],
+    dsVersion: DS_VERSION,
+  },
+  "vitra-imobiliaria-checklist-rail": {
+    id: "template-14-checklist-rail",
+    family: "vitra-imobiliaria-checklist-rail",
+    archetype: "left-anchored", // coluna navy à esquerda (eixo único) + trilho claro de fotos à direita
+    components: { required: ["logo", "headline", "price", "checklist", "rail", "cta"], optional: [] },
+    fields: {
+      headline: { charLimit: 40, fallback: "derive", priority: 1 },
+      // Até 5 checks (3 no wide). Proveniência: itens REAIS de differentials reprovam >30 (nunca truncar
+      // copy do operador); os de fallback (location/área/vagas/padrão) degradam em silêncio.
+      check1: { charLimit: 30, fallback: "hide", priority: 2 },
+      check2: { charLimit: 30, fallback: "hide", priority: 2 },
+      check3: { charLimit: 30, fallback: "hide", priority: 2 },
+      check4: { charLimit: 30, fallback: "hide", priority: 3 },
+      check5: { charLimit: 30, fallback: "hide", priority: 3 },
+    },
+    lint: { axisTol: 8, requireLogo: true, minLogoGap: 14 }, // gapCap por-formato no layout
     approvedVariants: ["noFrame", "gold"],
     dsVersion: DS_VERSION,
   },

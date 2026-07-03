@@ -23,8 +23,8 @@ import {
 import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION as EDGE_RENDER_VERSION } from '../../../../supabase/functions/_shared/renderVersions.ts'
 
 describe('catalogo de templates por marca', () => {
-  it('Imobiliaria tem 13 templates aprovados e Premium tem 2', () => {
-    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(13)
+  it('Imobiliaria tem 14 templates aprovados e Premium tem 2', () => {
+    expect(creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)).toHaveLength(14)
     expect(creativeTemplatesForBrand(BRAND_SCOPES.premium)).toHaveLength(2)
   })
   it('marca desconhecida cai no catalogo Premium', () => {
@@ -33,7 +33,7 @@ describe('catalogo de templates por marca', () => {
 })
 
 describe('templates selecionaveis no modal (aposentados ocultos)', () => {
-  it('Imobiliaria oferece os 6 templates aprovados na selecao, nesta ordem', () => {
+  it('Imobiliaria oferece os 7 templates aprovados na selecao, nesta ordem', () => {
     const selectable = selectableCreativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
     expect(selectable.map(t => t.id)).toEqual([
       'vitra-imobiliaria-hero-checklist',
@@ -42,6 +42,7 @@ describe('templates selecionaveis no modal (aposentados ocultos)', () => {
       'vitra-imobiliaria-ficha-imovel',
       'vitra-imobiliaria-oferta-ancora',
       'vitra-imobiliaria-destino-bairro',
+      'vitra-imobiliaria-checklist-rail', // template 14 (julho/2026) — split checklist + trilho de fotos
     ])
   })
   it('os 7 templates aposentados seguem no catalogo (resolvem) mas marcados como hidden', () => {
@@ -141,6 +142,7 @@ describe('render-version (fonte unica no catalogo — Fase 3)', () => {
     expect(renderVersionForFamily('vitra-imobiliaria-financiamento-orla')).toBe('financiamento-orla-approved-v7')
     expect(renderVersionForFamily('vitra-imobiliaria-hero-checklist')).toBe('hero-checklist-ds-image-v7')
     expect(renderVersionForFamily('vitra-imobiliaria-duo-selos-offer')).toBe('duo-selos-approved-v4')
+    expect(renderVersionForFamily('vitra-imobiliaria-checklist-rail')).toBe('checklist-rail-approved-v1')
     expect(renderVersionForFamily('vitra-imobiliaria-hero-panel-gallery')).toBe('hero-panel-approved-v2')
     expect(renderVersionForFamily('vitra-imobiliaria-dual-photo-offer')).toBeNull()
     expect(renderVersionForFamily('vitra-imobiliaria-patios-gallery')).toBeNull()

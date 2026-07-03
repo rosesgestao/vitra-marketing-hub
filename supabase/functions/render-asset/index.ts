@@ -19,7 +19,7 @@ import { VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION } from "../_shared/renderVers
 import { DS_COLORS, DS_FONT, DS_RADII, formatSpec } from "../_shared/creativeDesign.ts";
 import { DS_TYPE, DS_WEIGHT, DS_STROKE, DS_PALETTE_EXTENDED } from "../_shared/designTokens.ts";
 import { logoBlock } from "../_shared/components.ts";
-import { OFERTA_LAYOUT, destinoLayout, fichaLayout, vitrineLayout, heroChecklistLayout, duoSelosLayout, schemaFor } from "../_shared/templateSchemas.ts";
+import { OFERTA_LAYOUT, destinoLayout, fichaLayout, vitrineLayout, heroChecklistLayout, duoSelosLayout, checklistRailLayout, schemaFor } from "../_shared/templateSchemas.ts";
 import { buildRenderTrace } from "../_shared/renderTrace.ts";
 import { lintCreative, tokenConformance, type LintElement } from "../_shared/creativeLint.ts";
 import { measuredWidthPx, fitFillSize, fillRatio, centerStartX, distributeV } from "../_shared/layoutKit.ts";
@@ -77,6 +77,7 @@ const VITRA_IMOBILIARIA_TEMPLATE_FAMILIES = [
   "vitra-imobiliaria-ficha-imovel",
   "vitra-imobiliaria-oferta-ancora",
   "vitra-imobiliaria-destino-bairro",
+  "vitra-imobiliaria-checklist-rail",
 ];
 const MODEL_LABEL: Record<string, string> = {
   "premium-photo-offer": "Foto protagonista + oferta",
@@ -111,6 +112,9 @@ const MODEL_LABEL: Record<string, string> = {
   "vitra-imobiliaria-destino-bairro-feed": "Vitra Imobiliaria - destino bairro 1:1",
   "vitra-imobiliaria-destino-bairro-story": "Vitra Imobiliaria - destino bairro 9:16",
   "vitra-imobiliaria-destino-bairro-wide": "Vitra Imobiliaria - destino bairro 1.91:1",
+  "vitra-imobiliaria-checklist-rail-feed": "Vitra Imobiliaria - checklist + trilho de fotos 1:1",
+  "vitra-imobiliaria-checklist-rail-story": "Vitra Imobiliaria - checklist + trilho de fotos 9:16",
+  "vitra-imobiliaria-checklist-rail-wide": "Vitra Imobiliaria - checklist + trilho de fotos 1.91:1",
 };
 
 const LOGO_INNER = `<g transform="translate(3,2) scale(0.87)"><polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/><polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/><polygon points="25,37 39,37 32,54" fill="#FFE08A"/><polygon points="25,37 32,54 55,76" fill="#8B6914"/><polygon points="39,37 32,54 55,76" fill="#C4942A"/><polygon points="85,37 71,37 78,54" fill="#F0C95C"/><polygon points="85,37 78,54 55,76" fill="#7A5C10"/><polygon points="71,37 78,54 55,76" fill="#D4A84A"/></g><line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.2)" stroke-width="1"/><text x="135" y="48" font-family="Inter" font-weight="700" font-size="27" letter-spacing="12" fill="#FFFFFF">VITR</text><path d="M254.99,28.56 L264.98,48.54 L245,48.54 Z M254.99,37.551 L258.4865,44.544 L251.4935,44.544 Z" fill="#FFFFFF" fill-rule="evenodd"/><text x="122.50" y="71" font-family="Inter" font-weight="700" font-size="10.5" letter-spacing="17.6108" fill="#C4942A">PREMIUM</text>`;
@@ -1176,6 +1180,141 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
 </svg>`;
 }
 
+// ===== Template 14: checklist-rail (split + trilho de fotos) =====
+// Referencia ESTRUTURAL de mercado (peca de oferta em duas colunas) reconstruida 100% na identidade
+// Vitra — nenhum texto/logo/elemento proprietario copiado. Coluna navy a esquerda (foto de fundo + veu;
+// logo > headline Anton 2 linhas > De riscado / Por dourado > checklist de selos badge-check > CTA pill
+// CLARO com texto navy, fiel ao pill claro da referencia) + trilho OFF_WHITE a direita com fotos
+// empilhadas de cantos arredondados (PROVA visual): 3 no 1:1/9:16, 2 no 1.91:1. Papel distinto do
+// hero-checklist (atmosfera em foto unica full-bleed): aqui a peca vende EVIDENCIA (varios ambientes).
+// Paleta/tipografia 100% DS (Anton + Inter). SAFE ZONE do Meta (skill margem-seguranca-criativos):
+// 1:1 x108/y[90..960]; 9:16 reels-safe y[250..1470]; 1.91:1 x[89..1111] y[63..564]. Painel e fotos do
+// trilho sangram; texto, logo e CTA, nunca.
+
+// Ate `max` checks com PROVENIENCIA (mesma regra dos selos do duo-selos): itens REAIS de differentials
+// primeiro — o lint reprova >30, nunca trunca copy do operador; completa com fallbacks
+// (location/area/suites/vagas/padrao), que degradam em silencio (compactText no builder).
+function productChecks(pd: any, campaign: any, max: number): { checks: string[]; realCount: number } {
+  const values = String(pd?.differentials || "")
+    .split(/[\n;,|]+/)
+    .map((item) => item.replace(/^[-•\s]+/, "").trim())
+    .filter(Boolean);
+  const real = values.slice(0, max);
+  const location = pd?.location || [campaign?.neighborhood, campaign?.city].filter(Boolean).join(", ");
+  const fallback = [location, pd?.area, pd?.suites, pd?.parking, "Atendimento consultivo Vitra"]
+    .filter(Boolean).map((value) => String(value).trim());
+  const checks = [...real];
+  for (const item of fallback) {
+    if (checks.length >= max) break;
+    if (!checks.includes(item)) checks.push(item);
+  }
+  return { checks, realCount: real.length };
+}
+
+function buildVitraChecklistRailSvg(asset: any, campaign: any, images: Array<string | null>, W: number, H: number, brandProfile: ReturnType<typeof brandRenderProfile>, idBase: string, out?: { lint?: ReturnType<typeof lintCreative> }) {
+  const pd = { ...(campaign?.brief?.product_data ?? {}), ...(asset?.metadata?.product_data ?? {}) };
+  const frame = templateFrame(asset);
+  const isStory = H > W * 1.25;
+  const isWide = W > H * 1.35;
+
+  // Como no hero-checklist: headline que e o proprio preco duplicaria o bloco De/Por → titulo de beneficio.
+  let headlineSource = (asset.headline || pd.suggested_headline || campaign?.name || brandProfile.fallbackHeadline).toString();
+  if (isPriceLikeHeadline(headlineSource)) headlineSource = heroBenefitHeadline(pd, campaign, brandProfile);
+  const headline = headlineSource.toUpperCase();
+  // 2 linhas de ate 20 chars = cobre o charLimit 40 do schema SEM truncar (wrap + fit por linha).
+  const lines = wrapText(headline, 20, 2);
+
+  const parts = priceParts(pd.price || campaign?.offer || "");
+  const priceFrom = String(pd.price_from || parts.from || "").replace(/^de\s*:?\s*/i, "").trim();
+  const priceTo = formatMoneyLike(parts.to || pd.price || "") || "Consulte";
+
+  // Layout + contrato (Etapa 3): posição/tamanhos e o contrato de campos/lint vêm do SCHEMA (dado).
+  const S = schemaFor("vitra-imobiliaria-checklist-rail")!;
+  const L = checklistRailLayout(isStory, isWide, !!priceFrom);
+  const { checks: checksRaw, realCount } = productChecks(pd, campaign, L.maxChecks);
+  const checks = checksRaw.map((item) => compactText(item, 30));
+  const cta = compactText(asset.cta || "Clique abaixo e saiba mais", 46);
+
+  const x = L.margin;
+  // Fundo: foto full-bleed com grade navy + veu horizontal forte na coluna de texto (o painel claro
+  // cobre a direita, entao o veu protege so a esquerda). Trilho: fallback em cascata (nunca buraco).
+  const photoLayer = dsImageLayer(images[0] || null, W, H, idBase, isStory ? "story" : isWide ? "wide" : "feed", { grade: true });
+  const railPhotos: Array<string | null> = [];
+  for (let i = 0; i < L.rail.length; i++) railPhotos.push(images[i + 1] || railPhotos[i - 1] || images[0] || null);
+
+  const photoDefs = L.rail.map((p, i) => `<clipPath id="${idBase}-r${i}"><rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="${p[4]}" ry="${p[4]}"/></clipPath>`).join("") +
+    `<linearGradient id="${idBase}-veil" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#07111F" stop-opacity="0.95"/>
+      <stop offset="40%" stop-color="#07111F" stop-opacity="0.86"/>
+      <stop offset="60%" stop-color="#07111F" stop-opacity="0.62"/>
+      <stop offset="100%" stop-color="#07111F" stop-opacity="0.30"/>
+    </linearGradient>`;
+
+  const headLines = lines.map((line, index) => {
+    const size = fitDisplaySize(line, L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79);
+    return textLine(x, L.headY + index * L.headGap, line, { anchor: "start", fill: "#FFFFFF", family: "Anton", size, weight: 400 });
+  }).join("");
+
+  const deLine = priceFrom
+    ? textLine(x, L.deY, `De ${formatMoneyLike(priceFrom)}`, { anchor: "start", fill: "#F2F2F2", family: DS_FONT.body, size: L.deSize, weight: 600, decoration: "line-through" })
+    : "";
+  const porSize = fitDisplaySize(`Por ${priceTo}`, L.porSize, Math.round(L.porSize * 0.6), L.headBudget, 0.84);
+  const porLine = `<text x="${x}" y="${L.porY}" text-anchor="start" font-family="${DS_FONT.body}" font-size="${porSize}" font-weight="700"><tspan fill="#FFFFFF">Por </tspan><tspan fill="${HC_GOLD_TEXT}">${esc(priceTo)}</tspan></text>`;
+
+  const checkRows = checks.map((item, index) => {
+    const baseY = L.checksY + index * L.checkStep;
+    const badgeTop = baseY - Math.round(L.checkSize * 0.35 + L.badge / 2);
+    return `${heroChecklistBadge(x, badgeTop, L.badge)}
+    ${textLine(L.checkTextX, baseY, item, { anchor: "start", fill: "#FAFAF8", family: DS_FONT.body, size: L.checkSize, weight: 500 })}`;
+  }).join("");
+
+  // CTA pill CLARO (fiel a referencia; contraste navy sobre off-white ~15:1) — primeiro template com o
+  // contraste WCAG REAL declarado no lint (textColor/bgColor → metrica contrast_cta + erro se <3:1).
+  const [ctaX, ctaY, ctaW, ctaH, ctaRx] = L.cta;
+  const ctaSize = fitDisplaySize(cta, L.ctaSize, 16, ctaW - Math.round(ctaH * 0.9), 0.90);
+  const ctaTextY = ctaY + Math.round(ctaH / 2) + Math.round(ctaSize * 0.36);
+  const ctaBlock = `<rect x="${ctaX}" y="${ctaY}" width="${ctaW}" height="${ctaH}" rx="${ctaRx}" fill="${OFF_WHITE}" filter="url(#pillShadow)"/>
+  ${textLine(ctaX + ctaW / 2, ctaTextY, cta, { fill: HC_INK, family: DS_FONT.body, size: ctaSize, weight: 700 })}`;
+
+  // Logo: componente único (logoBlock/PNG oficial), largura canônica, alinhada ao eixo esquerdo.
+  const logoC = logoBlock(VITRA_WORDMARK_WHITE_PNG, W, isStory ? "story" : isWide ? "wide" : "feed", { y: L.logo[1], x: L.logo[0] });
+
+  // Creative Lint v2/v3 — arquétipo LEFT-ANCHORED (headline/preço/CTA no eixo x). Checks com char-limit
+  // por PROVENIÊNCIA (só os reais reprovam) + contraste WCAG real no CTA (superfície sólida declarada).
+  const headSize0 = lines.length ? fitDisplaySize(lines[0], L.headBase, Math.round(L.headBase * 0.55), L.headBudget, 0.79) : L.headBase;
+  const checksBottom = checks.length ? L.checksY + (checks.length - 1) * L.checkStep + L.checkSize : L.checksY;
+  runCreativeLint(out, W, H, "checklist-rail", [
+    { role: "logo", box: logoC.box, critical: true, isLogo: true },
+    { role: "hero", box: { x, y: L.headY - Math.round(headSize0 * 0.8), w: L.headBudget, h: lines.length * L.headGap }, critical: true, block: true, display: true, fontSize: headSize0, charLen: headline.length, charLimit: S.fields.headline.charLimit, onAxis: true, textLeft: x },
+    { role: "price", box: { x, y: (priceFrom ? L.deY - L.deSize : L.porY - porSize), w: L.headBudget, h: (L.porY + Math.round(porSize * 0.12)) - (priceFrom ? L.deY - L.deSize : L.porY - porSize) }, critical: true, block: true, display: true, fontSize: porSize, onAxis: true, textLeft: x },
+    { role: "checklist", box: { x, y: L.checksY - L.checkSize, w: L.headBudget, h: Math.max(L.checkSize, checksBottom - (L.checksY - L.checkSize)) }, critical: true, block: true },
+    ...checks.map((item, i) => ({
+      role: `check${i + 1}`,
+      box: { x, y: L.checksY + i * L.checkStep - L.checkSize, w: L.headBudget, h: L.checkSize + 8 },
+      critical: true,
+      ...(i < realCount ? { charLen: checksRaw[i].length, charLimit: S.fields[`check${i + 1}`]?.charLimit ?? 30 } : {}),
+    })),
+    // CTA bottom-anchored fora da cadeia de gap (como no hero-checklist); coberto por safe-zone/overflow.
+    { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, fontSize: ctaSize, minFont: 16, onAxis: true, textLeft: ctaX, textColor: HC_INK, bgColor: OFF_WHITE },
+  ], { gapCap: L.gapCap, ...S.lint });
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${baseDefs(idBase, photoDefs)}
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-bg)"/>
+  ${photoLayer}
+  <rect width="${W}" height="${H}" fill="url(#${idBase}-veil)"/>
+  <rect x="${L.panelX}" y="0" width="${W - L.panelX}" height="${H}" fill="${OFF_WHITE}"/>
+  ${L.rail.map((p, i) => duoSelosPhoto(railPhotos[i], `${idBase}-r${i}`, p[0], p[1], p[2], p[3], p[4])).join("")}
+  ${outerFrame(W, H, frame, isWide ? 8 : 22, isStory ? 34 : 20)}
+  ${logoC.markup}
+  ${headLines}
+  ${deLine}
+  ${porLine}
+  ${checkRows}
+  ${ctaBlock}
+</svg>`;
+}
+
 // ===== Template 07: hero-panel (San Clemente / Bairro Gloria) =====
 // Referencia aprovada: criativos-aprovados-vitra-imobiliaria/1040ccb5 (feed) e 83b3c406 (story).
 // Foto hero sangrando no topo + painel em degrade na FAMILIA AZUL do brandbook (#2E6BB5 -> #1B3A6B
@@ -2176,6 +2315,7 @@ function buildVitraImobiliariaApprovedSvg(asset: any, campaign: any, images: Arr
   if (templateFamily === "vitra-imobiliaria-ficha-imovel") return buildVitraFichaSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   if (templateFamily === "vitra-imobiliaria-oferta-ancora") return buildVitraOfertaAncoraSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   if (templateFamily === "vitra-imobiliaria-destino-bairro") return buildVitraDestinoBairroSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
+  if (templateFamily === "vitra-imobiliaria-checklist-rail") return buildVitraChecklistRailSvg(asset, campaign, images, W, H, brandProfile, idBase, out);
   const frame = templateFrame(asset);
   const slogan = layout.slogan as number[] | null;
 

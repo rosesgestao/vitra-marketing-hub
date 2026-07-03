@@ -130,6 +130,9 @@ const MATRIX = {
   // vazio precisa declarar "sem diferenciais" para exercitar o FALLBACK (que degrada em silêncio) e não
   // a copy herdada da campanha. Em produção esse bloqueio é o comportamento desejado (operador encurta).
   'duo-selos': { family: 'vitra-imobiliaria-duo-selos-offer', contents: [okFixture('Studio garden no Bom Fim'), curtoFixture('Studio no Bom Fim'), vazioFixture('Studio garden', { differentials: '' })] },
+  // checklist-rail: mesma regra de proveniência do duo-selos (checks reais >30 reprovam) → o vazio
+  // declara differentials:'' para exercitar o FALLBACK e não a copy herdada da campanha QA.
+  'checklist-rail': { family: 'vitra-imobiliaria-checklist-rail', contents: [okFixture('Alto padrão com 3 suítes'), curtoFixture('2 dorms no Centro'), vazioFixture('Alto padrão', { differentials: '' })] },
   'hero-panel': { family: 'vitra-imobiliaria-hero-panel-gallery', contents: [okFixture('Cobertura duplex vista parque')] },
   'lancamento': { family: 'vitra-imobiliaria-lancamento', contents: [okFixture('Lançamento na Zona Sul')] },
   'vitrine': { family: 'vitra-imobiliaria-vitrine-gallery', contents: [okFixture('Casa em condomínio fechado'), curtoFixture('Casa no Sul'), vazioFixture('Casa em condomínio')] },

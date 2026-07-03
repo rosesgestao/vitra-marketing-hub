@@ -322,5 +322,59 @@
   "premium-lancamento/curto/wide": {},
   "premium-lancamento/vazio/feed": {},
   "premium-lancamento/vazio/story": {},
-  "premium-lancamento/vazio/wide": {}
+  "premium-lancamento/vazio/wide": {},
+  "checklist-rail/medio/feed": {
+    "max_gap": 38,
+    "logo_gap": 85,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/medio/story": {
+    "max_gap": 38,
+    "logo_gap": 74,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/medio/wide": {
+    "max_gap": 40,
+    "logo_gap": 35,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/curto/feed": {
+    "max_gap": 100,
+    "logo_gap": 86,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/curto/story": {
+    "max_gap": 121,
+    "logo_gap": 75,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/curto/wide": {
+    "max_gap": 83,
+    "logo_gap": 35,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/vazio/feed": {
+    "max_gap": 123,
+    "logo_gap": 63,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/vazio/story": {
+    "max_gap": 144,
+    "logo_gap": 52,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  },
+  "checklist-rail/vazio/wide": {
+    "max_gap": 83,
+    "logo_gap": 35,
+    "axis_spread": 0,
+    "contrast_cta": 17.31
+  }
 }

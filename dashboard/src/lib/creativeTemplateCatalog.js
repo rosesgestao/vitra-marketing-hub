@@ -184,6 +184,27 @@ const duoSelosFieldGroups = [
   },
 ]
 
+// Template 14 (checklist + trilho de fotos): painel dividido — coluna navy a esquerda (foto de fundo
+// + veu; headline Anton 2 linhas, De riscado / Por dourado, checklist de selos badge-check e CTA pill
+// CLARO) + trilho off-white a direita com fotos empilhadas (PROVA visual: 3 no 1:1/9:16, 2 no 1.91:1).
+// Referencia ESTRUTURAL de mercado (peca de oferta em duas colunas) reconstruida 100% na identidade
+// Vitra. Papel distinto do hero-checklist (foto unica full-bleed = atmosfera): aqui a peca vende
+// EVIDENCIA (varios ambientes). Safe zone do Meta aplicada desde o nascimento.
+const checklistRailFieldGroups = [
+  {
+    id: 'checklist-rail',
+    title: 'Campos do Template',
+    fields: [
+      { key: 'product_name', label: 'Nome do Produto', type: 'text', required: true, placeholder: 'Ex: Reserva do Parque' },
+      { key: 'suggested_headline', label: 'Headline', type: 'text', required: true, maxLength: 40, helper: 'Quebra em ate 2 linhas grandes na coluna navy (ate 40 caracteres).', placeholder: 'Ex: Alto padrao com 3 suites', colSpan: 'full' },
+      { key: 'price_from', label: 'Valor de (riscado)', type: 'money', placeholder: 'Ex: R$ 1.190.000,00' },
+      { key: 'price', label: 'Valor por', type: 'money', required: true, placeholder: 'Ex: R$ 989.000,00' },
+      { key: 'differentials', label: 'Checklist de diferenciais', type: 'list', required: true, placeholder: 'A 5 min do Parcao\nLazer completo e equipado\n117m2 privativos\nEntrega em 2027\nCloset e 2 vagas', helper: 'Ate 5 itens (3 no formato 1,91:1) — viram linhas com selo dourado. Max. 30 caracteres por item (a arte reprova o que estourar, nunca corta).', colSpan: 'full' },
+      { key: 'cta', label: 'Texto do botao', type: 'text', placeholder: 'Ex: Clique abaixo e saiba mais', colSpan: 'full' },
+    ],
+  },
+]
+
 // Template 07 (San Clemente / Bairro Gloria): foto hero no topo + painel azul (familia azul do
 // brandbook em degrade para navy) com headline 2 linhas brancas + destaque dourado, lista de setas
 // e preco "Oportunidade por"; galeria lateral de 2 fotos sobrepondo hero e painel. Sem CTA (fiel a
@@ -387,6 +408,20 @@ const templateVariationContracts = {
       { id: 'preco-comparativo', label: 'Preco comparativo', phase: '2', angle: 'investimento', headline: 'Compare o antes e o depois do preco', copy: 'O comparativo De/Por deixa a oportunidade explicita. Confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
       { id: 'lazer-completo', label: 'Lazer e infraestrutura', phase: '2', angle: 'lifestyle', headline: 'Lazer completo para o dia a dia', copy: 'Infraestrutura e conveniencia no mesmo endereco. Veja fotos e condicoes com a Vitra.', cta: 'Ver o lazer' },
       { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Precos de oportunidade pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
+    ],
+  },
+  checklistRail: {
+    strategy: 'approved_template_slots_only',
+    description: 'Mantem o painel dividido (coluna navy + trilho de fotos), selos dourados e CTA pill claro aprovados; varia headline, preco De/Por, checklist, CTA e fotos.',
+    lockedSlots: ['layout', 'logo', 'typography', 'palette', 'safe_zone', 'badge_checklist', 'photo_rail', 'cta_pill'],
+    mutableSlots: ['headline', 'price', 'differentials', 'cta', 'photos'],
+    recipes: [
+      { id: 'oferta-de-por', label: 'Oferta De/Por', phase: '1', angle: 'investimento', headline: '{headline_only}', copy: 'Preco de tabela e preco de oportunidade lado a lado, com o checklist que sustenta o valor.', cta: '{cta}' },
+      { id: 'checklist-prova', label: 'Checklist com prova', phase: '2', angle: 'diferenciais', headline: '{headline_only}', copy: '{details}. Argumentos objetivos com prova visual em tres ambientes do imovel.', cta: 'Receber mais informacoes' },
+      { id: 'galeria-evidencia', label: 'Galeria como evidencia', phase: '2', angle: 'lifestyle', headline: '{headline_only}', copy: 'Tres ambientes reais do imovel no mesmo quadro: veja antes de visitar e decida com seguranca.', cta: 'Ver mais fotos' },
+      { id: 'localizacao-referencia', label: 'Localizacao de referencia', phase: '1', angle: 'localizacao', headline: '{product} em {place}', copy: 'Endereco de referencia, fotos e condicoes reunidos para comparar antes de decidir.', cta: 'Conhecer a localizacao' },
+      { id: 'preco-oportunidade', label: 'Preco de oportunidade', phase: '2', angle: 'investimento', headline: 'Valor de oportunidade para avaliar', copy: 'Compare o preco De/Por com imoveis semelhantes e confirme as condicoes com a Vitra.', cta: 'Confirmar condicoes' },
+      { id: 'urgencia-visita', label: 'Convite para visita', phase: '3', angle: 'escassez', headline: 'Confirme a disponibilidade agora', copy: 'Oportunidades com prova visual pedem decisao informada e rapida. Fale com a Vitra.', cta: 'Agendar visita' },
     ],
   },
   heroPanel: {
@@ -876,6 +911,33 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // imobiliário: o bairro vira o herói; condições da peça original viram condições do imóvel; avião
       // removido; azul -> navy + dourado, wordmark VITRA. Cada formato com composição própria + safe zone.
       renderVersion: 'destino-bairro-poster-v6',
+    },
+    {
+      id: 'vitra-imobiliaria-checklist-rail',
+      family: 'vitra-imobiliaria-checklist-rail',
+      mode: 'single_family',
+      name: 'Checklist com trilho de fotos',
+      shortName: 'Split (checklist + trilho de fotos)',
+      bestFor: 'Painel dividido: coluna navy com headline, preco De/Por, checklist de ate 5 diferenciais com selo dourado e CTA claro; trilho off-white com 3 fotos do imovel (2 no 1,91:1) como PROVA visual. Forte para alto padrao e lancamentos com bom book de imagens. Cada formato adaptado, na safe zone do Meta.',
+      formats: ['1:1', '9:16', '1.91:1'],
+      defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
+      variants: variantOptions,
+      preview: '/generated/vitra-imobiliaria/template-14-checklist-rail-1x1-sem-moldura.png',
+      fieldGroups: checklistRailFieldGroups,
+      imageSlots: [
+        { id: 'fachada', label: 'Foto de fundo da coluna navy', multiple: false, required: true },
+        { id: 'galeria', label: 'Fotos do trilho (2 a 3 ambientes)', multiple: true },
+      ],
+      variationContract: templateVariationContracts.checklistRail,
+      references: vitraImobiliariaReference('template-14-checklist-rail'),
+      variableFields: ['photos', 'headline', 'price_from', 'price', 'differentials', 'cta'],
+      fixedBrandRules: ['navy_veil_photo', 'approved_white_wordmark', 'gold_badge_checklist', 'light_cta_pill', 'offwhite_photo_rail', 'meta_safe_zone'],
+      // Arte nova (julho/2026), versionada desde o nascimento. Referencia ESTRUTURAL de mercado (peca
+      // de oferta em duas colunas: texto + trilho de 3 fotos) reconstruida 100% na identidade Vitra —
+      // amarelo -> dourado, azul -> navy, wordmark oficial. Papel distinto do hero-checklist (foto
+      // unica = atmosfera): este vende EVIDENCIA. Nasce com schema (Etapa 3), lint por proveniencia
+      // nos checks, contraste WCAG real no CTA e goldens (metricas + SHA) no harness.
+      renderVersion: 'checklist-rail-approved-v1',
     },
   ],
 }
