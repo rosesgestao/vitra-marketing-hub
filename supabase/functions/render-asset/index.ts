@@ -1113,8 +1113,12 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
     : (pd.price || campaign?.offer || "");
   // Cap ao slot do selo (== charLimit 30 do schema): sem dados, o fallback cai em pd.location, que pode
   // exceder 30 (ex.: "Bairro Petrópolis, Porto Alegre") — nunca exibir/reprovar por estouro de slot.
-  const badges = productDifferentials(pd, campaign).map((b) => compactText(String(b), 30));
-  while (badges.length < 2) badges.push(badges[0] || "Atendimento consultivo Vitra");
+  // Provenance: diferenciais REAIS (do campo differentials) devem CABER no slot (o lint reprova >30 — nunca
+  // trunca a copy do operador); os que vêm de FALLBACK (location/suites/area/default) degradam em silêncio.
+  const realDiffCount = Math.min(2, String(pd?.differentials || "").split(/[\n;,|]+/).map((s) => s.replace(/^[-•\s]+/, "").trim()).filter(Boolean).length);
+  const badgesRaw = productDifferentials(pd, campaign).map((b) => String(b));
+  while (badgesRaw.length < 2) badgesRaw.push(badgesRaw[0] || "Atendimento consultivo Vitra");
+  const badges = badgesRaw.map((b) => compactText(b, 30));
   const cta = compactText(asset.cta || "Clique para receber mais informacoes", 46);
   const photoA = images[0] || null;
   const photoB = images[1] || images[0] || null;
@@ -1148,8 +1152,8 @@ function buildVitraDuoSelosSvg(asset: any, campaign: any, images: Array<string |
     { role: "logo", box: logoC.box, critical: true, isLogo: true },
     { role: "headline", box: { x: headX - L.headBudget / 2, y: L.headY - h1Size, w: L.headBudget, h: h2 ? L.headGap + h2Size : h1Size }, critical: true, block: true, charLen: headline.length, charLimit: S.fields.headline.charLimit, fontSize: Math.min(h1Size, h2Size), minFont: 34 },
     { role: "pill", box: { x: pillX, y: pillY, w: pillW, h: pillH }, critical: true, block: true },
-    { role: "selo1", box: badgeBox(L.badgeRow[0][0], L.badgeRow[0][1], badges[0]), critical: true, charLen: String(badges[0]).length, charLimit: S.fields.selo1.charLimit },
-    { role: "selo2", box: badgeBox(L.badgeRow[1][0], L.badgeRow[1][1], badges[1]), critical: true, charLen: String(badges[1]).length, charLimit: S.fields.selo2.charLimit },
+    { role: "selo1", box: badgeBox(L.badgeRow[0][0], L.badgeRow[0][1], badges[0]), critical: true, ...(realDiffCount >= 1 ? { charLen: badgesRaw[0].length, charLimit: S.fields.selo1.charLimit } : {}) },
+    { role: "selo2", box: badgeBox(L.badgeRow[1][0], L.badgeRow[1][1], badges[1]), critical: true, ...(realDiffCount >= 2 ? { charLen: badgesRaw[1].length, charLimit: S.fields.selo2.charLimit } : {}) },
     { role: "cta", box: { x: ctaX, y: ctaY, w: ctaW, h: ctaH }, critical: true, block: true, fontSize: ctaSize, minFont: 16 },
   ], { ...S.lint });
 

@@ -167,13 +167,15 @@ export function heroChecklistLayout(isStory: boolean, isWide: boolean, priceFrom
 // ── duo-selos ─────────────────────────────────────────────────────────────────────────────────────
 export function duoSelosLayout(isStory: boolean, isWide: boolean) {
   return isStory ? {
+    // 9:16: fotos maiores + cluster inferior redistribuído p/ preencher a SAFE ZONE (y≤1470), em vez de
+    // terminar cedo e deixar respiro morto. Abaixo de 1470 é zona não-segura (UI da Meta) → fica livre.
     wordmark: [465, 290, 150],
     headY: 420, headGap: 75, headSize: 64, headBudget: 940,
     subY: 555, subSize: 30,
     pill: [260, 590, 560, 58],
-    photos: [[55, 690, 465, 450, 40], [560, 690, 465, 450, 40]],
-    badgeRow: [[300, 1230], [780, 1230]], badgeSize: 24, badgeAnchor: "middle" as const,
-    cta: [235, 1310, 610, 76, 1358, 26],
+    photos: [[55, 700, 465, 560, 40], [560, 700, 465, 560, 40]],
+    badgeRow: [[300, 1338], [780, 1338]], badgeSize: 24, badgeAnchor: "middle" as const,
+    cta: [235, 1392, 610, 76, 1440, 26],
   } : isWide ? {
     wordmark: [89, 75, 130],
     headY: 165, headGap: 50, headSize: 40, headBudget: 540, headX: 365,

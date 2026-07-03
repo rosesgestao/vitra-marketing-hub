@@ -125,7 +125,11 @@ const MATRIX = {
   },
   // Selecionáveis — médio + curto + vazio (fallbacks). Os ocultos seguem com 1 fixture.
   'hero-checklist': { family: 'vitra-imobiliaria-hero-checklist', contents: [okFixture('Apartamento pronto no Petrópolis'), curtoFixture('1 dorm no Centro'), vazioFixture('Apartamento pronto')] },
-  'duo-selos': { family: 'vitra-imobiliaria-duo-selos-offer', contents: [okFixture('Studio garden no Bom Fim'), curtoFixture('Studio no Bom Fim'), vazioFixture('Studio garden')] },
+  // duo-selos/vazio: differentials:'' EXPLÍCITO — o builder mescla o brief da campanha QA no pd, e o brief
+  // tem um diferencial de 34 chars; com o lint de proveniência (selo real >30 REPROVA, nunca trunca), o
+  // vazio precisa declarar "sem diferenciais" para exercitar o FALLBACK (que degrada em silêncio) e não
+  // a copy herdada da campanha. Em produção esse bloqueio é o comportamento desejado (operador encurta).
+  'duo-selos': { family: 'vitra-imobiliaria-duo-selos-offer', contents: [okFixture('Studio garden no Bom Fim'), curtoFixture('Studio no Bom Fim'), vazioFixture('Studio garden', { differentials: '' })] },
   'hero-panel': { family: 'vitra-imobiliaria-hero-panel-gallery', contents: [okFixture('Cobertura duplex vista parque')] },
   'lancamento': { family: 'vitra-imobiliaria-lancamento', contents: [okFixture('Lançamento na Zona Sul')] },
   'vitrine': { family: 'vitra-imobiliaria-vitrine-gallery', contents: [okFixture('Casa em condomínio fechado'), curtoFixture('Casa no Sul'), vazioFixture('Casa em condomínio')] },

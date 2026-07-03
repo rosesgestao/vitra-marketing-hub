@@ -10,7 +10,7 @@
 export const VITRA_IMOBILIARIA_TEMPLATE_RENDER_VERSION: Record<string, string> = {
   "vitra-imobiliaria-financiamento-orla": "financiamento-orla-approved-v7",
   "vitra-imobiliaria-hero-checklist": "hero-checklist-ds-image-v7",
-  "vitra-imobiliaria-duo-selos-offer": "duo-selos-approved-v3",
+  "vitra-imobiliaria-duo-selos-offer": "duo-selos-approved-v4",
   "vitra-imobiliaria-hero-panel-gallery": "hero-panel-approved-v2",
   "vitra-imobiliaria-lancamento": "lancamento-approved-v2",
   "vitra-imobiliaria-vitrine-gallery": "vitrine-gallery-approved-v4",

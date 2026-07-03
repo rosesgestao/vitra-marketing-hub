@@ -662,8 +662,8 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       family: 'vitra-imobiliaria-duo-selos-offer',
       mode: 'single_family',
       name: 'Oferta duo com selos',
-      shortName: 'Zona Norte (duo + selos)',
-      bestFor: 'Oferta centralizada com preco De/Por em pill, duas fotos grandes lado a lado e selos de beneficio — fiel a peca aprovada da Zona Norte, com safe zone do Meta.',
+      shortName: 'Oferta duo (2 fotos + selos)',
+      bestFor: 'Oferta com preco De/Por em pill, duas fotos grandes e dois selos de beneficio. Feed/story centralizam; o 1.91:1 abre em duas colunas (texto + fotos empilhadas) — cada formato adaptado, dentro da safe zone do Meta. Reutilizavel para qualquer imovel/bairro.',
       formats: ['1:1', '9:16', '1.91:1'],
       defaultVariant: TEMPLATE_FRAME_VARIANTS.noFrame,
       variants: variantOptions,
@@ -681,7 +681,7 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       // Arte nova (junho/2026), versionada desde o inicio: referencia aprovada e a peca da
       // campanha Zona Norte (criativos-aprovados-vitra-imobiliaria/2fe17ff8 e f38e4f2b), adaptada
       // ao brandbook (navy+dourado) e as safe zones do Meta (skill margem-seguranca-criativos).
-      renderVersion: 'duo-selos-approved-v3',
+      renderVersion: 'duo-selos-approved-v4',
     },
     {
       id: 'vitra-imobiliaria-hero-panel-gallery',
