@@ -1188,22 +1188,19 @@ export async function syncMetricsFromMeta(campaignId) {
   return data
 }
 
-// Degrau B' por LINK: busca o texto da pagina do imovel (site da construtora) via middleware server-side
-// (Node) — evita CORS/SSRF do browser, reusa o guard de URL e a limpeza HTML->texto. Devolve o texto +
-// avisos (ex.: pagina em JS retornou pouco texto). O operador revisa o texto antes de extrair.
+// Degrau B' por LINK: busca o texto da pagina do imovel (site da construtora) via Edge server-side
+// (fetch-listing-text) — evita CORS/SSRF do browser, reusa o guard de URL e a limpeza HTML->texto.
+// Roda no BACKEND (Supabase), que existe em producao — antes usava um middleware do Vite que so vivia
+// em `npm run dev`, entao no site estatico dava "HTTP 404". Devolve o texto + avisos (ex.: pagina em JS
+// retornou pouco texto -> cair para colar). O operador revisa o texto antes de extrair.
 export async function fetchListingText(url) {
   const link = cleanText(url)
   if (!link) throw new Error('Cole o link do imovel antes de buscar.')
-  if (typeof window === 'undefined') throw new Error('Busca por link disponivel apenas no app (npm run dev).')
-  const response = await fetch('/api/fetch-listing-text', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: link }),
+  const { data, error } = await supabase.functions.invoke('fetch-listing-text', {
+    headers: copilotGateHeaders(),
+    body: { url: link },
   })
-  if (!response.ok && response.status !== 200) {
-    throw new Error(`Falha ao ler a pagina: HTTP ${response.status}.`)
-  }
-  const data = await response.json().catch(() => ({}))
+  if (error) throw await edgeError(error)
   return {
     text: cleanText(data?.text),
     warnings: Array.isArray(data?.warnings) ? data.warnings : [],

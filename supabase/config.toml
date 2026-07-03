@@ -28,5 +28,8 @@ verify_jwt = false
 [functions.geocode-address]
 verify_jwt = false
 
+[functions.fetch-listing-text]
+verify_jwt = false
+
 [functions.agente-operacao]
 verify_jwt = false

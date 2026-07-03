@@ -85,11 +85,16 @@ Onde obter a `anon key`: **Supabase → Project Settings → API → Project API
 - [ ] Console do navegador sem erros de rede/CORS; assets/fontes/logos (`/brand/...`, `/generated/...`,
       `/pecas/...`) carregam 200.
 - [ ] Responsivo em desktop e mobile.
-- **Degradação esperada em produção** (não são bugs): "Importar do link", conversão HEIC no servidor e
-      ingestão de imagem por URL usam middleware **de dev** (`vite.config.js`), inexistente no estático →
-      o fluxo cai para colar texto / upload direto. Copiloto de IA (gerar copy/conteúdo) depende do gate
-      das Edges; se as Edges exigirem `COPILOT_GATE`, essas ações retornam 403 em produção (avaliar à
-      parte se for necessário liberar).
+- **"Importar do link"** (buscar o texto do anúncio por URL): agora funciona em produção via Edge
+      `fetch-listing-text` (server-side, SSRF-safe). Sites server-rendered (a maioria das construtoras)
+      retornam o texto; sites SPA/JS voltam pouco texto → cai para colar (worker headless opcional cobre
+      esses, se `WORKER_RENDER_URL/TOKEN` estiverem nos secrets do Edge). Corrige o "HTTP 404" que vinha
+      de a rota `/api/fetch-listing-text` só existir no dev-server do Vite.
+- **Degradação esperada em produção** (não são bugs): conversão HEIC no servidor e ingestão de imagem
+      por URL ainda usam middleware **de dev** (`vite.config.js`), inexistente no estático → HEIC cai para
+      o decodificador WASM do browser e a ingestão por URL para o upload direto. Copiloto de IA (gerar
+      copy/conteúdo) depende do gate das Edges; se as Edges exigirem `COPILOT_GATE`, essas ações retornam
+      403 em produção (avaliar à parte se for necessário liberar).
 
 ## 7. Atualização futura (fluxo normal)
 
