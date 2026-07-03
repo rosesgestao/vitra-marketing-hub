@@ -1,19 +1,21 @@
-// Auth compartilhada das Edges de IA (generate-copy, extract-facts, suggest-template). Estas Edges
-// chamam uma API PAGA (Anthropic), entao nao bastam a chave anon/publishable (que e PUBLICA por design).
+// Auth compartilhada das Edges de IA (generate-copy, extract-facts, suggest-template, publish-meta-ads,
+// etc.). Estas Edges chamam APIs PAGAS/sensiveis (Anthropic, Meta), entao nao basta a chave
+// anon/publishable (que e PUBLICA por design — vai no bundle do navegador).
 //
-// Modelo: gate token. Alem de uma chave valida (service role OU anon), o caminho ANON exige tambem o
-// header `x-copilot-gate` casando com o secret COPILOT_GATE. Assim a publishable sozinha NAO autoriza
-// uma chamada paga. Service role (server-side: cron/reaper) e ISENTA do gate (ja e privilegiada).
+// Modelo (endurecido para DEPLOY PUBLICO, jul/2026): TRES caminhos autorizados —
+//   1. Service role (server-side: cron/reaper) — ISENTA (ja e privilegiada).
+//   2. USUARIO AUTENTICADO (login real via Supabase Auth) — o JWT do usuario tem claim role
+//      'authenticated'. Como as Edges de IA usam verify_jwt=true, a PLATAFORMA ja validou a ASSINATURA
+//      do JWT antes de a Edge rodar — entao confiar no claim `role` decodificado e seguro (um JWT
+//      forjado nao passaria pelo verify_jwt). Este e o caminho de PRODUCAO (dashboard publicado).
+//   3. Anon/publishable + gate token (x-copilot-gate == COPILOT_GATE) — caminho de DEV/LOCAL. Em
+//      producao o app exige login (caminho 2), entao o anon cai aqui e, com COPILOT_GATE setado e SEM
+//      o header (a publishable nunca leva o gate no bundle), e NEGADO. Mantido so para o dev rodar sem
+//      login. Se COPILOT_GATE nao esta setado, abre (graceful) e sinaliza openMode p/ alerta.
 //
-// Ativacao graciosa: se COPILOT_GATE NAO esta setado, mantem o comportamento atual (aberto) — para nao
-// quebrar o dashboard antes da ativacao, igual a logica do ANTHROPIC_API_KEY. Quando o secret e setado
-// (e o dashboard passa o header via VITE_COPILOT_GATE), o gate fica ativo.
-//
-// LIMITE: o gate token protege uma ferramenta INTERNA/LOCAL (dashboard nao publicado). Como as Edges
-// usam verify_jwt=false, este modulo e a UNICA linha de defesa (sem backstop da plataforma) na frente
-// de uma API paga. Antes de qualquer DEPLOY PUBLICO do dashboard, endurecer com: (a) auth de usuario
-// real (verify_jwt=true + JWT), pois o token vazaria no bundle; (b) rate limiting / cap de custo por
-// janela nas Edges de IA (defesa em profundidade). Hoje, interno/local, o gate token e suficiente.
+// Por que role decodificado e seguro: verify_jwt=true (config.toml) faz a plataforma Supabase rejeitar
+// qualquer Authorization Bearer com assinatura invalida/expirada ANTES da Edge. authorizeAiEdge so le o
+// payload (nao re-verifica) para distinguir usuario (authenticated) de anon.
 
 export interface AuthDecision {
   ok: boolean;
@@ -21,6 +23,7 @@ export interface AuthDecision {
   error?: string;
   message?: string;
   openMode?: boolean; // autorizado via anon SEM gate (secret ausente) — Edge operando ABERTA
+  via?: "service" | "user" | "gate"; // como foi autorizado (observabilidade)
 }
 
 // Comparacao de strings em TEMPO CONSTANTE no conteudo: evita virar oraculo de timing para recuperar o
@@ -37,19 +40,26 @@ function safeEqual(a: string, b: string): boolean {
 // a requisicao apresentou + os secrets. Comparacoes de segredo em tempo constante (safeEqual).
 export function decideAiEdgeAuth(opts: {
   presented: string | null;
+  presentedRole?: string | null; // claim `role` do JWT do Authorization (ja verificado pela plataforma)
   gateHeader: string | null;
   serviceKey: string;
   anonKey: string;
   gate: string;
 }): AuthDecision {
-  const { presented, gateHeader, serviceKey, anonKey, gate } = opts;
+  const { presented, presentedRole, gateHeader, serviceKey, anonKey, gate } = opts;
 
   if (!presented) return { ok: false, status: 401, error: "unauthorized" };
 
-  // Service role (server-side: cron/reaper) — autorizada e ISENTA do gate.
-  if (serviceKey && safeEqual(presented, serviceKey)) return { ok: true, status: 200 };
+  // 1. Service role (server-side: cron/reaper) — autorizada e ISENTA do gate.
+  if (serviceKey && safeEqual(presented, serviceKey)) return { ok: true, status: 200, via: "service" };
 
-  // Anon/publishable — autorizada SO se o gate token bater (quando o gate esta configurado).
+  // 2. Usuario autenticado (login real via Supabase Auth). O caminho de PRODUCAO. Checado ANTES do anon
+  //    porque um usuario logado apresenta o SEU JWT (nao a anon key). verify_jwt=true garante que a
+  //    assinatura ja foi validada, entao o claim role='authenticated' e confiavel.
+  if (presentedRole === "authenticated") return { ok: true, status: 200, via: "user" };
+
+  // 3. Anon/publishable — autorizada SO se o gate token bater (caminho de DEV/LOCAL). Em producao, sem
+  //    o header (a publishable nunca leva o gate) e com COPILOT_GATE setado, e NEGADO -> exige login.
   if (anonKey && safeEqual(presented, anonKey)) {
     if (gate) {
       if (!safeEqual(gateHeader || "", gate)) {
@@ -57,23 +67,39 @@ export function decideAiEdgeAuth(opts: {
           ok: false,
           status: 403,
           error: "forbidden_gate",
-          message: "Acesso negado: header x-copilot-gate ausente ou invalido. Esta Edge exige o gate token (COPILOT_GATE).",
+          message: "Acesso negado: faca login para usar o copiloto de IA. (No dev, configure VITE_COPILOT_GATE = COPILOT_GATE.)",
         };
       }
-      return { ok: true, status: 200 };
+      return { ok: true, status: 200, via: "gate" };
     }
     // Gate NAO configurado: aberto (graceful). Sinalizado via openMode para virar alerta observavel.
-    return { ok: true, status: 200, openMode: true };
+    return { ok: true, status: 200, openMode: true, via: "gate" };
   }
 
   return { ok: false, status: 401, error: "unauthorized" };
 }
 
+// Decodifica (SEM re-verificar assinatura) o claim `role` do JWT. Seguro porque as Edges de IA usam
+// verify_jwt=true: a plataforma Supabase ja rejeitou assinaturas invalidas/expiradas antes daqui.
+// So distingue usuario autenticado (role='authenticated') de anon (role='anon') e service_role.
+function jwtRole(token: string | null): string | null {
+  if (!token || token.split(".").length !== 3) return null;
+  try {
+    const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4)));
+    return typeof payload?.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
 // Wrapper que le os secrets/headers reais (usado pelas Edges Deno). Deno.env so e tocado quando esta
 // funcao e CHAMADA — entao importar este modulo no Vitest (que so usa decideAiEdgeAuth) nao quebra.
 export function authorizeAiEdge(req: Request): AuthDecision {
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || null;
   const decision = decideAiEdgeAuth({
-    presented: req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || req.headers.get("apikey"),
+    presented: bearer || req.headers.get("apikey"),
+    presentedRole: jwtRole(bearer),
     gateHeader: req.headers.get("x-copilot-gate"),
     serviceKey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     anonKey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",

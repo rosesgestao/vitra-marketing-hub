@@ -1,35 +1,42 @@
+# verify_jwt: quando true, a PLATAFORMA Supabase valida a assinatura/expiracao do JWT do Authorization
+# ANTES da Edge rodar. As Edges de IA/sensiveis (que chamam Anthropic/Meta) usam verify_jwt=true +
+# authorizeAiEdge (_shared/edgeAuth.ts), que exige USUARIO AUTENTICADO (login Supabase Auth) ou service
+# role — a anon/publishable sozinha nao autoriza (defesa contra abuso da chave publica no bundle).
+# render-asset e fetch-listing-text ficam abertas (false): render e chamada por cron/harness com apikey;
+# fetch-listing-text nao gasta credito e ja tem guarda SSRF.
+
 [functions.render-asset]
-verify_jwt = false
-
-[functions.generate-copy]
-verify_jwt = false
-
-[functions.generate-content]
-verify_jwt = false
-
-[functions.extract-facts]
-verify_jwt = false
-
-[functions.suggest-template]
-verify_jwt = false
-
-[functions.publish-meta-ads]
-verify_jwt = false
-
-[functions.sync-metrics-from-meta]
-verify_jwt = false
-
-[functions.suggest-meta-audiences]
-verify_jwt = false
-
-[functions.manage-audiences]
-verify_jwt = false
-
-[functions.geocode-address]
 verify_jwt = false
 
 [functions.fetch-listing-text]
 verify_jwt = false
 
+[functions.generate-copy]
+verify_jwt = true
+
+[functions.generate-content]
+verify_jwt = true
+
+[functions.extract-facts]
+verify_jwt = true
+
+[functions.suggest-template]
+verify_jwt = true
+
+[functions.publish-meta-ads]
+verify_jwt = true
+
+[functions.sync-metrics-from-meta]
+verify_jwt = true
+
+[functions.suggest-meta-audiences]
+verify_jwt = true
+
+[functions.manage-audiences]
+verify_jwt = true
+
+[functions.geocode-address]
+verify_jwt = true
+
 [functions.agente-operacao]
-verify_jwt = false
+verify_jwt = true

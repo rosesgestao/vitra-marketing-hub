@@ -21,6 +21,21 @@ describe('decideAiEdgeAuth', () => {
     expect(r.ok).toBe(true)
   })
 
+  it('usuario autenticado (role=authenticated) -> ok via user, mesmo com gate setado e sem header', () => {
+    // Caminho de PRODUCAO: usuario logado apresenta o SEU JWT (nao a anon key). verify_jwt=true ja
+    // validou a assinatura; o claim role='authenticated' autoriza.
+    const r = decideAiEdgeAuth({ presented: 'user-jwt-xyz', presentedRole: 'authenticated', gateHeader: null, serviceKey: SERVICE, anonKey: ANON, gate: GATE })
+    expect(r.ok).toBe(true)
+    expect(r.via).toBe('user')
+  })
+
+  it('JWT com role=anon (nao logado) -> NAO entra pelo caminho de usuario; cai no gate', () => {
+    // Um JWT anon apresenta presented=anonKey (nao um user token). Sem gate header -> negado.
+    const r = decideAiEdgeAuth({ presented: ANON, presentedRole: 'anon', gateHeader: null, serviceKey: SERVICE, anonKey: ANON, gate: GATE })
+    expect(r.ok).toBe(false)
+    expect(r.status).toBe(403)
+  })
+
   it('anon + gate setado + SEM header de gate -> 403 forbidden_gate', () => {
     const r = decideAiEdgeAuth({ presented: ANON, gateHeader: null, serviceKey: SERVICE, anonKey: ANON, gate: GATE })
     expect(r.ok).toBe(false)

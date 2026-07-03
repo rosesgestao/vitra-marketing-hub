@@ -36,6 +36,26 @@ via deploy de GitHub da Hostinger. Escrito em 2026-07-02.
 
 Essas são as configurações já usadas no deploy atual (confirmadas na tela "Implantação concluída").
 
+## 2.1. Autenticação (login) — **obrigatório para o deploy público**
+
+O site é público (URL aberta). As Edges de IA (copiloto) chamam APIs **pagas** (Anthropic/Meta); a chave
+publishable vai no bundle (pública), então **não** pode autorizar sozinha. Modelo (jul/2026): **login real
+via Supabase Auth**. O app inteiro fica atrás de uma tela de login (`AuthGate`); as Edges de IA usam
+`verify_jwt=true` + `authorizeAiEdge`, que só autoriza **usuário autenticado** (ou service role). RLS já
+cobre `authenticated` em todas as tabelas — o banco não quebra.
+
+**Duas ações suas no painel do Supabase (Authentication):**
+1. **Criar o(s) usuário(s) de login:** Authentication → Users → *Add user* → e-mail + senha + marcar
+   *Auto Confirm User*. Enquanto **não houver usuário, ninguém entra** (nem você) — faça isto ANTES de
+   ativar o login em produção.
+2. **Desativar cadastro público:** Authentication → Sign In / Providers → Email → **desligar "Allow new
+   users to sign up"** (ou Project Settings → Auth). Sem isso, qualquer um se auto-registra e fura a
+   parede de login.
+
+Sequência segura de ativação (evita ficar trancado): (a) criar o usuário no Supabase → (b) `git push`
+(Hostinger rebuilda com a tela de login) → (c) abrir o site, logar. Logout: botão "Sair" no canto
+inferior-esquerdo.
+
 ## 3. Variáveis de ambiente (BUILD) — **passo que faltava**
 
 O Vite injeta variáveis `VITE_*` **em tempo de build**. O arquivo `.env` é **gitignored**, então o build
@@ -90,11 +110,13 @@ Onde obter a `anon key`: **Supabase → Project Settings → API → Project API
       retornam o texto; sites SPA/JS voltam pouco texto → cai para colar (worker headless opcional cobre
       esses, se `WORKER_RENDER_URL/TOKEN` estiverem nos secrets do Edge). Corrige o "HTTP 404" que vinha
       de a rota `/api/fetch-listing-text` só existir no dev-server do Vite.
+- **Copiloto de IA** (extrair fatos / gerar copy / gerar conteúdo / sugerir template / Meta): agora exige
+      **login** (Supabase Auth). Logado, funciona; sem login, as Edges retornam 403 "faça login" (proteção
+      da API paga). Ver seção 2.1. Antes o modelo era o gate token (`COPILOT_GATE`), que vazaria no bundle
+      público — substituído por `verify_jwt=true` + usuário autenticado.
 - **Degradação esperada em produção** (não são bugs): conversão HEIC no servidor e ingestão de imagem
       por URL ainda usam middleware **de dev** (`vite.config.js`), inexistente no estático → HEIC cai para
-      o decodificador WASM do browser e a ingestão por URL para o upload direto. Copiloto de IA (gerar
-      copy/conteúdo) depende do gate das Edges; se as Edges exigirem `COPILOT_GATE`, essas ações retornam
-      403 em produção (avaliar à parte se for necessário liberar).
+      o decodificador WASM do browser e a ingestão por URL para o upload direto.
 
 ## 7. Atualização futura (fluxo normal)
 
