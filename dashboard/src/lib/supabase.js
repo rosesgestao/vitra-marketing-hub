@@ -10,4 +10,10 @@ export const supabaseConfig = {
   hasPublicKey: key !== 'missing-public-key',
 }
 
+// Chave publishable/anon resolvida (PUBLICA por design — ja vai no bundle). Usada para autorizar o
+// render-asset com uma credencial que NUNCA expira: essa Edge exige JWT (verify_jwt) mas nao precisa da
+// identidade do usuario (ela usa o service role internamente). Se o render usasse o token de sessao do
+// usuario, ele daria 401 quando a sessao expirasse no meio de uma leva de cortes.
+export const supabaseAnonKey = key
+
 export const supabase = createClient(url, key)

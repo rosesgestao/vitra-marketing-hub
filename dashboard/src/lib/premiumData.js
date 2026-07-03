@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js'
+import { supabase, supabaseAnonKey } from './supabase.js'
 import { BRAND_SCOPES, getBrandProfile, inferCampaignBrandScope } from './brandProfiles.js'
 // Mesma validacao pura que a Edge generate-copy roda no servidor (fonte unica em _shared), reusada no
 // cliente para REVALIDAR a copy ao vivo quando o operador edita um rascunho (badges de issue corretos).
@@ -2581,7 +2581,12 @@ async function requeueStuckRenderingAssets(chunk) {
 async function invokeRenderAssetChunk(campaignId, chunk) {
   let lastError = null
   for (let attempt = 0; attempt < 4; attempt += 1) {
+    // Autoriza com a anon key (nao o token de sessao): render-asset exige JWT mas usa service role por
+    // dentro — nao precisa da identidade do usuario. A anon key nunca expira, entao uma leva longa de
+    // cortes nao quebra com 401 se a sessao do operador expirar no meio (era a causa do "non-2xx" que
+    // travava a geracao e disparava o banner "Falha ao carregar a area").
     const { data, error } = await supabase.functions.invoke('render-asset', {
+      headers: { Authorization: `Bearer ${supabaseAnonKey}` },
       body: { campaign_id: campaignId, asset_ids: chunk, limit: chunk.length },
     })
     if (!error) return data || { rendered: 0, failed: chunk.length, remaining: chunk.length }
