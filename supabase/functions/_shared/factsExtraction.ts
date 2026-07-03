@@ -112,7 +112,7 @@ export function buildFactsSchema(fieldSpecs: FieldSpec[]): Record<string, unknow
       `Valor para "${spec.label || key}".`,
       spec.description ? `Contexto: ${spec.description}.` : "",
       spec.maxLength ? `Maximo ${spec.maxLength} caracteres.` : "",
-      isList ? "Lista de itens curtos." : "",
+      isList ? "Lista de ATE 5 itens de beneficio/diferencial. Cada item = TRECHO LITERAL e CONTIGUO copiado do texto (nome de amenidade/lazer, ponto proximo, caracteristica ou condicao, EXATAMENTE como aparece — ex.: 'Piscina', 'Espaco Fitness', 'Coworking', 'PUCRS'). NAO parafraseie nem junte palavras de partes diferentes." : "",
       "Deixe vazio se o dado NAO estiver no texto.",
     ].filter(Boolean).join(" ");
 
@@ -155,7 +155,8 @@ REGRAS ABSOLUTAS:
 3. O "value" deve ser COPIADO do texto (literal): use as MESMAS palavras/numeros/valores que aparecem no anuncio. Voce pode recortar (pegar so a parte relevante) e remover emojis, mas NAO reformate numeros/precos, NAO troque sinonimos e NAO invente. O valor TEM que aparecer no texto.
 4. Para cada campo preenchido (present=true), copie em "evidence" o TRECHO LITERAL (a frase ao redor) do texto-fonte que contem o valor.
 5. confidence: "high" = explicito no texto; "medium" = inferido por contexto; "low" = incerto.
-6. Portugues do Brasil. Devolva ESTRITAMENTE o JSON pedido, nada fora dele.`;
+6. Portugues do Brasil. Devolva ESTRITAMENTE o JSON pedido, nada fora dele.
+7. Campos do tipo LISTA (diferenciais/beneficios/selos/checklist): retorne ATE 5 itens, e cada item TEM que ser um TRECHO LITERAL e CONTIGUO copiado do texto (as MESMAS palavras, na MESMA ordem em que aparecem juntas). Fontes tipicas: amenidades/lazer (ex.: "Piscina", "Coworking", "Espaco Fitness", "Pet Place", "Salao de Festas"), pontos proximos (ex.: "PUCRS", "Hospital Sao Lucas", "Bourbon Ipiranga"), caracteristicas (dormitorios, suites, vagas, metragem) e condicoes (ex.: "100% Financiavel", "Minha Casa Minha Vida"). REGRA DURA: NAO parafraseie, NAO combine palavras de partes diferentes do texto, NAO adicione conectivos (ex.: "perto de", "com") que nao estejam grudados no texto — cada item precisa poder ser localizado como substring exata. Prefira itens CURTOS (<=30 caracteres). Se o texto lista amenidades/lazer/conveniencias, o campo NAO pode ficar vazio; present=false so se realmente nao houver nada disso.`;
 }
 
 export function buildExtractUserPrompt(sourceText: string, fieldSpecs: FieldSpec[]): string {
