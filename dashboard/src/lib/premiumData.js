@@ -2746,6 +2746,25 @@ export async function publishContentPost({ post, url = '', brandScope } = {}) {
   return { created: true, id: publication?.id }
 }
 
+// Descricao do anuncio na Meta (link description): 1 linha curta de REFORCO, derivada dos fatos do
+// imovel. Existe para o campo `meta_ad.descricao` NUNCA nascer vazio na semeadura — senao o gate de
+// "Criar rascunho na Meta" (que exige titulo+texto+descricao+CTA) trava mesmo com o anuncio aprovado.
+// Prioriza a tagline do operador; senao compoe dos diferenciais + area/suites; ultimo caso, linha
+// institucional por marca. O operador pode reescrever no "Editar anuncio" (ou via "Gerar 3 angulos").
+function buildAssetDescription(form, brandProfile = getBrandProfile()) {
+  const tagline = cleanText(form.tagline)
+  if (tagline) return tagline
+  const parts = [...splitContentItems(form.differentials).slice(0, 3), cleanText(form.area), cleanText(form.suites)]
+    .filter(Boolean)
+  if (parts.length) {
+    const line = parts.slice(0, 4).join(' · ')
+    return line.length > 180 ? `${line.slice(0, 177).trimEnd()}…` : line
+  }
+  return brandProfile.scope === BRAND_SCOPES.imobiliaria
+    ? 'Atendimento consultivo e informacoes completas — fale com a Vitra.'
+    : 'Curadoria Vitra Premium — fale com um especialista.'
+}
+
 function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = buildSourceIntake(form), brandProfile = getBrandProfile()) {
   const product = campaign.product_name || campaign.name
   const place = [campaign.neighborhood, campaign.city].filter(Boolean).join(', ')
@@ -2810,7 +2829,7 @@ function buildAssetPayloads(campaign, form, uploadedImages = {}, sourceIntake = 
       metadata.meta_ad = {
         nome: `${campaign.name} | ${concept?.label || AD_GROUP_LABEL[adGroup] || 'Meta Ads'} | ${format}`,
         texto_principal: copy,
-        descricao: cleanText(form.tagline) || null,
+        descricao: buildAssetDescription(form, brandProfile),
         url_params: buildDefaultUrlParams(campaign, blueprintKey),
       }
       // Roteamento dormente: so o Premium 9:16 (que estoura o satori da Edge) vai para o
