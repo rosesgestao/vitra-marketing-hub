@@ -2944,6 +2944,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
   const [conversionEvent, setConversionEvent] = useState('LEAD')
   const [metaAccounts, setMetaAccounts] = useState([])
   const [metaPages, setMetaPages] = useState([])
+  const [connMsg, setConnMsg] = useState(null)   // aviso quando a auto-descoberta de conta/Página falha (cai no ID manual)
   // Localização (2 conjuntos): endereço do imóvel -> geocodificação -> raio <= 2km + Porto Alegre (cidade).
   const gt0 = campaign?.brief?.geo_target || {}
   const pd0 = campaign?.brief?.product_data || {}
@@ -3100,12 +3101,13 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
       .then(list => {
         if (!alive) return
         setMetaAccounts(list)
+        setConnMsg(null)
         if (!adAccountId && list.length) {
           const brandAcct = list.find(a => a.id === acct.adAccountId) || list[0]
           setAdAccountId(brandAcct.id)
         }
       })
-      .catch(() => { /* sem token/permissao: cai no input manual */ })
+      .catch(() => setConnMsg({ kind: 'warn', text: 'Não consegui listar as contas de anúncio automaticamente (sem permissão/token neste ambiente). Digite o ID da conta manualmente abaixo (act_…).' }))
     return () => { alive = false }
   }, [])
 
@@ -3119,13 +3121,14 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
       .then(list => {
         if (!alive) return
         setMetaPages(list)
+        setConnMsg(null)
         if (list.length && !list.some(p => p.id === pageId)) {
           const isPremium = brandProfile.scope === BRAND_SCOPES.premium
           const match = list.find(p => /premium/i.test(p.name || '') === isPremium)
           setPageId((match || list[0]).id)
         }
       })
-      .catch(() => { /* fallback input manual */ })
+      .catch(() => setConnMsg({ kind: 'warn', text: 'Não consegui listar as Páginas desta conta. Digite o ID da Página do Facebook manualmente abaixo.' }))
     return () => { alive = false }
   }, [adAccountId])
   // Auto-seed a partir de um PRESET ("Usar preset" no painel de Presets): aplica objetivo, orcamento e os
@@ -3291,6 +3294,11 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
           <span className="mt-1 block text-[10px] text-white/35">1 anúncio por criativo aprovado em cada conjunto (até o nº escolhido).</span>
         </label>
       </div>
+      {connMsg && (
+        <p className={`mt-2 flex items-start gap-1.5 text-[11px] leading-4 ${connMsg.kind === 'warn' ? 'text-amber-300' : 'text-white/50'}`}>
+          <AlertTriangle size={13} className="mt-px shrink-0" />{connMsg.text}
+        </p>
+      )}
 
       {isLeadForm && (
         <label className="mt-3 block">
