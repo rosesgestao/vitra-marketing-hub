@@ -3265,6 +3265,15 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
         {geoMsg && <p className={`mt-1.5 text-[11px] ${geoMsg.kind === 'ok' ? 'text-emerald-300' : geoMsg.kind === 'warn' ? 'text-amber-300' : 'text-red-300'}`}>{geoMsg.text}</p>}
       </div>
 
+      {/* Opcoes avancadas (P1 UX): direcionamento, plataformas e publicos num <details> colapsado por
+          padrao — 80% dos casos so precisa de conta/pagina/orcamento/destino. O estado persiste mesmo
+          colapsado, entao o build usa os presets das campanhas de referencia normalmente. */}
+      <details className="group mt-2">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 border-t border-white/10 pt-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300 [&::-webkit-details-marker]:hidden">
+          <span>Opções avançadas · direcionamento, plataformas e públicos</span>
+          <span className="text-white/40 transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
+        </summary>
+
       {/* Direcionamento detalhado (interesses) — preset das campanhas de referência, editável. Aplicado aos conjuntos por geografia no build. */}
       {(() => { const est = audienceEstimate(); return (
       <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
@@ -3442,6 +3451,7 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
           </div>
         </div>
       </div>
+      </details>
 
       {error && (
         <div className="mt-4 rounded-lg border border-red-400/25 bg-red-950/25 px-4 py-3 text-xs text-red-100/85">
@@ -3731,10 +3741,13 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
+          {/* CTA por ESTADO do funil (P1 UX): so o botao do passo atual fica dourado solido (primario);
+              os outros ficam secundarios. render pendente -> Gerar · gerado -> Aprovar · tudo pronto ->
+              Exportar. Evita 3 CTAs competindo com peso visual igual. */}
           <button
             onClick={onRender}
             disabled={rendering || pendingRender === 0}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/12 px-4 py-2.5 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${pendingRender > 0 ? 'bg-gold-500 text-[color:var(--surface-0)] hover:bg-gold-400' : 'border border-gold-500/45 bg-gold-500/12 text-gold-100 hover:bg-gold-500/20'}`}
           >
             {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
             {rendering ? 'Gerando…' : `Gerar cortes${pendingRender ? ` (${pendingRender})` : ''}`}
@@ -3743,8 +3756,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
             type="button"
             onClick={() => onApproveGroup(approvableAssets)}
             disabled={Boolean(busyId) || !approvableAssets.length}
-            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45"
-            style={{ background: approvableAssets.length ? '#C4942A' : 'rgba(196,148,42,0.18)', color: approvableAssets.length ? '#0A0A0A' : '#F0C95C' }}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${pendingRender === 0 && approvableAssets.length ? 'bg-gold-500 text-[color:var(--surface-0)] hover:bg-gold-400' : 'border border-gold-500/45 bg-gold-500/12 text-gold-100 hover:bg-gold-500/20'}`}
             title="Aprova de uma vez todos os cortes ja gerados desta campanha"
           >
             <CheckCircle2 size={16} />
@@ -3755,7 +3767,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
             onClick={() => downloadMetaAdsPackage(campaign, ads, brandProfile)}
             disabled={!exportReady}
             title={exportReady ? 'Baixa o JSON com os anúncios + URLs dos cortes' : 'Disponível quando todos os cortes estiverem renderizados e validados no QA (lint, textos e destino).'}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-white/72 transition hover:border-gold-500/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${pendingRender === 0 && !approvableAssets.length && exportReady ? 'bg-gold-500 text-[color:var(--surface-0)] hover:bg-gold-400' : 'border border-white/12 bg-white/[0.035] text-white/72 hover:border-gold-500/35 hover:text-white'}`}
           >
             <Download size={16} />
             Exportar pacote
