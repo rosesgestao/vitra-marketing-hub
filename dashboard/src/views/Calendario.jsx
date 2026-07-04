@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Instagram, Youtube, Facebook, Music, Video, Image, FileText, CalendarOff } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
-import { LoadingState, EmptyState, ErrorAlert, Badge } from '../components/ui/index.js'
+import { LoadingState, EmptyState, ErrorAlert, Badge, Segmented } from '../components/ui/index.js'
 import PostDetailDrawer from '../components/PostDetailDrawer.jsx'
 import { contentStatusLabel } from '../lib/premiumData.js'
 import { BRAND_SCOPES } from '../lib/brandProfiles.js'
@@ -85,29 +85,18 @@ export default function Calendario({ onNavigate }) {
         subtitle={`${posts.length} conteúdo(s) agendado(s) na linha editorial.`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1" role="group" aria-label="Filtrar por marca">
-              {BRAND_FILTERS.map(b => (
-                <button key={b.key} onClick={() => setBrand(b.key)} aria-pressed={brand === b.key}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${brand === b.key ? 'bg-gold-500/15 text-gold-200' : 'text-white/55 hover:text-white'}`}>
-                  {b.label}
-                </button>
-              ))}
-            </div>
-            <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1" role="group" aria-label="Filtrar por plataforma">
-              {PLATAFORMAS.map(p => {
-                const active = filtro === p
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setFiltro(p)}
-                    aria-pressed={active}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors duration-150 ${active ? 'bg-gold-500/15 text-gold-200' : 'text-white/55 hover:text-white'}`}
-                  >
-                    {p === 'todos' ? 'Todos' : p}
-                  </button>
-                )
-              })}
-            </div>
+            <Segmented
+              ariaLabel="Filtrar por marca"
+              value={brand}
+              onChange={setBrand}
+              options={BRAND_FILTERS.map(b => ({ value: b.key, label: b.label }))}
+            />
+            <Segmented
+              ariaLabel="Filtrar por plataforma"
+              value={filtro}
+              onChange={setFiltro}
+              options={PLATAFORMAS.map(p => ({ value: p, label: p === 'todos' ? 'Todos' : p.charAt(0).toUpperCase() + p.slice(1) }))}
+            />
           </div>
         }
       />
@@ -192,9 +181,9 @@ export default function Calendario({ onNavigate }) {
                           <Badge tone="neutral">{BRAND_BADGE[post.brand_scope] || '—'}</Badge>
                         )}
                         {post.editorial_pillar && (
-                          <span className="badge border border-white/10 bg-white/5 text-gray-300 capitalize">{post.editorial_pillar.replace(/_/g, ' ')}</span>
+                          <Badge tone="neutral" className="capitalize">{post.editorial_pillar.replace(/_/g, ' ')}</Badge>
                         )}
-                        <span className="badge ml-auto border border-gold-500/20 bg-gold-500/5 text-gold-200/80">{contentStatusLabel(post.status)}</span>
+                        <Badge tone="gold" className="ml-auto">{contentStatusLabel(post.status)}</Badge>
                       </div>
                     </div>
                   )

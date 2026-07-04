@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Image, Video, FileText, Instagram, Youtube, Facebook, Music, RefreshCw } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
-import { LoadingState, ErrorAlert, Badge } from '../components/ui/index.js'
+import { LoadingState, ErrorAlert, Badge, Segmented, Button, Chip } from '../components/ui/index.js'
 import PostDetailDrawer from '../components/PostDetailDrawer.jsx'
 import { CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel } from '../lib/premiumData.js'
 import { BRAND_SCOPES } from '../lib/brandProfiles.js'
@@ -71,18 +71,13 @@ export default function Kanban({ onNavigate }) {
         subtitle={`${visiveis.length} conteúdo(s) orgânico(s) entre rascunho, produção e publicação.`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1" role="group" aria-label="Filtrar por marca">
-              {BRAND_FILTERS.map(b => (
-                <button key={b.key} onClick={() => setBrand(b.key)} aria-pressed={brand === b.key}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${brand === b.key ? 'bg-gold-500/15 text-gold-200' : 'text-white/55 hover:text-white'}`}>
-                  {b.label}
-                </button>
-              ))}
-            </div>
-            <button onClick={carregar} className="btn-ghost flex items-center gap-2">
-              <RefreshCw size={13} />
-              Atualizar
-            </button>
+            <Segmented
+              ariaLabel="Filtrar por marca"
+              value={brand}
+              onChange={setBrand}
+              options={BRAND_FILTERS.map(b => ({ value: b.key, label: b.label }))}
+            />
+            <Button variant="ghost" icon={RefreshCw} onClick={carregar}>Atualizar</Button>
           </div>
         }
       />
@@ -119,9 +114,7 @@ export default function Kanban({ onNavigate }) {
                   <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: dot }} />
                   <span className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/70">{lane.label}</span>
                 </div>
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-white/10 bg-white/5 px-1.5 text-3xs font-semibold tabular-nums text-white/55">
-                  {items.length}
-                </span>
+                <Chip className="min-w-[22px] justify-center tabular-nums">{items.length}</Chip>
               </div>
 
               <div className="space-y-2">
@@ -176,10 +169,10 @@ export default function Kanban({ onNavigate }) {
 
                       <div className="flex flex-wrap items-center gap-1">
                         {item.brand_scope && <Badge tone="neutral">{BRAND_BADGE[item.brand_scope] || '—'}</Badge>}
-                        {temCopy && <span className="badge bg-white/5 border border-white/10 text-gray-400">legenda</span>}
-                        {temImagem && <span className="badge bg-white/5 border border-white/10 text-gray-400">visual</span>}
-                        {temHashtags && <span className="badge bg-white/5 border border-white/10 text-gray-400">#{item.hashtags.length}</span>}
-                        <span className="badge ml-auto border border-gold-500/20 bg-gold-500/5 text-gold-200/80">{contentStatusLabel(item.status)}</span>
+                        {temCopy && <Badge tone="neutral">legenda</Badge>}
+                        {temImagem && <Badge tone="neutral">visual</Badge>}
+                        {temHashtags && <Badge tone="neutral">#{item.hashtags.length}</Badge>}
+                        <Badge tone="gold" className="ml-auto">{contentStatusLabel(item.status)}</Badge>
                       </div>
                     </div>
                   )
