@@ -4455,6 +4455,9 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
   const [extract, setExtract] = useState({ loading: false, error: null, result: null, sourceText: '', applied: null, phase: null, url: '', fetching: false })
   const [extractMode, setExtractMode] = useState('fill-empty')
   const [aiFilledKeys, setAiFilledKeys] = useState([])
+  // Validacao (P0 UX): keys dos obrigatorios faltantes -> destaque inline (borda vermelha + aria-invalid)
+  // e foco/scroll no 1o. Antes o erro era so uma string no rodape e o operador cacava os campos no scroll.
+  const [missingKeys, setMissingKeys] = useState(() => new Set())
   // Degrau B: sugestao de template por IA (a IA recomenda; o operador confirma).
   const [suggest, setSuggest] = useState({ loading: false, error: null, result: null })
   // Fluxo unico: ao gerar a copy, rola ate o painel "Copiloto de copy" (que fica abaixo dos campos)
@@ -4740,7 +4743,13 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
   }
 
   function updateTemplateField(field, value) {
-    update(formKeyForTemplateField(field), value)
+    const key = formKeyForTemplateField(field)
+    update(key, value)
+    // Ao editar um campo destacado como faltante, tira o destaque (feedback imediato).
+    setMissingKeys(prev => {
+      if (!prev.has(key)) return prev
+      const next = new Set(prev); next.delete(key); return next
+    })
   }
 
   function templateFieldValue(field) {
@@ -4753,14 +4762,18 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
   }
 
   function renderTemplateField(field) {
+    const fieldKey = formKeyForTemplateField(field)
+    const invalid = missingKeys.has(fieldKey)
     const commonProps = {
+      id: fieldKey,
       value: templateFieldValue(field),
       onChange: event => updateTemplateField(field, event.target.value),
-      className: inputClass,
+      className: `${inputClass}${invalid ? ' border-red-400/60' : ''}`,
       placeholder: field.placeholder || '',
       required: Boolean(field.required),
       maxLength: field.maxLength,
       autoComplete: 'off',
+      'aria-invalid': invalid || undefined,
     }
 
     if (field.type === 'textarea' || field.type === 'list') {
@@ -4768,7 +4781,7 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
         <>
           <textarea
             {...commonProps}
-            className={`${inputClass} min-h-20 resize-y`}
+            className={`${inputClass} min-h-20 resize-y${invalid ? ' border-red-400/60' : ''}`}
           />
           {field.helper && <span className="mt-1.5 block text-[11px] leading-4 text-white/35">{field.helper}</span>}
         </>
@@ -4799,15 +4812,20 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
     const productName = form.product_name.trim()
     if (!productName) {
       setLocalError('Informe o Nome do Produto no inicio do formulario para criar a campanha.')
+      setMissingKeys(new Set(['product_name']))
+      requestAnimationFrame(() => {
+        const el = document.getElementById('product_name')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' }); el?.focus?.()
+      })
       return
     }
 
     // Fase 4 (UX): valida TODOS os obrigatorios de uma vez (antes era um por vez, .find), para o
     // operador corrigir tudo num passo so em vez de re-submeter campo a campo.
-    const missingFields = selectedFieldGroups
+    const missingFieldObjs = selectedFieldGroups
       .flatMap(group => group.fields || [])
       .filter(field => field.required && !String(form[formKeyForTemplateField(field)] || '').trim())
-      .map(field => field.label)
+    const missingFields = missingFieldObjs.map(field => field.label)
 
     // Fluxo so com upload manual: os slots de imagem obrigatorios sao sempre exigidos.
     const missingImageSlots = selectedImageSlots
@@ -4816,15 +4834,23 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
 
     const allMissing = [...missingFields, ...missingImageSlots]
     if (allMissing.length) {
+      setMissingKeys(new Set(missingFieldObjs.map(f => formKeyForTemplateField(f))))
       const base = allMissing.length === 1
         ? `Preencha o campo obrigatorio: ${allMissing[0]}.`
         : `Preencha os ${allMissing.length} campos obrigatorios: ${allMissing.join(', ')}.`
       setLocalError(missingImageSlots.length
         ? `${base} Faca o upload das fotos do imovel.`
         : base)
+      // Foco/scroll no 1o campo faltante — o operador cai no lugar certo em vez de cacar no scroll longo.
+      const firstKey = missingFieldObjs[0] && formKeyForTemplateField(missingFieldObjs[0])
+      if (firstKey) requestAnimationFrame(() => {
+        const el = document.getElementById(firstKey)
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' }); el?.focus?.()
+      })
       return
     }
 
+    setMissingKeys(new Set())
     setLocalError(null)
     try {
       await onSubmit(form)
