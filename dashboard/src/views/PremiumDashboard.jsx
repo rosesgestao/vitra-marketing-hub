@@ -3954,6 +3954,7 @@ function MetaAdCard({ ad, busy, rendering = false, onApprove, onEdit }) {
     (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
   )
   const [idx, setIdx] = useState(0)
+  const [safeZone, setSafeZone] = useState(false)   // P2.1 — overlay de zona segura no preview
   const safeIdx = Math.min(idx, ordered.length - 1)
   const current = ordered[safeIdx]
   const place = META_PLACEMENTS[current?.aspect_ratio] || {}
@@ -3987,23 +3988,27 @@ function MetaAdCard({ ad, busy, rendering = false, onApprove, onEdit }) {
         <StatusPill value={allApproved ? 'approved' : currentNeedsRender ? 'queued' : current?.status} />
       </div>
 
-      <div className="flex gap-1 px-3 pt-3">
+      {/* P2.1 — os 3 formatos juntos: miniatura de cada corte, visível de uma vez; clique enfoca no preview. */}
+      <div className="flex gap-1.5 px-3 pt-3">
         {ordered.map((a, i) => {
           const p = META_PLACEMENTS[a.aspect_ratio] || {}
           const active = i === safeIdx
+          const thumb = Boolean(a.public_url) && !needsVitraImobiliariaApprovedTemplateRender(a)
           return (
             <button
               key={a.id}
               onClick={() => setIdx(i)}
-              className="flex-1 rounded-md px-2 py-1.5 text-[10px] font-semibold transition"
-              style={{
-                background: active ? 'rgba(196,148,42,0.15)' : 'rgba(255,255,255,0.04)',
-                color: active ? '#F0C95C' : 'rgba(255,255,255,0.55)',
-                border: active ? '1px solid rgba(196,148,42,0.45)' : '1px solid transparent',
-              }}
+              title={`${a.aspect_ratio} · ${p.label || ''}`}
+              className={`flex flex-1 flex-col items-center gap-1 rounded-md border p-1 transition ${active ? 'border-gold-500/45 bg-gold-500/15' : 'border-transparent bg-white/[0.04] hover:bg-white/[0.07]'}`}
             >
-              {a.aspect_ratio}
-              <span className="ml-1 hidden font-normal text-white/40 sm:inline">{p.label}</span>
+              <span className="flex h-12 w-full items-center justify-center overflow-hidden rounded bg-black">
+                {thumb
+                  ? <img src={a.public_url} alt="" className="max-h-full max-w-full object-contain" loading="lazy" />
+                  : <ImageIcon size={13} className="text-white/25" />}
+              </span>
+              <span className={`text-2xs font-semibold ${active ? 'text-gold-200' : 'text-white/55'}`}>
+                {a.aspect_ratio}<span className="ml-1 hidden font-normal text-white/40 sm:inline">{p.label}</span>
+              </span>
             </button>
           )
         })}
@@ -4011,7 +4016,9 @@ function MetaAdCard({ ad, busy, rendering = false, onApprove, onEdit }) {
 
       <div className="relative mx-3 mt-3 flex h-60 items-center justify-center overflow-hidden rounded-lg bg-black">
         {hasRenderableImage ? (
-          <img src={current.public_url} alt={current.title} className="max-h-full max-w-full object-contain" loading="lazy" />
+          <a href={current.public_url} target="_blank" rel="noopener noreferrer" title="Abrir o corte em tamanho real" className="flex h-full w-full cursor-zoom-in items-center justify-center">
+            <img src={current.public_url} alt={current.title} className="max-h-full max-w-full object-contain" loading="lazy" />
+          </a>
         ) : (
           (() => {
             const waiting = currentNeedsRender || current?.status === 'queued'
@@ -4024,6 +4031,29 @@ function MetaAdCard({ ad, busy, rendering = false, onApprove, onEdit }) {
               </div>
             )
           })()
+        )}
+        {/* P2.1 — overlay de zona segura: no 9:16 as faixas de topo/base são cobertas pela interface de stories/reels. */}
+        {hasRenderableImage && safeZone && (
+          <div className="pointer-events-none absolute inset-0">
+            {current?.aspect_ratio === '9:16' ? (
+              <>
+                <div className="absolute inset-x-0 top-0 h-[14%] border-b border-dashed border-red-300/60 bg-red-500/15" />
+                <div className="absolute inset-x-0 bottom-0 h-[20%] border-t border-dashed border-red-300/60 bg-red-500/15" />
+              </>
+            ) : (
+              <div className="absolute inset-[6%] border border-dashed border-emerald-300/45" />
+            )}
+          </div>
+        )}
+        {hasRenderableImage && (
+          <button
+            type="button"
+            onClick={() => setSafeZone(s => !s)}
+            title="Mostrar/ocultar a zona segura (áreas que a interface da Meta pode cobrir)"
+            className={`absolute left-2 top-2 rounded px-2 py-1 text-2xs font-medium transition ${safeZone ? 'bg-gold-500/85 text-black' : 'bg-black/55 text-white/80 hover:bg-black/70'}`}
+          >
+            zona segura
+          </button>
         )}
         <span className="absolute right-2 top-2 rounded bg-black/55 px-2 py-1 text-[10px] text-white/80">{place.dim}</span>
       </div>
