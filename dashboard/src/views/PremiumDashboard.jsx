@@ -4458,6 +4458,10 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
   // Validacao (P0 UX): keys dos obrigatorios faltantes -> destaque inline (borda vermelha + aria-invalid)
   // e foco/scroll no 1o. Antes o erro era so uma string no rodape e o operador cacava os campos no scroll.
   const [missingKeys, setMissingKeys] = useState(() => new Set())
+  // Wizard de 3 passos (P0 UX: o modal-monolito de 7 secoes vira Template -> Dados & copy -> Imagens).
+  const [step, setStep] = useState(1)
+  const [dirty, setDirty] = useState(false) // p/ confirmar descarte ao fechar (nao perder copy IA)
+  const STEP_LABELS = ['Template', 'Dados & copy', 'Imagens & revisão']
   // Degrau B: sugestao de template por IA (a IA recomenda; o operador confirma).
   const [suggest, setSuggest] = useState({ loading: false, error: null, result: null })
   // Fluxo unico: ao gerar a copy, rola ate o painel "Copiloto de copy" (que fica abaixo dos campos)
@@ -4479,6 +4483,9 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
     setExtractMode('fill-empty')
     setAiFilledKeys([])
     setSuggest({ loading: false, error: null, result: null })
+    setStep(1)
+    setDirty(false)
+    setMissingKeys(new Set())
   }, [brandProfile.scope])
 
   // Trocar de TEMPLATE muda o conjunto de campos: a extracao anterior (keyed por outras formKeys) e as
@@ -4494,6 +4501,7 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
 
   function update(field, value) {
     setForm(current => ({ ...current, [field]: value }))
+    setDirty(true)
     // Editar um campo preenchido pela IA tira a marca "IA" (sinaliza edicao/aprovacao humana).
     setAiFilledKeys(current => (current.includes(field) ? current.filter(k => k !== field) : current))
   }
@@ -4809,10 +4817,13 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
 
   async function submit(event) {
     event.preventDefault()
+    // Wizard: nos passos 1-2, submeter/Enter apenas AVANCA; validacao e criacao rodam no passo final.
+    if (step < STEP_LABELS.length) { setStep(s => Math.min(s + 1, STEP_LABELS.length)); return }
     const productName = form.product_name.trim()
     if (!productName) {
       setLocalError('Informe o Nome do Produto no inicio do formulario para criar a campanha.')
       setMissingKeys(new Set(['product_name']))
+      setStep(2)
       requestAnimationFrame(() => {
         const el = document.getElementById('product_name')
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' }); el?.focus?.()
@@ -4835,6 +4846,8 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
     const allMissing = [...missingFields, ...missingImageSlots]
     if (allMissing.length) {
       setMissingKeys(new Set(missingFieldObjs.map(f => formKeyForTemplateField(f))))
+      // Pula para o passo que contem o 1o campo faltante (campos = passo 2; imagens = passo 3).
+      setStep(missingFieldObjs.length ? 2 : 3)
       const base = allMissing.length === 1
         ? `Preencha o campo obrigatorio: ${allMissing[0]}.`
         : `Preencha os ${allMissing.length} campos obrigatorios: ${allMissing.join(', ')}.`
@@ -4863,29 +4876,83 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
   const labelClass = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42'
   const sectionTitleClass = 'border-b border-white/10 pb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400'
 
+  // Fechar com confirmacao quando ha edicao/copy IA: o <Modal> fecha por Esc/scrim; sem isto = perda acidental.
+  function handleClose() {
+    if (dirty && !window.confirm('Descartar esta campanha? Os dados preenchidos e a copy gerada por IA serao perdidos.')) return
+    onClose()
+  }
+
   return (
-    <div className="modal-overlay">
-      <div className="modal-panel max-h-[92vh] w-full max-w-4xl">
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
-          <div>
-            <div className="mb-1.5 flex items-center gap-2.5">
-              <span className="h-px w-7 bg-gold-500/70" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">{brandProfile.shortName}</span>
+    <Modal
+      open
+      onClose={handleClose}
+      title="Nova campanha"
+      description={brandProfile.shortName}
+      size="xl"
+      footer={
+        <div className="space-y-4">
+          {(localError || submitError) && (
+            <div className="rounded-lg border border-red-400/25 bg-red-950/30 px-4 py-3 text-xs leading-5 text-red-100/82" role="alert">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-red-300" aria-hidden="true" />
+                <span>{localError || errorMessage(submitError)}</span>
+              </div>
             </div>
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-white">Nova campanha</h2>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={step === 1 ? handleClose : () => setStep(s => Math.max(s - 1, 1))}
+              className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-white/65 transition hover:border-white/20 hover:text-white"
+            >
+              {step === 1 ? 'Cancelar' : 'Voltar'}
+            </button>
+            {step < STEP_LABELS.length ? (
+              <button
+                type="button"
+                onClick={() => setStep(s => Math.min(s + 1, STEP_LABELS.length))}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gold-500 px-4 py-2.5 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400"
+              >
+                Avançar
+              </button>
+            ) : (
+              <button
+                type="submit"
+                form="new-campaign-form"
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gold-500 px-4 py-2.5 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400 disabled:cursor-wait disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                {saving ? 'Criando campanha…' : 'Criar Campanha'}
+              </button>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-white/55 transition hover:border-gold-500/35 hover:text-white"
-            title="Fechar"
-          >
-            <X size={17} />
-          </button>
+        </div>
+      }
+    >
+      <form id="new-campaign-form" onSubmit={submit} noValidate autoComplete="off" className="space-y-6">
+        {/* Progresso do wizard — o operador ve em que passo esta, o que ja completou, e navega clicando. */}
+        <div className="flex items-center gap-2">
+          {STEP_LABELS.map((label, i) => {
+            const n = i + 1
+            const active = step === n
+            const done = step > n
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setStep(n)}
+                aria-current={active ? 'step' : undefined}
+                className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left transition ${active ? 'border-gold-500/50 bg-gold-500/10' : done ? 'border-gold-500/20 bg-gold-500/[0.04]' : 'border-white/10 bg-white/[0.02]'}`}
+              >
+                <span className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${active || done ? 'bg-gold-500 text-[color:var(--surface-0)]' : 'bg-white/10 text-white/50'}`}>{done ? '✓' : n}</span>
+                <span className={`text-2xs font-semibold uppercase tracking-[0.12em] ${active ? 'text-gold-100' : 'text-white/50'}`}>{label}</span>
+              </button>
+            )
+          })}
         </div>
 
-        <form onSubmit={submit} noValidate autoComplete="off" className="flex max-h-[calc(92vh-76px)] flex-col">
-          <div className="space-y-7 overflow-y-auto px-6 py-6">
+        <div className={step === 1 ? 'space-y-7' : 'hidden'}>
             <section className="space-y-4">
               <p className={sectionTitleClass}>Variacoes do criativo</p>
               <div className="grid gap-4 md:grid-cols-2">
@@ -5263,7 +5330,9 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
                 })()}
               </section>
             )}
+        </div>
 
+        <div className={step === 2 ? 'space-y-7' : 'hidden'}>
             {selectedFieldGroups.map(group => (
               <section key={group.id} className="space-y-4">
                 <div className="border-b border-white/10 pb-3">
@@ -5511,7 +5580,9 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
                 )}
               </section>
             )}
+        </div>
 
+        <div className={step === 3 ? 'space-y-7' : 'hidden'}>
             <section className="space-y-4">
               <p className={sectionTitleClass}>Upload de Imagens</p>
               <div className="grid gap-3 md:grid-cols-2">
@@ -5539,38 +5610,9 @@ function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose,
                 })}
               </div>
             </section>
-          </div>
-
-          <div className="border-t border-white/10 bg-[color:var(--surface-2)] px-6 py-5">
-            {(localError || submitError) && (
-              <div className="mb-4 rounded-lg border border-red-400/25 bg-red-950/30 px-4 py-3 text-xs leading-5 text-red-100/82">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-red-300" />
-                  <span>{localError || errorMessage(submitError)}</span>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-white/65 transition hover:border-white/20 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gold-500 px-4 py-2.5 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400 disabled:cursor-wait disabled:opacity-60"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                {saving ? 'Criando campanha…' : 'Criar Campanha'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
