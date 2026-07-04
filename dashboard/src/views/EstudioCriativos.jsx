@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowRight, ExternalLink, ImagePlus, Loader2, Plus, Trash2, Wand2, X } from 'lucide-react'
+import { ExternalLink, ImagePlus, Plus, Wand2, X } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
-import { FormField, Input } from '../components/ui/index.js'
+import { FormField, Input, Segmented, Button, Chip, ErrorAlert } from '../components/ui/index.js'
 import {
   buildCreativo1x1,
   buildCreativo191x1,
@@ -134,15 +134,12 @@ function DiferenciaisInput({ values, onChange }) {
       {values.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {values.map((v, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/20 bg-gold-500/[0.06] px-2.5 py-1 text-[11px] text-gold-200"
-            >
+            <Chip key={i} tone="gold">
               {v}
-              <button type="button" onClick={() => onChange(values.filter((_, j) => j !== i))}>
+              <button type="button" onClick={() => onChange(values.filter((_, j) => j !== i))} aria-label={`Remover ${v}`} className="text-gold-300/70 hover:text-white">
                 <X size={10} />
               </button>
-            </span>
+            </Chip>
           ))}
         </div>
       )}
@@ -191,6 +188,7 @@ export default function EstudioCriativos() {
   const [logoBase64, setLogoBase64] = useState(null)
   const [htmlMap, setHtmlMap] = useState({}) // { '1x1': html, '9x16': html, ... }
   const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     fetchAsBase64(LOGO_PATH).then(b64 => setLogoBase64(b64))
@@ -225,11 +223,17 @@ export default function EstudioCriativos() {
 
   function generateAll() {
     setGenerating(true)
-    const data = buildData()
-    const next = {}
-    FORMATS.forEach(fmt => { next[fmt.id] = fmt.fn(data) })
-    setHtmlMap(next)
-    setGenerating(false)
+    setError(null)
+    try {
+      const data = buildData()
+      const next = {}
+      FORMATS.forEach(fmt => { next[fmt.id] = fmt.fn(data) })
+      setHtmlMap(next)
+    } catch (e) {
+      setError(e?.message || 'Não foi possível gerar os criativos. Revise os dados e tente de novo.')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   function openFormat(fmtId) {
@@ -330,43 +334,40 @@ export default function EstudioCriativos() {
           </section>
 
           {/* Gerar */}
-          <button
-            type="button"
+          <Button
+            variant="gold"
             onClick={generateAll}
-            disabled={!hasContent || generating}
-            className="btn-gold flex w-full items-center justify-center gap-2.5 py-3 text-sm font-bold tracking-wide"
+            disabled={!hasContent}
+            loading={generating}
+            icon={Wand2}
+            className="w-full py-3 text-sm font-bold tracking-wide"
           >
-            {generating ? (
-              <><Loader2 size={16} className="animate-spin" /> Gerando…</>
-            ) : (
-              <><Wand2 size={16} /> {hasGenerated ? 'Regerar todos os formatos' : 'Gerar criativos'}</>
-            )}
-          </button>
+            {generating ? 'Gerando…' : hasGenerated ? 'Regerar todos os formatos' : 'Gerar criativos'}
+          </Button>
+          {error && <ErrorAlert message={error} onRetry={generateAll} />}
         </div>
 
         {/* ── PREVIEW + EXPORTAR ─────────────────────────────────────── */}
         <div className="space-y-5">
           <p className="label-section">Prévia e exportação</p>
 
-          {/* Seletor de formato */}
-          <div className="flex gap-2">
-            {FORMATS.map(fmt => (
-              <button
-                key={fmt.id}
-                type="button"
-                onClick={() => setFormat(fmt.id)}
-                className="flex-1 rounded-lg border px-3 py-2 text-center transition-all"
-                style={{
-                  background: format === fmt.id ? 'rgba(196,148,42,0.12)' : 'transparent',
-                  borderColor: format === fmt.id ? 'rgba(196,148,42,0.40)' : 'rgba(255,255,255,0.08)',
-                  color: format === fmt.id ? '#E4C06E' : '#777',
-                }}
-              >
-                <div className="text-sm font-bold">{fmt.label}</div>
-                <div className="text-[10px] opacity-70">{fmt.dim}</div>
-              </button>
-            ))}
-          </div>
+          {/* Seletor de formato (primitivo Segmented, full-width) */}
+          <Segmented
+            block
+            ariaLabel="Formato do criativo"
+            value={format}
+            onChange={setFormat}
+            className="py-1"
+            options={FORMATS.map(fmt => ({
+              value: fmt.id,
+              label: (
+                <span className="flex flex-col items-center leading-tight">
+                  <span className="text-sm font-bold">{fmt.label}</span>
+                  <span className="text-3xs opacity-70">{fmt.dim}</span>
+                </span>
+              ),
+            }))}
+          />
 
           {/* Preview area */}
           <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-white/8 bg-black/30 p-5">
