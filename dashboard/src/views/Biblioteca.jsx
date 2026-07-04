@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Images, Upload, Copy, Download, Trash2, Loader2, Check, ImageOff } from 'lucide-react'
+import { Upload, Copy, Download, Trash2, Check, ImageOff } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
-import { LoadingState, EmptyState, ErrorAlert, Modal, useToast } from '../components/ui/index.js'
+import { LoadingState, EmptyState, ErrorAlert, Modal, Button, useToast } from '../components/ui/index.js'
 import { BRAND_SCOPES } from '../lib/brandProfiles.js'
 import { listMediaAssets, uploadMediaAsset, deleteMediaAsset } from '../lib/premiumData.js'
 
@@ -86,11 +86,9 @@ export default function Biblioteca() {
         actions={
           <>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-            <button onClick={() => fileRef.current?.click()} disabled={busy}
-              className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-[color:var(--surface-0)] transition hover:bg-gold-400 disabled:opacity-50">
-              {busy ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            <Button variant="gold" icon={Upload} loading={busy} onClick={() => fileRef.current?.click()}>
               Enviar mídia{brandFilter.scope ? '' : ' (Imobiliária)'}
-            </button>
+            </Button>
           </>
         }
       />
@@ -161,18 +159,12 @@ export default function Biblioteca() {
         size="sm"
         footer={
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setPendingDelete(null)} disabled={deleting}>
+            <Button variant="ghost" onClick={() => setPendingDelete(null)} disabled={deleting}>
               Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={confirmDelete}
-              disabled={deleting}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-400/40 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/25 disabled:opacity-50"
-            >
-              {deleting && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
+            </Button>
+            <Button variant="danger" loading={deleting} onClick={confirmDelete}>
               Excluir
-            </button>
+            </Button>
           </div>
         }
       >

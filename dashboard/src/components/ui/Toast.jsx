@@ -48,7 +48,7 @@ export function ToastProvider({ children }) {
         role="region"
         aria-label="Notificações"
         aria-live="polite"
-        className="pointer-events-none fixed bottom-5 right-5 z-[80] flex w-[min(92vw,22rem)] flex-col gap-2"
+        className="pointer-events-none fixed bottom-5 right-5 z-[var(--z-toast)] flex w-[min(92vw,22rem)] flex-col gap-2"
       >
         {toasts.map((t) => {
           const V = VARIANTS[t.variant] || VARIANTS.info

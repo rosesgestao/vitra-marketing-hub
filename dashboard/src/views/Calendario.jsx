@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Instagram, Youtube, Facebook, Music, Video, Image, FileText, CalendarOff } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
-import { LoadingState, EmptyState, ErrorAlert } from '../components/ui/index.js'
+import { LoadingState, EmptyState, ErrorAlert, Badge } from '../components/ui/index.js'
 import PostDetailDrawer from '../components/PostDetailDrawer.jsx'
 import { contentStatusLabel } from '../lib/premiumData.js'
 import { BRAND_SCOPES } from '../lib/brandProfiles.js'
@@ -189,7 +189,7 @@ export default function Calendario({ onNavigate }) {
 
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         {post.brand_scope && (
-                          <span className="badge border border-white/10 bg-white/5 text-white/55">{BRAND_BADGE[post.brand_scope] || '—'}</span>
+                          <Badge tone="neutral">{BRAND_BADGE[post.brand_scope] || '—'}</Badge>
                         )}
                         {post.editorial_pillar && (
                           <span className="badge border border-white/10 bg-white/5 text-gray-300 capitalize">{post.editorial_pillar.replace(/_/g, ' ')}</span>

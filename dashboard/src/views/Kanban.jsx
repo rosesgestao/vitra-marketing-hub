@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Image, Video, FileText, Instagram, Youtube, Facebook, Music, RefreshCw } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
-import { LoadingState, ErrorAlert } from '../components/ui/index.js'
+import { LoadingState, ErrorAlert, Badge } from '../components/ui/index.js'
 import PostDetailDrawer from '../components/PostDetailDrawer.jsx'
 import { CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel } from '../lib/premiumData.js'
 import { BRAND_SCOPES } from '../lib/brandProfiles.js'
@@ -175,7 +175,7 @@ export default function Kanban({ onNavigate }) {
                       )}
 
                       <div className="flex flex-wrap items-center gap-1">
-                        {item.brand_scope && <span className="badge border border-white/10 bg-white/5 text-white/55">{BRAND_BADGE[item.brand_scope] || '—'}</span>}
+                        {item.brand_scope && <Badge tone="neutral">{BRAND_BADGE[item.brand_scope] || '—'}</Badge>}
                         {temCopy && <span className="badge bg-white/5 border border-white/10 text-gray-400">legenda</span>}
                         {temImagem && <span className="badge bg-white/5 border border-white/10 text-gray-400">visual</span>}
                         {temHashtags && <span className="badge bg-white/5 border border-white/10 text-gray-400">#{item.hashtags.length}</span>}
