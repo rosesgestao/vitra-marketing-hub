@@ -639,11 +639,18 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <BrandHorizontalLogo brandScope={brandScope} className="mb-7" />
-              <div className="mb-3 flex items-center gap-3">
+              <div className="mb-3 flex flex-wrap items-center gap-3">
                 <span className="h-px w-10 bg-gold-500/70" />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-gold-400">
                   {isPaidTrafficMode ? brandProfile.trafficKicker : brandProfile.areaKicker}
                 </p>
+                {/* P0.4 — selo de MODO inequívoco: Tráfego (pago) tem peso sólido; Conteúdo (orgânico) é discreto.
+                    O operador vê em 1 relance em que mundo está e em qual marca — não age no modo errado. */}
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-3xs font-semibold uppercase tracking-[0.16em] ${isPaidTrafficMode ? 'border border-gold-500/55 bg-gold-500/20 text-gold-100' : 'border border-white/15 bg-white/[0.04] text-white/65'}`}>
+                  {isPaidTrafficMode ? <Megaphone size={11} /> : <Layers3 size={11} />}
+                  {isPaidTrafficMode ? 'Tráfego Pago' : 'Conteúdo orgânico'}
+                  <span className="font-medium tracking-normal text-white/40">· {brandProfile.shortName || brandProfile.name}</span>
+                </span>
               </div>
               <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white md:text-[3.25rem]">
                 {isPaidTrafficMode ? brandProfile.trafficTitle : brandProfile.dashboardTitle}

@@ -121,7 +121,7 @@ export default function Agentes() {
         operacional Premium, entao podem aparecer permanentemente como "aguardando".
       </RoadmapNotice>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {AGENTES_V2.map(ag => {
           const status = statusAgente(ag)
           const ultima = ultimaAtividade(ag)

@@ -354,8 +354,8 @@ export default function Metricas() {
           </div>
         </form>
 
-        <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.025]">
-          <div className="grid grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+        <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/[0.025]">
+          <div className="grid min-w-[640px] grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
             <span>Canal</span>
             <span>Campanha</span>
             <span>Alcance</span>
@@ -370,7 +370,7 @@ export default function Metricas() {
                 const publication = publicationById.get(metric.publication_id)
                 const campaign = campaignById.get(metric.campaign_id || publication?.campaign_id)
                 return (
-                  <div key={metric.id} className="grid grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 px-4 py-3 text-sm text-white/62">
+                  <div key={metric.id} className="grid min-w-[640px] grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 px-4 py-3 text-sm tabular-nums text-white/62">
                     <PlatformLabel value={metric.platform} />
                     <span className="truncate text-white/72">{campaign?.name || 'Campanha Premium'}</span>
                     <span>{formatNumber(metric.reach)}</span>
