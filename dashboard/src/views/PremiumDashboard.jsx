@@ -108,6 +108,7 @@ import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
 import { AD_FORMAT_ORDER, assetPublishReady, evaluateMetaAdReadiness } from '../lib/metaAdReadiness.js'
+import { groupMetaAds, groupMetaAdsByCampaign } from '../lib/metaAds.js'
 import {
   selectableCreativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
@@ -223,12 +224,6 @@ const META_PLACEMENTS = {
   '9:16': { label: 'Vertical', sub: 'Stories / Reels', dim: '1080×1920' },
   '1.91:1': { label: 'Horizontal', sub: 'Recomendado', dim: '1200×628' },
 }
-const AD_GROUP_LABEL = {
-  'meta-awareness': 'Awareness',
-  'meta-leads': 'Leads',
-  'meta-retarget': 'Retargeting',
-}
-
 const STATUS_STYLES = {
   draft: 'border-white/10 bg-white/5 text-white/60',
   planning: 'border-gold-500/35 bg-gold-500/10 text-gold-300',
@@ -2836,38 +2831,8 @@ const CTA_OPTIONS = [
   'Conheça o projeto',
 ]
 
-function groupMetaAds(assets) {
-  const map = new Map()
-  for (const a of assets) {
-    if (a.channel !== 'meta_ads') continue
-    const key = a.metadata?.ad_group || 'meta'
-    const label = a.metadata?.ad_label || AD_GROUP_LABEL[key] || key.replace(/^meta-/, '')
-    if (!map.has(key)) map.set(key, { key, label, assets: [] })
-    map.get(key).assets.push(a)
-  }
-  return [...map.values()]
-}
-
-function groupMetaAdsByCampaign(assets) {
-  const map = new Map()
-  for (const asset of assets) {
-    if (asset.channel !== 'meta_ads') continue
-    const adKey = asset.metadata?.ad_group || 'meta'
-    const campaignKey = asset.campaign_id || 'sem-campanha'
-    const key = `${campaignKey}:${adKey}`
-    const label = asset.metadata?.ad_label || AD_GROUP_LABEL[adKey] || adKey.replace(/^meta-/, '')
-    if (!map.has(key)) {
-      map.set(key, {
-        key,
-        campaign_id: asset.campaign_id,
-        label,
-        assets: [],
-      })
-    }
-    map.get(key).assets.push(asset)
-  }
-  return [...map.values()]
-}
+// Agrupamento de anúncios Meta (groupMetaAds/groupMetaAdsByCampaign + AD_GROUP_LABEL) vive em
+// lib/metaAds.js — puro e coberto por Vitest. Importado no topo.
 
 // Painel "Revisar e publicar": o agente monta a campanha Meta (campanha -> conjunto -> criativo ->
 // anuncio) em status PAUSED via Edge publish-meta-ads. O orcamento usa o TETO definido aqui pelo
