@@ -103,7 +103,7 @@ import {
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import { renderPostArtToCanvas, postArtBlob, ensureArtFonts, postArtDims } from '../lib/postArt.js'
 import VitraSelect from '../components/VitraSelect.jsx'
-import { Modal } from '../components/ui/index.js'
+import { Modal, Input } from '../components/ui/index.js'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
@@ -1549,6 +1549,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
   const [schedulingId, setSchedulingId] = useState(null)
   const [detailPost, setDetailPost] = useState(null)   // Fase 2: drawer "Prévia do post" (texto + arte + versões)
   const [savedNotice, setSavedNotice] = useState(null)   // confirmacao "para onde foi"
+  const [savingAll, setSavingAll] = useState(false)        // "salvar as 3": salva todos os rascunhos de IA de uma vez
+  const [publishTarget, setPublishTarget] = useState(null) // post no modal de publicar (in-app, no lugar do window.prompt)
+  const [publishUrl, setPublishUrl] = useState('')
   const [highlightId, setHighlightId] = useState(null)    // id do rascunho recem-salvo (rolar + destacar)
 
   // Ao trocar o tipo, sugere pilar e formato default (operador pode mudar).
@@ -1647,6 +1650,30 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
     setSavedNotice('Rascunho salvo em “Conteúdos em produção” — abaixo. Próximo passo: Aprovar.')
   }
 
+  // "Salvar as 3": persiste todos os rascunhos de IA ainda nao salvos num clique (as sugestoes nao
+  // salvas somem ao gerar novas — antes so dava para salvar card a card, com risco de perder trabalho).
+  async function handleSaveAll() {
+    const pending = results.filter(p => !savedKeys.has(p.key))
+    if (!pending.length || savingAll) return
+    setSavingAll(true); setError(null)
+    const done = new Set(savedKeys)
+    let last = null
+    try {
+      for (const post of pending) {
+        last = await createContentPost({
+          campaignId: linkedCampaign?.id, brandScope: brandProfile.scope, contentType, platform,
+          pillar: post.pillar || pillar, format: post.format || format,
+          title: post.headline || post.idea, hook: post.headline,
+          caption: drafts[post.key] ?? post.caption, hashtags: post.hashtags, cta: post.cta,
+          visual: post.visual, script: post.script,
+        })
+        done.add(post.key)
+      }
+      flagSaved(last)
+      onSaved?.()
+    } catch (e) { setError(e) } finally { setSavedKeys(done); setSavingAll(false) }
+  }
+
   async function handleManualSave() {
     if (!manual.caption.trim() && !manual.title.trim()) { setError(new Error('Escreva ao menos um título ou uma legenda.')); return }
     setSavingManual(true); setError(null)
@@ -1700,10 +1727,14 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
     }
   })
   const schedule = (post, dateStr) => { if (!dateStr) return; setSchedulingId(null); return runAction(post.id, () => updateContentPost(post.id, { scheduledFor: new Date(dateStr).toISOString(), status: 'scheduled' })) }
-  const publish = post => {
-    const url = window.prompt('Link do post publicado (opcional):', post.metadata?.published_url || '')
-    if (url === null) return
-    return runAction(post.id, () => publishContentPost({ post, url, brandScope: brandProfile.scope }))
+  // Publicar: abre modal IN-APP com input validado (antes era window.prompt nativo — sem identidade,
+  // sem validacao, sem cancelar limpo). A confirmacao roda a acao real.
+  const publish = post => { setPublishUrl(post.metadata?.published_url || ''); setPublishTarget(post) }
+  const confirmPublish = () => {
+    const post = publishTarget
+    if (!post) return
+    setPublishTarget(null)
+    return runAction(post.id, () => publishContentPost({ post, url: publishUrl.trim(), brandScope: brandProfile.scope }))
   }
   const backToDraft = post => runAction(post.id, () => updateContentPost(post.id, { status: 'draft' }))
 
@@ -1831,9 +1862,38 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
         </p>
       )}
 
+      {/* Publicar conteudo — modal in-app (substitui o window.prompt nativo). Reusa <Modal> + <Input>. */}
+      <Modal
+        open={!!publishTarget}
+        onClose={() => setPublishTarget(null)}
+        title="Publicar conteúdo"
+        description={publishTarget ? (publishTarget.title || publishTarget.hook || 'Conteúdo') : undefined}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn-ghost" onClick={() => setPublishTarget(null)}>Cancelar</button>
+            <button type="button" className="btn-gold" onClick={confirmPublish}>Marcar como publicado</button>
+          </div>
+        }
+      >
+        <label className="block">
+          <span className="form-label">Link do post publicado (opcional)</span>
+          <Input value={publishUrl} onChange={e => setPublishUrl(e.target.value)} placeholder="https://instagram.com/p/…" autoFocus />
+        </label>
+        <p className="mt-2 text-2xs leading-4 text-white/45">Marca este conteúdo como publicado. O link é opcional — você pode colar depois.</p>
+      </Modal>
+
       {mode === 'ia' && results.length > 0 && (
         <div className="mt-5 space-y-3">
-          <p className="text-[11px] text-white/45"><span className="text-white/70">Sugestões da IA ({results.length})</span> — revise, edite a legenda e salve as que quiser. <span className="text-white/40">As não salvas somem ao gerar novas.</span></p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-2xs text-white/45"><span className="text-white/70">Sugestões da IA ({results.length})</span> — revise, edite a legenda e salve as que quiser. <span className="text-white/40">As não salvas somem ao gerar novas.</span></p>
+            {results.some(p => !savedKeys.has(p.key)) && (
+              <button type="button" onClick={handleSaveAll} disabled={savingAll || blockedByOffer} className="btn-gold inline-flex flex-shrink-0 items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
+                {savingAll ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                {savingAll ? 'Salvando…' : `Salvar todas (${results.filter(p => !savedKeys.has(p.key)).length})`}
+              </button>
+            )}
+          </div>
           {results.map(post => {
             const saved = savedKeys.has(post.key)
             return (
