@@ -553,6 +553,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   const [editingAd, setEditingAd] = useState(null)
   const [assetBusyId, setAssetBusyId] = useState(null)
   const [rendering, setRendering] = useState(false)
+  const [renderProgress, setRenderProgress] = useState(null)   // { processed, total, rendered, failed } durante "Gerar cortes"
   const [notice, setNotice] = useState(null)
   const [campaignSubmitError, setCampaignSubmitError] = useState(null)
   const [editorialSettings, setEditorialSettings] = useState(null)
@@ -705,6 +706,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
       batch: 1,
       assetIds: pendingAssets.map(asset => asset.id),
       onProgress: async ({ processed, total, rendered, failed }) => {
+        setRenderProgress({ processed, total, rendered, failed })
         setNotice(`Gerando cortes automaticamente... ${processed}/${total} processado(s), ${rendered} gerado(s)${failed ? `, ${failed} com erro` : ''}.`)
         if (processed - lastRefreshAt >= 1 || processed === total) {
           lastRefreshAt = processed
@@ -727,6 +729,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
       .finally(async () => {
         if (autoRenderRunningRef.current === campaignId) autoRenderRunningRef.current = null
         setRendering(false)
+        setRenderProgress(null)
         await refresh(campaignId, { silent: true })
       })
   }, [activeTab, isPaidTrafficMode, loading, saving, scoped.assets, selectedCampaign?.id])
@@ -858,7 +861,18 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           isRenderablePendingAsset(asset)
         ))
         .map(asset => asset.id)
-      const result = await renderCampaignAssets(selectedCampaign.id, { assetIds })
+      let lastRefreshAt = 0
+      const result = await renderCampaignAssets(selectedCampaign.id, {
+        assetIds,
+        // Progresso por corte (P0.4): a barra/rótulo atualizam e as tiles/cards refletem ao vivo.
+        onProgress: async ({ processed, total, rendered, failed }) => {
+          setRenderProgress({ processed, total, rendered, failed })
+          if (processed - lastRefreshAt >= 1 || processed === total) {
+            lastRefreshAt = processed
+            await refresh(selectedCampaign.id, { silent: true })
+          }
+        },
+      })
       if (result.error && !result.rendered) throw result.error
       if (result.failed) {
         // P0.3: não silenciar — diz quantos falharam, o motivo (se houver) e como recuperar.
@@ -872,6 +886,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
       setError(err)
     } finally {
       setRendering(false)
+      setRenderProgress(null)
     }
   }
 
@@ -1040,6 +1055,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             publications={workspace.publications}
             scopedAssets={scoped.assets}
             rendering={rendering}
+            renderProgress={renderProgress}
             busyId={assetBusyId}
             notice={notice}
             onRender={handleRenderCampaign}
@@ -1090,6 +1106,7 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             campaign={selectedCampaign}
             assets={scoped.assets}
             rendering={rendering}
+            renderProgress={renderProgress}
             busyId={assetBusyId}
             notice={notice}
             onRender={handleRenderCampaign}
@@ -1160,6 +1177,7 @@ function PaidTrafficWorkspace({
   publications,
   scopedAssets,
   rendering,
+  renderProgress,
   busyId,
   notice,
   onRender,
@@ -1205,6 +1223,7 @@ function PaidTrafficWorkspace({
         campaign={selectedCampaign}
         assets={scopedAssets}
         rendering={rendering}
+        renderProgress={renderProgress}
         busyId={busyId}
         notice={notice}
         onRender={onRender}
@@ -3572,6 +3591,11 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Megaphone size={16} />}
           {loading ? 'Criando rascunho…' : 'Criar rascunho na Meta (pausado)'}
         </button>
+        {loading && (
+          <span className="inline-flex items-center gap-1.5 text-2xs leading-4 text-white/45">
+            Validando criativos → criando campanha, conjuntos e anúncios na Meta — tudo <span className="text-white/70">pausado</span>. Pode levar alguns segundos.
+          </span>
+        )}
         {result?.meta_campaign_id && (
           <>
             <a href={result.ads_manager_url} target="_blank" rel="noopener noreferrer" className="btn-ghost inline-flex items-center justify-center gap-2">Abrir no Ads Manager</a>
@@ -3800,7 +3824,7 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
   )
 }
 
-function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId, notice, onRender, onApproveGroup, onEditAd }) {
+function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderProgress, busyId, notice, onRender, onApproveGroup, onEditAd }) {
   const [presetSeed, setPresetSeed] = useState(null)
   if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
   const ads = groupMetaAds(assets)
@@ -3843,7 +3867,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
             className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${pendingRender > 0 ? 'bg-gold-500 text-[color:var(--surface-0)] hover:bg-gold-400' : 'border border-gold-500/45 bg-gold-500/12 text-gold-100 hover:bg-gold-500/20'}`}
           >
             {rendering ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {rendering ? 'Gerando…' : `Gerar cortes${pendingRender ? ` (${pendingRender})` : ''}`}
+            {rendering ? (renderProgress?.total ? `Gerando… (${renderProgress.processed}/${renderProgress.total})` : 'Gerando…') : `Gerar cortes${pendingRender ? ` (${pendingRender})` : ''}`}
           </button>
           <button
             type="button"
@@ -3872,6 +3896,19 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
         <div className="rounded-lg border border-gold-500/25 bg-gold-500/8 px-4 py-3 text-xs text-gold-100">{notice}</div>
       )}
 
+      {/* P0.4 — progresso por corte: barra + contagem ao vivo enquanto renderiza (dados reais do onProgress). */}
+      {rendering && renderProgress && renderProgress.total > 0 && (
+        <div className="rounded-lg border border-gold-500/25 bg-gold-500/[0.06] px-4 py-3">
+          <div className="flex items-center justify-between gap-2 text-2xs font-medium text-gold-100">
+            <span className="inline-flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" />Gerando cortes…</span>
+            <span className="tabular-nums text-white/60">{renderProgress.processed} de {renderProgress.total} · {renderProgress.rendered} gerado(s){renderProgress.failed ? ` · ${renderProgress.failed} com erro` : ''}</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-gold-500 transition-all duration-300" style={{ width: `${Math.round((renderProgress.processed / renderProgress.total) * 100)}%` }} />
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-3 md:grid-cols-5">
         <StatTile label="Anúncios" value={ads.length} sub={`${placements.length} cortes`} icon={Megaphone} />
         <StatTile label="Pendentes" value={pendingRender} sub="aguardando corte" icon={Clock} tone="#E4C06E" />
@@ -3890,6 +3927,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
             key={ad.key}
             ad={ad}
             busy={ad.assets.some(a => a.id === busyId)}
+            rendering={rendering}
             onApprove={() => onApproveGroup(ad.assets)}
             onEdit={() => onEditAd(ad)}
           />
@@ -3911,7 +3949,7 @@ const META_QA_HINTS = {
   approval: 'Aprovação humana de todos os cortes.',
 }
 
-function MetaAdCard({ ad, busy, onApprove, onEdit }) {
+function MetaAdCard({ ad, busy, rendering = false, onApprove, onEdit }) {
   const ordered = [...ad.assets].sort(
     (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
   )
@@ -3975,10 +4013,17 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
         {hasRenderableImage ? (
           <img src={current.public_url} alt={current.title} className="max-h-full max-w-full object-contain" loading="lazy" />
         ) : (
-          <div className="flex flex-col items-center gap-2 text-white/40">
-            <ImageIcon size={22} className="text-gold-500/50" />
-            <span className="text-[11px]">{currentNeedsRender || current?.status === 'queued' ? 'aguardando corte' : 'sem render'}</span>
-          </div>
+          (() => {
+            const waiting = currentNeedsRender || current?.status === 'queued'
+            // Skeleton: enquanto o render global roda e este corte aguarda, o placeholder pulsa (P0.4).
+            const skeleton = rendering && waiting
+            return (
+              <div className={`flex flex-col items-center gap-2 text-white/40 ${skeleton ? 'animate-pulse' : ''}`}>
+                {skeleton ? <Loader2 size={22} className="animate-spin text-gold-500/60" /> : <ImageIcon size={22} className="text-gold-500/50" />}
+                <span className="text-[11px]">{skeleton ? 'gerando corte…' : waiting ? 'aguardando corte' : 'sem render'}</span>
+              </div>
+            )
+          })()
         )}
         <span className="absolute right-2 top-2 rounded bg-black/55 px-2 py-1 text-[10px] text-white/80">{place.dim}</span>
       </div>
