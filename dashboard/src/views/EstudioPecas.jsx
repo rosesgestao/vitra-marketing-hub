@@ -4,6 +4,7 @@ import { PremiumPageHeader, RoadmapNotice } from '../components/PremiumShell.jsx
 import { BrandV } from '../components/PremiumBrand.jsx'
 import { BRAND_SCOPES } from '../lib/brandProfiles.js'
 import { PECA_STATUS, PECAS_PLATFORMS, countFormats, generatorUrl, getPlatform } from '../lib/pecasCatalog.js'
+import { Segmented, Badge, Button } from '../components/ui/index.js'
 
 const BRAND_OPTIONS = [
   { scope: BRAND_SCOPES.imobiliaria, label: 'Imobiliária' },
@@ -20,43 +21,22 @@ function openGenerator(file) {
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
+// Wrappers finos sobre os primitivos do design system (call sites inalterados; some o bespoke).
 function BrandToggle({ value, onChange }) {
   return (
-    <div className="inline-flex rounded-lg border border-gold-500/25 bg-black/40 p-1">
-      {BRAND_OPTIONS.map(option => {
-        const active = value === option.scope
-        return (
-          <button
-            key={option.scope}
-            type="button"
-            onClick={() => onChange(option.scope)}
-            className="rounded-md px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] transition-all duration-200"
-            style={{
-              background: active ? 'rgba(196,148,42,0.16)' : 'transparent',
-              color: active ? '#E4C06E' : '#8A8A8A',
-            }}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
+    <Segmented
+      ariaLabel="Marca das peças"
+      value={value}
+      onChange={onChange}
+      options={BRAND_OPTIONS.map(o => ({ value: o.scope, label: o.label }))}
+    />
   )
 }
 
 function StatusBadge({ status }) {
-  if (status === PECA_STATUS.available) {
-    return (
-      <span className="badge bg-emerald-500/12 text-emerald-300">
-        <ShieldCheck size={12} /> Disponível
-      </span>
-    )
-  }
-  return (
-    <span className="badge bg-gold-500/12 text-gold-200">
-      <Clock size={12} /> Em breve
-    </span>
-  )
+  return status === PECA_STATUS.available
+    ? <Badge tone="success"><ShieldCheck size={11} /> Disponível</Badge>
+    : <Badge tone="gold"><Clock size={11} /> Em breve</Badge>
 }
 
 // Mini-preview proporcional ao formato, na cor da marca.
@@ -118,21 +98,13 @@ function FormatCard({ format, brandScope }) {
 
       <div className="mt-auto pt-4">
         {available ? (
-          <button
-            type="button"
-            onClick={() => openGenerator(file)}
-            className="btn-gold flex w-full items-center justify-center gap-2"
-          >
-            <ExternalLink size={14} /> Abrir gerador
-          </button>
+          <Button variant="gold" icon={ExternalLink} onClick={() => openGenerator(file)} className="w-full">
+            Abrir gerador
+          </Button>
         ) : (
-          <button
-            type="button"
-            disabled
-            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-4 py-2 text-sm font-medium text-white/35"
-          >
-            <Clock size={14} /> Em breve
-          </button>
+          <Button variant="subtle" icon={Clock} disabled className="w-full">
+            Em breve
+          </Button>
         )}
       </div>
     </div>
@@ -255,9 +227,9 @@ export default function EstudioPecas({ platformId = 'overview', onNavigate }) {
           title="Seção não encontrada"
           subtitle="A plataforma selecionada não existe no catálogo de peças."
           actions={
-            <button type="button" onClick={() => onNavigate?.('pecas:overview')} className="btn-ghost flex items-center gap-2">
-              <ArrowLeft size={14} /> Visão geral
-            </button>
+            <Button variant="ghost" icon={ArrowLeft} onClick={() => onNavigate?.('pecas:overview')}>
+              Visão geral
+            </Button>
           }
         />
       </div>
