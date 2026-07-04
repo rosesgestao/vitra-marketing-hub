@@ -244,6 +244,16 @@ export default function EstudioCriativos() {
         kicker="Estúdio de Criativos"
         title="Gerador de criativos imobiliários"
         subtitle="Preencha os dados do imóvel, suba as fotos e gere os três formatos prontos para exportar em PNG — identidade Vitra Imobiliária aplicada automaticamente."
+        actions={
+          // Escopo de marca EXPLICITO: este estudio produz SEMPRE peca Vitra Imobiliaria (logo/templates
+          // da marca-mae). Torna inequivoco para o operador — evita gerar arte Imobiliaria achando que e
+          // Premium (contaminacao de marca). Suporte multimarca (seletor + templates Premium) fica no hub
+          // de criacao visual unificado (roadmap).
+          <span className="inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/[0.08] px-3 py-1.5 text-xs font-semibold text-gold-200">
+            <span className="h-2 w-2 rounded-full bg-gold-400" aria-hidden="true" />
+            Marca: Vitra Imobiliária
+          </span>
+        }
       />
 
       <div className="grid gap-8 xl:grid-cols-[1fr_480px]">

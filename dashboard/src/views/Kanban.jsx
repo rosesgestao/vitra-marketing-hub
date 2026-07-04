@@ -5,9 +5,18 @@ import { PremiumPageHeader } from '../components/PremiumShell.jsx'
 import { LoadingState, ErrorAlert } from '../components/ui/index.js'
 import PostDetailDrawer from '../components/PostDetailDrawer.jsx'
 import { CONTENT_BOARD_LANES, contentStatusLane, contentStatusLabel } from '../lib/premiumData.js'
+import { BRAND_SCOPES } from '../lib/brandProfiles.js'
 
 // O board lê a fonte UNICA de conteudo organico: premium_content_posts (mesma tabela que a aba Produção
 // grava). As colunas agrupam os status do banco via contentStatusLane (fonte unica de status). Read-only.
+// Filtro de MARCA (separacao Imobiliaria x Premium): sem ele o board mistura as duas marcas no mesmo
+// quadro, com risco de aprovar/publicar a marca errada. Espelha o padrao ja usado em Biblioteca.
+const BRAND_FILTERS = [
+  { key: 'todos', label: 'Todas', scope: null },
+  { key: 'imob', label: 'Imobiliária', scope: BRAND_SCOPES.imobiliaria },
+  { key: 'premium', label: 'Premium', scope: BRAND_SCOPES.premium },
+]
+const BRAND_BADGE = { [BRAND_SCOPES.imobiliaria]: 'Imob', [BRAND_SCOPES.premium]: 'Premium' }
 const LANE_COLOR = {
   rascunho: '#3D3D3D', producao: '#A87820', revisao: '#D4A84A',
   aprovado: '#C4942A', agendado: '#D8B25A', publicado: '#E4C06E',
@@ -21,6 +30,7 @@ export default function Kanban({ onNavigate }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
+  const [brand, setBrand] = useState('todos')
 
   async function carregar() {
     setError(null)
@@ -46,8 +56,10 @@ export default function Kanban({ onNavigate }) {
     return () => clearInterval(timer)
   }, [])
 
+  const brandScope = BRAND_FILTERS.find(b => b.key === brand)?.scope || null
+  const visiveis = brandScope ? conteudos.filter(c => c.brand_scope === brandScope) : conteudos
   const porLane = CONTENT_BOARD_LANES.reduce((acc, lane) => {
-    acc[lane.key] = conteudos.filter(c => contentStatusLane(c.status) === lane.key)
+    acc[lane.key] = visiveis.filter(c => contentStatusLane(c.status) === lane.key)
     return acc
   }, {})
 
@@ -56,12 +68,22 @@ export default function Kanban({ onNavigate }) {
       <PremiumPageHeader
         kicker="Produção de conteúdo"
         title="Conteúdos"
-        subtitle={`${conteudos.length} conteúdo(s) orgânico(s) entre rascunho, produção e publicação.`}
+        subtitle={`${visiveis.length} conteúdo(s) orgânico(s) entre rascunho, produção e publicação.`}
         actions={
-          <button onClick={carregar} className="btn-ghost flex items-center gap-2">
-            <RefreshCw size={13} />
-            Atualizar
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1" role="group" aria-label="Filtrar por marca">
+              {BRAND_FILTERS.map(b => (
+                <button key={b.key} onClick={() => setBrand(b.key)} aria-pressed={brand === b.key}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${brand === b.key ? 'bg-gold-500/15 text-gold-200' : 'text-white/55 hover:text-white'}`}>
+                  {b.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={carregar} className="btn-ghost flex items-center gap-2">
+              <RefreshCw size={13} />
+              Atualizar
+            </button>
+          </div>
         }
       />
 
@@ -153,6 +175,7 @@ export default function Kanban({ onNavigate }) {
                       )}
 
                       <div className="flex flex-wrap items-center gap-1">
+                        {item.brand_scope && <span className="badge border border-white/10 bg-white/5 text-white/55">{BRAND_BADGE[item.brand_scope] || '—'}</span>}
                         {temCopy && <span className="badge bg-white/5 border border-white/10 text-gray-400">legenda</span>}
                         {temImagem && <span className="badge bg-white/5 border border-white/10 text-gray-400">visual</span>}
                         {temHashtags && <span className="badge bg-white/5 border border-white/10 text-gray-400">#{item.hashtags.length}</span>}
