@@ -108,7 +108,7 @@ import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
 import { AD_FORMAT_ORDER, assetPublishReady, evaluateMetaAdReadiness } from '../lib/metaAdReadiness.js'
-import { groupMetaAds, groupMetaAdsByCampaign } from '../lib/metaAds.js'
+import { groupMetaAds, groupMetaAdsByCampaign, META_PLACEMENTS, buildMetaAdsPackagePayload } from '../lib/metaAds.js'
 import {
   selectableCreativeTemplatesForBrand,
   defaultCreativeTemplateForBrand,
@@ -218,12 +218,6 @@ const TABS = [
   { id: 'config', label: 'Configurações', icon: Target },
 ]
 
-// Posicionamentos Meta Ads por formato/aspect ratio
-const META_PLACEMENTS = {
-  '1:1': { label: 'Quadrado', sub: 'Feed', dim: '1080×1080' },
-  '9:16': { label: 'Vertical', sub: 'Stories / Reels', dim: '1080×1920' },
-  '1.91:1': { label: 'Horizontal', sub: 'Recomendado', dim: '1200×628' },
-}
 const STATUS_STYLES = {
   draft: 'border-white/10 bg-white/5 text-white/60',
   planning: 'border-gold-500/35 bg-gold-500/10 text-gold-300',
@@ -386,63 +380,8 @@ function buildAutomationSteps(campaign, assets, publications) {
 }
 
 function downloadMetaAdsPackage(campaign, ads, brandProfile = getBrandProfile()) {
-  const payload = {
-    export_type: brandProfile.metaPackageType,
-    generated_at: new Date().toISOString(),
-    brand_scope: brandProfile.scope,
-    brand_name: brandProfile.name,
-    campaign: {
-      id: campaign.id,
-      name: campaign.name,
-      slug: campaign.slug,
-      product_name: campaign.product_name,
-      objective: campaign.campaign_objective,
-      audience: campaign.target_audience,
-      period: {
-        start_date: campaign.start_date,
-        end_date: campaign.end_date,
-      },
-      source_intake: campaign.brief?.source_intake || null,
-      qa_policy: campaign.brief?.qa_policy || null,
-      creative_validation: campaign.brief?.creative_validation || null,
-    },
-    human_gate: {
-      publish_policy: 'draft_or_manual_upload_first',
-      requires_budget_authorization: true,
-      requires_final_creative_approval: true,
-    },
-    ads: ads.map(ad => {
-      const ordered = [...ad.assets].sort(
-        (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
-      )
-      const first = ordered[0] || {}
-      const meta = first.metadata?.meta_ad || {}
-      return {
-        group_key: ad.key,
-        group_label: ad.label,
-        visual_template: first.metadata?.visual_template || null,
-        readiness: evaluateMetaAdReadiness(ad),
-        meta_fields: {
-          ad_name: meta.nome || `${campaign.name} | ${ad.label}`,
-          primary_text: meta.texto_principal || first.copy || '',
-          headline: first.headline || '',
-          description: meta.descricao || '',
-          cta: first.cta || '',
-          url_params: meta.url_params || '',
-        },
-        placements: ordered.map(asset => ({
-          asset_id: asset.id,
-          format: asset.aspect_ratio,
-          placement: META_PLACEMENTS[asset.aspect_ratio] || null,
-          status: asset.status,
-          public_url: asset.public_url,
-          storage_path: asset.storage_path,
-          template_key: asset.template_key,
-          visual_template: asset.metadata?.visual_template || null,
-        })),
-      }
-    }),
-  }
+  // Contrato do pacote em lib/metaAds.js (puro + testado); aqui só o download (blob/DOM).
+  const payload = buildMetaAdsPackagePayload(campaign, ads, brandProfile)
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
   const url = URL.createObjectURL(blob)
