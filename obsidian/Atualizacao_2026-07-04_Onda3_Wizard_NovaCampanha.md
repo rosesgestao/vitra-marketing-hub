@@ -3,6 +3,10 @@
 Autorizado pelo Leonardo a commitar para testar ao vivo em vitrapremium.com.br (parede de login impede o
 teste de fluxo aqui). Pacote completo do NewCampaignModal.
 
+> **✅ VALIDADO NO AR (2026-07-04):** Leonardo testou em produção — o fluxo do wizard funcionou sem erro e
+> uma "Nova campanha" foi criada/publicada de ponta a ponta. O maior risco da Onda 3 (mudança na tela mais
+> crítica, sem teste visual do meu lado) está confirmado em produção.
+
 ## Feito
 1. **Migração para `<Modal>`**: o overlay cru virou o primitivo `<Modal>` (size xl). Ganha foco-preso, Esc,
    scroll-lock, restauração de foco, role=dialog/aria-modal. O corpo (form) vai no body rolável do Modal;
