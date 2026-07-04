@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { CheckCircle2, AlertCircle, Clock, Minus } from 'lucide-react'
 import { PremiumPageHeader, RoadmapNotice } from '../components/PremiumShell.jsx'
+import { StatusPill } from '../components/StatusPill.jsx'
+import { Chip } from '../components/ui/index.js'
 
 const AGENTES_V2 = [
   { id: 1,  nome: 'Orquestrador',            desc: 'Relatórios e agendamento inteligente',       cron: '6h50 + 23h',    tabela: 'calendario_editorial',   cor: 'gold' },
@@ -36,23 +37,9 @@ const COR_TEXT = {
   core:   'text-gold-400',
 }
 
-function StatusBadge({ status }) {
-  if (status === 'ok') return (
-    <span className="badge border border-gold-500/35 bg-gold-500/15 text-gold-100">
-      <CheckCircle2 size={9} /> ativo
-    </span>
-  )
-  if (status === 'idle') return (
-    <span className="badge border border-white/10 bg-white/5 text-gray-500">
-      <Clock size={9} /> aguardando
-    </span>
-  )
-  return (
-    <span className="badge border border-white/10 bg-white/5 text-gray-500">
-      <Minus size={9} /> standby
-    </span>
-  )
-}
+// Status do agente → valor do StatusPill (design system). Estilos das chaves ativo/aguardando vivem no
+// STATUS_STYLES do StatusPill. Antes era um StatusBadge bespoke (spans .badge à mão).
+const statusPillValue = (status) => (status === 'ok' ? 'ativo' : 'aguardando')
 
 export default function Agentes() {
   const [dados, setDados] = useState({})
@@ -142,13 +129,13 @@ export default function Agentes() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="text-white text-sm font-medium leading-tight">{ag.nome}</p>
-                  <StatusBadge status={status} />
+                  <StatusPill value={statusPillValue(status)} />
                 </div>
 
                 <p className="text-gray-500 text-xs mb-2 leading-relaxed">{ag.desc}</p>
 
-                <div className="flex items-center gap-3">
-                  <span className="label-section">{ag.cron}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Chip>{ag.cron}</Chip>
                   {count > 0 && ultima && (
                     <span className="text-[10px] text-gray-500">{count} reg. · {ultima}</span>
                   )}

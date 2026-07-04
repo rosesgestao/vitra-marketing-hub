@@ -17,6 +17,10 @@ const STATUS_STYLES = {
   published: 'border-white/20 bg-white/10 text-gray-300',
   done: 'border-gold-400/40 bg-gold-400/10 text-gold-100',
   error: 'border-red-400/30 bg-red-400/10 text-red-300',
+  // Estados do painel de Agentes (status de automação)
+  ativo: 'border-gold-400/40 bg-gold-400/10 text-gold-100',
+  aguardando: 'border-white/10 bg-white/5 text-white/55',
+  standby: 'border-white/10 bg-white/5 text-white/55',
 }
 
 export function StatusPill({ value }) {
