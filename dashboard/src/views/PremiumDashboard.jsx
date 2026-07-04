@@ -4512,8 +4512,8 @@ function MetricsSection({ campaign, publications, metrics, totals, snapshots }) 
       </div>
 
       {metrics.length ? (
-        <div className="overflow-hidden rounded-lg border border-white/10">
-          <div className="grid grid-cols-[0.8fr,0.8fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
+        <div className="overflow-x-auto rounded-lg border border-white/10">
+          <div className="grid min-w-[600px] grid-cols-6 gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-2xs font-semibold uppercase tracking-[0.16em] text-white/42">
             <span>Fonte</span>
             <span>Plataforma</span>
             <span>Alcance</span>
@@ -4523,7 +4523,7 @@ function MetricsSection({ campaign, publications, metrics, totals, snapshots }) 
           </div>
           <div className="divide-y divide-white/10">
             {metrics.map(metric => (
-              <div key={metric.id} className="grid grid-cols-[0.8fr,0.8fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 px-4 py-3 text-sm text-white/62">
+              <div key={metric.id} className="grid min-w-[600px] grid-cols-6 gap-3 px-4 py-3 text-sm tabular-nums text-white/62">
                 <StatusPill value={metric.source} />
                 <PlatformLabel value={metric.platform} />
                 <span>{formatNumber(metric.reach)}</span>
