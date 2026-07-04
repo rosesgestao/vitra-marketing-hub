@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, BarChart3, Loader2, Plus, Radio, RefreshCw, Repeat2, Target } from 'lucide-react'
+import { Activity, BarChart3, Plus, Radio, RefreshCw, Repeat2, Target } from 'lucide-react'
 import { createManualMetric, loadPremiumWorkspace, syncMetricsFromMeta } from '../lib/premiumData.js'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
-import { FormField } from '../components/ui/index.js'
+import { FormField, Segmented, StatTile, DataTable, Button, LoadingState, ErrorAlert, EmptyState } from '../components/ui/index.js'
 import VitraSelect from '../components/VitraSelect.jsx'
 
 const INITIAL_METRIC = {
@@ -44,22 +44,6 @@ const SEGMENTS = [
   { key: 'organico', label: 'Orgânico' },
   { key: 'pago', label: 'Pago' },
 ]
-
-function MetricTile({ label, value, sub, icon: Icon }) {
-  return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[color:var(--surface-1)] p-4 transition duration-200 hover:border-gold-500/30 hover:bg-white/[0.045]">
-      <div className="mb-3.5 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">{label}</p>
-        <span className="grid h-7 w-7 place-items-center rounded-md border border-white/10 bg-white/[0.03] text-gold-400">
-          <Icon size={14} />
-        </span>
-      </div>
-      <p className="font-display text-[2rem] font-semibold leading-none tracking-tight tabular-nums text-[#F4EFE3]">{value}</p>
-      {sub && <p className="mt-2 text-xs leading-5 text-white/45">{sub}</p>}
-      <span className="pointer-events-none absolute bottom-0 left-0 h-[3px] w-9 rounded-full bg-gold-500 transition-all duration-200 group-hover:w-16" />
-    </div>
-  )
-}
 
 function PlatformLabel({ value }) {
   return (
@@ -162,16 +146,15 @@ export default function Metricas() {
   }
 
   const syncButton = (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      icon={RefreshCw}
+      loading={syncing}
       onClick={handleSync}
-      disabled={syncing}
-      className="btn-ghost inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
       title="Puxa alcance, gasto, cliques e leads da Meta para as publicacoes pagas (read-only)"
     >
-      {syncing ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
       {syncing ? 'Sincronizando…' : 'Sincronizar agora (Meta)'}
-    </button>
+    </Button>
   )
 
   async function submit(event) {
@@ -203,10 +186,7 @@ export default function Metricas() {
           title="Metricas por publicacao"
           subtitle="Carregando publicacoes e historico do modelo Premium."
         />
-        <div className="flex min-h-72 items-center justify-center text-gold-300">
-          <Loader2 size={20} className="mr-3 animate-spin" />
-          <span className="text-sm font-medium">Carregando metricas Premium</span>
-        </div>
+        <LoadingState full label="Carregando métricas Premium" />
       </div>
     )
   }
@@ -224,52 +204,37 @@ export default function Metricas() {
         <div className="mb-6 rounded-lg border border-gold-500/25 bg-gold-500/8 px-4 py-3 text-xs text-gold-100">{syncMsg}</div>
       )}
 
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-400/25 bg-red-950/25 p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-red-300" />
-            <div>
-              <p className="text-sm font-semibold text-red-100">Falha na area de metricas Premium</p>
-              <p className="mt-1 text-xs leading-5 text-red-100/70">{error.message}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {error && <ErrorAlert message={error.message} onRetry={refresh} className="mb-6" />}
 
-      <div className="mb-4 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
-        {SEGMENTS.map(s => (
-          <button
-            key={s.key}
-            type="button"
-            onClick={() => setSegment(s.key)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${segment === s.key ? 'bg-gold-500/15 text-gold-200' : 'text-white/55 hover:text-white'}`}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        className="mb-4"
+        ariaLabel="Segmento das métricas"
+        value={segment}
+        onChange={setSegment}
+        options={SEGMENTS.map(s => ({ value: s.key, label: s.label }))}
+      />
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {segment === 'pago' ? (
           <>
-            <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
-            <MetricTile label="Cliques" value={formatNumber(totals.clicks)} sub="no link" icon={Repeat2} />
-            <MetricTile label="Leads" value={formatNumber(totals.leads)} sub="capturados" icon={Activity} />
-            <MetricTile label="Investimento" value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })} sub={totals.leads ? `CPL ${formatNumber(totals.spend / totals.leads, { style: 'currency', currency: 'BRL' })}` : 'sem leads'} icon={BarChart3} />
+            <StatTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
+            <StatTile label="Cliques" value={formatNumber(totals.clicks)} sub="no link" icon={Repeat2} />
+            <StatTile label="Leads" value={formatNumber(totals.leads)} sub="capturados" icon={Activity} />
+            <StatTile label="Investimento" value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })} sub={totals.leads ? `CPL ${formatNumber(totals.spend / totals.leads, { style: 'currency', currency: 'BRL' })}` : 'sem leads'} icon={BarChart3} />
           </>
         ) : segment === 'organico' ? (
           <>
-            <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
-            <MetricTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.likes + totals.comments + totals.shares)} interações`} icon={Repeat2} />
-            <MetricTile label="Salvos" value={formatNumber(totals.saves)} sub={`${formatNumber(totals.shares)} compart.`} icon={Activity} />
-            <MetricTile label="Novos seguidores" value={formatNumber(totals.follows)} sub="no período" icon={BarChart3} />
+            <StatTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
+            <StatTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.likes + totals.comments + totals.shares)} interações`} icon={Repeat2} />
+            <StatTile label="Salvos" value={formatNumber(totals.saves)} sub={`${formatNumber(totals.shares)} compart.`} icon={Activity} />
+            <StatTile label="Novos seguidores" value={formatNumber(totals.follows)} sub="no período" icon={BarChart3} />
           </>
         ) : (
           <>
-            <MetricTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
-            <MetricTile label="Impressoes" value={formatNumber(totals.impressions)} sub={`${workspace.publications.length} publicacoes`} icon={Activity} />
-            <MetricTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.clicks)} cliques`} icon={Repeat2} />
-            <MetricTile label="Investimento" value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })} sub={`${formatNumber(totals.leads)} leads`} icon={BarChart3} />
+            <StatTile label="Alcance" value={formatNumber(totals.reach)} sub={`${filteredMetrics.length} coletas`} icon={Target} />
+            <StatTile label="Impressoes" value={formatNumber(totals.impressions)} sub={`${workspace.publications.length} publicacoes`} icon={Activity} />
+            <StatTile label="Engajamento" value={formatNumber(totals.engagement)} sub={`${formatNumber(totals.clicks)} cliques`} icon={Repeat2} />
+            <StatTile label="Investimento" value={formatNumber(totals.spend, { style: 'currency', currency: 'BRL' })} sub={`${formatNumber(totals.leads)} leads`} icon={BarChart3} />
           </>
         )}
       </div>
@@ -343,54 +308,45 @@ export default function Metricas() {
               />
             </Field>
 
-            <button
-              type="submit"
-              disabled={saving || !workspace.publications.length}
-              className="btn-gold flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-              Registrar metricas
-            </button>
+            <Button type="submit" variant="gold" icon={Plus} loading={saving} disabled={!workspace.publications.length} className="w-full">
+              Registrar métricas
+            </Button>
           </div>
         </form>
 
-        <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/[0.025]">
-          <div className="grid min-w-[640px] grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            <span>Canal</span>
-            <span>Campanha</span>
-            <span>Alcance</span>
-            <span>Engajamento</span>
-            <span>Leads</span>
-            <span>Coleta</span>
-          </div>
-
-          {filteredMetrics.length ? (
-            <div className="divide-y divide-white/10">
-              {filteredMetrics.map(metric => {
-                const publication = publicationById.get(metric.publication_id)
-                const campaign = campaignById.get(metric.campaign_id || publication?.campaign_id)
-                return (
-                  <div key={metric.id} className="grid min-w-[640px] grid-cols-[0.8fr,1.2fr,0.8fr,0.8fr,0.8fr,0.8fr] gap-3 px-4 py-3 text-sm tabular-nums text-white/62">
-                    <PlatformLabel value={metric.platform} />
-                    <span className="truncate text-white/72">{campaign?.name || 'Campanha Premium'}</span>
-                    <span>{formatNumber(metric.reach)}</span>
-                    <span>{formatNumber(metric.engagement)}</span>
-                    <span>{formatNumber(metric.leads)}</span>
-                    <span>{formatDate(metric.metric_date || metric.collected_at)}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
-              <Radio size={24} className="mb-3 text-gold-500/55" />
-              <p className="text-sm font-medium text-white">Nenhuma metrica Premium registrada</p>
-              <p className="mt-1 max-w-md text-xs leading-relaxed text-white/42">
-                Cadastre uma publicacao real/importada e registre a primeira coleta manual.
-              </p>
-            </div>
-          )}
-        </div>
+        <DataTable
+          className="bg-white/[0.025]"
+          rows={filteredMetrics}
+          rowKey={m => m.id}
+          columns={[
+            { key: 'canal', label: 'Canal', width: '0.8fr' },
+            { key: 'campanha', label: 'Campanha', width: '1.2fr' },
+            { key: 'alcance', label: 'Alcance', width: '0.8fr' },
+            { key: 'engajamento', label: 'Engajamento', width: '0.8fr' },
+            { key: 'leads', label: 'Leads', width: '0.8fr' },
+            { key: 'coleta', label: 'Coleta', width: '0.8fr' },
+          ]}
+          renderCell={(metric, col) => {
+            const publication = publicationById.get(metric.publication_id)
+            const campaign = campaignById.get(metric.campaign_id || publication?.campaign_id)
+            switch (col.key) {
+              case 'canal': return <PlatformLabel value={metric.platform} />
+              case 'campanha': return campaign?.name || 'Campanha Premium'
+              case 'alcance': return formatNumber(metric.reach)
+              case 'engajamento': return formatNumber(metric.engagement)
+              case 'leads': return formatNumber(metric.leads)
+              case 'coleta': return formatDate(metric.metric_date || metric.collected_at)
+              default: return null
+            }
+          }}
+          empty={
+            <EmptyState
+              icon={Radio}
+              title="Nenhuma métrica Premium registrada"
+              description="Cadastre uma publicação real/importada e registre a primeira coleta manual."
+            />
+          }
+        />
       </div>
     </div>
   )
