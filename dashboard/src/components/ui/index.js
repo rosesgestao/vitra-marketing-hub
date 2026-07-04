@@ -6,6 +6,11 @@ export { default as ErrorAlert } from './ErrorAlert.jsx'
 export { default as FormField } from './FormField.jsx'
 export { default as Button } from './Button.jsx'
 export { default as Badge } from './Badge.jsx'
+export { default as Input } from './Input.jsx'
+export { default as Textarea } from './Textarea.jsx'
+// Select CANONICO do kit = VitraSelect (acessivel: role=listbox, teclado, aria). Unifica a entrada de
+// "select" do design system; o select.form-input nativo deve migrar para ca ao longo da adocao.
+export { default as Select } from '../VitraSelect.jsx'
 export { default as Modal } from './Modal.jsx'
 export { default as Drawer } from './Drawer.jsx'
 export { ToastProvider, useToast } from './Toast.jsx'

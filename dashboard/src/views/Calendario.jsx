@@ -174,7 +174,7 @@ export default function Calendario({ onNavigate }) {
                           {post.format && (
                             <>
                               <FormatoIcon size={11} className="text-white/45" />
-                              <span className="text-[10px] text-white/45 capitalize">{post.format}</span>
+                              <span className="text-3xs text-white/45 capitalize">{post.format}</span>
                             </>
                           )}
                         </div>

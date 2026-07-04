@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, ExternalLink, ImagePlus, Loader2, Plus, Trash2, Wand2, X } from 'lucide-react'
 import { PremiumPageHeader } from '../components/PremiumShell.jsx'
+import { FormField, Input } from '../components/ui/index.js'
 import {
   buildCreativo1x1,
   buildCreativo191x1,
@@ -112,13 +113,14 @@ function DiferenciaisInput({ values, onChange }) {
   return (
     <div>
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
           placeholder="Piscina, fitness, salão…"
-          className="form-input flex-1"
+          className="flex-1"
+          aria-label="Adicionar diferencial"
         />
         <button
           type="button"
@@ -264,50 +266,27 @@ export default function EstudioCriativos() {
           <section>
             <p className="label-section mb-4">Dados do imóvel</p>
             <div className="space-y-3">
-              <div>
-                <label className="form-label">Headline / nome do empreendimento</label>
-                <input
+              <FormField label="Headline / nome do empreendimento">
+                <Input
                   type="text"
                   value={form.headline}
                   onChange={e => setField('headline', e.target.value)}
                   placeholder="Ex: Apartamentos 2 e 3 dormitórios no Menino Deus"
-                  className="form-input"
                 />
-              </div>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="form-label">Bairro</label>
-                  <input
-                    type="text"
-                    value={form.bairro}
-                    onChange={e => setField('bairro', e.target.value)}
-                    placeholder="Menino Deus"
-                    className="form-input"
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Cidade</label>
-                  <input
-                    type="text"
-                    value={form.cidade}
-                    onChange={e => setField('cidade', e.target.value)}
-                    placeholder="Porto Alegre"
-                    className="form-input"
-                  />
-                </div>
+                <FormField label="Bairro">
+                  <Input type="text" value={form.bairro} onChange={e => setField('bairro', e.target.value)} placeholder="Menino Deus" />
+                </FormField>
+                <FormField label="Cidade">
+                  <Input type="text" value={form.cidade} onChange={e => setField('cidade', e.target.value)} placeholder="Porto Alegre" />
+                </FormField>
               </div>
 
-              <div>
-                <label className="form-label">Preço (deixe em branco para omitir)</label>
-                <input
-                  type="text"
-                  value={form.preco}
-                  onChange={e => setField('preco', e.target.value)}
-                  placeholder="R$ 1.080.000"
-                  className="form-input"
-                />
-              </div>
+              <FormField label="Preço (deixe em branco para omitir)">
+                <Input type="text" value={form.preco} onChange={e => setField('preco', e.target.value)} placeholder="R$ 1.080.000" />
+              </FormField>
 
               <div className="grid grid-cols-4 gap-3">
                 {[
@@ -316,16 +295,9 @@ export default function EstudioCriativos() {
                   { key: 'suites',  label: 'Suítes',        placeholder: '1 suíte' },
                   { key: 'vagas',   label: 'Vagas',         placeholder: '2' },
                 ].map(({ key, label, placeholder }) => (
-                  <div key={key}>
-                    <label className="form-label">{label}</label>
-                    <input
-                      type="text"
-                      value={form[key]}
-                      onChange={e => setField(key, e.target.value)}
-                      placeholder={placeholder}
-                      className="form-input"
-                    />
-                  </div>
+                  <FormField key={key} label={label}>
+                    <Input type="text" value={form[key]} onChange={e => setField(key, e.target.value)} placeholder={placeholder} />
+                  </FormField>
                 ))}
               </div>
 
@@ -334,16 +306,9 @@ export default function EstudioCriativos() {
                 <DiferenciaisInput values={diferenciais} onChange={setDiferenciais} />
               </div>
 
-              <div>
-                <label className="form-label">CTA</label>
-                <input
-                  type="text"
-                  value={form.cta}
-                  onChange={e => setField('cta', e.target.value)}
-                  placeholder="Agende sua visita"
-                  className="form-input"
-                />
-              </div>
+              <FormField label="CTA">
+                <Input type="text" value={form.cta} onChange={e => setField('cta', e.target.value)} placeholder="Agende sua visita" />
+              </FormField>
             </div>
           </section>
 

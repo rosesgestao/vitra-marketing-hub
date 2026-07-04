@@ -117,9 +117,9 @@ export default function Kanban({ onNavigate }) {
               <div className="mb-3 flex items-center justify-between px-1.5 pt-1">
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: dot }} />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">{lane.label}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/70">{lane.label}</span>
                 </div>
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-white/10 bg-white/5 px-1.5 text-[10px] font-semibold tabular-nums text-white/55">
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-white/10 bg-white/5 px-1.5 text-3xs font-semibold tabular-nums text-white/55">
                   {items.length}
                 </span>
               </div>
@@ -128,7 +128,7 @@ export default function Kanban({ onNavigate }) {
                 {items.length === 0 && (
                   <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 py-9 text-center">
                     <FileText size={15} className="text-white/25" />
-                    <p className="text-[11px] text-white/35">Nenhum conteúdo aqui</p>
+                    <p className="text-2xs text-white/35">Nenhum conteúdo aqui</p>
                   </div>
                 )}
                 {items.map(item => {
@@ -157,11 +157,11 @@ export default function Kanban({ onNavigate }) {
                     >
                       <div className="flex items-center gap-1.5 mb-2">
                         <PlataformaIcon size={12} style={{ color: plataformaCor }} />
-                        <span className="text-[10px] text-gray-400 capitalize">{item.platform || '—'}</span>
+                        <span className="text-3xs text-gray-400 capitalize">{item.platform || '—'}</span>
                         {item.format && (
                           <>
                             <FormatoIcon size={11} className="text-white/45 ml-1" />
-                            <span className="text-[10px] text-white/45 capitalize">{item.format}</span>
+                            <span className="text-3xs text-white/45 capitalize">{item.format}</span>
                           </>
                         )}
                       </div>

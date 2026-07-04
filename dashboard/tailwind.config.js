@@ -43,6 +43,15 @@ export default {
         display: ['"Playfair Display"', 'serif'],
         sans: ['Inter', 'sans-serif'],
       },
+      // Sub-escala micro tokenizada (Onda 2): documenta os microrrotulos abaixo de xs(12px) e substitui
+      // os tamanhos arbitrarios text-[Npx] mais usados SEM mudar 1px (byte-equivalente). Aditivo — as
+      // faixas padrao do Tailwind (xs/sm/base/lg/xl...) permanecem.
+      fontSize: {
+        '2xs': '0.6875rem', // 11px — captions/hints (era text-[11px], ~112 usos)
+        '3xs': '0.625rem',  // 10px — microlabels/badges (era text-[10px], ~139 usos)
+        '4xs': '0.5625rem', // 9px
+        '5xs': '0.5rem',    // 8px
+      },
       keyframes: {
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
