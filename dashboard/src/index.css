@@ -197,16 +197,19 @@
     @apply font-display text-3xl font-semibold leading-[1.1] tracking-tight text-white md:text-[2.6rem];
   }
 
+  /* Contraste (WCAG AA): texto informativo em branco/50 sobre navy fica ~4.0:1 (reprova o minimo 4.5:1).
+     Subtitulo e rotulo de campo carregam INFORMACAO — sobem para /70 (~6.5:1, passa, mas segue claramente
+     secundario ao titulo branco). Placeholder (nao-essencial) sobe de /25 (~1.9:1, quase ilegivel) para /45. */
   .premium-subtitle {
-    @apply mt-2 max-w-3xl text-sm leading-6 text-white/50;
+    @apply mt-2 max-w-3xl text-sm leading-6 text-white/70;
   }
 
   .form-label {
-    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50;
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70;
   }
 
   .form-input {
-    @apply w-full rounded-lg border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-white/25
+    @apply w-full rounded-lg border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-white/45
            transition-colors focus:border-gold-500/40 focus:bg-white/[0.06] focus:outline-none;
   }
 

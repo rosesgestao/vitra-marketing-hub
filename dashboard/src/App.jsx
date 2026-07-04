@@ -309,6 +309,7 @@ function NavButton({ item, active, onClick }) {
   return (
     <button
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className="relative flex w-full items-center gap-3 rounded-lg border px-3.5 py-3 text-left text-sm transition-all duration-200"
       style={{
         background: active ? 'rgba(196,148,42,0.12)' : 'transparent',
