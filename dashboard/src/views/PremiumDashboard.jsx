@@ -103,6 +103,7 @@ import {
 import { BrandHorizontalLogo } from '../components/PremiumBrand.jsx'
 import { renderPostArtToCanvas, postArtBlob, ensureArtFonts, postArtDims } from '../lib/postArt.js'
 import VitraSelect from '../components/VitraSelect.jsx'
+import { Modal } from '../components/ui/index.js'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
@@ -4012,19 +4013,11 @@ function AdEditModal({ ad, campaign = null, brandScope = BRAND_SCOPES.imobiliari
     onSave(ad.assets, form)
   }
 
+  // Migrado para o primitivo <Modal> (Onda 2): foco-preso, Esc, scroll-lock, restauracao de foco e
+  // role=dialog/aria-modal. O Modal ja provê o scroll do corpo — o form perde o max-h/overflow proprios.
   return (
-    <div className="modal-overlay">
-      <div className="modal-panel max-h-[92vh] w-full max-w-lg">
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Editar anúncio · {ad.label}</h2>
-            <p className="mt-0.5 text-xs text-white/45">Campos do Gerenciador da Meta · aplica aos 3 cortes</p>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 p-2 text-white/55 transition hover:text-white" title="Fechar">
-            <X size={16} />
-          </button>
-        </div>
-        <form onSubmit={submit} autoComplete="off" className="max-h-[calc(92vh-72px)] space-y-4 overflow-y-auto px-6 py-5">
+    <Modal open onClose={onClose} title={`Editar anúncio · ${ad.label}`} description="Campos do Gerenciador da Meta · aplica aos 3 cortes" size="md">
+        <form onSubmit={submit} autoComplete="off" className="space-y-4">
           {/* Porta in-app da vitra-copy: 3 ângulos validados a partir dos fatos da campanha → aplica ao anúncio */}
           <div className="rounded-xl border border-gold-500/25 bg-gold-500/[0.06] px-3.5 py-3">
             <div className="flex items-center justify-between gap-3">
@@ -4095,8 +4088,7 @@ function AdEditModal({ ad, campaign = null, brandScope = BRAND_SCOPES.imobiliari
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -4114,43 +4106,35 @@ function AssetEditModal({ asset, saving, onClose, onSave }) {
     onSave(asset.id, form)
   }
 
+  // Migrado para o primitivo <Modal> (Onda 2): ganha foco-preso, Esc, scroll-lock, restauracao de foco e
+  // role=dialog/aria-modal — que o overlay cru nao tinha. Estrutura preservada (o form, com seus botoes,
+  // vira o corpo do modal). `open` fixo: o pai ja renderiza condicionalmente ({editingAsset && ...}).
   return (
-    <div className="modal-overlay">
-      <div className="modal-panel w-full max-w-lg">
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Editar criativo</h2>
-            <p className="mt-0.5 text-xs text-white/45">{asset.title}</p>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 p-2 text-white/55 transition hover:text-white" title="Fechar">
-            <X size={16} />
+    <Modal open onClose={onClose} title="Editar criativo" description={asset.title} size="md">
+      <form onSubmit={submit} autoComplete="off" className="space-y-4">
+        <Field label="Headline" labelClass={labelClass}>
+          <input value={form.headline} onChange={e => setForm(f => ({ ...f, headline: e.target.value }))} className={inputClass} />
+        </Field>
+        <Field label="Copy" labelClass={labelClass}>
+          <textarea value={form.copy} onChange={e => setForm(f => ({ ...f, copy: e.target.value }))} className={`${inputClass} min-h-24 resize-y`} />
+        </Field>
+        <Field label="CTA" labelClass={labelClass}>
+          <input value={form.cta} onChange={e => setForm(f => ({ ...f, cta: e.target.value }))} className={inputClass} />
+        </Field>
+        <p className="text-2xs leading-5 text-white/40">
+          Ao salvar, o criativo volta para a fila e é re-renderizado com os novos textos no próximo “Gerar criativos”.
+        </p>
+        <div className="flex justify-end gap-3 pt-1">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-white/65 transition hover:text-white">
+            Cancelar
+          </button>
+          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:opacity-60">
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+            Salvar e reenfileirar
           </button>
         </div>
-        <form onSubmit={submit} autoComplete="off" className="space-y-4 px-6 py-5">
-          <Field label="Headline" labelClass={labelClass}>
-            <input value={form.headline} onChange={e => setForm(f => ({ ...f, headline: e.target.value }))} className={inputClass} />
-          </Field>
-          <Field label="Copy" labelClass={labelClass}>
-            <textarea value={form.copy} onChange={e => setForm(f => ({ ...f, copy: e.target.value }))} className={`${inputClass} min-h-24 resize-y`} />
-          </Field>
-          <Field label="CTA" labelClass={labelClass}>
-            <input value={form.cta} onChange={e => setForm(f => ({ ...f, cta: e.target.value }))} className={inputClass} />
-          </Field>
-          <p className="text-[11px] leading-5 text-white/40">
-            Ao salvar, o criativo volta para a fila e é re-renderizado com os novos textos no próximo “Gerar criativos”.
-          </p>
-          <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-white/65 transition hover:text-white">
-              Cancelar
-            </button>
-            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg border border-gold-500/45 bg-gold-500/15 px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-500/20 disabled:opacity-60">
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-              Salvar e reenfileirar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   )
 }
 
