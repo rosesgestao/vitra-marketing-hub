@@ -340,6 +340,36 @@ function slugForDownload(value) {
     .slice(0, 72)
 }
 
+// ─── Prontidão de publicação: FONTE ÚNICA ──────────────────────────────────
+// Antes existiam duas listas de verificação paralelas, mantidas à mão: o QA do card
+// (evaluateMetaAdReadiness) e o gate de publicação (publishableAssets). Já divergiram uma vez
+// — o QA não checava `descricao` e o gate sim, então o card dizia "pronto" e o "Criar rascunho"
+// travava. Estes três predicados são a fonte única: ambos os consumidores passam por aqui, então
+// os campos exigidos para publicar não podem mais divergir.
+
+// Textos Meta de um corte, granular (para o QA mostrar QUAL falta).
+function metaCopyChecks(asset) {
+  const meta = asset?.metadata?.meta_ad || {}
+  return {
+    texts: Boolean(asset?.headline) && Boolean(meta.texto_principal || asset?.copy) && Boolean(asset?.cta),
+    description: Boolean((meta.descricao || '').trim()),
+  }
+}
+
+// Corte renderizado E aprovado (contrato de status do build_draft: publica APROVADO + com public_url).
+function assetRenderedApproved(asset) {
+  return Boolean(asset?.public_url) &&
+    ['approved', 'published'].includes(asset?.status) &&
+    !needsVitraImobiliariaApprovedTemplateRender(asset)
+}
+
+// Prontidão de publicação de UM corte = status + textos completos. O gate de publicação conta
+// quantos cortes satisfazem ISTO; é exatamente o que o edge publish-meta-ads aceita.
+function assetPublishReady(asset) {
+  const copy = metaCopyChecks(asset)
+  return assetRenderedApproved(asset) && copy.texts && copy.description
+}
+
 function evaluateMetaAdReadiness(ad) {
   const ordered = [...(ad.assets || [])].sort(
     (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
@@ -358,13 +388,15 @@ function evaluateMetaAdReadiness(ad) {
   // Validação visual objetiva (Creative Lint): um corte com lint reprovado não pode ser publicado.
   // Cortes de templates sem lint (metadata.lint ausente) passam — só reprova quando há lint e ele falhou.
   const lintOk = ordered.every(asset => asset.metadata?.lint?.ok !== false)
+  // Textos/descrição pela FONTE ÚNICA (metaCopyChecks) — mesmo predicado do gate de publicação.
+  const copy = metaCopyChecks(first)
   const checks = [
     { id: 'formats', label: '3 cortes Meta', ok: AD_FORMAT_ORDER.every(format => formats.has(format)) },
     { id: 'property_image', label: 'Foto do imovel', ok: hasPropertyImage },
     { id: 'render', label: 'Imagens renderizadas', ok: rendered },
     { id: 'design_lint', label: 'Validação visual (lint)', ok: lintOk },
-    { id: 'texts', label: 'Textos + CTA', ok: Boolean(first.headline && (meta.texto_principal || first.copy) && first.cta) },
-    { id: 'description', label: 'Descrição', ok: Boolean((meta.descricao || '').trim()) },
+    { id: 'texts', label: 'Textos + CTA', ok: copy.texts },
+    { id: 'description', label: 'Descrição', ok: copy.description },
     { id: 'destination', label: 'Destino / UTM', ok: hasDestination },
     { id: 'approval', label: 'Aprovacao humana', ok: approved },
   ]
@@ -3120,20 +3152,13 @@ function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
 
   const budgetCents = Math.round(Number(String(budget).replace(',', '.')) * 100) || 0
 
-  // Prontidao de PUBLICACAO = contrato REAL do build_draft (nao o QA-polish completo do evaluateMetaAdReadiness,
-  // que tambem exige os 3 cortes + foto de origem + UTM por anuncio). O edge publica qualquer asset APROVADO
-  // e RENDERIZADO (public_url) com textos validos; conta/pagina/destino/orcamento vem deste painel.
+  // Prontidao de PUBLICACAO = contrato REAL do build_draft, pela FONTE ÚNICA `assetPublishReady`
+  // (mesma exigência de campos que o QA do card usa — não podem mais divergir). O QA-polish completo
+  // (evaluateMetaAdReadiness) é mais estrito: também pede os 3 cortes + foto de origem + UTM por anúncio.
+  // Conta/pagina/destino/orcamento vem deste painel.
   const publishableAssets = ads
     .flatMap(ad => ad.assets || [])
-    .filter(a =>
-      ['approved', 'published'].includes(a.status) &&
-      Boolean(a.public_url) &&
-      !needsVitraImobiliariaApprovedTemplateRender(a) &&
-      Boolean(a.headline) &&
-      Boolean(a.metadata?.meta_ad?.texto_principal || a.copy) &&
-      Boolean((a.metadata?.meta_ad?.descricao || '').trim()) &&
-      Boolean(a.cta),
-    ).length
+    .filter(assetPublishReady).length
 
   // Lista EXATA do que falta para liberar o botao (em vez de desabilitar sem explicacao).
   const missingToBuild = []
