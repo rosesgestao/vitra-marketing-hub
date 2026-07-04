@@ -12,5 +12,6 @@ export { default as Textarea } from './Textarea.jsx'
 // "select" do design system; o select.form-input nativo deve migrar para ca ao longo da adocao.
 export { default as Select } from '../VitraSelect.jsx'
 export { default as Modal } from './Modal.jsx'
+export { default as ConfirmModal } from './ConfirmModal.jsx'
 export { default as Drawer } from './Drawer.jsx'
 export { ToastProvider, useToast } from './Toast.jsx'

@@ -79,7 +79,7 @@ import { PublishMetaPanel } from '../components/PublishMetaPanel.jsx'
 import { NewCampaignModal } from '../components/NewCampaignModal.jsx'
 import { Field } from '../components/Field.jsx'
 import { errorMessage } from '../lib/errorMessage.js'
-import { Modal, Input } from '../components/ui/index.js'
+import { Modal, Input, ConfirmModal } from '../components/ui/index.js'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
@@ -278,6 +278,8 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
   const [savingPublication, setSavingPublication] = useState(false)
   const [editingAsset, setEditingAsset] = useState(null)
   const [editingAd, setEditingAd] = useState(null)
+  const [deleteCampaignTarget, setDeleteCampaignTarget] = useState(null)   // P0.1 — confirmação in-app
+  const [deletingCampaign, setDeletingCampaign] = useState(false)
   const [assetBusyId, setAssetBusyId] = useState(null)
   const [rendering, setRendering] = useState(false)
   const [renderProgress, setRenderProgress] = useState(null)   // { processed, total, rendered, failed } durante "Gerar cortes"
@@ -482,14 +484,24 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     setNotice('Campanha criada. A geracao automatica dos cortes vai iniciar em segundo plano.')
   }
 
-  async function handleDeleteCampaign(campaign) {
-    if (!window.confirm(`Excluir "${campaign.name}"? Todos os assets, conteúdos e publicações da campanha serão removidos.`)) return
+  // P0.1 — abrir a confirmação in-app (foco-preso/Esc, sem clique acidental). A exclusão real vai no confirm.
+  function handleDeleteCampaign(campaign) {
+    setDeleteCampaignTarget(campaign)
+  }
+  async function confirmDeleteCampaign() {
+    const campaign = deleteCampaignTarget
+    if (!campaign) return
+    setDeletingCampaign(true)
+    setError(null)
     try {
       await deleteCampaign(campaign.id)
       if (selectedCampaignId === campaign.id) setSelectedCampaignId(null)
       await refresh(null)
+      setDeleteCampaignTarget(null)
     } catch (err) {
       setError(err)
+    } finally {
+      setDeletingCampaign(false)
     }
   }
 
@@ -888,6 +900,16 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
           onSave={handleSaveAd}
         />
       )}
+
+      <ConfirmModal
+        open={!!deleteCampaignTarget}
+        onClose={() => setDeleteCampaignTarget(null)}
+        onConfirm={confirmDeleteCampaign}
+        loading={deletingCampaign}
+        title="Excluir campanha"
+        confirmLabel="Excluir campanha"
+        description={deleteCampaignTarget ? `Excluir "${deleteCampaignTarget.name}"? Todos os assets, conteúdos e publicações desta campanha serão removidos. Esta ação não pode ser desfeita.` : ''}
+      />
     </div>
   )
 }
@@ -2636,6 +2658,8 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
   const [presets, setPresets] = useState([])
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+  const [deletePresetTarget, setDeletePresetTarget] = useState(null)   // P0.1 — confirmação in-app
+  const [deletingPreset, setDeletingPreset] = useState(false)
   // Auto-descoberta (mesmo padrao da Conta/Página no "Publicar na Meta"): conta -> campanhas por dropdown.
   const brandAcct = META_AD_ACCOUNTS[brandProfile.scope] || META_AD_ACCOUNTS[BRAND_SCOPES.imobiliaria] || {}
   const [adAccountId, setAdAccountId] = useState(brandAcct.adAccountId || '')
@@ -2702,9 +2726,12 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
     } catch (e) { setError(e) } finally { setSaving(false) }
   }
 
-  async function handleDelete(p) {
-    if (!window.confirm(`Excluir o preset "${p.name}"?`)) return
-    try { await deleteMetaPreset(p.id); await loadPresets() } catch (e) { setError(e) }
+  async function confirmDeletePreset() {
+    const p = deletePresetTarget
+    if (!p) return
+    setDeletingPreset(true); setError(null)
+    try { await deleteMetaPreset(p.id); await loadPresets(); setDeletePresetTarget(null) }
+    catch (e) { setError(e) } finally { setDeletingPreset(false) }
   }
 
   const bpSummary = bp => bp ? `${bp.objective} · ${bp.optimization_goal} · CBO R$${((bp.daily_budget_cents || 0) / 100).toFixed(0)}/dia · ${bp.age_min}-${bp.age_max} · ${(bp.adsets || []).map(a => a.geo === 'radius' ? `regional ${a.radius_km}km` : 'cidade').join(' + ')} · form: ${bp.lead_form_quality === 'maior_intencao' ? 'maior intenção (SMS)' : 'mais volume'}` : ''
@@ -2796,7 +2823,7 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
                     <button type="button" onClick={() => { onApply?.(p.blueprint); setNotice(`Preset "${p.name}" aplicado no painel abaixo — revise e gere o rascunho.`) }} className="inline-flex items-center gap-1 rounded-md border border-gold-500/40 px-2 py-1 text-[10px] text-gold-200 hover:bg-gold-500/10">
                       <Check size={11} />Usar preset
                     </button>
-                    <button type="button" onClick={() => handleDelete(p)} className="text-[10px] text-white/40 hover:text-red-300">excluir</button>
+                    <button type="button" onClick={() => setDeletePresetTarget(p)} className="text-[10px] text-white/40 hover:text-red-300">excluir</button>
                   </div>
                 </div>
                 <p className="mt-1 text-[10px] leading-4 text-white/45">{bpSummary(p.blueprint)}</p>
@@ -2806,6 +2833,15 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
           <p className="mt-2 text-[10px] text-white/35">Use o preset como referência ao preencher o painel “Revisar e publicar” abaixo (build PAUSED).</p>
         </div>
       )}
+      <ConfirmModal
+        open={!!deletePresetTarget}
+        onClose={() => setDeletePresetTarget(null)}
+        onConfirm={confirmDeletePreset}
+        loading={deletingPreset}
+        title="Excluir preset"
+        confirmLabel="Excluir preset"
+        description={deletePresetTarget ? `Excluir o preset "${deletePresetTarget.name}"? Ele deixa de aparecer ao montar novas campanhas.` : ''}
+      />
     </div>
   )
 }
