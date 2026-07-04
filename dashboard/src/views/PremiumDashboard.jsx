@@ -3899,6 +3899,18 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, busyId,
   )
 }
 
+// Dica (tooltip) por check de QA + o que cada pendência significa — some legibilidade e vira ação (P1.5/P2.3).
+const META_QA_HINTS = {
+  formats: 'Os 3 cortes Meta (1:1, 9:16, 1.91:1) precisam existir.',
+  property_image: 'Cada corte precisa apontar a foto de origem do imóvel.',
+  render: 'Todos os cortes renderizados (com imagem) e aprovados.',
+  design_lint: 'Validação visual objetiva (lint): nenhum corte pode reprovar.',
+  texts: 'Título, texto principal e CTA preenchidos.',
+  description: 'Descrição do anúncio (1 linha de reforço) preenchida.',
+  destination: 'Destino/UTM definido (site ou WhatsApp).',
+  approval: 'Aprovação humana de todos os cortes.',
+}
+
 function MetaAdCard({ ad, busy, onApprove, onEdit }) {
   const ordered = [...ad.assets].sort(
     (a, b) => AD_FORMAT_ORDER.indexOf(a.aspect_ratio) - AD_FORMAT_ORDER.indexOf(b.aspect_ratio),
@@ -3918,6 +3930,14 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
   const readiness = evaluateMetaAdReadiness(ad)
   const pendingChecks = readiness.checks.filter(check => !check.ok).length
   const fileName = `${ad.key}-${(current?.aspect_ratio || '').replace(':', 'x')}.png`
+  // P1.5 — pendência acionável: clicar num check reprovado leva à correção.
+  // texts/description/destino abrem o editor do anúncio; lint salta o preview para o corte reprovado.
+  const failedLintIdx = ordered.findIndex(a => a?.metadata?.lint?.ok === false)
+  const checkAction = id => {
+    if (id === 'texts' || id === 'description' || id === 'destination') return () => onEdit?.()
+    if (id === 'design_lint' && failedLintIdx >= 0) return () => setIdx(failedLintIdx)
+    return null
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-gold-500/20 bg-[color:var(--surface-1)]">
@@ -3982,29 +4002,36 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {readiness.ok ? <CheckCircle2 size={14} className="text-gold-300" /> : <AlertTriangle size={14} className="text-gold-200" />}
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">QA operacional</p>
+            <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/45">QA operacional</p>
           </div>
-          <span className="text-[10px] text-white/38">{readiness.ok ? 'exportavel' : `${pendingChecks} pendencia(s)`}</span>
+          <span className="text-2xs text-white/38">{readiness.ok ? 'exportável' : `${pendingChecks} pendência(s)`}</span>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
-          {readiness.checks.map(check => (
-            <span
-              key={check.id}
-              className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[10px] ${
-                check.ok
-                  ? 'border-gold-500/25 bg-gold-500/8 text-gold-100'
+          {readiness.checks.map(check => {
+            const action = check.ok ? null : checkAction(check.id)
+            const cls = `inline-flex items-center gap-1.5 rounded border px-2 py-1 text-2xs text-left ${
+              check.ok
+                ? 'border-gold-500/25 bg-gold-500/8 text-gold-100'
+                : action
+                  ? 'cursor-pointer border-amber-400/30 bg-amber-400/[0.06] text-amber-100/90 transition hover:bg-amber-400/[0.12]'
                   : 'border-white/10 bg-white/[0.025] text-white/38'
-              }`}
-            >
-              {check.ok ? <Check size={11} /> : <Clock size={11} />}
-              {check.label}
-            </span>
-          ))}
+            }`
+            const icon = check.ok ? <Check size={11} className="shrink-0" /> : <Clock size={11} className="shrink-0" />
+            return action ? (
+              <button key={check.id} type="button" onClick={action} title={`${META_QA_HINTS[check.id] || ''} Clique para corrigir.`} className={cls}>
+                {icon}<span className="truncate">{check.label}</span><span aria-hidden className="ml-auto opacity-70">corrigir →</span>
+              </button>
+            ) : (
+              <span key={check.id} title={META_QA_HINTS[check.id] || ''} className={cls}>
+                {icon}<span className="truncate">{check.label}</span>
+              </span>
+            )
+          })}
         </div>
         {Array.isArray(current?.metadata?.lint?.errors) && current.metadata.lint.errors.length > 0 && (
           <div className="mt-2 rounded border border-amber-400/25 bg-amber-400/[0.06] px-2.5 py-1.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200/90">Reprovado na validação visual — corte {current.aspect_ratio}</p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-amber-100/80">{humanizeLintList(current.metadata.lint.errors).join(' · ')}</p>
+            <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-amber-200/90">Reprovado na validação visual — corte {current.aspect_ratio}</p>
+            <p className="mt-0.5 text-2xs leading-relaxed text-amber-100/80">{humanizeLintList(current.metadata.lint.errors).join(' · ')}</p>
           </div>
         )}
         {(() => {
@@ -4012,8 +4039,8 @@ function MetaAdCard({ ad, busy, onApprove, onEdit }) {
           if (!notes.length) return null
           return (
             <div className="mt-2 rounded border border-sky-400/20 bg-sky-400/[0.05] px-2.5 py-1.5">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-200/80">Observações de qualidade — não bloqueiam</p>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-sky-100/70">{notes.join(' · ')}</p>
+              <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-sky-200/80">Observações de qualidade — não bloqueiam</p>
+              <p className="mt-0.5 text-2xs leading-relaxed text-sky-100/70">{notes.join(' · ')}</p>
             </div>
           )
         })()}
