@@ -79,7 +79,7 @@ import { PublishMetaPanel } from '../components/PublishMetaPanel.jsx'
 import { NewCampaignModal } from '../components/NewCampaignModal.jsx'
 import { Field } from '../components/Field.jsx'
 import { errorMessage } from '../lib/errorMessage.js'
-import { Modal, Input, ConfirmModal, StatTile, Button, Tabs } from '../components/ui/index.js'
+import { Modal, Input, ConfirmModal, StatTile, Button, Tabs, Segmented, DataTable } from '../components/ui/index.js'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
@@ -1542,14 +1542,17 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
       )}
 
       {/* Entrada tripla: IA, manual ou importar plano (saída da skill vitra-conteudo) */}
-      <div className="mt-4 inline-flex flex-wrap rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
-        {[{ k: 'ia', label: 'Gerar posts', icon: Wand2 }, { k: 'manual', label: 'Criar do zero', icon: Pencil }, { k: 'import', label: 'Importar plano', icon: Download }].map(({ k, label, icon: Icon }) => (
-          <button key={k} type="button" onClick={() => { setMode(k); setError(null) }}
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === k ? 'bg-gold-500/15 text-gold-200' : 'text-white/50 hover:text-white/80'}`}>
-            <Icon size={13} />{label}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        className="mt-4"
+        ariaLabel="Como criar o conteúdo"
+        value={mode}
+        onChange={k => { setMode(k); setError(null) }}
+        options={[
+          { value: 'ia', label: 'Gerar posts', icon: Wand2 },
+          { value: 'manual', label: 'Criar do zero', icon: Pencil },
+          { value: 'import', label: 'Importar plano', icon: Download },
+        ]}
+      />
 
       <div className={`mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${mode === 'import' ? 'hidden' : ''}`}>
         <label className="block"><span className="form-label">Tipo de conteúdo</span>
@@ -3174,28 +3177,30 @@ function MetricsSection({ campaign, publications, metrics, totals, snapshots }) 
       </div>
 
       {metrics.length ? (
-        <div className="overflow-x-auto rounded-lg border border-white/10">
-          <div className="grid min-w-[600px] grid-cols-6 gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-2xs font-semibold uppercase tracking-[0.16em] text-white/42">
-            <span>Fonte</span>
-            <span>Plataforma</span>
-            <span>Alcance</span>
-            <span>Cliques</span>
-            <span>Leads</span>
-            <span>Coleta</span>
-          </div>
-          <div className="divide-y divide-white/10">
-            {metrics.map(metric => (
-              <div key={metric.id} className="grid min-w-[600px] grid-cols-6 gap-3 px-4 py-3 text-sm tabular-nums text-white/62">
-                <StatusPill value={metric.source} />
-                <PlatformLabel value={metric.platform} />
-                <span>{formatNumber(metric.reach)}</span>
-                <span>{formatNumber(metric.link_clicks || metric.clicks)}</span>
-                <span>{formatNumber(metric.leads)}</span>
-                <span>{formatDate(metric.collected_at)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <DataTable
+          minWidth={600}
+          rows={metrics}
+          rowKey={m => m.id}
+          columns={[
+            { key: 'fonte', label: 'Fonte' },
+            { key: 'plataforma', label: 'Plataforma' },
+            { key: 'alcance', label: 'Alcance' },
+            { key: 'cliques', label: 'Cliques' },
+            { key: 'leads', label: 'Leads' },
+            { key: 'coleta', label: 'Coleta' },
+          ]}
+          renderCell={(metric, col) => {
+            switch (col.key) {
+              case 'fonte': return <StatusPill value={metric.source} />
+              case 'plataforma': return <PlatformLabel value={metric.platform} />
+              case 'alcance': return formatNumber(metric.reach)
+              case 'cliques': return formatNumber(metric.link_clicks || metric.clicks)
+              case 'leads': return formatNumber(metric.leads)
+              case 'coleta': return formatDate(metric.collected_at)
+              default: return null
+            }
+          }}
+        />
       ) : (
         <EmptyState
           icon={BarChart3}
