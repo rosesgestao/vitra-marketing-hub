@@ -79,7 +79,7 @@ import { PublishMetaPanel } from '../components/PublishMetaPanel.jsx'
 import { NewCampaignModal } from '../components/NewCampaignModal.jsx'
 import { Field } from '../components/Field.jsx'
 import { errorMessage } from '../lib/errorMessage.js'
-import { Modal, Input, ConfirmModal, StatTile } from '../components/ui/index.js'
+import { Modal, Input, ConfirmModal, StatTile, Button } from '../components/ui/index.js'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
@@ -1590,10 +1590,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
           <label className="mt-3 block"><span className="form-label">Tema / contexto (opcional)</span>
             <input className="form-input" value={tema} onChange={e => setTema(e.target.value)} placeholder="ex.: valorização do bairro, financiamento, bastidor da entrega de chaves…" /></label>
           <div className="mt-4">
-            <button type="button" onClick={handleGenerate} disabled={generating} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
-              {generating ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+            <Button variant="gold" onClick={handleGenerate} loading={generating} icon={Wand2}>
               {generating ? 'Gerando posts…' : 'Gerar posts'}
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -1610,10 +1609,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
             <label className="block"><span className="form-label">Hashtags (opcional)</span>
               <input className="form-input" value={manual.hashtags} onChange={e => setManual(m => ({ ...m, hashtags: e.target.value }))} placeholder="imovel, portoalegre, lancamento" /></label>
           </div>
-          <button type="button" onClick={handleManualSave} disabled={savingManual || blockedByOffer} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
-            {savingManual ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+          <Button variant="gold" onClick={handleManualSave} disabled={blockedByOffer} loading={savingManual} icon={Plus}>
             {savingManual ? 'Salvando…' : 'Salvar rascunho'}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -1624,10 +1622,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
           </p>
           <textarea className="form-input min-h-[150px] font-mono text-[11px] leading-4" value={importJson} onChange={e => setImportJson(e.target.value)} placeholder='[ { "contentType": "educativo", "format": "carrossel", "title": "…", "caption": "…", "cta": "…", "hashtags": ["…"], "scheduled_for": "2026-07-06" } ]' />
           <div className="flex items-center gap-3">
-            <button type="button" onClick={handleImport} disabled={importing || !importJson.trim() || blockedByOffer} className="btn-gold inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50">
-              {importing ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            <Button variant="gold" onClick={handleImport} disabled={!importJson.trim() || blockedByOffer} loading={importing} icon={Download}>
               {importing ? 'Importando…' : 'Importar plano'}
-            </button>
+            </Button>
             {importResult && (
               <span className="text-[11px] text-white/55">
                 {importResult.created} rascunho(s) criado(s){importResult.failed ? `, ${importResult.failed} com erro` : ''}.
@@ -1659,8 +1656,8 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
         size="sm"
         footer={
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setPublishTarget(null)}>Cancelar</button>
-            <button type="button" className="btn-gold" onClick={confirmPublish}>Marcar como publicado</button>
+            <Button variant="ghost" onClick={() => setPublishTarget(null)}>Cancelar</Button>
+            <Button variant="gold" onClick={confirmPublish}>Marcar como publicado</Button>
           </div>
         }
       >
@@ -1676,10 +1673,9 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-2xs text-white/45"><span className="text-white/70">Sugestões da IA ({results.length})</span> — revise, edite a legenda e salve as que quiser. <span className="text-white/40">As não salvas somem ao gerar novas.</span></p>
             {results.some(p => !savedKeys.has(p.key)) && (
-              <button type="button" onClick={handleSaveAll} disabled={savingAll || blockedByOffer} className="btn-gold inline-flex flex-shrink-0 items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
-                {savingAll ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              <Button variant="gold" onClick={handleSaveAll} disabled={blockedByOffer} loading={savingAll} icon={Plus} className="flex-shrink-0 text-xs">
                 {savingAll ? 'Salvando…' : `Salvar todas (${results.filter(p => !savedKeys.has(p.key)).length})`}
-              </button>
+              </Button>
             )}
           </div>
           {results.map(post => {
@@ -1711,10 +1707,10 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
                   <p className="mt-1.5 text-[11px] text-amber-300">⚠ {post.issues.join(' · ')}</p>
                 )}
                 <div className="mt-3">
-                  <button type="button" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || blockedByOffer} className="btn-ghost inline-flex items-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
+                  <Button variant="ghost" onClick={() => handleSave(post)} disabled={saved || savingKey === post.key || blockedByOffer} className="text-xs">
                     {savingKey === post.key ? <Loader2 size={14} className="animate-spin" /> : saved ? <CheckCircle2 size={14} className="text-emerald-300" /> : <Plus size={14} />}
                     {saved ? 'Salvo em rascunhos' : savingKey === post.key ? 'Salvando…' : 'Salvar rascunho'}
-                  </button>
+                  </Button>
                   {autoArtOnApprove && <p className="mt-1.5 text-[10px] text-white/35">A arte é gerada automaticamente ao aprovar — ou clique em “Gerar arte” no card abaixo.</p>}
                 </div>
                   </div>
@@ -1757,10 +1753,10 @@ function ContentProductionSection({ brandProfile = getBrandProfile(), campaigns 
                     <button type="button" onClick={() => setDetailPost(p)} className="line-clamp-2 text-left text-xs font-medium text-white/80 hover:text-white">{p.title || (p.caption || '').slice(0, 60) || 'Sem título'}</button>
                     {stage === 'agendado' && scheduledLabel && <span className="text-[10px] text-gold-200/80">agendado para {scheduledLabel}</span>}
                     <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                      {stage === 'rascunho' && <button type="button" disabled={busy} onClick={() => approve(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Check size={13} />Aprovar</button>}
-                      {(stage === 'aprovado' || stage === 'agendado') && schedulingId !== p.id && <button type="button" disabled={busy} onClick={() => setSchedulingId(p.id)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] disabled:opacity-50"><Clock size={13} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</button>}
+                      {stage === 'rascunho' && <Button variant="ghost" disabled={busy} onClick={() => approve(p)} className="!py-1 text-[11px]"><Check size={13} />Aprovar</Button>}
+                      {(stage === 'aprovado' || stage === 'agendado') && schedulingId !== p.id && <Button variant="ghost" disabled={busy} onClick={() => setSchedulingId(p.id)} className="!py-1 text-[11px]"><Clock size={13} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</Button>}
                       {schedulingId === p.id && <input type="date" autoFocus className="form-input !w-auto !py-1 text-[11px]" defaultValue={p.scheduled_for ? new Date(p.scheduled_for).toISOString().slice(0, 10) : ''} onChange={e => schedule(p, e.target.value)} onBlur={() => setSchedulingId(null)} title="Data da publicação" />}
-                      {(stage === 'aprovado' || stage === 'agendado') && <button type="button" disabled={busy} onClick={() => publish(p)} className="btn-ghost inline-flex items-center gap-1.5 !py-1 text-[11px] text-emerald-200 disabled:opacity-50"><Send size={13} />Publicado</button>}
+                      {(stage === 'aprovado' || stage === 'agendado') && <Button variant="ghost" disabled={busy} onClick={() => publish(p)} className="!py-1 text-[11px] text-emerald-200"><Send size={13} />Publicado</Button>}
                       {stage === 'publicado' && <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><CheckCircle2 size={12} />Publicado</span>}
                       <button type="button" onClick={() => setDetailPost(p)} className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-white/50 hover:text-gold-200" title="Abrir prévia (texto + arte)"><ImageIcon size={13} />Prévia</button>
                     </div>
@@ -2029,9 +2025,9 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
               <div className="mb-2 flex items-center gap-2">
                 <input className="form-input !py-1.5 flex-1 text-xs" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="URL pública da foto (https://…/foto.jpg)" />
                 <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleHeroFile(f) }} />
-                <button type="button" onClick={() => heroInputRef.current?.click()} disabled={uploadingImg} className="btn-ghost inline-flex shrink-0 items-center gap-1.5 !py-1.5 text-xs disabled:opacity-50">
+                <Button variant="ghost" onClick={() => heroInputRef.current?.click()} disabled={uploadingImg} className="shrink-0 !py-1.5 text-xs">
                   {uploadingImg ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}Enviar arquivo
-                </button>
+                </Button>
               </div>
             )}
             {/* Preview: canvas (branded) ou a imagem própria, no enquadramento do formato (feed/story) */}
@@ -2073,21 +2069,21 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {variant === 'propria' ? (
                 <>
-                  <button type="button" onClick={handleSaveArt} disabled={savingArt || !ownFile} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50" title={!ownFile ? 'Envie uma imagem primeiro' : ''}>
+                  <Button variant="gold" onClick={handleSaveArt} disabled={savingArt || !ownFile} className="!py-1.5 text-xs" title={!ownFile ? 'Envie uma imagem primeiro' : ''}>
                     {savingArt ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar como arte
-                  </button>
+                  </Button>
                   {(ownPreview || activeArt) && (
-                    <button type="button" onClick={() => ownInputRef.current?.click()} className="btn-ghost inline-flex items-center gap-1.5 !py-1.5 text-xs"><ImageIcon size={14} />Substituir</button>
+                    <Button variant="ghost" onClick={() => ownInputRef.current?.click()} className="!py-1.5 text-xs"><ImageIcon size={14} />Substituir</Button>
                   )}
                   {ownFile && <button type="button" onClick={handleRemoveOwn} className="text-[11px] text-white/40 hover:text-white/70">descartar envio</button>}
                   {activeArt && !ownFile && <button type="button" onClick={handleRemoveActiveArt} disabled={savingArt} className="text-[11px] text-red-300/80 hover:text-red-200 disabled:opacity-50">remover arte do post</button>}
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={handleSaveArt} disabled={savingArt} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50">
+                  <Button variant="gold" onClick={handleSaveArt} disabled={savingArt} className="!py-1.5 text-xs">
                     {savingArt ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar arte
-                  </button>
-                  <button type="button" onClick={handleDownload} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs"><Download size={14} />Baixar PNG</button>
+                  </Button>
+                  <Button variant="ghost" onClick={handleDownload} className="!py-1.5 text-xs"><Download size={14} />Baixar PNG</Button>
                 </>
               )}
             </div>
@@ -2118,9 +2114,9 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
                 <input className="form-input !py-1.5 text-xs" value={cta} onChange={e => setCta(e.target.value)} placeholder="CTA" />
                 <input className="form-input !py-1.5 text-xs" value={hashtags} onChange={e => setHashtags(e.target.value)} placeholder="#hashtags separadas por espaço" />
               </div>
-              <button type="button" onClick={handleSaveText} disabled={savingText} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50">
+              <Button variant="ghost" onClick={handleSaveText} disabled={savingText} className="!py-1.5 text-xs">
                 {savingText ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}Salvar texto
-              </button>
+              </Button>
               <p className="text-[10px] text-white/30">Editar o texto atualiza a prévia da arte acima. “Salvar arte” regenera a imagem com o texto atual.</p>
             </div>
           </section>
@@ -2131,10 +2127,10 @@ function PostDetailDrawer({ post, brandProfile = getBrandProfile(), stage, stage
         {/* Rodapé: ações do funil */}
         <div className="flex flex-wrap items-center gap-2 border-t border-white/10 px-5 py-3">
           {busy && <Loader2 size={15} className="animate-spin text-gold-300" />}
-          {stage === 'rascunho' && <button type="button" disabled={busy} onClick={() => runFunnel(onApprove)} className="btn-gold inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50"><Check size={14} />Aprovar</button>}
-          {(stage === 'aprovado' || stage === 'agendado') && !scheduling && <button type="button" disabled={busy} onClick={() => setScheduling(true)} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs disabled:opacity-50"><Clock size={14} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</button>}
+          {stage === 'rascunho' && <Button variant="gold" disabled={busy} onClick={() => runFunnel(onApprove)} className="!py-1.5 text-xs"><Check size={14} />Aprovar</Button>}
+          {(stage === 'aprovado' || stage === 'agendado') && !scheduling && <Button variant="ghost" disabled={busy} onClick={() => setScheduling(true)} className="!py-1.5 text-xs"><Clock size={14} />{stage === 'agendado' ? 'Reagendar' : 'Agendar'}</Button>}
           {scheduling && <input type="date" autoFocus className="form-input !w-auto !py-1 text-xs" defaultValue={post?.scheduled_for ? new Date(post.scheduled_for).toISOString().slice(0, 10) : ''} onChange={e => { if (e.target.value) runFunnel(() => onSchedule(e.target.value)) }} onBlur={() => setScheduling(false)} />}
-          {(stage === 'aprovado' || stage === 'agendado') && <button type="button" disabled={busy} onClick={() => runFunnel(onPublish)} className="btn-ghost inline-flex items-center gap-2 !py-1.5 text-xs text-emerald-200 disabled:opacity-50"><Send size={14} />Marcar publicado</button>}
+          {(stage === 'aprovado' || stage === 'agendado') && <Button variant="ghost" disabled={busy} onClick={() => runFunnel(onPublish)} className="!py-1.5 text-xs text-emerald-200"><Send size={14} />Marcar publicado</Button>}
           {stage === 'publicado' && (
             <span className="inline-flex items-center gap-1 text-xs text-emerald-300"><CheckCircle2 size={14} />Publicado</span>
           )}
@@ -2235,9 +2231,7 @@ function EditorialSettingsSection({ brandProfile = getBrandProfile(), settings, 
       {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
 
       <div className="mt-4 flex items-center gap-3">
-        <button type="button" onClick={handleSave} disabled={saving} className="btn-gold inline-flex items-center gap-2 disabled:opacity-50">
-          {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}Salvar configurações
-        </button>
+        <Button variant="gold" onClick={handleSave} loading={saving} icon={Check}>Salvar configurações</Button>
         {savedAt && <span className="inline-flex items-center gap-1 text-[11px] text-emerald-300"><CheckCircle2 size={13} />Salvo</span>}
       </div>
     </div>
@@ -2774,9 +2768,7 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
       )}
 
       <div className="mt-3">
-        <button type="button" onClick={handleImport} disabled={importing || !metaCampaignId.trim()} className="btn-ghost inline-flex items-center gap-2 text-sm disabled:opacity-50">
-          {importing ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}Importar config
-        </button>
+        <Button variant="ghost" onClick={handleImport} disabled={!metaCampaignId.trim()} loading={importing} icon={Download} className="text-sm">Importar config</Button>
       </div>
 
       {error && <p className="mt-3 text-xs text-red-300">{error.message || String(error)}</p>}
@@ -2792,9 +2784,7 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
           <div className="mt-3 flex flex-wrap items-end gap-2">
             <label className="block"><span className="form-label">Nome do preset</span>
               <input className="form-input !w-72" value={presetName} onChange={e => setPresetName(e.target.value)} /></label>
-            <button type="button" onClick={handleSave} disabled={saving} className="btn-gold inline-flex items-center gap-2 disabled:opacity-50">
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}Salvar preset
-            </button>
+            <Button variant="gold" onClick={handleSave} loading={saving} icon={Check}>Salvar preset</Button>
           </div>
         </div>
       )}
@@ -3107,10 +3097,7 @@ function PublicationsSection({ posts, publications, assets, saving, onCreatePubl
           <Field label="Publicado em" labelClass="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
             <input type="datetime-local" value={form.published_at} onChange={event => update('published_at', event.target.value)} className="form-input" />
           </Field>
-          <button type="submit" disabled={saving} className="btn-gold flex w-full items-center justify-center gap-2 disabled:cursor-wait disabled:opacity-60">
-            {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-            Mapear publicação
-          </button>
+          <Button type="submit" variant="gold" loading={saving} icon={Plus} className="w-full">Mapear publicação</Button>
         </div>
       </form>
 
