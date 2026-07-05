@@ -35,8 +35,8 @@ export default function Tabs({ items = [], value, onChange, ariaLabel, className
             aria-controls={`panel-${it.id}`}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange?.(it.id)}
-            className={`-mb-px inline-flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium transition ${
-              active ? 'border-gold-500 text-white' : 'border-transparent text-white/50 hover:text-white/80'
+            className={`-mb-px inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-t-md border-b-2 px-4 py-3 text-sm font-medium transition duration-200 ${
+              active ? 'border-gold-500 bg-gold-500/[0.06] text-gold-300' : 'border-transparent text-white/52 hover:border-white/20 hover:text-white/90'
             }`}
           >
             {Icon && <Icon size={15} aria-hidden="true" />}

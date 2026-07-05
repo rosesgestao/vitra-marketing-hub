@@ -79,7 +79,7 @@ import { PublishMetaPanel } from '../components/PublishMetaPanel.jsx'
 import { NewCampaignModal } from '../components/NewCampaignModal.jsx'
 import { Field } from '../components/Field.jsx'
 import { errorMessage } from '../lib/errorMessage.js'
-import { Modal, Input, ConfirmModal, StatTile, Button } from '../components/ui/index.js'
+import { Modal, Input, ConfirmModal, StatTile, Button, Tabs } from '../components/ui/index.js'
 import { BRAND_SCOPES, getBrandProfile } from '../lib/brandProfiles.js'
 import { peekTrafegoIntent, clearTrafegoIntent, TRAFEGO_INTENT_EVENT } from '../lib/copilotIntent.js'
 import { humanizeLintList } from '../lib/lintText.js'
@@ -743,21 +743,13 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             opera em visao de MARCA (brand-wide). O vinculo com oferta virou CONTEXTUAL, dentro do card de
             "Novo conteúdo" (por post). Oferta/campanha e nativo do Tráfego Pago. */}
         {!isPaidTrafficMode && (
-          <div className="mb-6 flex gap-1 overflow-x-auto border-b border-white/10">
-            {TABS.map(({ id, label, icon: Icon }) => {
-              const active = activeTab === id
-              return (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`inline-flex items-center gap-2 whitespace-nowrap rounded-t-md border-b-2 px-4 py-3 text-sm font-medium transition duration-200 ${active ? 'border-gold-500 bg-gold-500/[0.06] text-gold-300' : 'border-transparent text-white/52 hover:border-white/20 hover:text-white/90'}`}
-                >
-                  <Icon size={15} />
-                  {label}
-                </button>
-              )
-            })}
-          </div>
+          <Tabs
+            className="mb-6"
+            ariaLabel="Seções de conteúdo"
+            value={activeTab}
+            onChange={setActiveTab}
+            items={TABS}
+          />
         )}
 
         {loading && (
