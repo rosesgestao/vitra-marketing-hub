@@ -702,27 +702,14 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-white/45">
-              <Database size={13} className="text-gold-400" />
-              <span>{supabaseConfig.projectRef}</span>
-              <span className="h-1 w-1 rounded-full bg-white/20" />
-              <span>{supabaseConfig.url}</span>
+          {/* Faixa de dev (projectRef/URL/"Supabase configurado") removida — ruido para o usuario final.
+              Mantemos apenas o ALERTA quando ha misconfig real (sem chave publica -> dados nao carregam). */}
+          {!supabaseConfig.hasPublicKey && (
+            <div className="flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-red-200">
+              <AlertTriangle size={13} className="flex-shrink-0 text-red-300" />
+              Chave pública do Supabase ausente — configure para carregar os dados.
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/45">
-              {supabaseConfig.hasPublicKey ? (
-                <>
-                  <CheckCircle2 size={13} className="text-emerald-300" />
-                  Supabase configurado
-                </>
-              ) : (
-                <>
-                  <AlertTriangle size={13} className="text-red-300" />
-                  Chave pública ausente
-                </>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -946,6 +933,14 @@ function PaidTrafficWorkspace({
       />
 
       {selectedCampaign && (
+        <CampaignProgressSpine
+          campaign={selectedCampaign}
+          assets={scopedAssets}
+          publications={selectedPublications}
+        />
+      )}
+
+      {selectedCampaign && (
         <AutomationWorkflowPanel
           campaign={selectedCampaign}
           assets={assets}
@@ -976,7 +971,7 @@ function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaign
         <div>
           <div className="mb-2 flex items-center gap-2">
             <Megaphone size={15} className="text-gold-400" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Campanha de mídia ativa</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Passo 1 · Campanha</p>
           </div>
           <p className="text-sm leading-6 text-white/52">
             Escolha a campanha para gerar cortes, revisar QA e exportar o pacote de anúncios. A aba de tráfego fica isolada para {brandProfile.name}.
@@ -1156,6 +1151,44 @@ function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedC
   )
 }
 
+// Espinha de progresso da campanha selecionada (orientacao "onde estou / o que falta"). 4 fases derivadas
+// de dado real. Cor + texto (nao so cor) e aria-current no passo atual. Rola horizontal no mobile.
+function CampaignProgressSpine({ campaign, assets = [], publications = [] }) {
+  const generated = assets.filter(a => a.public_url && ['generated', 'approved'].includes(a.status)).length
+  const approved = assets.filter(a => a.status === 'approved').length
+  const published = Boolean(campaign?.meta_campaign_id) || publications.some(p => p.publication_type === 'paid' || p.meta_ad_id)
+  const phases = [
+    { key: 'campanha', label: 'Campanha', done: true, hint: 'selecionada' },
+    { key: 'criativos', label: 'Criativos', done: generated > 0, hint: generated ? `${generated} gerado(s)` : 'gerar cortes' },
+    { key: 'aprovacao', label: 'Aprovação', done: approved > 0, hint: approved ? `${approved} aprovado(s)` : 'aprovar cortes' },
+    { key: 'publicacao', label: 'Publicação', done: published, hint: published ? 'no Meta' : 'revisar e publicar' },
+  ]
+  const currentIdx = phases.findIndex(p => !p.done)
+  return (
+    <nav aria-label="Progresso da campanha" className="rounded-xl border border-white/10 bg-[color:var(--surface-1)] px-4 py-3.5">
+      <ol className="flex items-center gap-1 overflow-x-auto">
+        {phases.map((p, i) => {
+          const state = p.done ? 'done' : i === currentIdx ? 'current' : 'todo'
+          return (
+            <li key={p.key} className="flex flex-1 items-center gap-2" aria-current={state === 'current' ? 'step' : undefined}>
+              <span className="flex min-w-[112px] items-center gap-2">
+                {p.done
+                  ? <CheckCircle2 size={22} className="flex-shrink-0 text-gold-300" aria-hidden="true" />
+                  : <span className={`grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-full border text-2xs font-semibold ${state === 'current' ? 'border-gold-400/60 bg-gold-500/10 text-gold-100' : 'border-white/15 bg-white/[0.03] text-white/40'}`}>{i + 1}</span>}
+                <span className="min-w-0">
+                  <span className={`block text-sm font-medium leading-tight ${state === 'todo' ? 'text-white/45' : 'text-white'}`}>{p.label}</span>
+                  <span className="block truncate text-2xs text-white/40">{p.hint}</span>
+                </span>
+              </span>
+              {i < phases.length - 1 && <span className="mx-1 hidden h-px flex-1 bg-white/10 sm:block" aria-hidden="true" />}
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
+
 function AutomationWorkflowPanel({ campaign, assets, publications }) {
   const source = campaign.brief?.source_intake || {}
   const steps = buildAutomationSteps(campaign, assets, publications)
@@ -1163,22 +1196,22 @@ function AutomationWorkflowPanel({ campaign, assets, publications }) {
   const nextStep = steps.find(step => !step.done)
 
   return (
-    <div className="mb-6 rounded-lg border border-gold-500/20 bg-black/20 p-4">
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <Wand2 size={15} className="text-gold-400" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Esteira de automacao</p>
-          </div>
-          <p className="max-w-2xl text-sm leading-6 text-white/58">
-            Fluxo pensado para receber fonte, montar brief, gerar cortes Meta Ads, checar prontidao e exportar pacote sem execucao manual de peca por peca.
-          </p>
-        </div>
-        <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-white/55">
-          <span className="text-white/35">Progresso</span>
-          <span className="ml-2 font-semibold text-gold-200">{doneCount}/{steps.length}</span>
-        </div>
-      </div>
+    <details className="group mb-6 rounded-lg border border-white/10 bg-black/20 p-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+        <span className="flex items-center gap-2">
+          <Wand2 size={15} className="text-gold-400" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Sobre a automação</span>
+          <span className="text-2xs text-white/40">fonte, brief e destino</span>
+        </span>
+        <span className="flex items-center gap-2 text-xs text-white/55">
+          <span className="rounded-md border border-white/10 bg-white/[0.035] px-2 py-1"><span className="text-white/35">Progresso</span> <span className="font-semibold text-gold-200">{doneCount}/{steps.length}</span></span>
+          <ChevronRight size={15} className="text-gold-300/70 transition-transform duration-200 group-open:rotate-90" aria-hidden="true" />
+        </span>
+      </summary>
+
+      <p className="mb-4 mt-3 max-w-2xl text-sm leading-6 text-white/58">
+        Fluxo pensado para receber fonte, montar brief, gerar cortes Meta Ads, checar prontidao e exportar pacote sem execucao manual de peca por peca.
+      </p>
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <BriefItem label="Fonte principal" value={source.url ? sourceTypeLabel(source.type) : 'Brief/upload manual'} />
@@ -1220,7 +1253,7 @@ function AutomationWorkflowPanel({ campaign, assets, publications }) {
           )
         })}
       </div>
-    </div>
+    </details>
   )
 }
 
@@ -2720,12 +2753,16 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
   const bpSummary = bp => bp ? `${bp.objective} · ${bp.optimization_goal} · CBO R$${((bp.daily_budget_cents || 0) / 100).toFixed(0)}/dia · ${bp.age_min}-${bp.age_max} · ${(bp.adsets || []).map(a => a.geo === 'radius' ? `regional ${a.radius_km}km` : 'cidade').join(' + ')} · form: ${bp.lead_form_quality === 'maior_intencao' ? 'maior intenção (SMS)' : 'mais volume'}` : ''
 
   return (
-    <div className="rounded-xl border border-gold-500/20 bg-[color:var(--surface-1)] p-4">
-      <div className="mb-3 flex items-center gap-2.5">
-        <Target size={15} className="text-gold-400" />
-        <p className="text-sm font-semibold text-white">Presets de campanha — clonar a vencedora</p>
-      </div>
-      <p className="mb-3 max-w-2xl text-xs leading-5 text-white/50">
+    <details className="group rounded-xl border border-gold-500/20 bg-[color:var(--surface-1)] p-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2.5">
+        <span className="flex items-center gap-2.5">
+          <Target size={15} className="text-gold-400" />
+          <span className="text-sm font-semibold text-white">Passo 3 (opcional) · Presets de campanha</span>
+          <span className="hidden text-2xs text-white/40 sm:inline">acelera novas campanhas semelhantes</span>
+        </span>
+        <ChevronRight size={15} className="flex-shrink-0 text-gold-300/70 transition-transform duration-200 group-open:rotate-90" aria-hidden="true" />
+      </summary>
+      <p className="mb-3 mt-3 max-w-2xl text-xs leading-5 text-white/50">
         Escolha uma <span className="text-white/75">campanha de referência</span> da conta (lista da Meta, sem digitar ID) e salve como <span className="text-white/75">preset</span> — objetivo, otimização, orçamento, faixa etária e os 2 conjuntos por geografia (regional por raio + cidade) viram padrão para novas campanhas semelhantes.
       </p>
 
@@ -2821,7 +2858,7 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
         confirmLabel="Excluir preset"
         description={deletePresetTarget ? `Excluir o preset "${deletePresetTarget.name}"? Ele deixa de aparecer ao montar novas campanhas.` : ''}
       />
-    </div>
+    </details>
   )
 }
 
@@ -2853,7 +2890,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderP
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-white">Tráfego Pago · Meta Ads</h2>
+          <h2 className="font-display text-2xl font-semibold text-white">Passo 2 · Criativos e anúncios</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-white/50">
             Cada anúncio sai nos 3 cortes que o Gerenciador pede — <span className="text-white/70">Quadrado 1:1 (feed)</span>, <span className="text-white/70">Vertical 9:16 (stories/reels)</span> e <span className="text-white/70">Horizontal 1,91:1 (recomendado)</span> — prontos para o passo de corte de mídia.
           </p>
@@ -2918,10 +2955,8 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderP
         <StatTile label="QA final" value={`${readyAds}/${ads.length}`} sub="anuncios exportaveis" icon={Target} tone="#C4942A" />
       </div>
 
-      <MetaPresetsPanel brandProfile={brandProfile} onApply={setPresetSeed} />
-
-      <PublishMetaPanel campaign={campaign} brandProfile={brandProfile} ads={ads} seed={presetSeed} />
-
+      {/* Os cards dos anúncios (o que o usuário revisa) vêm ANTES de Presets/Publicar — antes ficavam depois
+          do "Revisar e publicar", invertendo a leitura. Ordem agora: criativos -> presets (ref) -> publicar. */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {ads.map(ad => (
           <MetaAdCard
@@ -2934,6 +2969,10 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderP
           />
         ))}
       </div>
+
+      <MetaPresetsPanel brandProfile={brandProfile} onApply={setPresetSeed} />
+
+      <PublishMetaPanel campaign={campaign} brandProfile={brandProfile} ads={ads} seed={presetSeed} />
     </div>
   )
 }
