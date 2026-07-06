@@ -2206,8 +2206,10 @@ function withTimeout(promise, ms, message) {
 export async function deleteCampaign(campaignId) {
   // .select('id') devolve as linhas efetivamente removidas. Sem policy de DELETE (RLS), o delete
   // apaga 0 linhas SEM erro — antes a UI achava que excluiu. Agora, 0 linhas -> erro acionavel.
+  // PREMIUM_TABLES e um ARRAY de {name,...} — PREMIUM_TABLES.campaigns era undefined e fazia
+  // from(undefined) lancar "Invalid relation name". Usa o literal, como loadPremiumWorkspace.
   const { data, error } = await supabase
-    .from(PREMIUM_TABLES.campaigns)
+    .from('premium_campaigns')
     .delete()
     .eq('id', campaignId)
     .select('id')
