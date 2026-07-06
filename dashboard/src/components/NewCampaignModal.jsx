@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { AlertTriangle, Check, ChevronDown, Loader2, Plus, Upload } from 'lucide-react'
-import { Modal } from './ui/index.js'
+import { Modal, ConfirmModal } from './ui/index.js'
 import { Field } from './Field.jsx'
 import { BrandHorizontalLogo } from './PremiumBrand.jsx'
 import { errorMessage } from '../lib/errorMessage.js'
@@ -165,6 +165,7 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
   // Wizard de 3 passos (P0 UX: o modal-monolito de 7 secoes vira Template -> Dados & copy -> Imagens).
   const [step, setStep] = useState(1)
   const [dirty, setDirty] = useState(false) // p/ confirmar descarte ao fechar (nao perder copy IA)
+  const [confirmDiscard, setConfirmDiscard] = useState(false) // ConfirmModal acessivel (troca o window.confirm)
   const STEP_LABELS = ['Template', 'Dados & copy', 'Imagens & revisão']
   // Degrau B: sugestao de template por IA (a IA recomenda; o operador confirma).
   const [suggest, setSuggest] = useState({ loading: false, error: null, result: null })
@@ -581,12 +582,14 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
   const sectionTitleClass = 'border-b border-white/10 pb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400'
 
   // Fechar com confirmacao quando ha edicao/copy IA: o <Modal> fecha por Esc/scrim; sem isto = perda acidental.
+  // Usa ConfirmModal (acessivel) em vez de window.confirm — consistente com o resto do produto.
   function handleClose() {
-    if (dirty && !window.confirm('Descartar esta campanha? Os dados preenchidos e a copy gerada por IA serao perdidos.')) return
+    if (dirty) { setConfirmDiscard(true); return }
     onClose()
   }
 
   return (
+    <>
     <Modal
       open
       onClose={handleClose}
@@ -657,42 +660,6 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
         </div>
 
         <div className={step === 1 ? 'space-y-7' : 'hidden'}>
-            <section className="space-y-4">
-              <p className={sectionTitleClass}>Variacoes do criativo</p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Variacoes por template aprovado" labelClass={labelClass}>
-                  <BrandedSelect
-                    value={form.creative_variations}
-                    onChange={value => update('creative_variations', Number(value))}
-                    options={CREATIVE_VARIATION_OPTIONS}
-                  />
-                  <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
-                    Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
-                  </span>
-                  {(() => {
-                    const cap = distinctConceptCapacity(form, brandProfile)
-                    const ads = Math.min(Number(form.creative_variations) || 0, cap)
-                    const overflow = Number(form.creative_variations) > cap
-                    return (
-                      <>
-                        <span className="mt-1.5 block text-[11px] font-semibold leading-4 text-gold-300/90">
-                          Serao gerados {ads} anuncios &times; 3 formatos = {ads * 3} cortes (1:1, 9:16 e 1.91:1).
-                        </span>
-                        {overflow && (
-                          <span className="mt-1 block text-[11px] leading-4 text-amber-300/80">
-                            Este template tem {cap} angulos distintos — acima disso a copy se repetiria, entao o total foi limitado a {cap}.
-                          </span>
-                        )}
-                      </>
-                    )
-                  })()}
-                </Field>
-              </div>
-              <p className="text-xs leading-5 text-white/42">
-                A ferramenta usa as fotos enviadas como materia-prima, gera as variacoes e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
-              </p>
-            </section>
-
             <section className="space-y-4">
               <div className="flex flex-col gap-2 border-b border-white/10 pb-3 sm:flex-row sm:items-end sm:justify-between">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold-400">Catalogo de Templates</p>
@@ -1030,6 +997,43 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                 })()}
               </section>
             )}
+
+            {/* Quantidade de criativos: config (nao e a decisao-heroi do passo) -> fica ABAIXO do catalogo. */}
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Quantidade de criativos</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Quantas variações por template" labelClass={labelClass}>
+                  <BrandedSelect
+                    value={form.creative_variations}
+                    onChange={value => update('creative_variations', Number(value))}
+                    options={CREATIVE_VARIATION_OPTIONS}
+                  />
+                  <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
+                    Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
+                  </span>
+                  {(() => {
+                    const cap = distinctConceptCapacity(form, brandProfile)
+                    const ads = Math.min(Number(form.creative_variations) || 0, cap)
+                    const overflow = Number(form.creative_variations) > cap
+                    return (
+                      <>
+                        <span className="mt-1.5 block text-[11px] font-semibold leading-4 text-gold-300/90">
+                          Serao gerados {ads} anuncios &times; 3 formatos = {ads * 3} cortes (1:1, 9:16 e 1.91:1).
+                        </span>
+                        {overflow && (
+                          <span className="mt-1 block text-[11px] leading-4 text-amber-300/80">
+                            Este template tem {cap} angulos distintos — acima disso a copy se repetiria, entao o total foi limitado a {cap}.
+                          </span>
+                        )}
+                      </>
+                    )
+                  })()}
+                </Field>
+              </div>
+              <p className="text-xs leading-5 text-white/42">
+                A ferramenta usa as fotos enviadas como materia-prima, gera as variacoes e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
+              </p>
+            </section>
         </div>
 
         <div className={step === 2 ? 'space-y-7' : 'hidden'}>
@@ -1310,9 +1314,65 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                 })}
               </div>
             </section>
+
+            {/* Revisão: resumo do que sera criado + pendencias, ANTES do "Criar Campanha". Le do form
+                (sem novo dado). Deixa o passo "Imagens & revisão" honesto e evita criar algo incompleto. */}
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Revisão</p>
+              {(() => {
+                const cap = distinctConceptCapacity(form, brandProfile)
+                const ads = Math.min(Number(form.creative_variations) || 0, cap)
+                const missingReqFields = selectedFieldGroups
+                  .flatMap(g => g.fields || [])
+                  .filter(f => f.required && !String(form[formKeyForTemplateField(f)] || '').trim())
+                const reqImages = selectedImageSlots.filter(s => s.required)
+                const missingReqImages = reqImages.filter(s => imageSlotCount(s) === 0)
+                const pend = [...missingReqFields.map(f => f.label), ...missingReqImages.map(s => s.label)]
+                const rows = [
+                  ['Template', selectedTemplate ? `${selectedTemplate.name}${selectedTemplateVariant?.label ? ` · ${selectedTemplateVariant.label}` : ''}` : '—'],
+                  ['Criativos', `${ads} variações · ${ads * 3} cortes`],
+                  ['Produto', form.product_name?.trim() || '— (obrigatório)'],
+                  ['Preço', form.price?.trim() || '—'],
+                  ['Copy IA', aiApplied ? `✓ ${form.ai_copy_angles.length} ângulo(s) aplicado(s)` : 'não aplicada'],
+                  ['Imagens', reqImages.length ? `${reqImages.length - missingReqImages.length}/${reqImages.length} obrigatórias` : 'sem obrigatórias'],
+                  ['Objetivo', 'Leads — definido na publicação (Meta)'],
+                ]
+                return (
+                  <div className="overflow-hidden rounded-xl border border-white/10 bg-black/24">
+                    <dl className="divide-y divide-white/[0.06]">
+                      {rows.map(([k, v]) => (
+                        <div key={k} className="flex items-start justify-between gap-4 px-4 py-2.5">
+                          <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">{k}</dt>
+                          <dd className="text-right text-sm text-white/85">{v}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    {pend.length > 0 && (
+                      <div className="flex items-start gap-2 border-t border-amber-400/20 bg-amber-500/[0.06] px-4 py-3 text-xs text-amber-200" role="status">
+                        <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-300" aria-hidden="true" />
+                        <span>Pendências antes de criar: {pend.join(', ')}.</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+              <p className="text-xs leading-5 text-white/42">
+                Ao criar, a campanha entra como rascunho e a geração dos criativos inicia em segundo plano. Nada é publicado nem gasta verba aqui — a subida para a Meta é um passo separado, com a sua confirmação.
+              </p>
+            </section>
         </div>
       </form>
     </Modal>
+
+    <ConfirmModal
+      open={confirmDiscard}
+      onClose={() => setConfirmDiscard(false)}
+      onConfirm={() => { setConfirmDiscard(false); onClose() }}
+      title="Descartar campanha?"
+      confirmLabel="Descartar"
+      description="Os dados preenchidos e a copy gerada por IA serão perdidos."
+    />
+    </>
   )
 }
 
