@@ -33,22 +33,19 @@ describe('catalogo de templates por marca', () => {
 })
 
 describe('templates selecionaveis no modal (aposentados ocultos)', () => {
-  it('Imobiliaria oferece os 7 templates aprovados na selecao, nesta ordem', () => {
+  it('Imobiliaria oferece os 3 templates aprovados na selecao, nesta ordem', () => {
     const selectable = selectableCreativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
     expect(selectable.map(t => t.id)).toEqual([
       'vitra-imobiliaria-hero-checklist',
       'vitra-imobiliaria-duo-selos-offer',
-      'vitra-imobiliaria-vitrine-gallery',
-      'vitra-imobiliaria-ficha-imovel',
-      'vitra-imobiliaria-oferta-ancora',
-      'vitra-imobiliaria-destino-bairro',
       'vitra-imobiliaria-checklist-rail', // template 14 (julho/2026) — split checklist + trilho de fotos
     ])
   })
-  it('os 7 templates aposentados seguem no catalogo (resolvem) mas marcados como hidden', () => {
+  it('os 11 templates aposentados seguem no catalogo (resolvem) mas marcados como hidden', () => {
     const all = creativeTemplatesForBrand(BRAND_SCOPES.imobiliaria)
     const hidden = all.filter(t => t.hidden).map(t => t.id)
-    expect(hidden).toEqual([
+    // Guard = QUAIS ids estao ocultos (ordem-independente: sort dos dois lados).
+    expect([...hidden].sort()).toEqual([
       // 4 antigos (junho/2026)
       'vitra-imobiliaria-dual-photo-offer',
       'vitra-imobiliaria-patios-gallery',
@@ -58,7 +55,12 @@ describe('templates selecionaveis no modal (aposentados ocultos)', () => {
       'vitra-imobiliaria-hero-panel-gallery',
       'vitra-imobiliaria-lancamento',
       'vitra-imobiliaria-oportunidade-bairro',
-    ])
+      // 4 removidos por nao aprovados (julho/2026)
+      'vitra-imobiliaria-vitrine-gallery',
+      'vitra-imobiliaria-ficha-imovel',
+      'vitra-imobiliaria-oferta-ancora',
+      'vitra-imobiliaria-destino-bairro',
+    ].sort())
     // ainda resolvem por id (campanhas/assets ja criados continuam funcionando, sem orfas)
     expect(getCreativeTemplateById(BRAND_SCOPES.imobiliaria, 'vitra-imobiliaria-patios-gallery').id)
       .toBe('vitra-imobiliaria-patios-gallery')

@@ -782,6 +782,9 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-vitrine-gallery',
       family: 'vitra-imobiliaria-vitrine-gallery',
       mode: 'single_family',
+      // Removido da selecao do modal Nova Campanha (nao aprovado). Continua no catalogo para que
+      // campanhas/assets ja criados com esta family resolvam e renderizem (sem referencias orfas).
+      hidden: true,
       name: 'Vitrine alto padrão',
       shortName: 'Vitrine (painel + galeria)',
       bestFor: 'Oferta de alto padrão com painel navy diagonal (headline + De/Por + checklist de selos + CTA) e galeria de 3 fotos do empreendimento à direita. Densa e moderna, para mostrar produto + diferenciais + preço de uma vez.',
@@ -840,6 +843,9 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-ficha-imovel',
       family: 'vitra-imobiliaria-ficha-imovel',
       mode: 'single_family',
+      // Removido da selecao do modal Nova Campanha (nao aprovado). Continua no catalogo para resolver
+      // campanhas/assets ja criados com esta family.
+      hidden: true,
       name: 'Ficha do imóvel',
       shortName: 'Ficha (cards + galeria)',
       bestFor: 'Ficha objetiva: fundo navy + tipo do imóvel/localização + cards de atributo com ícones (suítes, vagas, piscina, m²) + card de preço dourado + galeria de 3 fotos + rodapé de contato. Forte para resumo de produto e prova visual.',
@@ -866,6 +872,9 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-oferta-ancora',
       family: 'vitra-imobiliaria-oferta-ancora',
       mode: 'single_family',
+      // Removido da selecao do modal Nova Campanha (nao aprovado). Continua no catalogo para resolver
+      // campanhas/assets ja criados com esta family.
+      hidden: true,
       name: 'Oferta com preço-âncora',
       shortName: 'Oferta âncora (De/Por destaque)',
       bestFor: 'Oferta de preço com foto única do imóvel: foto + véu navy, logo VITRA no topo, headline forte, barra branca de características, "De" riscado e "Por" num box dourado em destaque, rodapé de localização. Forte para anúncio de oportunidade/desconto com o valor como protagonista.',
@@ -891,6 +900,9 @@ export const CREATIVE_TEMPLATE_CATALOG = {
       id: 'vitra-imobiliaria-destino-bairro',
       family: 'vitra-imobiliaria-destino-bairro',
       mode: 'single_family',
+      // Removido da selecao do modal Nova Campanha (nao aprovado). Continua no catalogo para resolver
+      // campanhas/assets ja criados com esta family.
+      hidden: true,
       name: 'Bairro em destaque (pôster)',
       shortName: 'Destino/bairro (pôster + condições)',
       bestFor: 'Pôster de localização: o nome do BAIRRO/região vira o herói gigante, com subtítulo de lifestyle, painel de condições do imóvel (financiamento/oferta) em duas colunas, botão-pílula e foto na base. Forte para vender a REGIÃO como destino e empurrar a condição comercial.',

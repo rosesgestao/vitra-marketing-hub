@@ -47,7 +47,7 @@ describe('templateSchemas — contrato formal por template', () => {
   // no catálogo REAL precisa ter schema. Impede que um selecionável novo entre sem contrato/zonas.
   it('todo template selecionável da Imobiliária tem schema (guard catálogo↔schema)', () => {
     const selectable = selectableCreativeTemplatesForBrand('vitra_imobiliaria')
-    expect(selectable.length).toBeGreaterThanOrEqual(6)
+    expect(selectable.length).toBeGreaterThanOrEqual(3)
     for (const t of selectable) {
       expect(schemaFor(t.family), `selecionável sem schema: ${t.family}`).toBeTruthy()
     }
@@ -60,7 +60,7 @@ describe('templateSchemas — contrato formal por template', () => {
     expect(s.fields.footnote.charLimit).toBe(52)
   })
 
-  it('as 6 selecionáveis declaram minLogoGap (regra logo↔headline v3)', () => {
+  it('as 6 famílias com schema declaram minLogoGap (regra logo↔headline v3)', () => {
     for (const fam of ['vitra-imobiliaria-oferta-ancora', 'vitra-imobiliaria-hero-checklist',
       'vitra-imobiliaria-duo-selos-offer', 'vitra-imobiliaria-vitrine-gallery',
       'vitra-imobiliaria-ficha-imovel', 'vitra-imobiliaria-destino-bairro']) {
