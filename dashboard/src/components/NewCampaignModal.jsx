@@ -107,6 +107,35 @@ function initialFormForBrand(brandProfile) {
   }
 }
 
+// Prévia do template no catálogo: mostra o criativo COMPLETO (object-contain, sem corte) num frame de
+// proporção padronizada. Estados: skeleton enquanto carrega, imagem ao carregar, fallback (logo) quando
+// não há prévia ou a imagem falha (onError). Alt descritivo + lazy para performance.
+function TemplatePreview({ src, name, brandScope }) {
+  const [status, setStatus] = useState(src ? 'loading' : 'empty')
+  useEffect(() => { setStatus(src ? 'loading' : 'empty') }, [src])
+
+  if (status === 'empty' || status === 'error') {
+    return (
+      <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
+        <BrandHorizontalLogo brandScope={brandScope} className="scale-90 opacity-55" />
+      </div>
+    )
+  }
+  return (
+    <>
+      {status === 'loading' && <div className="absolute inset-2.5 animate-pulse rounded-md bg-white/[0.05]" aria-hidden="true" />}
+      <img
+        src={src}
+        alt={`Prévia do template ${name}`}
+        loading="lazy"
+        onLoad={() => setStatus('ok')}
+        onError={() => setStatus('error')}
+        className={`h-full w-full rounded-md object-contain transition-opacity duration-200 ${status === 'ok' ? 'opacity-100' : 'opacity-0'}`}
+      />
+    </>
+  )
+}
+
 export function NewCampaignModal({ brandProfile, prefill, saving, submitError, onClose, onSubmit }) {
   // Prefill do Copiloto (imóvel ditado, ainda não cadastrado). Capturado UMA vez (ref estável) para não
   // re-aplicar a cada render nem sobrescrever edições do operador.
@@ -670,7 +699,10 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                 <span className="text-[10px] font-semibold uppercase tracking-[0.20em] text-white/35">{brandProfile.name}</span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
+              {/* Cards verticais (imagem-herói): preview COMPLETO (object-contain) num frame padronizado
+                  aspect-[4/3] com respiro e bg neutro — antes era object-cover numa caixa 118px que cortava
+                  o criativo. Skeleton + fallback + a11y (aria-pressed, selo com ícone+texto). */}
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {templateOptions.map(template => {
                   const selected = selectedTemplate?.id === template.id
                   return (
@@ -678,48 +710,41 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                       key={template.id}
                       type="button"
                       onClick={() => selectTemplate(template)}
-                      className={`group overflow-hidden rounded-lg border text-left transition ${
+                      aria-pressed={selected}
+                      aria-label={`Template ${template.name}${selected ? ' (selecionado)' : ''}`}
+                      className={`group flex flex-col overflow-hidden rounded-xl border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${
                         selected
-                          ? 'border-gold-500/70 bg-gold-500/12 shadow-[0_0_0_1px_rgba(196,148,42,0.18)]'
-                          : 'border-white/10 bg-black/24 hover:border-gold-500/35 hover:bg-gold-500/6'
+                          ? 'border-gold-500/70 bg-gold-500/[0.10] shadow-[0_0_0_1px_rgba(196,148,42,0.25)]'
+                          : 'border-white/10 bg-black/24 hover:border-gold-500/40 hover:bg-gold-500/[0.05]'
                       }`}
                     >
-                      <div className="grid grid-cols-[118px_1fr] gap-0">
-                        <div className="flex h-full min-h-[118px] items-center justify-center border-r border-white/10 bg-[color:var(--surface-0)]">
-                          {template.preview ? (
-                            <img
-                              src={template.preview}
-                              alt=""
-                              className="h-full w-full object-cover opacity-90 transition group-hover:opacity-100"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center px-4">
-                              <BrandHorizontalLogo brandScope={brandProfile.scope} className="scale-90" />
-                            </div>
+                      <div className="relative aspect-[4/3] w-full bg-[color:var(--surface-0)] p-2.5">
+                        <TemplatePreview src={template.preview} name={template.name} brandScope={brandProfile.scope} />
+                        {selected && (
+                          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-gold-500 px-2 py-0.5 text-3xs font-bold uppercase tracking-[0.1em] text-[color:var(--surface-0)] shadow">
+                            <Check size={11} aria-hidden="true" />Selecionado
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col gap-2 border-t border-white/10 p-3.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-white">{template.name}</p>
+                            <p className="mt-0.5 text-3xs font-semibold uppercase tracking-[0.16em] text-gold-400/85">{template.shortName}</p>
+                          </div>
+                          {!selected && (
+                            <span className="mt-0.5 shrink-0 rounded-full border border-white/12 px-2 py-0.5 text-3xs font-semibold uppercase tracking-[0.12em] text-white/40 transition group-hover:border-gold-500/40 group-hover:text-gold-200/80">
+                              Escolher
+                            </span>
                           )}
                         </div>
-                        <div className="flex min-h-[118px] flex-col justify-between p-4">
-                          <div>
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-semibold text-white">{template.name}</p>
-                                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-400/85">{template.shortName}</p>
-                              </div>
-                              <span className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                                selected ? 'border-gold-500/50 text-gold-200' : 'border-white/10 text-white/35'
-                              }`}>
-                                {selected ? 'Selecionado' : 'Escolher'}
-                              </span>
-                            </div>
-                            <p className="mt-3 line-clamp-2 text-xs leading-5 text-white/48">{template.bestFor}</p>
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {template.formats.map(format => (
-                              <span key={format} className="rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-white/45">
-                                {format}
-                              </span>
-                            ))}
-                          </div>
+                        <p className="line-clamp-2 text-xs leading-5 text-white/50">{template.bestFor}</p>
+                        <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
+                          {template.formats.map(format => (
+                            <span key={format} className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-3xs font-semibold text-white/45">
+                              {format}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </button>
