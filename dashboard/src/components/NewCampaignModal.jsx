@@ -91,6 +91,12 @@ const CREATIVE_VARIATION_OPTIONS = [
   { value: 12, label: '12 variacoes por template - 36 cortes' },
 ]
 
+// Texto de apoio das variantes de moldura — para nao-tecnicos entenderem o efeito de cada opcao.
+const VARIANT_HINT = {
+  'sem-moldura': 'Visual limpo, sem contorno externo',
+  'com-moldura': 'Contorno dourado de destaque',
+}
+
 function initialFormForBrand(brandProfile) {
   const defaultTemplate = defaultCreativeTemplateForBrand(brandProfile.scope)
   const defaultVariant = defaultTemplate?.variants?.find(variant => variant.id === defaultTemplate.defaultVariant) ||
@@ -173,6 +179,7 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
   // para o operador ver que a copy foi gerada. O ref-flag dispara o scroll so apos a copy renderizar.
   const copyPanelRef = useRef(null)
   const pendingCopyScrollRef = useRef(false)
+  const variantRefs = useRef([]) // roving focus do radiogroup de moldura (a11y por teclado)
 
   useEffect(() => {
     if (pendingCopyScrollRef.current && aiCopy.drafts?.length) {
@@ -209,6 +216,20 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
     setDirty(true)
     // Editar um campo preenchido pela IA tira a marca "IA" (sinaliza edicao/aprovacao humana).
     setAiFilledKeys(current => (current.includes(field) ? current.filter(k => k !== field) : current))
+  }
+
+  // Radiogroup da moldura (a11y): setas movem e selecionam entre as variantes; roving tabindex.
+  function onVariantKey(event) {
+    const variants = selectedTemplate?.variants || []
+    if (variants.length < 2) return
+    const idx = variants.findIndex(v => v.id === selectedTemplateVariant?.id)
+    let next = null
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (idx + 1) % variants.length
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (idx - 1 + variants.length) % variants.length
+    if (next == null) return
+    event.preventDefault()
+    update('creative_template_variant', variants[next].id)
+    variantRefs.current[next]?.focus()
   }
 
   // Copiloto de IA (degrau A): gera, revisa/edita e aplica os angulos de copy na voz da marca.
@@ -720,24 +741,52 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
               </div>
 
               {selectedTemplate?.variants?.length > 1 && (
-                <div className="inline-flex rounded-lg border border-white/10 bg-black/35 p-1">
-                  {selectedTemplate.variants.map(variant => {
-                    const selected = selectedTemplateVariant?.id === variant.id
-                    return (
-                      <button
-                        key={variant.id}
-                        type="button"
-                        onClick={() => update('creative_template_variant', variant.id)}
-                        className={`rounded-md px-3 py-2 text-xs font-semibold transition ${
-                          selected
-                            ? 'bg-gold-500/18 text-gold-100'
-                            : 'text-white/48 hover:bg-white/5 hover:text-white/70'
-                        }`}
-                      >
-                        {variant.label}
-                      </button>
-                    )
-                  })}
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Moldura do criativo</p>
+                    <p className="mt-0.5 text-2xs leading-4 text-white/35">Muda só o contorno — layout, marca e dados ficam iguais. Dá para trocar a qualquer momento.</p>
+                  </div>
+                  {/* Cards de selecao com mini-preview por variante (ve a diferenca no ponto da escolha).
+                      Radiogroup acessivel: role=radio + aria-checked + setas + roving tabindex; selecao por
+                      borda + check + selo (nao so cor). */}
+                  <div role="radiogroup" aria-label="Moldura do criativo" onKeyDown={onVariantKey} className="grid grid-cols-2 gap-3">
+                    {selectedTemplate.variants.map((variant, i) => {
+                      const selected = selectedTemplateVariant?.id === variant.id
+                      const thumb = referencesForTemplateVariant(selectedTemplate, variant.id)?.[0]
+                      return (
+                        <button
+                          key={variant.id}
+                          ref={el => { variantRefs.current[i] = el }}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          tabIndex={selected ? 0 : -1}
+                          onClick={() => update('creative_template_variant', variant.id)}
+                          className={`group flex items-center gap-3 rounded-xl border p-2.5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${
+                            selected
+                              ? 'border-gold-500/70 bg-gold-500/[0.08]'
+                              : 'border-white/10 bg-black/24 hover:border-gold-500/40 hover:bg-gold-500/[0.05]'
+                          }`}
+                        >
+                          <span className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-lg bg-[color:var(--surface-0)] p-1">
+                            {thumb
+                              ? <img src={thumb} alt="" loading="lazy" className="h-full w-full rounded object-contain" />
+                              : <span className="text-3xs text-white/30">sem prévia</span>}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-1.5">
+                              <span className="text-sm font-semibold text-white">{variant.label}</span>
+                              {selected && <Check size={13} className="flex-shrink-0 text-gold-300" aria-hidden="true" />}
+                            </span>
+                            <span className="mt-0.5 block text-2xs leading-4 text-white/45">{VARIANT_HINT[variant.id] || ''}</span>
+                            {selected && (
+                              <span className="mt-1 inline-block rounded-full bg-gold-500/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-[0.1em] text-gold-200">Selecionado</span>
+                            )}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 
