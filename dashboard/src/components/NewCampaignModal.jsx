@@ -180,6 +180,7 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
   const copyPanelRef = useRef(null)
   const pendingCopyScrollRef = useRef(false)
   const variantRefs = useRef([]) // roving focus do radiogroup de moldura (a11y por teclado)
+  const variationRefs = useRef([]) // roving focus do radiogroup de quantidade de versões
 
   useEffect(() => {
     if (pendingCopyScrollRef.current && aiCopy.drafts?.length) {
@@ -230,6 +231,19 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
     event.preventDefault()
     update('creative_template_variant', variants[next].id)
     variantRefs.current[next]?.focus()
+  }
+
+  // Radiogroup das opções rápidas de quantidade de versões (a11y): setas movem e selecionam.
+  function onVariationsKey(event) {
+    const opts = CREATIVE_VARIATION_OPTIONS.map(o => o.value)
+    const idx = opts.indexOf(Number(form.creative_variations))
+    let next = null
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (idx + 1) % opts.length
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (idx - 1 + opts.length) % opts.length
+    if (next == null) return
+    event.preventDefault()
+    update('creative_variations', opts[next])
+    variationRefs.current[next]?.focus()
   }
 
   // Copiloto de IA (degrau A): gera, revisa/edita e aplica os angulos de copy na voz da marca.
@@ -818,19 +832,86 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                 )
               })()}
 
+            </section>
+
+            {/* Variações dos criativos: FUSAO de "Quantidade de criativos" + "Variacao controlada pelo template".
+                Modal e single-template -> 1 template × N versões × 3 formatos. Total em linguagem simples;
+                opcoes rapidas (radiogroup a11y); "o que muda" recolhivel (sem duplicar o helper). */}
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Variações dos criativos</p>
+              {selectedTemplate && (
+                <p className="text-2xs text-white/40">
+                  Template: <span className="text-white/70">{selectedTemplate.name}</span>{selectedTemplateVariant?.label ? ` · ${selectedTemplateVariant.label}` : ''}
+                </p>
+              )}
+              <p className="text-xs leading-5 text-white/45">
+                Defina quantas versões o sistema gera para o template escolhido. As variações mantêm o layout, a marca e os formatos — mudam textos, fotos, ordem e CTA.
+              </p>
+
+              {(() => {
+                const cap = distinctConceptCapacity(form, brandProfile)
+                const value = Number(form.creative_variations) || 0
+                const ads = Math.min(value, cap)
+                const overflow = value > cap
+                const opts = CREATIVE_VARIATION_OPTIONS.map(o => o.value)
+                return (
+                  <>
+                    <div className="space-y-2">
+                      <p className={labelClass}>Quantas versões?</p>
+                      <div role="radiogroup" aria-label="Quantas versões por template" onKeyDown={onVariationsKey} className="flex flex-wrap gap-2">
+                        {opts.map((opt, i) => {
+                          const selected = value === opt
+                          return (
+                            <button
+                              key={opt}
+                              ref={el => { variationRefs.current[i] = el }}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              tabIndex={selected ? 0 : -1}
+                              onClick={() => update('creative_variations', opt)}
+                              className={`min-w-[3rem] rounded-lg border px-4 py-2 text-sm font-semibold tabular-nums transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${
+                                selected
+                                  ? 'border-gold-500/70 bg-gold-500/15 text-gold-100'
+                                  : 'border-white/10 bg-black/24 text-white/55 hover:border-gold-500/40 hover:text-white'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-gold-500/25 bg-gold-500/[0.06] px-4 py-3" aria-live="polite">
+                      <p className="text-sm font-semibold text-gold-100">
+                        {ads} {ads === 1 ? 'versão' : 'versões'} × 3 formatos (feed, story, wide) = <span className="text-gold-200">{ads * 3} imagens</span>
+                      </p>
+                      {overflow && (
+                        <p className="mt-1 text-xs leading-5 text-amber-200/85">
+                          Este template tem {cap} ângulos distintos — acima disso a copy se repetiria; limitamos a {cap}.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
+
               {selectedVariationContract && (
-                <div className="rounded-lg border border-white/10 bg-black/24 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-400/85">
-                    Variacao controlada pelo template
-                  </p>
+                <details className="group rounded-lg border border-white/10 bg-black/24 px-4 py-3">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-medium text-white/55">
+                    As variações seguem o padrão visual do template
+                    <span className="flex flex-shrink-0 items-center gap-1 text-gold-300/70">
+                      <span className="text-2xs">ver o que muda</span>
+                      <ChevronDown size={14} className="transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+                    </span>
+                  </summary>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div>
                       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Pode variar</p>
                       <div className="flex flex-wrap gap-1.5">
                         {(selectedVariationContract.mutableSlots || []).map(slot => (
-                          <span key={slot} className="rounded border border-gold-500/25 bg-gold-500/10 px-2 py-1 text-[10px] font-semibold text-gold-100/80">
-                            {humanizeSlot(slot)}
-                          </span>
+                          <span key={slot} className="rounded border border-gold-500/25 bg-gold-500/10 px-2 py-1 text-[10px] font-semibold text-gold-100/80">{humanizeSlot(slot)}</span>
                         ))}
                       </div>
                     </div>
@@ -838,51 +919,16 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Permanece fixo</p>
                       <div className="flex flex-wrap gap-1.5">
                         {(selectedVariationContract.lockedSlots || []).map(slot => (
-                          <span key={slot} className="rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-white/45">
-                            {humanizeSlot(slot)}
-                          </span>
+                          <span key={slot} className="rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-white/45">{humanizeSlot(slot)}</span>
                         ))}
                       </div>
                     </div>
                   </div>
-                </div>
+                </details>
               )}
-            </section>
 
-            {/* Quantidade de criativos: config (nao e a decisao-heroi do passo) -> fica ABAIXO do catalogo. */}
-            <section className="space-y-4">
-              <p className={sectionTitleClass}>Quantidade de criativos</p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Quantas variações por template" labelClass={labelClass}>
-                  <BrandedSelect
-                    value={form.creative_variations}
-                    onChange={value => update('creative_variations', Number(value))}
-                    options={CREATIVE_VARIATION_OPTIONS}
-                  />
-                  <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
-                    Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
-                  </span>
-                  {(() => {
-                    const cap = distinctConceptCapacity(form, brandProfile)
-                    const ads = Math.min(Number(form.creative_variations) || 0, cap)
-                    const overflow = Number(form.creative_variations) > cap
-                    return (
-                      <>
-                        <span className="mt-1.5 block text-[11px] font-semibold leading-4 text-gold-300/90">
-                          Serao gerados {ads} anuncios &times; 3 formatos = {ads * 3} cortes (1:1, 9:16 e 1.91:1).
-                        </span>
-                        {overflow && (
-                          <span className="mt-1 block text-[11px] leading-4 text-amber-300/80">
-                            Este template tem {cap} angulos distintos — acima disso a copy se repetiria, entao o total foi limitado a {cap}.
-                          </span>
-                        )}
-                      </>
-                    )
-                  })()}
-                </Field>
-              </div>
-              <p className="text-xs leading-5 text-white/42">
-                A ferramenta usa as fotos enviadas como materia-prima, gera as variacoes e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
+              <p className="text-2xs leading-4 text-white/35">
+                Dica: quanto mais versões, mais tempo a geração leva. As fotos enviadas são a matéria-prima; o pacote fica pronto para QA, aprovação e exportação (publicação com verba exige autorização humana).
               </p>
             </section>
         </div>
@@ -1379,7 +1425,7 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                 const pend = [...missingReqFields.map(f => f.label), ...missingReqImages.map(s => s.label)]
                 const rows = [
                   ['Template', selectedTemplate ? `${selectedTemplate.name}${selectedTemplateVariant?.label ? ` · ${selectedTemplateVariant.label}` : ''}` : '—'],
-                  ['Criativos', `${ads} variações · ${ads * 3} cortes`],
+                  ['Criativos', `${ads} versões · ${ads * 3} imagens (3 formatos)`],
                   ['Produto', form.product_name?.trim() || '— (obrigatório)'],
                   ['Preço', form.price?.trim() || '—'],
                   ['Copy IA', aiApplied ? `✓ ${form.ai_copy_angles.length} ângulo(s) aplicado(s)` : 'não aplicada'],
