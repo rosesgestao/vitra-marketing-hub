@@ -41,4 +41,10 @@ estados intermediários das edições). Leonardo validou. Arquivos: `PremiumDash
 Se o acordeão esconder demais no dia a dia: deixar 2 passos abertos por padrão, ou voltar à camada guiada
 sem colapso.
 
+## Follow-up (`d917414`) — 2 passos abertos por padrão
+A pedido do Leonardo, o acordeão deixou de abrir 1 passo por vez. `openStep` (valor único) → `openSteps`
+(Set). Default: com campanha selecionada abre **Criativos + Publicar** (2,3); sem campanha abre **Campanha
++ Criativos** (1,2). Vários podem ficar abertos; `toggle` adiciona/remove; a espinha (`onStepClick`) abre o
+passo (add) sem fechar os demais. 278 testes + build + lint; preview sem erro.
+
 [[Atualizacao_2026-07-06_Trafego_Espinha_Progresso]]
