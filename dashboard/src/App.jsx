@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Home, Images, Layers, LayoutGrid, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, ChevronsLeft, ChevronsRight, Gem, Home, Images, Layers, LayoutGrid, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
 import { viewIdFromHash, hashForViewId } from './lib/hashRoute.js'
+import { supabase } from './lib/supabase.js'
 import CommandPalette from './components/CommandPalette.jsx'
 import Inicio from './views/Inicio.jsx'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
@@ -70,12 +71,12 @@ const CRIATIVOS_NAV = [
 // = pago); depois a producao de conteudo organico, os estudios (producao de artes, servem aos dois) e,
 // por fim, o que e transversal (automacao + metricas). So navegacao/nomenclatura — telas inalteradas.
 const NAV_SECTIONS = [
-  { id: 'central', title: 'Central', items: [{ id: 'inicio', label: 'Início', icon: Home }] },
-  ...BRAND_SECTIONS.map(section => ({ id: section.scope, title: section.title, items: section.items })),
-  { id: 'conteudo', title: 'Produção de conteúdo', items: CONTEUDO_ORGANICO },
-  { id: 'criativos', title: 'Estúdio de Criativos', items: CRIATIVOS_NAV },
-  { id: 'pecas', title: 'Estúdio de Peças', items: PECAS_NAV },
-  { id: 'operacao', title: 'Inteligência & automação', items: TRANSVERSAL },
+  { id: 'central', title: 'Central', icon: Home, items: [{ id: 'inicio', label: 'Início', icon: Home }] },
+  ...BRAND_SECTIONS.map(section => ({ id: section.scope, title: section.title, icon: section.scope === BRAND_SCOPES.premium ? Gem : Building2, items: section.items })),
+  { id: 'conteudo', title: 'Produção de conteúdo', icon: Layers, items: CONTEUDO_ORGANICO },
+  { id: 'criativos', title: 'Estúdio de Criativos', icon: Wand2, items: CRIATIVOS_NAV },
+  { id: 'pecas', title: 'Estúdio de Peças', icon: LayoutGrid, items: PECAS_NAV },
+  { id: 'operacao', title: 'Inteligência & automação', icon: Bot, items: TRANSVERSAL },
 ]
 
 const ALL_VIEWS = NAV_SECTIONS.flatMap(section => section.items)
@@ -86,6 +87,21 @@ const COMMAND_ITEMS = NAV_SECTIONS.flatMap(section =>
 )
 const DEFAULT_VIEW_ID = 'inicio'
 const NAV_STORAGE_KEY = 'vitra-operational-dashboard.active-view'
+const SIDEBAR_COLLAPSED_KEY = 'vitra-operational-dashboard.sidebar-collapsed'
+
+function readInitialCollapsed() {
+  if (typeof window === 'undefined') return false
+  try { return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1' } catch { return false }
+}
+
+// Nome/e-mail/inicial do usuario logado para o perfil no rodape da sidebar.
+function accountDisplay(user) {
+  const full = user?.user_metadata?.full_name
+  const email = user?.email || ''
+  const name = full && full.trim() ? full.trim() : email ? email.split('@')[0] : 'Conta Vitra'
+  const initial = (name[0] || 'V').toUpperCase()
+  return { name, email, initial }
+}
 
 function normalizeViewId(viewId) {
   return ALL_VIEWS.some(item => item.id === viewId) ? viewId : DEFAULT_VIEW_ID
@@ -119,6 +135,10 @@ export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   // Busca global (⌘K).
   const [searchOpen, setSearchOpen] = useState(false)
+  // Sidebar recolhida (rail) no desktop — persistida. Nao afeta o mobile (drawer sempre expandido).
+  const [collapsed, setCollapsed] = useState(readInitialCollapsed)
+  // Usuario logado para o perfil no rodape — leitura da sessao Supabase (nao altera regras de auth).
+  const [account, setAccount] = useState(null)
   const currentView = ALL_VIEWS.find(item => item.id === view) || ALL_VIEWS[0]
   // Views compartilhadas (operacao, estudio de pecas) caem na MARCA-MAE por padrao;
   // so paineis Premium re-tingem o chrome para preto (sem azul).
@@ -189,6 +209,28 @@ export default function App() {
     // Intencionalmente só na montagem (sincroniza a URL inicial). `view` lido via closure é aceitável aqui.
   }, [])
 
+  // Persiste o estado recolhido da sidebar.
+  useEffect(() => {
+    try { window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0') } catch { /* storage restrito */ }
+  }, [collapsed])
+
+  // Trava a rolagem do fundo enquanto o drawer mobile estiver aberto.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    document.body.style.overflow = mobileNavOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileNavOpen])
+
+  // Perfil do usuario logado (rodape). Read-only; o AuthGate segue dono do ciclo de auth.
+  useEffect(() => {
+    let active = true
+    supabase.auth.getSession().then(({ data }) => { if (active) setAccount(data?.session?.user || null) }).catch(() => {})
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => setAccount(session?.user || null))
+    return () => { active = false; sub?.subscription?.unsubscribe?.() }
+  }, [])
+
+  const acc = accountDisplay(account)
+
   return (
     <div className="flex h-screen overflow-hidden text-white">
       {mobileNavOpen && (
@@ -199,34 +241,61 @@ export default function App() {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[color:var(--surface-0)] transition-transform duration-300 ease-out md:static md:z-auto md:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-shrink-0 flex-col border-r border-gold-500/15 bg-[color:var(--surface-0)] transition-[transform,width] duration-300 ease-out md:static md:z-auto md:translate-x-0 ${collapsed ? 'md:w-[76px]' : 'md:w-72'} ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(196,148,42,0.10),transparent_18rem)]" />
 
-        <div className="relative flex items-start justify-between gap-2 px-6 pb-6 pt-7">
+        {/* Cabeçalho — expandido / mobile */}
+        <div className={`relative flex items-start justify-between gap-2 px-6 pb-6 pt-7 ${collapsed ? 'md:hidden' : ''}`}>
           <div>
             <BrandHorizontalLogo brandScope={activeBrandScope} className="scale-[0.82] origin-left" />
             <p className="mt-5 border-t border-gold-500/20 pt-4 text-[10px] font-semibold uppercase tracking-[0.32em] text-gold-500/70">
               {activeBrand.shellKicker}
             </p>
           </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              aria-label="Recolher menu"
+              title="Recolher menu"
+              className="hidden rounded-lg p-2 text-white/45 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 md:inline-flex"
+            >
+              <ChevronsLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Fechar menu"
+              className="rounded-lg p-2.5 text-white/55 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 md:hidden"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Cabeçalho — rail recolhido (desktop) */}
+        <div className={`relative flex-col items-center gap-3 px-3 pb-4 pt-7 ${collapsed ? 'hidden md:flex' : 'hidden'}`}>
+          <BrandV brandScope={activeBrandScope} size={26} />
           <button
             type="button"
-            onClick={() => setMobileNavOpen(false)}
-            aria-label="Fechar menu"
-            className="-mr-1 rounded-lg p-1.5 text-white/55 transition hover:bg-white/5 hover:text-white md:hidden"
+            onClick={() => setCollapsed(false)}
+            aria-label="Expandir menu"
+            title="Expandir menu"
+            className="grid h-9 w-9 place-items-center rounded-lg text-white/45 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50"
           >
-            <X size={18} />
+            <ChevronsRight size={18} />
           </button>
         </div>
 
         <div className="gold-line mx-0" />
 
-        <nav className="relative flex-1 space-y-2 overflow-y-auto px-4 py-5" aria-label="Navegação principal">
+        {/* Navegação — expandida / mobile */}
+        <nav className={`relative flex-1 space-y-2 overflow-y-auto px-4 py-5 ${collapsed ? 'md:hidden' : ''}`} aria-label="Navegação principal">
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="mb-1 flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-xs text-white/45 transition-colors hover:border-gold-500/30 hover:text-white"
+            className="mb-1 flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-xs text-white/45 transition-colors hover:border-gold-500/30 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50"
           >
             <Search size={14} className="text-gold-400/70" aria-hidden="true" />
             <span className="flex-1">Buscar telas…</span>
@@ -245,23 +314,57 @@ export default function App() {
           ))}
         </nav>
 
+        {/* Navegação — rail recolhido (desktop): ícones de seção + tooltip; clique expande e abre a seção */}
+        <nav className={`relative flex-1 flex-col items-center gap-1.5 overflow-y-auto px-3 py-5 ${collapsed ? 'hidden md:flex' : 'hidden'}`} aria-label="Navegação (recolhida)">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            title="Buscar telas (⌘K)"
+            aria-label="Buscar telas"
+            className="grid h-11 w-11 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-gold-400/80 transition-colors hover:border-gold-500/30 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50"
+          >
+            <Search size={16} aria-hidden="true" />
+          </button>
+          <div className="my-1.5 h-px w-8 bg-white/10" />
+          {NAV_SECTIONS.map(section => {
+            const SectionIcon = section.icon
+            const hasActive = section.items.some(item => item.id === view)
+            return (
+              <button
+                key={section.id}
+                type="button"
+                title={section.title}
+                aria-label={section.title}
+                onClick={() => { setOpenSection(section.id); setCollapsed(false) }}
+                className={`relative grid h-11 w-11 place-items-center rounded-lg border transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${hasActive ? 'border-gold-500/40 bg-gold-500/[0.12] text-gold-200' : 'border-transparent text-white/55 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'}`}
+              >
+                {hasActive && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gold-400" aria-hidden="true" />}
+                {SectionIcon && <SectionIcon size={18} aria-hidden="true" />}
+              </button>
+            )
+          })}
+        </nav>
+
         <div className="gold-line mx-0" />
 
-        <div className="relative px-6 py-5">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--surface-0)]">
-              <BrandV brandScope={activeBrandScope} size={28} />
+        {/* Rodapé — perfil do usuário logado (expandido) */}
+        <div className={`relative px-4 py-4 ${collapsed ? 'md:hidden' : ''}`}>
+          <div className="flex items-center gap-3">
+            <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-gold-500/40 bg-gold-500/10 text-sm font-semibold text-gold-200">
+              {acc.initial}
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/72">{activeBrand.name}</p>
-              <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-gold-500/60">{activeBrand.descriptor}</p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white/85">{acc.name}</p>
+              {acc.email && <p className="truncate text-[11px] text-white/40">{acc.email}</p>}
             </div>
           </div>
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" />
-            <span className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Sistema ativo</span>
+        </div>
+
+        {/* Rodapé — avatar (rail recolhido) */}
+        <div className={`relative px-3 py-4 ${collapsed ? 'hidden md:flex md:justify-center' : 'hidden'}`}>
+          <div title={acc.name} className="grid h-9 w-9 place-items-center rounded-full border border-gold-500/40 bg-gold-500/10 text-sm font-semibold text-gold-200">
+            {acc.initial}
           </div>
-          <p className="text-[10px] text-gray-500">Brand system aplicado · Junho/2026</p>
         </div>
       </aside>
 
@@ -313,29 +416,14 @@ function NavButton({ item, active, onClick }) {
     <button
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className="relative flex w-full items-center gap-3 rounded-lg border px-3.5 py-3 text-left text-sm transition-all duration-200"
-      style={{
-        background: active ? 'rgba(196,148,42,0.12)' : 'transparent',
-        borderColor: active ? 'rgba(196,148,42,0.36)' : 'transparent',
-        color: active ? '#E4C06E' : '#A7A29A',
-        fontWeight: active ? 600 : 500,
-      }}
-      onMouseEnter={event => {
-        if (!active) {
-          event.currentTarget.style.background = 'rgba(255,255,255,0.035)'
-          event.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-          event.currentTarget.style.color = '#FFFFFF'
-        }
-      }}
-      onMouseLeave={event => {
-        if (!active) {
-          event.currentTarget.style.background = 'transparent'
-          event.currentTarget.style.borderColor = 'transparent'
-          event.currentTarget.style.color = '#A7A29A'
-        }
-      }}
+      className={`group relative flex w-full items-center gap-3 rounded-lg border px-3.5 py-3 text-left text-sm transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${
+        active
+          ? 'border-gold-500/40 bg-gold-500/[0.12] font-semibold text-gold-200'
+          : 'border-transparent font-medium text-white/60 hover:border-white/10 hover:bg-white/[0.04] hover:text-white'
+      }`}
     >
-      <Icon size={16} />
+      {active && <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gold-400" aria-hidden="true" />}
+      {Icon && <Icon size={16} className={active ? 'text-gold-300' : 'text-white/45 transition-colors group-hover:text-white/80'} aria-hidden="true" />}
       {item.label}
     </button>
   )
@@ -351,21 +439,14 @@ function NavSection({ section, open, hasActive, onToggle, view, onSelect }) {
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left transition-colors duration-200 hover:bg-white/[0.04]"
+        className="group flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left transition-colors duration-200 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/40"
       >
-        <span
-          className="text-[9px] font-semibold uppercase tracking-[0.24em] transition-colors duration-200"
-          style={{ color: highlight ? 'rgba(228,192,110,0.85)' : 'rgba(196,148,42,0.5)' }}
-        >
+        <span className={`text-[9px] font-semibold uppercase tracking-[0.24em] transition-colors duration-200 ${highlight ? 'text-gold-300' : 'text-gold-500/50 group-hover:text-gold-400/80'}`}>
           {section.title}
         </span>
         <ChevronDown
           size={14}
-          className="flex-shrink-0 transition-transform duration-200"
-          style={{
-            color: highlight ? 'rgba(228,192,110,0.7)' : 'rgba(196,148,42,0.4)',
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-          }}
+          className={`flex-shrink-0 transition-transform duration-200 ${highlight ? 'text-gold-300/70' : 'text-gold-500/40'} ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
