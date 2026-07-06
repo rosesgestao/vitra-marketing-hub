@@ -955,9 +955,12 @@ function PaidTrafficSteps({
   const step2Done = ads.length > 0 && approved === ads.length && approved > 0
   const currentStep = !selectedCampaign ? 1 : !step2Done ? 2 : !published ? 3 : 3
 
-  const [openStep, setOpenStep] = useState(currentStep)
+  // 2 passos abertos por padrão: com campanha selecionada -> Criativos + Publicar; sem campanha ->
+  // Campanha + Criativos. Vários podem ficar abertos; o usuário abre/fecha cada um livremente.
+  const [openSteps, setOpenSteps] = useState(() => new Set(currentStep === 1 ? [1, 2] : [2, 3]))
   const [presetSeed, setPresetSeed] = useState(null)
-  const toggle = n => setOpenStep(cur => (cur === n ? null : n))
+  const toggle = n => setOpenSteps(prev => { const next = new Set(prev); if (next.has(n)) next.delete(n); else next.add(n); return next })
+  const openStep = n => setOpenSteps(prev => new Set(prev).add(n))
 
   const pickCampaignHint = <EmptyState icon={Megaphone} title="Selecione uma campanha no Passo 1" />
 
@@ -968,7 +971,7 @@ function PaidTrafficSteps({
           campaign={selectedCampaign}
           assets={scopedAssets}
           publications={selectedPublications}
-          onStepClick={setOpenStep}
+          onStepClick={openStep}
         />
       )}
 
@@ -977,7 +980,7 @@ function PaidTrafficSteps({
         title="Campanha"
         hint={selectedCampaign ? selectedCampaign.name : 'selecione a campanha para operar'}
         status={<StepStatus tone="done">{campaigns.length} no total</StepStatus>}
-        open={openStep === 1}
+        open={openSteps.has(1)}
         onToggle={() => toggle(1)}
       >
         <PaidTrafficCampaignSelector
@@ -997,7 +1000,7 @@ function PaidTrafficSteps({
         title="Criativos e anúncios"
         hint="gerar cortes, aprovar QA e exportar"
         status={<StepStatus tone={step2Done ? 'done' : 'current'}>{approved}/{ads.length} aprovados</StepStatus>}
-        open={openStep === 2}
+        open={openSteps.has(2)}
         onToggle={() => toggle(2)}
       >
         {selectedCampaign ? (
@@ -1024,7 +1027,7 @@ function PaidTrafficSteps({
         title="Revisar e publicar"
         hint="rascunho pausado na Meta — nada gasta até você ativar"
         status={<StepStatus tone={published ? 'done' : 'todo'}>{published ? 'publicado' : 'pendente'}</StepStatus>}
-        open={openStep === 3}
+        open={openSteps.has(3)}
         onToggle={() => toggle(3)}
       >
         {selectedCampaign ? (
