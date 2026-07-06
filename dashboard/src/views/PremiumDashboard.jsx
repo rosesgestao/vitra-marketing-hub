@@ -915,64 +915,140 @@ function PaidTrafficWorkspace({
       />
     )
   }
+  // `key` remonta ao trocar de campanha -> reseta o passo aberto e o estado do preset/publicacao.
+  return (
+    <PaidTrafficSteps
+      key={selectedCampaignId || 'none'}
+      brandProfile={brandProfile}
+      campaigns={campaigns}
+      selectedCampaign={selectedCampaign}
+      selectedCampaignId={selectedCampaignId}
+      onSelect={onSelect}
+      onCreate={onCreate}
+      onDelete={onDelete}
+      assets={assets}
+      publications={publications}
+      scopedAssets={scopedAssets}
+      rendering={rendering}
+      renderProgress={renderProgress}
+      busyId={busyId}
+      notice={notice}
+      onRender={onRender}
+      onApproveGroup={onApproveGroup}
+      onEditAd={onEditAd}
+    />
+  )
+}
 
+// Acordeao de operacao: 1 Campanha · 2 Criativos e anuncios · 3 Revisar e publicar. So o passo atual fica
+// aberto; a espinha no topo orienta e pula entre passos. `presetSeed` vive aqui (liga Presets -> Publicar).
+function PaidTrafficSteps({
+  brandProfile, campaigns, selectedCampaign, selectedCampaignId, onSelect, onCreate, onDelete,
+  assets, publications, scopedAssets, rendering, renderProgress, busyId, notice, onRender, onApproveGroup, onEditAd,
+}) {
   const selectedPublications = selectedCampaign
     ? publications.filter(publication => publication.campaign_id === selectedCampaign.id)
     : []
+  const ads = groupMetaAds(scopedAssets)
+  const approved = scopedAssets.filter(a => a.status === 'approved').length
+  const published = Boolean(selectedCampaign?.meta_campaign_id) || selectedPublications.some(p => p.publication_type === 'paid' || p.meta_ad_id)
+  const step2Done = ads.length > 0 && approved === ads.length && approved > 0
+  const currentStep = !selectedCampaign ? 1 : !step2Done ? 2 : !published ? 3 : 3
+
+  const [openStep, setOpenStep] = useState(currentStep)
+  const [presetSeed, setPresetSeed] = useState(null)
+  const toggle = n => setOpenStep(cur => (cur === n ? null : n))
+
+  const pickCampaignHint = <EmptyState icon={Megaphone} title="Selecione uma campanha no Passo 1" />
 
   return (
-    <div className="space-y-6">
-      <PaidTrafficCampaignSelector
-        brandProfile={brandProfile}
-        campaigns={campaigns}
-        selectedCampaignId={selectedCampaignId}
-        assets={assets}
-        onSelect={onSelect}
-        onCreate={onCreate}
-        onDelete={onDelete}
-      />
-
+    <div className="space-y-4">
       {selectedCampaign && (
         <CampaignProgressSpine
           campaign={selectedCampaign}
           assets={scopedAssets}
           publications={selectedPublications}
+          onStepClick={setOpenStep}
         />
       )}
 
-      {selectedCampaign && (
-        <AutomationWorkflowPanel
-          campaign={selectedCampaign}
+      <AccordionStep
+        n={1}
+        title="Campanha"
+        hint={selectedCampaign ? selectedCampaign.name : 'selecione a campanha para operar'}
+        status={<StepStatus tone="done">{campaigns.length} no total</StepStatus>}
+        open={openStep === 1}
+        onToggle={() => toggle(1)}
+      >
+        <PaidTrafficCampaignSelector
+          bare
+          brandProfile={brandProfile}
+          campaigns={campaigns}
+          selectedCampaignId={selectedCampaignId}
           assets={assets}
-          publications={selectedPublications}
+          onSelect={onSelect}
+          onCreate={onCreate}
+          onDelete={onDelete}
         />
-      )}
+      </AccordionStep>
 
-      <TrafegoPagoSection
-        brandProfile={brandProfile}
-        campaign={selectedCampaign}
-        assets={scopedAssets}
-        rendering={rendering}
-        renderProgress={renderProgress}
-        busyId={busyId}
-        notice={notice}
-        onRender={onRender}
-        onApproveGroup={onApproveGroup}
-        onEditAd={onEditAd}
-      />
+      <AccordionStep
+        n={2}
+        title="Criativos e anúncios"
+        hint="gerar cortes, aprovar QA e exportar"
+        status={<StepStatus tone={step2Done ? 'done' : 'current'}>{approved}/{ads.length} aprovados</StepStatus>}
+        open={openStep === 2}
+        onToggle={() => toggle(2)}
+      >
+        {selectedCampaign ? (
+          <div className="space-y-6">
+            <AutomationWorkflowPanel campaign={selectedCampaign} assets={assets} publications={selectedPublications} />
+            <TrafegoPagoSection
+              brandProfile={brandProfile}
+              campaign={selectedCampaign}
+              assets={scopedAssets}
+              rendering={rendering}
+              renderProgress={renderProgress}
+              busyId={busyId}
+              notice={notice}
+              onRender={onRender}
+              onApproveGroup={onApproveGroup}
+              onEditAd={onEditAd}
+            />
+          </div>
+        ) : pickCampaignHint}
+      </AccordionStep>
+
+      <AccordionStep
+        n={3}
+        title="Revisar e publicar"
+        hint="rascunho pausado na Meta — nada gasta até você ativar"
+        status={<StepStatus tone={published ? 'done' : 'todo'}>{published ? 'publicado' : 'pendente'}</StepStatus>}
+        open={openStep === 3}
+        onToggle={() => toggle(3)}
+      >
+        {selectedCampaign ? (
+          <div className="space-y-6">
+            <MetaPresetsPanel brandProfile={brandProfile} onApply={setPresetSeed} />
+            <PublishMetaPanel campaign={selectedCampaign} brandProfile={brandProfile} ads={ads} seed={presetSeed} />
+          </div>
+        ) : pickCampaignHint}
+      </AccordionStep>
     </div>
   )
 }
 
-function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaignId, assets, onSelect, onCreate, onDelete }) {
+function PaidTrafficCampaignSelector({ brandProfile, campaigns, selectedCampaignId, assets, onSelect, onCreate, onDelete, bare = false }) {
   return (
-    <div className="rounded-lg border border-gold-500/18 bg-[color:var(--surface-1)] p-4">
+    <div className={bare ? '' : 'rounded-lg border border-gold-500/18 bg-[color:var(--surface-1)] p-4'}>
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2">
-            <Megaphone size={15} className="text-gold-400" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Passo 1 · Campanha</p>
-          </div>
+          {!bare && (
+            <div className="mb-2 flex items-center gap-2">
+              <Megaphone size={15} className="text-gold-400" />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">Passo 1 · Campanha</p>
+            </div>
+          )}
           <p className="text-sm leading-6 text-white/52">
             Escolha a campanha para gerar cortes, revisar QA e exportar o pacote de anúncios. A aba de tráfego fica isolada para {brandProfile.name}.
           </p>
@@ -1153,40 +1229,82 @@ function CampaignsSection({ brandProfile, campaigns, selectedCampaign, selectedC
 
 // Espinha de progresso da campanha selecionada (orientacao "onde estou / o que falta"). 4 fases derivadas
 // de dado real. Cor + texto (nao so cor) e aria-current no passo atual. Rola horizontal no mobile.
-function CampaignProgressSpine({ campaign, assets = [], publications = [] }) {
+// Espinha de progresso (orientacao "onde estou / o que falta"). 4 fases de dado real, cada uma pula para
+// o passo do acordeao (onStepClick). Marcador por forma (check/ponto) + texto — nao so cor. Rola no mobile.
+function CampaignProgressSpine({ campaign, assets = [], publications = [], onStepClick }) {
   const generated = assets.filter(a => a.public_url && ['generated', 'approved'].includes(a.status)).length
   const approved = assets.filter(a => a.status === 'approved').length
   const published = Boolean(campaign?.meta_campaign_id) || publications.some(p => p.publication_type === 'paid' || p.meta_ad_id)
   const phases = [
-    { key: 'campanha', label: 'Campanha', done: true, hint: 'selecionada' },
-    { key: 'criativos', label: 'Criativos', done: generated > 0, hint: generated ? `${generated} gerado(s)` : 'gerar cortes' },
-    { key: 'aprovacao', label: 'Aprovação', done: approved > 0, hint: approved ? `${approved} aprovado(s)` : 'aprovar cortes' },
-    { key: 'publicacao', label: 'Publicação', done: published, hint: published ? 'no Meta' : 'revisar e publicar' },
+    { key: 'campanha', label: 'Campanha', step: 1, done: true, hint: 'selecionada' },
+    { key: 'criativos', label: 'Criativos', step: 2, done: generated > 0, hint: generated ? `${generated} gerado(s)` : 'gerar cortes' },
+    { key: 'aprovacao', label: 'Aprovação', step: 2, done: approved > 0, hint: approved ? `${approved} aprovado(s)` : 'aprovar cortes' },
+    { key: 'publicacao', label: 'Publicação', step: 3, done: published, hint: published ? 'no Meta' : 'revisar e publicar' },
   ]
   const currentIdx = phases.findIndex(p => !p.done)
   return (
-    <nav aria-label="Progresso da campanha" className="rounded-xl border border-white/10 bg-[color:var(--surface-1)] px-4 py-3.5">
-      <ol className="flex items-center gap-1 overflow-x-auto">
+    <nav aria-label="Progresso da campanha" className="rounded-xl border border-white/10 bg-[color:var(--surface-1)] px-3 py-2.5">
+      <ol className="flex items-center gap-0.5 overflow-x-auto">
         {phases.map((p, i) => {
           const state = p.done ? 'done' : i === currentIdx ? 'current' : 'todo'
           return (
-            <li key={p.key} className="flex flex-1 items-center gap-2" aria-current={state === 'current' ? 'step' : undefined}>
-              <span className="flex min-w-[112px] items-center gap-2">
+            <li key={p.key} className="flex flex-1 items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => onStepClick?.(p.step)}
+                aria-current={state === 'current' ? 'step' : undefined}
+                title={`Ir para o passo ${p.step}`}
+                className="flex min-w-[116px] flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/40"
+              >
                 {p.done
-                  ? <CheckCircle2 size={22} className="flex-shrink-0 text-gold-300" aria-hidden="true" />
-                  : <span className={`grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-full border text-2xs font-semibold ${state === 'current' ? 'border-gold-400/60 bg-gold-500/10 text-gold-100' : 'border-white/15 bg-white/[0.03] text-white/40'}`}>{i + 1}</span>}
+                  ? <CheckCircle2 size={20} className="flex-shrink-0 text-gold-300" aria-hidden="true" />
+                  : <span className={`h-[18px] w-[18px] flex-shrink-0 rounded-full border ${state === 'current' ? 'border-gold-400/70 bg-gold-500/15' : 'border-white/20'}`} aria-hidden="true" />}
                 <span className="min-w-0">
                   <span className={`block text-sm font-medium leading-tight ${state === 'todo' ? 'text-white/45' : 'text-white'}`}>{p.label}</span>
                   <span className="block truncate text-2xs text-white/40">{p.hint}</span>
                 </span>
-              </span>
-              {i < phases.length - 1 && <span className="mx-1 hidden h-px flex-1 bg-white/10 sm:block" aria-hidden="true" />}
+              </button>
+              {i < phases.length - 1 && <span className="mx-0.5 hidden h-px flex-1 bg-white/10 sm:block" aria-hidden="true" />}
             </li>
           )
         })}
       </ol>
     </nav>
   )
+}
+
+// Passo colapsavel do acordeao de operacao. Cabecalho clicavel (numero + titulo + status), corpo so
+// quando aberto. aria-expanded + focus-visible; status com texto (nao so cor).
+function AccordionStep({ n, title, hint, status, open, onToggle, children }) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-white/10 bg-[color:var(--surface-1)]">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/40"
+      >
+        <span className={`grid h-7 w-7 flex-shrink-0 place-items-center rounded-full border text-xs font-semibold ${open ? 'border-gold-500/50 bg-gold-500/15 text-gold-200' : 'border-white/15 bg-white/[0.03] text-white/50'}`}>{n}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-white">{title}</span>
+          {hint && <span className="block truncate text-2xs text-white/45">{hint}</span>}
+        </span>
+        {status}
+        <ChevronRight size={16} className={`flex-shrink-0 text-white/40 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
+      </button>
+      {open && <div className="border-t border-white/10 p-4">{children}</div>}
+    </section>
+  )
+}
+
+// Chip de status do passo (texto + cor). tone: done|current|todo.
+function StepStatus({ tone = 'todo', children }) {
+  const cls = tone === 'done'
+    ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200'
+    : tone === 'current'
+      ? 'border-gold-500/30 bg-gold-500/10 text-gold-200'
+      : 'border-white/10 bg-white/5 text-white/55'
+  return <span className={`hidden flex-shrink-0 rounded-full border px-2.5 py-1 text-2xs font-medium sm:inline ${cls}`}>{children}</span>
 }
 
 function AutomationWorkflowPanel({ campaign, assets, publications }) {
@@ -2757,7 +2875,7 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2.5">
         <span className="flex items-center gap-2.5">
           <Target size={15} className="text-gold-400" />
-          <span className="text-sm font-semibold text-white">Passo 3 (opcional) · Presets de campanha</span>
+          <span className="text-sm font-semibold text-white">Presets de campanha (opcional)</span>
           <span className="hidden text-2xs text-white/40 sm:inline">acelera novas campanhas semelhantes</span>
         </span>
         <ChevronRight size={15} className="flex-shrink-0 text-gold-300/70 transition-transform duration-200 group-open:rotate-90" aria-hidden="true" />
@@ -2863,7 +2981,6 @@ function MetaPresetsPanel({ brandProfile = getBrandProfile(), onApply }) {
 }
 
 function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderProgress, busyId, notice, onRender, onApproveGroup, onEditAd }) {
-  const [presetSeed, setPresetSeed] = useState(null)
   if (!campaign) return <EmptyState icon={Megaphone} title="Nenhuma campanha selecionada" />
   const ads = groupMetaAds(assets)
   if (!ads.length) {
@@ -2890,7 +3007,7 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderP
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-white">Passo 2 · Criativos e anúncios</h2>
+          <h2 className="font-display text-xl font-semibold text-white">Gerar, aprovar e exportar</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-white/50">
             Cada anúncio sai nos 3 cortes que o Gerenciador pede — <span className="text-white/70">Quadrado 1:1 (feed)</span>, <span className="text-white/70">Vertical 9:16 (stories/reels)</span> e <span className="text-white/70">Horizontal 1,91:1 (recomendado)</span> — prontos para o passo de corte de mídia.
           </p>
@@ -2955,8 +3072,8 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderP
         <StatTile label="QA final" value={`${readyAds}/${ads.length}`} sub="anuncios exportaveis" icon={Target} tone="#C4942A" />
       </div>
 
-      {/* Os cards dos anúncios (o que o usuário revisa) vêm ANTES de Presets/Publicar — antes ficavam depois
-          do "Revisar e publicar", invertendo a leitura. Ordem agora: criativos -> presets (ref) -> publicar. */}
+      {/* Presets + "Revisar e publicar" foram para o Passo 3 do acordeao (PaidTrafficSteps). Aqui fica só
+          o passo de criativos: gerar, aprovar/QA e os cards dos anúncios. */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {ads.map(ad => (
           <MetaAdCard
@@ -2969,10 +3086,6 @@ function TrafegoPagoSection({ brandProfile, campaign, assets, rendering, renderP
           />
         ))}
       </div>
-
-      <MetaPresetsPanel brandProfile={brandProfile} onApply={setPresetSeed} />
-
-      <PublishMetaPanel campaign={campaign} brandProfile={brandProfile} ads={ads} seed={presetSeed} />
     </div>
   )
 }

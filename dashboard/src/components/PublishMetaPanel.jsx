@@ -351,7 +351,7 @@ export function PublishMetaPanel({ campaign, brandProfile, ads, seed }) {
     <div className="rounded-xl border border-gold-500/25 bg-[color:var(--surface-1)] p-5">
       <div className="mb-3 flex items-center gap-2.5">
         <span className="h-px w-7 bg-gold-500/70" />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Passo 4 · Revisar e publicar</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-400">Meta Ads</p>
       </div>
       <h3 className="font-display text-xl font-semibold tracking-tight text-white">Publicar na Meta (rascunho pausado)</h3>
       <p className="mt-1.5 max-w-2xl text-xs leading-5 text-white/50">
