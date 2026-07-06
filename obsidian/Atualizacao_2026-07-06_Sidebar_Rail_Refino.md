@@ -34,4 +34,14 @@ largura suave. Celular: drawer + overlay + fundo travado + safe-area.
 `lint` limpo · **278/278** testes · `build` ok · preview sem erro de console/servidor. Shell atrás do
 login → validação visual do Leonardo (OK dado). Commit `9053c9c` (push com OK).
 
+## Follow-up (ajustes de desktop reportados pelo Leonardo · commit `b174b44`)
+- **Botão "Recolher menu" quase imperceptível** → botão com borda + fundo sutil (hover dourado), alinhado
+  ao logo. O expandir do rail recebeu o mesmo tratamento.
+- **Linha acima de "Operação Imobiliária" estourava a largura** → causa: o botão de recolher, na mesma
+  linha do cabeçalho, empurrava a largura. Reestruturado: logo + controles numa linha (`items-center`) e o
+  kicker (com `border-t`) em bloco de largura total abaixo — sem overflow.
+- **"Sair" flutuante sobrepunha o perfil** → removido do `AuthGate` e integrado ao rodapé da sidebar (ao
+  lado do perfil; no rail, abaixo do avatar). Mesma regra de auth (`supabase.auth.signOut()`); logout segue
+  acessível no mobile pelo drawer. 278 testes + build + lint.
+
 [[Atualizacao_2026-07-06_Pagina_Inicial_Dashboard]]
