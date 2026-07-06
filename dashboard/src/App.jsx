@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, ChevronsLeft, ChevronsRight, Gem, Home, Images, Layers, LayoutGrid, LogOut, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, ChevronsLeft, ChevronsRight, FlaskConical, Gem, Home, Images, Layers, LayoutGrid, LogOut, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
 import { viewIdFromHash, hashForViewId } from './lib/hashRoute.js'
 import { supabase } from './lib/supabase.js'
 import CommandPalette from './components/CommandPalette.jsx'
 import Inicio from './views/Inicio.jsx'
+import LaboratorioTemplates from './views/LaboratorioTemplates.jsx'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -53,6 +54,7 @@ const CONTEUDO_ORGANICO = [
 const TRANSVERSAL = [
   { id: 'agentes', label: 'Agentes', icon: Bot },
   { id: 'metricas', label: 'Métricas', icon: BarChart3 },
+  { id: 'laboratorio', label: 'Laboratório', icon: FlaskConical },
 ]
 
 // Navegação do Estúdio de Peças derivada do catálogo (escalável: nova plataforma no
@@ -417,6 +419,7 @@ export default function App() {
             {view === 'biblioteca' && <Biblioteca />}
             {view === 'agentes' && <Agentes />}
             {view === 'metricas' && <Metricas />}
+            {view === 'laboratorio' && <LaboratorioTemplates />}
           </div>
         </main>
       </div>

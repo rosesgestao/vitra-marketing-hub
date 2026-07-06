@@ -2219,6 +2219,50 @@ export async function deleteCampaign(campaignId) {
   }
 }
 
+// ── Laboratório de Templates (experimento JSON, Fase A) — CRUD ISOLADO da tabela experimental_templates.
+// Nao toca no catalogo oficial nem no render de producao. Guarda snapshot de schema + ciclo de vida.
+export async function listExperimentalTemplates(brandScope) {
+  const { data, error } = await supabase
+    .from('experimental_templates')
+    .select('*')
+    .eq('brand_scope', brandScope)
+    .order('updated_at', { ascending: false })
+    .limit(100)
+  if (error) throw error
+  return data || []
+}
+
+export async function createExperimentalTemplate({ brandScope, name, baseTemplateId, schema } = {}) {
+  const { data, error } = await supabase
+    .from('experimental_templates')
+    .insert({ brand_scope: brandScope, name, base_template_id: baseTemplateId || null, schema: schema || {}, status: 'draft', version: 1, history: [] })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateExperimentalTemplate(id, patch = {}) {
+  const { data, error } = await supabase
+    .from('experimental_templates')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteExperimentalTemplate(id) {
+  const { data, error } = await supabase
+    .from('experimental_templates')
+    .delete()
+    .eq('id', id)
+    .select('id')
+  if (error) throw error
+  if (!data || data.length === 0) throw new Error('Nada foi excluído (verifique permissão/policy de DELETE).')
+}
+
 export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.premium } = {}) {
   const brandProfile = getBrandProfile(brandScope)
   const product = form.product_name?.trim() || form.name.trim()
