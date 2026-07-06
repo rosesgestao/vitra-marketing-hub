@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Images, Layers, LayoutGrid, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, Gem, Home, Images, Layers, LayoutGrid, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
 import { viewIdFromHash, hashForViewId } from './lib/hashRoute.js'
 import CommandPalette from './components/CommandPalette.jsx'
+import Inicio from './views/Inicio.jsx'
 import PremiumDashboard from './views/PremiumDashboard.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendario from './views/Calendario.jsx'
@@ -69,6 +70,7 @@ const CRIATIVOS_NAV = [
 // = pago); depois a producao de conteudo organico, os estudios (producao de artes, servem aos dois) e,
 // por fim, o que e transversal (automacao + metricas). So navegacao/nomenclatura — telas inalteradas.
 const NAV_SECTIONS = [
+  { id: 'central', title: 'Central', items: [{ id: 'inicio', label: 'Início', icon: Home }] },
   ...BRAND_SECTIONS.map(section => ({ id: section.scope, title: section.title, items: section.items })),
   { id: 'conteudo', title: 'Produção de conteúdo', items: CONTEUDO_ORGANICO },
   { id: 'criativos', title: 'Estúdio de Criativos', items: CRIATIVOS_NAV },
@@ -82,7 +84,7 @@ const ALL_VIEWS = NAV_SECTIONS.flatMap(section => section.items)
 const COMMAND_ITEMS = NAV_SECTIONS.flatMap(section =>
   section.items.map(item => ({ id: item.id, label: item.label, group: section.title, icon: item.icon })),
 )
-const DEFAULT_VIEW_ID = 'imobiliaria'
+const DEFAULT_VIEW_ID = 'inicio'
 const NAV_STORAGE_KEY = 'vitra-operational-dashboard.active-view'
 
 function normalizeViewId(viewId) {
@@ -279,6 +281,7 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto bg-transparent">
           <div key={view} className="view-enter">
+            {view === 'inicio' && <Inicio onNavigate={navigate} />}
             {view === 'premium' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} />}
             {view === 'premium-trafego' && <PremiumDashboard brandScope={BRAND_SCOPES.premium} focusMode="trafego" />}
             {view === 'imobiliaria' && <PremiumDashboard brandScope={BRAND_SCOPES.imobiliaria} />}
