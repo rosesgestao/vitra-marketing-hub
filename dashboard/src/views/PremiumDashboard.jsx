@@ -610,7 +610,13 @@ export default function PremiumDashboard({ focusMode = null, brandScope = BRAND_
     }
   }
 
-  const missingSchema = error && /premium_|schema cache|does not exist|relation/i.test(error.message || '')
+  // "Schema nao aplicado" so vale para erro REAL de tabela ausente (undefined_table 42P01 / PostgREST
+  // PGRST205 / "does not exist" / "schema cache"). Antes o teste casava qualquer mensagem com "premium_"
+  // ou "relation" — entao um erro de permissao/constraint (que cita tabelas premium_) era rotulado como
+  // schema faltando. Agora um erro de acao (excluir/publicar) mostra a mensagem real.
+  const schemaSignals = ['schema cache', 'does not exist', 'pgrst205', '42p01', 'undefined_table']
+  const errText = `${error?.message || ''} ${error?.code || ''}`.toLowerCase()
+  const missingSchema = !!error && schemaSignals.some(sig => errText.includes(sig))
 
   return (
     <div className="min-h-screen text-white">

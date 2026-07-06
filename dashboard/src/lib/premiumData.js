@@ -2204,11 +2204,17 @@ function withTimeout(promise, ms, message) {
 }
 
 export async function deleteCampaign(campaignId) {
-  const { error } = await supabase
+  // .select('id') devolve as linhas efetivamente removidas. Sem policy de DELETE (RLS), o delete
+  // apaga 0 linhas SEM erro — antes a UI achava que excluiu. Agora, 0 linhas -> erro acionavel.
+  const { data, error } = await supabase
     .from(PREMIUM_TABLES.campaigns)
     .delete()
     .eq('id', campaignId)
+    .select('id')
   if (error) throw error
+  if (!data || data.length === 0) {
+    throw new Error('Nada foi excluído. Verifique se a policy de DELETE está aplicada (supabase/migration-premium-delete-policies.sql) ou se você tem permissão.')
+  }
 }
 
 export async function createPremiumCampaign(form, { brandScope = BRAND_SCOPES.premium } = {}) {
