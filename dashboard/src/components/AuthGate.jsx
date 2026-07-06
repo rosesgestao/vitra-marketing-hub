@@ -152,22 +152,8 @@ function AuthScreen() {
   )
 }
 
-function LogoutButton() {
-  const [busy, setBusy] = useState(false)
-  return (
-    <button
-      type="button"
-      title="Sair da conta"
-      onClick={async () => { setBusy(true); await supabase.auth.signOut() }}
-      className="fixed bottom-4 left-4 z-50 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0A1628]/85 px-3 py-1.5 text-xs font-medium text-white/70 backdrop-blur transition hover:border-[#C4942A]/40 hover:text-white"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-      </svg>
-      {busy ? 'Saindo…' : 'Sair'}
-    </button>
-  )
-}
+// O logout agora vive no rodape da sidebar (perfil do usuario), em App.jsx — evita o botao flutuante
+// sobrepor as informacoes da conta. A regra de auth e a mesma (supabase.auth.signOut()).
 
 export default function AuthGate({ children }) {
   const [status, setStatus] = useState('loading') // 'loading' | 'authed' | 'anon'
@@ -193,10 +179,5 @@ export default function AuthGate({ children }) {
 
   if (status !== 'authed') return <AuthScreen />
 
-  return (
-    <>
-      {children}
-      <LogoutButton />
-    </>
-  )
+  return children
 }

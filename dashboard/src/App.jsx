@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, ChevronsLeft, ChevronsRight, Gem, Home, Images, Layers, LayoutGrid, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
+import { BarChart3, Bot, Building2, CalendarDays, ChevronDown, ChevronsLeft, ChevronsRight, Gem, Home, Images, Layers, LayoutGrid, LogOut, Megaphone, Menu, Search, Wand2, X } from 'lucide-react'
 import { viewIdFromHash, hashForViewId } from './lib/hashRoute.js'
 import { supabase } from './lib/supabase.js'
 import CommandPalette from './components/CommandPalette.jsx'
@@ -230,6 +230,8 @@ export default function App() {
   }, [])
 
   const acc = accountDisplay(account)
+  // Logout — mesma regra de auth (o AuthGate reage ao onAuthStateChange e volta para a tela de login).
+  const signOut = () => { supabase.auth.signOut().catch(() => {}) }
 
   return (
     <div className="flex h-screen overflow-hidden text-white">
@@ -245,33 +247,33 @@ export default function App() {
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(196,148,42,0.10),transparent_18rem)]" />
 
-        {/* Cabeçalho — expandido / mobile */}
-        <div className={`relative flex items-start justify-between gap-2 px-6 pb-6 pt-7 ${collapsed ? 'md:hidden' : ''}`}>
-          <div>
+        {/* Cabeçalho — expandido / mobile (logo + controles numa linha; kicker em bloco de largura total) */}
+        <div className={`relative px-6 pb-6 pt-7 ${collapsed ? 'md:hidden' : ''}`}>
+          <div className="flex items-center justify-between gap-2">
             <BrandHorizontalLogo brandScope={activeBrandScope} className="scale-[0.82] origin-left" />
-            <p className="mt-5 border-t border-gold-500/20 pt-4 text-[10px] font-semibold uppercase tracking-[0.32em] text-gold-500/70">
-              {activeBrand.shellKicker}
-            </p>
+            <div className="flex flex-shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                aria-label="Recolher menu"
+                title="Recolher menu"
+                className="hidden h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-white/65 transition-colors hover:border-gold-500/40 hover:bg-white/[0.06] hover:text-gold-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 md:grid"
+              >
+                <ChevronsLeft size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Fechar menu"
+                className="grid h-9 w-9 place-items-center rounded-lg text-white/55 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 md:hidden"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              aria-label="Recolher menu"
-              title="Recolher menu"
-              className="hidden rounded-lg p-2 text-white/45 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 md:inline-flex"
-            >
-              <ChevronsLeft size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileNavOpen(false)}
-              aria-label="Fechar menu"
-              className="rounded-lg p-2.5 text-white/55 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 md:hidden"
-            >
-              <X size={18} />
-            </button>
-          </div>
+          <p className="mt-5 border-t border-gold-500/20 pt-4 text-[10px] font-semibold uppercase tracking-[0.32em] text-gold-500/70">
+            {activeBrand.shellKicker}
+          </p>
         </div>
 
         {/* Cabeçalho — rail recolhido (desktop) */}
@@ -282,7 +284,7 @@ export default function App() {
             onClick={() => setCollapsed(false)}
             aria-label="Expandir menu"
             title="Expandir menu"
-            className="grid h-9 w-9 place-items-center rounded-lg text-white/45 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-white/65 transition-colors hover:border-gold-500/40 hover:bg-white/[0.06] hover:text-gold-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50"
           >
             <ChevronsRight size={18} />
           </button>
@@ -347,24 +349,42 @@ export default function App() {
 
         <div className="gold-line mx-0" />
 
-        {/* Rodapé — perfil do usuário logado (expandido) */}
+        {/* Rodapé — perfil do usuário logado + Sair (expandido) */}
         <div className={`relative px-4 py-4 ${collapsed ? 'md:hidden' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-gold-500/40 bg-gold-500/10 text-sm font-semibold text-gold-200">
               {acc.initial}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-white/85">{acc.name}</p>
               {acc.email && <p className="truncate text-[11px] text-white/40">{acc.email}</p>}
             </div>
+            <button
+              type="button"
+              onClick={signOut}
+              aria-label="Sair da conta"
+              title="Sair"
+              className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-white/55 transition-colors hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
+            >
+              <LogOut size={15} aria-hidden="true" />
+            </button>
           </div>
         </div>
 
-        {/* Rodapé — avatar (rail recolhido) */}
-        <div className={`relative px-3 py-4 ${collapsed ? 'hidden md:flex md:justify-center' : 'hidden'}`}>
+        {/* Rodapé — avatar + Sair (rail recolhido) */}
+        <div className={`relative flex-col items-center gap-2 px-3 py-4 ${collapsed ? 'hidden md:flex' : 'hidden'}`}>
           <div title={acc.name} className="grid h-9 w-9 place-items-center rounded-full border border-gold-500/40 bg-gold-500/10 text-sm font-semibold text-gold-200">
             {acc.initial}
           </div>
+          <button
+            type="button"
+            onClick={signOut}
+            aria-label="Sair da conta"
+            title="Sair"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-white/55 transition-colors hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
+          >
+            <LogOut size={16} aria-hidden="true" />
+          </button>
         </div>
       </aside>
 
