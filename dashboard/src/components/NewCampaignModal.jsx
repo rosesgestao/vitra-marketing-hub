@@ -800,6 +800,46 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
               )}
             </section>
 
+            {/* Quantidade de criativos: config (nao e a decisao-heroi do passo) -> fica ABAIXO do catalogo. */}
+            <section className="space-y-4">
+              <p className={sectionTitleClass}>Quantidade de criativos</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Quantas variações por template" labelClass={labelClass}>
+                  <BrandedSelect
+                    value={form.creative_variations}
+                    onChange={value => update('creative_variations', Number(value))}
+                    options={CREATIVE_VARIATION_OPTIONS}
+                  />
+                  <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
+                    Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
+                  </span>
+                  {(() => {
+                    const cap = distinctConceptCapacity(form, brandProfile)
+                    const ads = Math.min(Number(form.creative_variations) || 0, cap)
+                    const overflow = Number(form.creative_variations) > cap
+                    return (
+                      <>
+                        <span className="mt-1.5 block text-[11px] font-semibold leading-4 text-gold-300/90">
+                          Serao gerados {ads} anuncios &times; 3 formatos = {ads * 3} cortes (1:1, 9:16 e 1.91:1).
+                        </span>
+                        {overflow && (
+                          <span className="mt-1 block text-[11px] leading-4 text-amber-300/80">
+                            Este template tem {cap} angulos distintos — acima disso a copy se repetiria, entao o total foi limitado a {cap}.
+                          </span>
+                        )}
+                      </>
+                    )
+                  })()}
+                </Field>
+              </div>
+              <p className="text-xs leading-5 text-white/42">
+                A ferramenta usa as fotos enviadas como materia-prima, gera as variacoes e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
+              </p>
+            </section>
+        </div>
+
+        {/* Passo 2 · Dados & copy — a importacao por IA abre o passo (preenche justamente estes campos). */}
+        <div className={step === 2 ? 'space-y-7' : 'hidden'}>
             {extractEnabled && (
               <section className="space-y-4 rounded-2xl border border-gold-400/25 bg-gold-400/[0.04] p-5">
                 <div>
@@ -997,46 +1037,6 @@ export function NewCampaignModal({ brandProfile, prefill, saving, submitError, o
                 })()}
               </section>
             )}
-
-            {/* Quantidade de criativos: config (nao e a decisao-heroi do passo) -> fica ABAIXO do catalogo. */}
-            <section className="space-y-4">
-              <p className={sectionTitleClass}>Quantidade de criativos</p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Quantas variações por template" labelClass={labelClass}>
-                  <BrandedSelect
-                    value={form.creative_variations}
-                    onChange={value => update('creative_variations', Number(value))}
-                    options={CREATIVE_VARIATION_OPTIONS}
-                  />
-                  <span className="mt-1.5 block text-[11px] leading-4 text-white/35">
-                    Layout, marca e formatos permanecem fixos; a ferramenta varia argumentos, fotos, copy e CTA permitidos pelo template.
-                  </span>
-                  {(() => {
-                    const cap = distinctConceptCapacity(form, brandProfile)
-                    const ads = Math.min(Number(form.creative_variations) || 0, cap)
-                    const overflow = Number(form.creative_variations) > cap
-                    return (
-                      <>
-                        <span className="mt-1.5 block text-[11px] font-semibold leading-4 text-gold-300/90">
-                          Serao gerados {ads} anuncios &times; 3 formatos = {ads * 3} cortes (1:1, 9:16 e 1.91:1).
-                        </span>
-                        {overflow && (
-                          <span className="mt-1 block text-[11px] leading-4 text-amber-300/80">
-                            Este template tem {cap} angulos distintos — acima disso a copy se repetiria, entao o total foi limitado a {cap}.
-                          </span>
-                        )}
-                      </>
-                    )
-                  })()}
-                </Field>
-              </div>
-              <p className="text-xs leading-5 text-white/42">
-                A ferramenta usa as fotos enviadas como materia-prima, gera as variacoes e deixa o pacote pronto para QA, aprovacao e exportacao. Publicacao com verba continua exigindo autorizacao humana.
-              </p>
-            </section>
-        </div>
-
-        <div className={step === 2 ? 'space-y-7' : 'hidden'}>
             {selectedFieldGroups.map(group => (
               <section key={group.id} className="space-y-4">
                 <div className="border-b border-white/10 pb-3">
