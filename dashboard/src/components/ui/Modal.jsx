@@ -21,6 +21,12 @@ export default function Modal({
 }) {
   const panelRef = useRef(null)
   const restoreRef = useRef(null)
+  // onClose via REF: o efeito de foco NÃO pode depender da identidade de onClose. Pais que passam um
+  // onClose inline (recriado a cada render) fariam o efeito re-rodar a cada tecla — e o setTimeout de
+  // foco roubaria o cursor do campo (bug "digita 1 char e perde o foco"). O ref mantém o onClose atual
+  // sem re-executar o efeito. NÃO readicionar onClose às deps abaixo.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   const titleId = useId()
   const descId = useId()
 
@@ -39,7 +45,7 @@ export default function Modal({
     const onKey = (event) => {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose?.()
+        onCloseRef.current?.()
       } else if (event.key === 'Tab') {
         const f = focusables()
         if (!f.length) {
@@ -70,7 +76,8 @@ export default function Modal({
       const el = restoreRef.current
       if (el && typeof el.focus === 'function') el.focus()
     }
-  }, [open, onClose, initialFocusRef])
+    // Deps: só `open`/`initialFocusRef`. onClose é lido via onCloseRef (não entra nas deps — ver nota acima).
+  }, [open, initialFocusRef])
 
   if (!open) return null
 
