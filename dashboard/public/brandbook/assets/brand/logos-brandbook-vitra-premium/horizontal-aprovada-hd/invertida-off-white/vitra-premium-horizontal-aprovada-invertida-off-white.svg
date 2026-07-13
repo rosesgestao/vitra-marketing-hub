@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="300" height="100" role="img" aria-label="Vitra Premium - logo horizontal aprovada invertida para fundo off-white">
+  <title>Vitra Premium - logo horizontal aprovada invertida para fundo off-white</title>
+  <g transform="translate(3,2) scale(0.87)">
+    <polygon points="55,8 94,30.5 94,72.5 55,95 16,72.5 16,30.5" fill="#000000" stroke="#C4942A" stroke-width="2.3"/>
+    <polygon points="55,13 90,33 90,70 55,90 20,70 20,33" fill="none" stroke="rgba(212,168,74,0.15)" stroke-width="0.7"/>
+    <polygon points="25,37 39,37 32,54" fill="#FFE08A"/>
+    <polygon points="25,37 32,54 55,76" fill="#8B6914"/>
+    <polygon points="39,37 32,54 55,76" fill="#C4942A"/>
+    <polygon points="85,37 71,37 78,54" fill="#F0C95C"/>
+    <polygon points="85,37 78,54 55,76" fill="#7A5C10"/>
+    <polygon points="71,37 78,54 55,76" fill="#D4A84A"/>
+  </g>
+  <line x1="105" y1="20" x2="105" y2="80" stroke="rgba(196,148,42,0.35)" stroke-width="1"/>
+  <text x="135" y="48" font-family="Inter,system-ui,-apple-system,sans-serif" font-weight="700" font-size="27" letter-spacing="12" fill="#1A1A1A">VITR</text><path d="M254.99,28.560000000000002 L264.98,48.540000000000006 L245,48.540000000000006 Z M254.99,37.551 L258.48650000000004,44.544000000000004 L251.4935,44.544000000000004 Z" fill="#1A1A1A" fill-rule="evenodd"/>
+  <text x="122.50" y="71" font-family="Inter,system-ui,-apple-system,sans-serif" font-weight="700" font-size="10.5" letter-spacing="17.6108" fill="#C4942A">PREMIUM</text>
+</svg>
