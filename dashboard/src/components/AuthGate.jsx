@@ -22,7 +22,7 @@ function friendlyError(message = '') {
   if (/password should be at least|weak password|at least 6/i.test(message)) return `A senha precisa de ao menos ${MIN_PASSWORD} caracteres.`
   if (/same as the old|different from the old/i.test(message)) return 'A nova senha precisa ser diferente da anterior.'
   if (/signups? not allowed|signup is disabled/i.test(message)) return 'Cadastro desativado. Peca acesso ao administrador.'
-  if (/for security purposes|rate limit|too many/i.test(message)) return 'Muitas tentativas. Aguarde um instante e tente de novo.'
+  if (/for security purposes|rate limit|too many|email rate/i.test(message)) return 'Muitas solicitacoes de e-mail em pouco tempo (limite do provedor). Aguarde alguns minutos e tente UMA vez.'
   if (/unable to validate email|invalid email/i.test(message)) return 'E-mail invalido.'
   if (/session|expired|jwt/i.test(message)) return 'Sua sessao de redefinicao expirou. Peca um novo link.'
   return message || 'Nao foi possivel concluir. Tente novamente.'
@@ -52,12 +52,20 @@ function AuthScreen({ initialError = '' }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(initialError)
   const [notice, setNotice] = useState('')
+  const [cooldown, setCooldown] = useState(0) // trava anti-reenvio do link (evita esgotar o limite do provedor)
 
   const isSignup = mode === 'signup'
   const isReset = mode === 'reset'
 
+  // Conta regressiva do cooldown do "Enviar link".
+  useEffect(() => {
+    if (cooldown <= 0) return undefined
+    const timer = window.setInterval(() => setCooldown((c) => (c <= 1 ? 0 : c - 1)), 1000)
+    return () => window.clearInterval(timer)
+  }, [cooldown])
+
   function switchMode(next) {
-    setMode(next); setError(''); setNotice(''); setPassword(''); setConfirm('')
+    setMode(next); setError(''); setNotice(''); setPassword(''); setConfirm(''); setCooldown(0)
   }
 
   async function onSubmit(event) {
@@ -69,8 +77,13 @@ function AuthScreen({ initialError = '' }) {
       setBusy(true)
       const { error: authError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin })
       setBusy(false)
-      if (authError) return setError(friendlyError(authError.message))
-      setNotice('Se este e-mail tiver conta, enviamos um link para redefinir a senha. Verifique a caixa de entrada (e o spam) — o link vale por 1 hora.')
+      if (authError) {
+        // Limite do provedor: trava o botao por 60s para nao piorar o esgotamento da cota.
+        if (/rate|security|too many|email rate/i.test(authError.message)) setCooldown(60)
+        return setError(friendlyError(authError.message))
+      }
+      setCooldown(45) // evita reenvio em sequencia (que atinge o limite do provedor)
+      setNotice('Se este e-mail tiver conta, enviamos um link para redefinir a senha. Verifique a caixa de entrada (e o spam) — o link vale por 1 hora. Nao reenvie em sequencia.')
       return
     }
 
@@ -140,8 +153,8 @@ function AuthScreen({ initialError = '' }) {
         {error && <p role="alert" className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</p>}
         {notice && <p role="status" className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{notice}</p>}
 
-        <button type="submit" disabled={busy || !canSubmit} className="mt-6 w-full rounded-lg bg-[#C4942A] px-4 py-2.5 text-[15px] font-semibold text-[#0A1628] transition hover:bg-[#d4a84a] disabled:cursor-not-allowed disabled:opacity-50">
-          {submitLabel}
+        <button type="submit" disabled={busy || !canSubmit || cooldown > 0} className="mt-6 w-full rounded-lg bg-[#C4942A] px-4 py-2.5 text-[15px] font-semibold text-[#0A1628] transition hover:bg-[#d4a84a] disabled:cursor-not-allowed disabled:opacity-50">
+          {cooldown > 0 ? `Aguarde ${cooldown}s` : submitLabel}
         </button>
 
         {isReset ? (
