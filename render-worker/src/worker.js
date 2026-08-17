@@ -2,6 +2,12 @@ import 'dotenv/config'
 import express from 'express'
 import { createClient } from '@supabase/supabase-js'
 import { renderAssetPng, getBrowser, closeBrowser } from './render.js'
+import NodeWebSocket from 'ws'
+
+// Node 20 (base image do Puppeteer) nao tem WebSocket nativo; @supabase/realtime-js exige um a
+// partir da v2.45. O worker nao usa realtime, mas createClient() instancia o RealtimeClient de
+// qualquer forma e derruba o processo sem esse polyfill.
+if (!globalThis.WebSocket) globalThis.WebSocket = NodeWebSocket
 
 const URL = process.env.SUPABASE_URL
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
