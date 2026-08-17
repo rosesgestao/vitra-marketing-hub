@@ -4,8 +4,14 @@ WORKDIR /app
 COPY . .
 
 WORKDIR /app/dashboard
+
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
 RUN npm ci && npm run build
 
 ENV NODE_ENV=production
 EXPOSE 3000
-  CMD npx --yes serve -s dist -l 3000
+CMD npx --yes serve -s dist -l 3000
